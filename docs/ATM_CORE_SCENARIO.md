@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.19**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; physical bank switching not yet enabled**  
+Scenario revision: **0.8.20**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 implemented, runtime pending; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -39,11 +39,11 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.6.0 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
+| `src/boot/p127_boot.asm` | 0.6.1 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
 | `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
-| `src/kernel/p127_irq.asm` | 0.1.0 | DI-only mask/vector ownership preflight; no EI, IM, vector writes or IRQ dispatcher |\n| `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership, UI leases and software snapshot/rollback; no page OUT |
+| `src/kernel/p127_irq.asm` | 0.2.0 | DI-only mask/vector ownership plus closed-by-default interrupt-enable readiness gate; no EI/IM or vector writes | DI-only mask/vector ownership preflight; no EI, IM, vector writes or IRQ dispatcher |\n| `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership, UI leases and software snapshot/rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
 ## Stage 1 — physical page-state manager 0.2.0
@@ -399,3 +399,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - This does not validate asynchronous interrupt entry/return, an installed interrupt handler/vector, IM selection, IFF1/IFF2 preservation/restoration, or complete register/context preservation. It is not permission to execute EI or IM. Physical page-port OUT remains disabled.
 - No source module changed in this acceptance update. Scenario revision advanced to 0.8.19.
 - The first remaining acceptance group is still open: implement a real controlled interrupt-entry/return protocol with explicit vector ownership and a defined interrupt-mode policy. The current bootstrap remains DI-only. Then test resident transition/context preservation, software target-map commit/rollback, controlled physical W3 remap, and full regression.
+
+
+### 2026-11-09 — Stage 2.12: interrupt-enable readiness gate v0.2.0
+
+- Advanced `src/kernel/p127_irq.asm` to v0.2.0 and boot to v0.6.1.
+- Added a closed-by-default readiness gate. It rejects interrupt enablement unless all three future prerequisites are explicitly committed: vector ownership, verified vector-table mapping, and installed resident handler. A synthetic self-test proves the default-closed state, rejects an incomplete tuple, accepts only the complete tuple, and restores the safe boot state.
+- The gate is a preflight only and never executes EI or IM. The boot still runs DI-only with no owned vector and no installed handler. No interrupt entry/return routine is claimed.
+- Architectural blocker remains explicit: IM1's fixed vector #0038 resides in the current W0 ROM mapping and cannot be claimed writable by this stage. IM2 requires a verified, writable 257-byte table and known I-register mapping that do not overlap resident code/data; neither reservation has yet been established. Therefore no mode is selected and no vector is installed.
+- New boot calls run the gate self-test; the existing #EF pass line remains `IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED`. Runtime acceptance pending.
+- Physical page-port OUT remains disabled. Build not run in this environment.

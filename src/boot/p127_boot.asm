@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.6.0
+; Project127 — boot stage 0.6.1
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -86,6 +86,8 @@ p127_start:
         ; Stage 2.11: enforce the explicit DI-only interrupt ownership contract.
         call    p127_irq_init
         call    p127_irq_selftest
+        jp      c,p127_irq_failed
+        call    p127_irq_gate_selftest
         jp      c,p127_irq_failed
         ld      hl,p127_msg_irq_pass
         call    p127_puts
