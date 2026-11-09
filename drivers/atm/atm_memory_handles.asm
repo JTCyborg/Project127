@@ -100,7 +100,10 @@ atm_mem_scatter_alloc_loop:
         ld      a,(atm_mem_scatter_done)
         ld      (hl),a
         inc     hl
-        ld      de,atm_mem_scatter_length
+        ; Copy the exact UINT32 logical length INTO the handle record.
+        ; LDIR source is HL and destination is DE.
+        ex      de,hl
+        ld      hl,atm_mem_scatter_length
         ld      bc,4
         ldir
         ld      hl,atm_mem_scatter_length
@@ -242,6 +245,32 @@ atm_mem_scatter_selftest::
         ld      a,(atm_mem_scatter_done)
         cp      2
         jp      nz,atm_mem_scatter_test_fail
+        ld      a,7
+        ld      (atm_mem_scatter_test_stage),a
+        ; The public logical length must be stored in record bytes 2..5.
+        ld      a,(atm_mem_scatter_test_handle)
+        dec     a
+        ld      hl,atm_mem_scatter_handles
+        ld      de,6
+        or      a
+        jp      z,atm_mem_scatter_test_length_record_ready
+atm_mem_scatter_test_length_record_step:
+        add     hl,de
+        dec     a
+        jp      nz,atm_mem_scatter_test_length_record_step
+atm_mem_scatter_test_length_record_ready:
+        inc     hl
+        inc     hl
+        ld      de,atm_mem_scatter_length
+        ld      b,4
+atm_mem_scatter_test_length_record_compare:
+        ld      a,(de)
+        cp      (hl)
+        jp      nz,atm_mem_scatter_test_fail
+        inc     de
+        inc     hl
+        djnz    atm_mem_scatter_test_length_record_compare
+
         ld      hl,(atm_mem_scatter_vector)
         ld      de,8
         or      a
