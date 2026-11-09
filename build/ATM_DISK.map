@@ -499,7 +499,6 @@ p127_video_buffer_offset: EQU 0x00009412
 p127_video_buffer_slot_ptr: EQU 0x0000940C
 p127_video_buffer_temp_handle: EQU 0x0000940F
 p127_video_buffer_test_fail: EQU 0x00009408
-p127_video_buffer_test_fail_: EQU 0x00000000
 p127_video_buffer_test_fail_1: EQU 0x000093E6
 p127_video_buffer_test_fail_2: EQU 0x000093EA
 p127_video_buffer_test_fail_3: EQU 0x000093EE

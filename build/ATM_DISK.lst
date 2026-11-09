@@ -3834,27 +3834,21 @@
 505+  9333 3E 01                ld a,1
 506+  9335 32 0E 94             ld (p127_video_buffer_id),a
 507+  9338 CD D0 91             call P127_ATM_Video_BufferCreate
-atm_video_service.asm(508): error: Label not found: p127_video_buffer_test_fail_
-508+  933B DA 00 00             jp c,p127_video_buffer_test_fail_
+508+  933B DA E6 93             jp c,p127_video_buffer_test_fail_1
 509+  933E FE 01                cp 1
-atm_video_service.asm(510): error: Label not found: p127_video_buffer_test_fail_
-510+  9340 C2 00 00             jp nz,p127_video_buffer_test_fail_
+510+  9340 C2 E6 93             jp nz,p127_video_buffer_test_fail_1
 511+  9343 3E 02                ld a,2
 512+  9345 CD D0 91             call P127_ATM_Video_BufferCreate
-atm_video_service.asm(513): error: Label not found: p127_video_buffer_test_fail_
-513+  9348 DA 00 00             jp c,p127_video_buffer_test_fail_
+513+  9348 DA E6 93             jp c,p127_video_buffer_test_fail_1
 514+  934B FE 02                cp 2
-atm_video_service.asm(515): error: Label not found: p127_video_buffer_test_fail_
-515+  934D C2 00 00             jp nz,p127_video_buffer_test_fail_
+515+  934D C2 E6 93             jp nz,p127_video_buffer_test_fail_1
 516+  9350 3E 01                ld a,1
 517+  9352 CD 35 92             call P127_ATM_Video_BufferClear
-atm_video_service.asm(518): error: Label not found: p127_video_buffer_test_fail_
-518+  9355 DA 00 00             jp c,p127_video_buffer_test_fail_
+518+  9355 DA EA 93             jp c,p127_video_buffer_test_fail_2
 519+  9358 3E 01                ld a,1
 520+  935A 06 02                ld b,2
 521+  935C CD 58 92             call P127_ATM_Video_BufferCopy
-atm_video_service.asm(522): error: Label not found: p127_video_buffer_test_fail_
-522+  935F DA 00 00             jp c,p127_video_buffer_test_fail_
+522+  935F DA EE 93             jp c,p127_video_buffer_test_fail_3
 523+  9362                      ; Reject a range extending one byte beyond the frame.
 524+  9362 3E 01                ld a,1
 525+  9364 32 0E 94             ld (p127_video_buffer_id),a
@@ -3868,13 +3862,11 @@ atm_video_service.asm(522): error: Label not found: p127_video_buffer_test_fail_
 533+  937C 22 1C 94             ld (p127_video_length+2),hl
 534+  937F 3E 01                ld a,1
 535+  9381 CD 01 92             call p127_video_buffer_get_handle
-atm_video_service.asm(536): error: Label not found: p127_video_buffer_test_fail_
-536+  9384 DA 00 00             jp c,p127_video_buffer_test_fail_
+536+  9384 DA F2 93             jp c,p127_video_buffer_test_fail_4
 537+  9387 32 E5 7D             ld (atm_mem_handle_source),a
 538+  938A 3E 02                ld a,2
 539+  938C CD 01 92             call p127_video_buffer_get_handle
-atm_video_service.asm(540): error: Label not found: p127_video_buffer_test_fail_
-540+  938F DA 00 00             jp c,p127_video_buffer_test_fail_
+540+  938F DA F2 93             jp c,p127_video_buffer_test_fail_4
 541+  9392 32 E6 7D             ld (atm_mem_handle_destination),a
 542+  9395 2A 12 94             ld hl,(p127_video_buffer_offset)
 543+  9398 22 E7 7D             ld (atm_mem_handle_source_offset),hl
@@ -3888,28 +3880,22 @@ atm_video_service.asm(540): error: Label not found: p127_video_buffer_test_fail_
 551+  93B0 2A 1C 94             ld hl,(p127_video_length+2)
 552+  93B3 22 F1 7D             ld (atm_mem_handle_op_length+2),hl
 553+  93B6 CD A2 7B             call atm_mem_handle_copy
-atm_video_service.asm(554): error: Label not found: p127_video_buffer_test_fail_
-554+  93B9 D2 00 00             jp nc,p127_video_buffer_test_fail_
+554+  93B9 D2 F2 93             jp nc,p127_video_buffer_test_fail_4
 555+  93BC 3E 01                ld a,1
 556+  93BE CD F3 92             call P127_ATM_Video_BufferPrepare
-atm_video_service.asm(557): error: Label not found: p127_video_buffer_test_fail_
-557+  93C1 DA 00 00             jp c,p127_video_buffer_test_fail_
+557+  93C1 DA F6 93             jp c,p127_video_buffer_test_fail_5
 558+  93C4 3E 01                ld a,1
 559+  93C6 CD 18 92             call P127_ATM_Video_BufferDestroy
-atm_video_service.asm(560): error: Label not found: p127_video_buffer_test_fail_
-560+  93C9 D2 00 00             jp nc,p127_video_buffer_test_fail_
+560+  93C9 D2 FA 93             jp nc,p127_video_buffer_test_fail_6
 561+  93CC 3E 01                ld a,1
 562+  93CE CD 11 93             call P127_ATM_Video_BufferUnprepare
-atm_video_service.asm(563): error: Label not found: p127_video_buffer_test_fail_
-563+  93D1 DA 00 00             jp c,p127_video_buffer_test_fail_
+563+  93D1 DA FE 93             jp c,p127_video_buffer_test_fail_7
 564+  93D4 3E 01                ld a,1
 565+  93D6 CD 18 92             call P127_ATM_Video_BufferDestroy
-atm_video_service.asm(566): error: Label not found: p127_video_buffer_test_fail_
-566+  93D9 DA 00 00             jp c,p127_video_buffer_test_fail_
+566+  93D9 DA 02 94             jp c,p127_video_buffer_test_fail_8
 567+  93DC 3E 02                ld a,2
 568+  93DE CD 18 92             call P127_ATM_Video_BufferDestroy
-atm_video_service.asm(569): error: Label not found: p127_video_buffer_test_fail_
-569+  93E1 DA 00 00             jp c,p127_video_buffer_test_fail_
+569+  93E1 DA 06 94             jp c,p127_video_buffer_test_fail_9
 570+  93E4 AF                   xor a
 571+  93E5 C9                   ret
 572+  93E6              p127_video_buffer_test_fail_1:
@@ -5668,15 +5654,15 @@ Value    Label
 0x940C   p127_video_buffer_slot_ptr
 0x940F   p127_video_buffer_temp_handle
 0x9408   p127_video_buffer_test_fail
-0x93E6 X p127_video_buffer_test_fail_1
-0x93EA X p127_video_buffer_test_fail_2
-0x93EE X p127_video_buffer_test_fail_3
-0x93F2 X p127_video_buffer_test_fail_4
-0x93F6 X p127_video_buffer_test_fail_5
-0x93FA X p127_video_buffer_test_fail_6
-0x93FE X p127_video_buffer_test_fail_7
-0x9402 X p127_video_buffer_test_fail_8
-0x9406 X p127_video_buffer_test_fail_9
+0x93E6   p127_video_buffer_test_fail_1
+0x93EA   p127_video_buffer_test_fail_2
+0x93EE   p127_video_buffer_test_fail_3
+0x93F2   p127_video_buffer_test_fail_4
+0x93F6   p127_video_buffer_test_fail_5
+0x93FA   p127_video_buffer_test_fail_6
+0x93FE   p127_video_buffer_test_fail_7
+0x9402   p127_video_buffer_test_fail_8
+0x9406   p127_video_buffer_test_fail_9
 0x9420   p127_video_character
 0x941F   p127_video_column
 0x94BD   p127_video_host_fail_handler
