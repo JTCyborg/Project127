@@ -51,7 +51,7 @@ p127_host_entry:
         ld      hl,p127_host_trdos_ok
         call    p127_host_debug_string
         call    P127_ATM_Video_SelfTest
-        jp      c,p127_host_video_fail
+        jp      c,p127_video_host_fail_handler
         ld      hl,p127_host_video_ok
         call    p127_host_debug_string
         call    P127_DebugConsole_Init
@@ -71,7 +71,6 @@ p127_host_handle_ops_fail:
         ld      a,10
         call    p127_host_debug_char
         jp      p127_host_idle
-        jp      p127_video_host_fail_handler
 p127_host_trdos_fail:
         ld      d,a
         ld      hl,p127_host_trdos_error
