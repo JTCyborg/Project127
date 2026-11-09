@@ -1,34 +1,46 @@
 # Project127
 
-Project127 — самостоятельная низкоуровневая система для ATM Turbo 2+ и NeoGS.
+Clean implementation of the ATM Turbo 2+ host system and its NeoGS companion.
+Project126 is not used as an architecture or code base. Project125/126 may be
+consulted as references only.
 
-## Первый этап
+## Fixed architecture
 
-Сейчас создаётся минимальная, проверяемая загрузочная основа:
-- Z80 host-код загружается в ATM RAM по адресу `0x6000`;
-- точка входа — `0x6000`;
-- диагностический вывод выполняется через ATM debug port `0xEF`;
-- никакие драйверы инициализации устройств до проверки входа не запускаются.
+- ATM host RAM: 1 MiB; NeoGS RAM: 4 MiB, independent address spaces.
+- Memory addresses, lengths and file offsets use unsigned 32-bit values.
+- ATM owns external hardware and controller ports.
+- NeoGS accesses external devices only through the agreed host DMA/transport.
+- Storage target: physical Nemo IDE/SMUC, not a virtual disk image.
+- RTC: DS12887 through SMUC, serviced by the host.
+- Debug channel: port #EF; host entry address: #6000.
 
-## Аппаратная модель
+## Build boot disk
 
-- ATM host memory: 1 MiB.
-- NeoGS memory: 4 MiB, отдельное адресное пространство.
-- Внутренний API адресов и размеров: UINT32.
-- Обмен с NeoGS — через согласованный DMA/host transport, без прямого доступа NeoGS к внешним устройствам.
-- Физический HDD: Nemo IDE / SMUC. Никакого виртуального дискового образа вместо реального контроллера.
+Requirements: Python 3 and SjASMPlus on PATH.
 
-## Правила разработки
+~~~powershell
+.\tools\build_project127.ps1
+~~~
 
-1. Каждый этап должен собираться отдельно.
-2. Следующий драйвер не включается в стартовую последовательность, пока предыдущий не прошёл тест.
-3. Не использовать архитектуру и драйверы Project126 как основу Project127.
-4. Project125 может служить только справочным материалом по отдельным протоколам, не готовой реализацией.
-5. Не заявлять о поддержке устройства до реального теста на целевом эмуляторе/оборудовании.
+Creates build\Project127.trd, a standard 640 KiB TR-DOS image with BOOT
+(BASIC loader) and P127BOOT (Z80 host entry). At the TR-DOS prompt run:
 
-## Структура
+~~~text
+RUN "BOOT"
+~~~
 
-- `src/boot/` — минимальная точка входа.
-- `docs/` — архитектура и протоколы.
-- `tools/` — сборка.
-- `tests/` — проверяемые критерии этапов.
+## Implementation order
+
+1. TR-DOS boot chain.
+2. UINT32 range/check API.
+3. ATM RAM page allocator and memory operations.
+4. TR-DOS disk service.
+5. ATM native video.
+6. DS12887 RTC through SMUC.
+7. Keyboard/input.
+8. Physical Nemo IDE/SMUC block storage.
+9. Speaker/audio.
+10. Timer, events and interrupt dispatch.
+
+Each subsystem must have executable tests and a stable interface before later
+drivers depend on it.
