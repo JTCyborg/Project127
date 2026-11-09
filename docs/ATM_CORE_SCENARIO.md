@@ -977,3 +977,16 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - The same run continued through the complete memory/page allocator/W3/logical-copy checks and the accepted TR-DOS catalogue read: 8 sectors / 2048 bytes, 2 files, `DIRECTORY DUMP COMPLETE`.
 - No changes to the RTC driver were required for this acceptance. Continuous display refresh, date read/formatting, and a safe periodic scheduler/timer remain future work. IM/EI and live IRQ source/acknowledge remain disabled/unresolved.
 - Scenario revision: 0.8.78. Accepted implementation commit: `6bcd177e10ff043ac8d8e47060b0f465b80fc0ca`. No assembler or emulator run was performed by the assistant.
+
+
+### 2026-11-10 — Stage 10.1 Nemo IDE read-only LBA28 transport v0.1.0
+
+- Audited the supplied Project127 113/src implementation: nemo_ide.asm defines the Nemo IDE task-file/data ports and ATA LBA28 single-sector transport; driver_hdd.asm, fat16_bpb.asm, fat16_root.asm and fat16_view.asm build a partial FAT16 root listing on top of it.
+- The legacy transport's NemoIDE_ResetDrive restores AF after NemoIDE_WaitReady, discarding the readiness result. Its read failure path sets A=1 without setting Z, so callers using JP NZ do not have a reliable status contract. The old BPB calculation also truncates LBA/FAT arithmetic to 16 bits, assumes a fixed partition start at LBA 63 and 512-byte sectors, and the UI reads only the first root-directory sector.
+- Added src/kernel/p127_hdd.asm v0.1.0 as a Project127-native, read-only transport. It selects the ATA Master device, uses the legacy Nemo IDE ports, issues only ATA READ SECTORS (20h), transfers exactly 256 words / 512 bytes, and uses bounded status polling for READY, DRQ and command completion. ERR, DF, absent-device status and timeout are reported as failures.
+- Stage 10.1 reads the legacy partition boot sector at LBA 63 into the existing P0 staging buffer #C800, which is reusable after the accepted TR-DOS directory dump. It validates BPB bytes-per-sector = 512 and the boot signature 55 AA. The driver returns carry plus p127_hdd_error; error codes: 1 device not ready/absent, 2 LBA outside LBA28, 3 ATA read/status/timeout, 4 invalid bytes-per-sector, 5 invalid boot signature.
+- The boot sequence invokes the HDD probe only after the TR-DOS directory report has completed. The BASIC loader, BOOT0, TR-DOS preload and directory read remain unchanged. No ATA write, filesystem writes, DMA, IRQ/IM/EI, or new page-map OUT is introduced.
+- Runtime markers: [HDD] NEMO IDE LBA28 PROBE, [HDD] MASTER READY, [HDD] LBA 63 READ OK; 512B / BPB / 55AA, or [HDD] ERROR=NN.
+- This is source implementation only. SjASMPlus build and Unreal Speccy hardware/runtime verification are pending the user's rebuild; the assistant did not run an assembler or emulator. Stage 10.1 is not runtime-accepted.
+- Next unit after the read transport is confirmed: parse and validate the complete BPB with 32-bit arithmetic, then derive and read all sectors of the FAT16 root directory. Do not port the legacy one-sector root parser or expose disk writes.
+- Scenario revision: 0.8.79.
