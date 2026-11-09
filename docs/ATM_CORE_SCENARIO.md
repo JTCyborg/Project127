@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.75**  
+Scenario revision: **0.8.76**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -28,9 +28,9 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | **SOFTWARE PREFLIGHT + MAP TRANSACTION RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0, P4 table-slot preflight v0.3.0, map transaction v0.3.0 | Implement resident interrupt-entry/return and controlled physical W3 mapping. Physical remap remains blocked; independent physical stack backing and IFF/IM/vector handling are not proven. |
 | 6 — Managed program address space | **STAGE 6.1/6.2/6.3 PASS (user runtime log)** | 4 MiB logical page table; complete source/destination preflight; non-overlapping copy; 64-byte resident bounce buffer; page-boundary chunking through guarded W3 lease; exact completed-byte count and explicit partial-write semantics. Cross-page copy and W3 restoration runtime-accepted. |
-| 7 — TR-DOS and filesystem services | **STAGE 7.1 IMPLEMENTED; RUNTIME TEST PENDING** | Use the Project126 legacy pre-video mapping and read track 0 sectors 1–8 before UI/shadow-port setup; isolate the ROM scratch stack from the live bootstrap stack; report the P0 #C800 snapshot after UI initialization. |
+| 7 — TR-DOS and filesystem services | **STAGE 7.1 PASS (user runtime accepted, 2026-11-10)** | Project126 legacy pre-video mapping; isolated ROM scratch stack; read track 0 sectors 1–8; parse/report the P0 #C800 snapshot after UI initialization. User log confirms R0/r0 through R7/r7, 8 sectors / 2048 bytes, 2 entries and DIRECTORY DUMP COMPLETE. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
-| 9 — RTC and input | PLANNED | DS12887/SMUC and keyboard/input host services. |
+| 9 — RTC and input | **RTC SOURCE AUDIT NEXT** | Port the proven Project126 ATM Turbo 2+ RTC read path after confirming which physical backend is active in the target runtime; preserve keyboard protocol and existing port ownership. |
 | 10 — Physical storage | PLANNED | Nemo IDE/SMUC IDENTIFY, READ, WRITE, FLUSH with LBA and RAM bounds checks. |
 | 11 — Audio and timer/events | PLANNED | Speaker/audio, timer, interrupt dispatch and event queues. |
 | 12 — Integration/acceptance | PLANNED | Multi-page program, context-switch, video coexistence, storage and peripheral regression suite. |
@@ -947,3 +947,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - The reader retains Project126's exact register convention and error-byte handling: `D=0`, `E=0..7`, `HL=#C800 + sector*256`, `B=1`, `C=5`, `#5D0F/#5D10`. Per-sector #EF entry/return markers remain temporarily enabled for diagnosis.
 - Updated module versions: boot 0.7.11; TR-DOS reader 0.1.2. Scenario revision 0.8.75.
 - Stage 7.1 remains runtime-pending until a new log confirms the ROM returns, all eight sectors are read, and the directory dump completes. SjASMPlus and Unreal Speccy were not run here.
+
+
+### 2026-11-10 — Stage 7.1 runtime acceptance and checkpoint v0.1.3
+
+- User supplied the complete rebuilt runtime log. The pre-video TR-DOS ROM read returned for every directory sector: `R0/r0` through `R7/r7`.
+- The reader reported `[TRDOS] DIRECTORY READ OK; 8 SECTORS / 2048 BYTES`, parsed the 2 KiB snapshot at `#C800`, displayed both live entries (`boot .B`, `P127BOOT.C`) and ended with `[TRDOS] FILE COUNT=02` and `[TRDOS] DIRECTORY DUMP COMPLETE`.
+- This accepts Stage 7.1's read-only directory acquisition and dump. It does not yet accept file extent validation, arbitrary file reads, or file loading.
+- Stage 6.3 logical cross-page copy, W3=P0/UI restoration, guarded allocator and the preceding memory/map/IRQ preflight checks remain PASS as shown in the same user log. IM/EI and live IRQ source/acknowledge remain disabled/unresolved.
+- Checkpoint scenario revision: 0.8.76. Source behavior is unchanged in this checkpoint. The next work item is an audit/port of the existing Project126 RTC path; no RTC source is changed by this acceptance commit.
+- The latest fetched `main` head before this commit was `a48cb40ae1b0a53809340cd9d90a631a1f700540`; the commit is based on that exact head. SjASMPlus and Unreal Speccy were not run here.
