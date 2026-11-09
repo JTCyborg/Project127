@@ -1,6 +1,6 @@
 # Project127 — low-level foundation
 
-**Revision:** 0.2  
+**Revision:** 0.3  
 **Status:** architecture baseline plus initial ATM physical-page allocator.  
 **Scope:** ATM Turbo 2+ Z80 firmware, NeoGS Z80 firmware, their shared memory/transport ABI, and the later 8086 emulator.
 
@@ -161,7 +161,54 @@ numbers to callers. A 16 KiB+1 allocation is covered by the runtime allocator
 self-test. Multi-extent handles and byte READ/WRITE/FILL/COPY are not yet
 advertised as implemented.
 
-## 10. Implementation order
+## 10. ATM memory-operation ABI decision
+
+The ATM backend uses a **host-buffer descriptor**, not a raw Z80 pointer, as
+the data endpoint of bulk memory operations. A raw 16-bit Z80 pointer is not
+a valid general-purpose buffer descriptor: its address space is shared with
+the four ATM mapping windows, can cross a window boundary, and may refer to
+the code or stack that must remain resident while the backend remaps RAM.
+
+The public request therefore carries 32-bit byte offsets for both endpoints
+and a 32-bit byte length. The endpoints identify physical ATM RAM ranges;
+the caller never supplies a page number or a CPU-window address. The backend
+validates both complete ranges before modifying memory and performs internal
+mapping/chunking. The host firmware, code, stack, and video reservations are
+never allocatable endpoints.
+
+The operation semantics are:
+
+- READ: copy bytes from the specified managed range to a caller-owned ATM RAM
+  transfer range.
+- WRITE: copy bytes from a caller-owned ATM RAM transfer range into the
+  specified managed range.
+- FILL: fill the specified managed range with the requested byte value.
+- COPY: memmove semantics between two managed ranges, including overlapping
+  ranges; direction is selected from the validated physical offsets.
+- All offsets and lengths are UINT32 little-endian byte quantities.
+- Zero length succeeds without touching memory, provided each offset is a
+  valid position at or below capacity.
+- A nonzero operation validates every source and destination range before
+  the first write. Any unsupported mapping or ownership condition fails
+  explicitly; it must never report partial completion as success.
+- Page/window size is strictly private. A request may span any number of
+  physical pages and is completed internally.
+
+The transfer range is a separately allocated/pinned ATM range, not an
+arbitrary 16-bit CPU pointer. This keeps the ABI independent of whichever
+window currently exposes a physical page and permits later DMA streaming to
+use the same descriptors. READ/WRITE are synchronous memory-to-memory
+operations in this milestone; host-mediated NeoGS DMA streaming is a later
+transport layer and is not implied by these names.
+
+This decision deliberately avoids a 16-bit caller-buffer ceiling and avoids
+mapping over the active host code or stack. It also means READ/WRITE must not
+be implemented by blindly copying through the currently mapped CPU window.
+The implementation must provide a safe backend copy engine (using a dedicated
+reserved staging area or a verified multi-window mapping) before advertising
+these operation capability bits.
+
+## 11. Implementation order
 
 1. Extend the ATM contiguous allocator to multi-extent handles and implement
    READ/WRITE/FILL/COPY with internal physical-page chunking.
