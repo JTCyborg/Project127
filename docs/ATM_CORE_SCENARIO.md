@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.5.0**  
+Scenario revision: **0.5.1**  
 Status: **Project126 console port integrated; build and emulator acceptance pending**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -105,3 +105,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - `BIOS_DebugConsole_PrintChar` emits each character to `#EF`; `BIOS_DebugConsole_PrintAt` mirrors static status-panel characters and appends CR/LF. The visible status panel and scrolling log are therefore also represented in the port log.
 - Module versions: `src/boot/p127_boot.asm` 0.4.0; `src/ui/p127_console.asm` 0.1.0; scenario 0.5.0.
 - Build and Unreal Speccy runtime acceptance have not yet been run; ATM shadow-port setup and page mapping require target verification.
+
+
+### 2026-11-09 — Stage 2.2 build correction: console v0.1.1
+
+- Removed the accidentally duplicated `BIOS_DebugConsole_PrintChar` body that caused duplicate global and local labels.
+- Replaced relative `JR` branches in the console module with absolute `JP` branches. This removes the ±128-byte displacement limit encountered after integrating the larger renderer.
+- No changes to BOOT0 entry, BASIC loader, memory allocator, or UI address placement.
+- Module version: `src/ui/p127_console.asm` 0.1.1; scenario revision 0.5.1.
+- Build and emulator verification remain pending.
