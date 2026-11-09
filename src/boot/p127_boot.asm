@@ -41,13 +41,17 @@ p127_start:
         ld      hl,p127_msg_ui_ready
         call    p127_puts
 
-        ; Stage 1/2: software page accounting plus verified ATM video reserves.
+        ; Stage 1/2: software page accounting plus video and active boot-map reserves.
         call    p127_mem_init
         ld      hl,p127_msg_mem_init
         call    p127_puts
         call    p127_mem_reserve_video
         jr      c,p127_mem_map_failed
         ld      hl,p127_msg_video_reserved
+        call    p127_puts
+        call    p127_mem_reserve_boot
+        jr      c,p127_mem_boot_failed
+        ld      hl,p127_msg_boot_reserved
         call    p127_puts
         call    p127_mem_selftest
         jr      c,p127_mem_failed
@@ -56,6 +60,10 @@ p127_start:
         jr      p127_idle
 p127_mem_map_failed:
         ld      hl,p127_msg_mem_map_fail
+        call    p127_puts
+        jr      p127_idle
+p127_mem_boot_failed:
+        ld      hl,p127_msg_boot_reserve_fail
         call    p127_puts
         jr      p127_idle
 p127_mem_failed:
@@ -103,6 +111,10 @@ p127_msg_mem_init:
         db      "[P127] MEM INIT 1MB/64P", 13, 10, 0
 p127_msg_video_reserved:
         db      "[P127] VIDEO RAM RESERVED P1,P3,P5,P7", 13, 10, 0
+p127_msg_boot_reserved:
+        db      "[P127] BOOT MAP RESERVED P0,P2; P5 ACTIVE", 13, 10, 0
+p127_msg_boot_reserve_fail:
+        db      "[P127] BOOT RAM RESERVE FAIL", 13, 10, 0
 p127_msg_mem_map_fail:
         db      "[P127] VIDEO RAM RESERVE FAIL", 13, 10, 0
 p127_msg_mem_pass:

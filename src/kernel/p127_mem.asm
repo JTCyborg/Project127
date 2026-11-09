@@ -1,14 +1,15 @@
 ; ============================================================================
 ; Project127 ATM Core — physical page-state manager
-; Module version: 0.2.0
+; Module version: 0.3.0
 ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
 ;      free A=page, C=invalid/not allocated.
 ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
-; NOTE: IDs are accounting handles only. Hardware page-register encoding and
-;       video/kernel reservations are deliberately supplied by later map code.
+; ATM Turbo 2+ page IDs are physical 16 KiB RAM pages. Bootstrap reservations
+; reflect the active ZX-128 map: page 5 (window 1), page 2 (window 2), and
+; page 0 (window 3). Page 5 is already covered by the video-page union.
 ; ============================================================================
 P127_MEM_VERSION_MAJOR EQU 0
-P127_MEM_VERSION_MINOR EQU 2
+P127_MEM_VERSION_MINOR EQU 3
 P127_MEM_VERSION_PATCH EQU 0
 P127_MEM_PAGE_COUNT    EQU 64
 P127_MEM_PAGE_SIZE     EQU 04000h
@@ -89,6 +90,21 @@ p127_mem_reserve_video:
         or      a
         ret
 
+; Reserve bootstrap pages that are live in the current ZX-128 host map.
+; Window 1/page 5 contains P127BOOT.C; window 2/page 2 contains the resident
+; UI and stack; window 3/page 0 is retained as the host/staging page.
+; Page 5 is already RESERVED by p127_mem_reserve_video.
+; OUT: carry=1 if either reservation conflicts.
+p127_mem_reserve_boot:
+        ld      a,0
+        ld      b,1
+        call    p127_mem_reserve
+        ret     c
+        ld      a,2
+        ld      b,1
+        call    p127_mem_reserve
+        ret
+
 ; Allocate the first free physical page.
 ; OUT: A=page ID, carry=1 when exhausted.
 p127_mem_alloc:
@@ -131,10 +147,16 @@ p127_mem_error:
         scf
         ret
 
-; Runtime smoke test: reserved video pages are immutable; allocation/free works.
+; Runtime smoke test: video and bootstrap pages are immutable; allocation/free works.
 ; OUT: carry=1 on failure. Does not retain any allocated page.
 p127_mem_selftest:
+        ld      a,0
+        call    p127_mem_free
+        jr      nc,p127_mem_test_fail
         ld      a,1
+        call    p127_mem_free
+        jr      nc,p127_mem_test_fail
+        ld      a,2
         call    p127_mem_free
         jr      nc,p127_mem_test_fail
         ld      a,3

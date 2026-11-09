@@ -1,13 +1,13 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.5.2**  
-Status: **BOOT0, console, and Stage 1 memory smoke test accepted in user-reported emulator run**  
+Scenario revision: **0.6.0**  
+Status: **BOOT0, console, and Stage 1 smoke test accepted; bootstrap physical-map reservations added, runtime retest pending**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
 
 1. ATM physical RAM is exactly 1 MiB (1,048,576 bytes).
-2. The page-accounting model uses 64 pages × 16 KiB. This is a software accounting unit; physical page-register encoding must be verified against the target ATM model before any hardware mapping is enabled.
+2. ATM Turbo 2+ RAM consists of 64 physical pages × 16 KiB. The page dispatcher uses inverse page IDs on ports #3FF7/#7FF7/#BFF7/#FFF7; RAM selection sets D6=1 and D7=0. Hardware mapping remains disabled in Project127 until the mapper stage.
 3. Kernel size is measured from the linked image/runtime layout; no guessed fixed kernel reservation.
 4. Video memory reservations must cover every supported ATM/Spectrum video mode. Exact physical ranges are to be derived from Project112/Project126 source and validated before they are marked unavailable.
 5. Free program memory is computed from the actual page map after kernel, video, firmware, stack, and device reservations.
@@ -22,8 +22,8 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | Stage | Status | Deliverable / acceptance |
 |---|---|---|
 | 0 — Bootstrap baseline | **PASS (baseline)** | BASIC `boot.B` loads `P127BOOT.C` at #6000; original four BOOT0 diagnostic lines retained. |
-| 1 — Physical page-state manager | **PASS (runtime smoke test)** | 64-entry page-state table; video reservations; allocate/free/reallocate smoke test passed in user-reported emulator log. |
-| 2 — Physical memory map | IN PROGRESS | Project112 confirms video page IDs 1, 3, 5, 7; these are now reserved. Verify ROM boundary and ATM bank mapping; place kernel immediately beside ROM; derive kernel end; reserve stacks, firmware and remaining device regions; identify highest eligible RAM boundary for top-down program arena. No guessed ranges. |
+| 1 — Physical page-state manager | **PASS (previous runtime smoke test); bootstrap reserve retest pending** | 64-entry page-state table; video and active boot-map reservations; allocate/free/reallocate smoke test. |
+| 2 — Physical memory map | **PARTIALLY VERIFIED** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
 | 4 — Page mapper | PLANNED | Verified ATM hardware page-register backend; map/unmap API; no direct hardware writes from applications. |
 | 5 — Process/context manager | PLANNED | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
@@ -40,7 +40,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | Module | Version | State |
 |---|---:|---|
 | `src/boot/p127_boot.asm` | 0.3.0 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
-| `src/kernel/p127_mem.asm` | 0.2.0 | Software page-state manager; reserves verified video pages 1,3,5,7; no hardware mapping yet |
+| `src/kernel/p127_mem.asm` | 0.3.0 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
@@ -52,7 +52,8 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 - `p127_mem_alloc`: first-fit allocation.
 - `p127_mem_free`: only releases ALLOCATED pages; RESERVED pages cannot be freed.
 - `p127_mem_reserve_video`: reserves the union of ATM video pages 1, 3, 5, 7.
-- `p127_mem_selftest`: verifies video pages cannot be freed, then allocate -> free -> allocate same first-fit page -> free.
+- `p127_mem_reserve_boot`: additionally reserves page 0 (window 3 host/staging) and page 2 (window 2 resident UI/stack); page 5 (window 1 boot image) is already reserved by the video union.
+- `p127_mem_selftest`: verifies video and bootstrap pages cannot be freed, then allocate -> free -> allocate same first-fit page -> free.
 - Boot emits `MEM INIT` and `MEM PAGE TEST PASS/FAIL` on #EF after the original BOOT0 messages.
 
 **Acceptance boundary:** the smoke test validates software state transitions only. It does not validate ATM physical page IDs, hardware mapping, video reservations, DMA, or availability of pages for applications. The allocator must not be exposed to application loading until Stage 2 supplies the verified physical map.
@@ -115,6 +116,17 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Module version: `src/ui/p127_console.asm` 0.1.1; scenario revision 0.5.1.
 - Build and emulator verification remain pending.
 
+
+### 2026-11-09 — Stage 2.3: ATM Turbo 2+ bootstrap map and safe reservations
+
+- Audited Project112 `112/src/main.asm`, `112/src/video_mode_control.asm`, `112/src/mode_atm.asm`, the Project127 Project126-derived console, and the ATM Turbo 2+ architecture document, section 4.1.
+- Confirmed the four 16 KiB CPU windows are independently selected through shadow ports #3FF7 (window 0), #7FF7 (window 1), #BFF7 (window 2), and #FFF7 (window 3).
+- For RAM pages, D0-D5 carry the inverted physical page number, D6=1 selects RAM, and D7=0 disables #7FFD page-bit substitution. Thus page 5 is encoded as #7A, page 1 as #7E, page 7 as #78, page 3 as #7C, and page 0 as #7F. The mapper is documented but not yet activated by Project127.
+- Confirmed the active bootstrap layout: window 0 remains TR-DOS ROM; window 1 uses RAM page 5 (loaded code at #6000); window 2 uses RAM page 2 (resident console at #A000 and stack at #BFFF); window 3 is restored as RAM page 0 by the Project126-derived console host-page routine.
+- Added `p127_mem_reserve_boot` in memory module v0.3.0 to reserve live bootstrap pages 0 and 2. Page 5 is already reserved by the video union. The self-test now verifies pages 0,1,2,3,5,7 cannot be freed.
+- Boot now reports `[P127] BOOT MAP RESERVED P0,P2; P5 ACTIVE` before the allocator test.
+- This is conservative accounting of the current boot map, not kernel relocation or a runtime physical-bank probe. The first allocator page should now be page 4; verify this in the next emulator run.
+- Next: implement a controlled page-mapper API using the verified inverse encoding, preserving the active map and refusing to remap windows containing the currently executing kernel/stack.
 
 ### 2026-11-09 — Runtime acceptance: BOOT0, console and Stage 1 memory smoke test
 
