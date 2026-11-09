@@ -6248,9 +6248,9 @@
  48+  E0D0
  49+  E0D0                      ; Mark the ROM hand-off separately from the actual CODE load.
  50+  E0D0 00 14                DB      0, 20
- 51+  E0D2 2A 00                DW      LINE20_END-LINE20
+ 51+  E0D2 2B 00                DW      LINE20_END-LINE20
  52+  E0D4              LINE20:
- 53+  E0D4                      ; Emit the load marker, then execute LOAD as a tokenized BASIC command.
+ 53+  E0D4                      ; OUT marker, followed by fully tokenized Spectrum BASIC LOAD syntax.
  54+  E0D4 DF                   DB      OUT_CMD
  55+  E0D5 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
  55+  E0D9 00 00 EF 00
@@ -6259,58 +6259,60 @@
  57+  E0DF 33 0E 00 00          DB      "3", $0E, $00, $00, $03, $00, $00
  57+  E0E3 03 00 00
  58+  E0E6 3A                   DB      ":"
- 59+  E0E7 EF 22 70 31          DB      $EF, 34, "p127host", 34, " CODE 24576", $0D
+ 59+  E0E7 EF 22 70 31          DB      $EF, 34, "p127host", 34
  59+  E0EB 32 37 68 6F
- 59+  E0EF 73 74 22 20
- 59+  E0F3 43 4F 44 45
- 59+  E0F7 20 32 34 35
- 59+  E0FB 37 36 0D
- 60+  E0FE              LINE20_END:
- 61+  E0FE
- 62+  E0FE                      ; This marker is reached only after TR-DOS LOAD has returned.
- 63+  E0FE 00 19                DB      0, 25
- 64+  E100 13 00                DW      LINE25_END-LINE25
- 65+  E102              LINE25:
- 66+  E102 DF                   DB      OUT_CMD
- 67+  E103 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
- 67+  E107 00 00 EF 00
- 67+  E10B 00
- 68+  E10C 2C                   DB      ","
- 69+  E10D 34 0E 00 00          DB      "4", $0E, $00, $00, $04, $00, $00
- 69+  E111 04 00 00
- 70+  E114 0D                   DB      $0D
- 71+  E115              LINE25_END:
- 72+  E115
- 73+  E115                      ; Enter the host program at 6009h, exactly as Project126 does.
- 74+  E115 00 1E                DB      0, 30
- 75+  E117 1E 00                DW      LINE30_END-LINE30
- 76+  E119              LINE30:
- 77+  E119 DF                   DB      OUT_CMD
- 78+  E11A 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
- 78+  E11E 00 00 EF 00
- 78+  E122 00
- 79+  E123 2C                   DB      ","
- 80+  E124 32 0E 00 00          DB      "2", $0E, $00, $00, $02, $00, $00
- 80+  E128 02 00 00
- 81+  E12B 3A                   DB      ":"
- 82+  E12C F9                   DB      RANDOMIZE
- 83+  E12D C0                   DB      USR
- 84+  E12E B0                   DB      VAL
- 85+  E12F 22                   DB      34
- 86+  E130 32 34 35 38          DEFM    "24585"
- 86+  E134 35
- 87+  E135 22                   DB      34
- 88+  E136 0D                   DB      $0D
- 89+  E137              LINE30_END:
- 90+  E137
- 91+  E137 80                   DB      $80
- 92+  E138              BASIC_END:
+ 59+  E0EF 73 74 22
+ 60+  E0F2 AF                   DB      $AF
+ 61+  E0F3 32 34 35 37          DB      "24576", $0E, $00, $00, $60, $00, $00
+ 61+  E0F7 36 0E 00 00
+ 61+  E0FB 60 00 00
+ 62+  E0FE 0D                   DB      $0D
+ 63+  E0FF              LINE20_END:
+ 64+  E0FF
+ 65+  E0FF                      ; This marker is reached only after TR-DOS LOAD has returned.
+ 66+  E0FF 00 19                DB      0, 25
+ 67+  E101 13 00                DW      LINE25_END-LINE25
+ 68+  E103              LINE25:
+ 69+  E103 DF                   DB      OUT_CMD
+ 70+  E104 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
+ 70+  E108 00 00 EF 00
+ 70+  E10C 00
+ 71+  E10D 2C                   DB      ","
+ 72+  E10E 34 0E 00 00          DB      "4", $0E, $00, $00, $04, $00, $00
+ 72+  E112 04 00 00
+ 73+  E115 0D                   DB      $0D
+ 74+  E116              LINE25_END:
+ 75+  E116
+ 76+  E116                      ; Enter the host program at 6009h, exactly as Project126 does.
+ 77+  E116 00 1E                DB      0, 30
+ 78+  E118 1E 00                DW      LINE30_END-LINE30
+ 79+  E11A              LINE30:
+ 80+  E11A DF                   DB      OUT_CMD
+ 81+  E11B 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
+ 81+  E11F 00 00 EF 00
+ 81+  E123 00
+ 82+  E124 2C                   DB      ","
+ 83+  E125 32 0E 00 00          DB      "2", $0E, $00, $00, $02, $00, $00
+ 83+  E129 02 00 00
+ 84+  E12C 3A                   DB      ":"
+ 85+  E12D F9                   DB      RANDOMIZE
+ 86+  E12E C0                   DB      USR
+ 87+  E12F B0                   DB      VAL
+ 88+  E130 22                   DB      34
+ 89+  E131 32 34 35 38          DEFM    "24585"
+ 89+  E135 35
+ 90+  E136 22                   DB      34
+ 91+  E137 0D                   DB      $0D
+ 92+  E138              LINE30_END:
  93+  E138
+ 94+  E138 80                   DB      $80
+ 95+  E139              BASIC_END:
+ 96+  E139
 # file closed: boot_loader.generated.asm
- 56   E138                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
- 57   E138
- 58   E138                      PAGE 0
- 59   E138
+ 56   E139                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
+ 57   E139
+ 58   E139                      PAGE 0
+ 59   E139
 # file closed: project127_disk.generated.asm
 
 Value    Label
@@ -6557,7 +6559,7 @@ Value    Label
 0x00E8   ATM_SCATTER_EXTENT_BYTES
 0x0008   ATM_SCATTER_HANDLE_COUNT
 0x003A   ATM_SCATTER_MAX_EXTENTS
-0xE138 X BASIC_END
+0xE139 X BASIC_END
 0xE000 X basic_loader
 0xE000 X BASIC_START
 0x00FD   CLEAR
@@ -6566,11 +6568,11 @@ Value    Label
 0xE028   LINE11
 0xE0D0   LINE11_END
 0xE0D4   LINE20
-0xE0FE   LINE20_END
-0xE102   LINE25
-0xE115   LINE25_END
-0xE119   LINE30
-0xE137   LINE30_END
+0xE0FF   LINE20_END
+0xE103   LINE25
+0xE116   LINE25_END
+0xE11A   LINE30
+0xE138   LINE30_END
 0x00DF   OUT_CMD
 0x0001   P127_ABI_MAJOR
 0x0000   P127_ABI_MINOR
