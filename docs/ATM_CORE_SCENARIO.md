@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.29**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.0 source implemented, runtime pending; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; physical bank switching not yet enabled**  
+Scenario revision: **0.8.30**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -486,3 +486,11 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Corrected the expected flag-register bytes in the synthetic context test. Z80 `OR A` sets P/V from even parity and copies undocumented flag bits 5/3 from A; the exact expected AF snapshots are now `#5A0C` and `#A5A4`.
 - IRQ module advanced to v0.4.1; boot source label advanced to v0.6.5; scenario revision 0.8.29.
 - No interrupt/vector policy changed. Runtime and assembly verification remain pending.
+
+
+### 2026-11-09 — Stage 2.15 runtime acceptance
+
+- User-provided ATM runtime log reports `[P127] IRQ FRAME ROUNDTRIP PASS; VECTOR DISABLED` and all preceding diagnostics through `MAP MODEL TEST PASS; OUT DISABLED`.
+- Stage 2.15 synthetic IRQ frame save/restore v0.4.1 is accepted at runtime: primary/alternate register-bank round-trip test and IFF2-disabled guard passed in the user's emulator run.
+- Acceptance is limited to the synchronous CALL-based frame test. It does not validate asynchronous interrupt entry, interrupt-source acknowledgement, vector-bus behavior, IM1/IM2, P4 physical mapping, or EI. Hardware IRQ remains disabled and physical mapper OUT remains disabled.
+- Scenario revision 0.8.30. No source module version change.
