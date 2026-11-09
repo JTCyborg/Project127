@@ -1,7 +1,7 @@
 ; ============================================================================
 ; Project127 ATM-native debug console, ported from Project126
 ; Source: Project126/atm_host/p126_screen_console.asm
-; Module version: 0.1.0
+; Module version: 0.1.1
 ; ATM Turbo 2+ RG6 80x25; upper 12 rows status, lower 13 rows scrolling log.
 ; Every displayed debug character and static UI label is mirrored to #EF.
 ; Resident placement: #A000, in the Project126 host display window.
@@ -243,6 +243,8 @@ BIOS_DebugConsole_PrintAt::
         push    bc
         push    de
         push    hl
+        call    p127_w3_ui_enter
+        jp      c,.p126_print_at_denied
         ld      (bios_dbg_text_ptr), hl
         ld      (bios_dbg_print_row), a
         ld      a, c
@@ -279,6 +281,7 @@ BIOS_DebugConsole_PrintAt::
         ld      (bios_dbg_print_col), a
         jp      .p126_print_at_loop
 .p126_print_at_done:
+        call    p127_w3_ui_leave
         ld      bc,P127_UI_DEBUG_PORT
         ld      a,13
         out     (c),a
@@ -289,9 +292,19 @@ BIOS_DebugConsole_PrintAt::
         pop     bc
         pop     af
         ret
+.p126_print_at_denied:
+        pop     hl
+        pop     de
+        pop     bc
+        pop     af
+        ret
 
 ; IN: A=character. CR/LF/BS are handled; printable ASCII is rendered.
 BIOS_DebugConsole_PrintChar::
+        push    af
+        call    p127_w3_ui_enter
+        jr      c,.p126_console_denied
+        pop     af
         push    af
         push    bc
         ld      bc,P127_UI_DEBUG_PORT
@@ -360,9 +373,13 @@ BIOS_DebugConsole_PrintChar::
         call    p126_screen_write_char
         jp      .p126_console_sync_cursor
 .p126_console_done:
+        call    p127_w3_ui_leave
         pop     hl
         pop     de
         pop     bc
+        pop     af
+        ret
+.p126_console_denied:
         pop     af
         ret
 

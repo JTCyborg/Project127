@@ -34,6 +34,8 @@ p127_start:
         ld      hl, p127_msg_pass
         call    p127_puts
 
+        ; Initialize software W3 ownership before bringing up the UI.
+        call    p127_w3_init
         ; Initialize Project126's ATM-native debug console after BOOT0.
         call    p127_ui_init
         ld      a,1
@@ -72,6 +74,10 @@ p127_start:
         ; supplies a synthetic quiesced-UI state; it does not quiesce UI.
         call    p127_resident_selftest
         jp      c,p127_resident_failed
+        call    p127_w3_selftest
+        jp      c,p127_w3_failed
+        ld      hl,p127_msg_w3_pass
+        call    p127_puts
         ld      hl,p127_msg_resident_pass
         call    p127_puts
         ld      hl,p127_msg_handoff_pass
@@ -81,6 +87,10 @@ p127_start:
         jr      p127_idle
 p127_stack_probe_failed:
         ld      hl,p127_msg_stack_probe_fail
+        call    p127_puts
+        jr      p127_idle
+p127_w3_failed:
+        ld      hl,p127_msg_w3_fail
         call    p127_puts
         jr      p127_idle
 p127_resident_failed:

@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.6**  
+Scenario revision: **0.8.7**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 accepted by user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -272,3 +272,25 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Boot reports `RESIDENT WINDOW CONTRACT PASS; OUT DISABLED` when the software contract tests pass.
 - Build and emulator runtime verification are pending user confirmation. Scenario revision 0.8.6.
 - Next: implement an explicit UI quiesce/resume state machine and host-staging ownership transfer for W3. Only after that is runtime-verified may W3 become a physical remap candidate. Keep all physical bank writes disabled.
+
+
+### 2026-11-09 — Runtime acceptance: resident-window contract v0.1.0
+
+- User rebuilt and ran the Project127 image and supplied the complete #EF log.
+- The log confirms the existing bootstrap path: BASIC load, Stage 2 entry at #6000, stack at #BFFF, BOOT0, console/debug mirror, 1 MiB / 64-page software memory initialization, video/bootstrap reservations, and page-state self-test.
+- The new line `RESIDENT WINDOW CONTRACT PASS; OUT DISABLED` confirms that resident-window contract self-test v0.1.0 executes successfully in the user's emulator.
+- The same run also reports `RESIDENT STACK PROBE PASS; OUT DISABLED`, `HANDOFF GUARD TEST PASS; OUT DISABLED`, and `MAP MODEL TEST PASS; OUT DISABLED`.
+- Acceptance is limited to software validation and the synthetic quiesced-UI test input. It does not prove that the console is actually quiesced, that W3 ownership is transferred, or that any physical page mapping is changed.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.7.
+- Next implementation stage: inspect the actual console's W3 access/restore paths and implement a real software UI quiesce/resume plus W3 ownership state machine. Physical `OUT` remains disabled.
+
+
+### 2026-11-09 — Stage 2.8: UI quiesce and W3 software ownership v0.2.0
+
+- Added the W3 lifecycle state machine to resident module v0.2.0: UI_ACTIVE/UI owner, QUIESCED/no owner, and QUIESCED/HANDOFF owner. Transitions reject a busy UI, repeated quiesce/resume, incorrect owner, and UI writes while quiesced or handed off.
+- Added short UI writer leases around the console's public character and positioned-text output routines. A lease is released on normal completion; a denied entry returns without touching the screen or debug port.
+- Boot initializes the ownership manager before UI startup and runs a self-test covering busy quiesce rejection, successful quiesce, blocked UI entry, exclusive handoff acquire/release, resume, duplicate-resume rejection, and post-resume writer admission.
+- Boot module v0.5.5; console module v0.1.1. Diagnostic: `UI QUIESCE/W3 OWNERSHIP PASS; OUT DISABLED`.
+- This is a software lease/state machine only. It does not remap W3 or issue page-port OUT, and does not prove asynchronous interrupt exclusion. Existing video initialization/clear executes before the handoff self-test. Low-level page-map/restore helpers remain hardware operations and must only be reached through guarded public writers after initialization.
+- Build and emulator runtime verification are pending user confirmation. Scenario revision 0.8.8.
+- Next: run the new diagnostic in the user's emulator and add explicit rollback/recovery validation before any physical W3 remap is considered.
