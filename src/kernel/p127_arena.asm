@@ -20,7 +20,7 @@
 ; ============================================================================
 P127_ARENA_VERSION_MAJOR EQU 0
 P127_ARENA_VERSION_MINOR EQU 1
-P127_ARENA_VERSION_PATCH EQU 0
+P127_ARENA_VERSION_PATCH EQU 1
 P127_ARENA_LOW_PAGE       EQU 8
 P127_ARENA_HIGH_PAGE      EQU 64
 P127_ARENA_PAGE_COUNT     EQU P127_ARENA_HIGH_PAGE-P127_ARENA_LOW_PAGE
@@ -128,6 +128,11 @@ p127_arena_free:
         ld      a,(p127_arena_end_page)
         ld      (p127_arena_next_page),a
         or      a
+        ret
+
+; Common rejection path for invalid bounds, ownership, state or exhaustion.
+p127_arena_reject:
+        scf
         ret
 
 ; Runtime regression: descending contiguous allocation, LIFO enforcement,

@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.56**  
+Scenario revision: **0.8.57**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -42,7 +42,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | `src/boot/p127_boot.asm` | 0.7.3 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.3 | Software page-state manager; allocator negative-path tests use absolute JP failure branches to remain in range under SjASMPlus |
 | `src/kernel/p127_range.asm` | 0.1.2 | UINT32 end-exclusive physical range validator; 1 MiB bounds/overflow self-test; arithmetic only, no mapping or memory access |
-| `src/kernel/p127_arena.asm` | 0.1.0 | Top-down contiguous page arena P8..P63; bounded allocation and LIFO release; accounting only, no mapping |
+| `src/kernel/p127_arena.asm` | 0.1.1 | Top-down contiguous page arena P8..P63; bounded allocation and LIFO release; accounting only, no mapping |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -752,3 +752,10 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Integrated the test after the UINT32 range test. Boot module advanced to v0.7.5; scenario revision 0.8.56.
 - Strict boundary: this is physical-page accounting only. It does not map a page, touch physical RAM, add another page-port OUT, provide byte-granular allocation/copy/fill, or enable DMA/IRQ/IM/EI. The existing guarded W3 lease remains the only physical-page mapping path. A managed continuous logical address space and legacy 16-bit compatibility remain later stages.
 - Build and emulator verification are pending the user's rebuild/run; no independent assembler or runtime pass is claimed.
+
+
+### 2026-11-09 — Stage 3.2 assembler fix: arena reject path v0.1.1
+
+- Fixed the SjASMPlus errors reported by the user: all validation branches in `p127_arena.asm` referenced `p127_arena_reject`, but the shared carry-set return label was missing.
+- Added the common `p127_arena_reject: SCF / RET` path and advanced the arena module patch version to 0.1.1. No allocator semantics or page map behavior changed.
+- Build/runtime acceptance remains pending a fresh user rebuild; the prior failed build must not be run.
