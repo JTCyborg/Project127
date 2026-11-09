@@ -1,6 +1,6 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.3.2
+; Version: P127_ATM_HOST v0.3.3
 ; First ATM memory-core milestone: capability/range validation only.
 ; =========================================================================
 
@@ -36,6 +36,25 @@ p127_host_range_fail:
         call    p127_host_debug_char
         ld      a,10
         call    p127_host_debug_char
+        ld      a,d
+        cp      4
+        jr      nz,p127_host_idle
+        ld      hl,p127_host_diag_offset
+        call    p127_host_debug_string
+        ld      hl,p127_range_offset
+        call    p127_host_debug_hex4
+        ld      hl,p127_host_diag_length
+        call    p127_host_debug_string
+        ld      hl,p127_range_length
+        call    p127_host_debug_hex4
+        ld      hl,p127_host_diag_capacity
+        call    p127_host_debug_string
+        ld      hl,p127_range_capacity
+        call    p127_host_debug_hex4
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
 p127_host_idle:
         halt
         jr      p127_host_idle
@@ -44,6 +63,39 @@ p127_host_debug_char:
         ld      bc,#00EF
         out     (c),a
         ret
+
+p127_host_debug_hex4:
+        ld      a,(hl)
+        call    p127_host_debug_hex_byte
+        inc     hl
+        ld      a,(hl)
+        call    p127_host_debug_hex_byte
+        inc     hl
+        ld      a,(hl)
+        call    p127_host_debug_hex_byte
+        inc     hl
+        ld      a,(hl)
+        call    p127_host_debug_hex_byte
+        ret
+
+p127_host_debug_hex_byte:
+        push    af
+        rrca
+        rrca
+        rrca
+        rrca
+        and     #0F
+        call    p127_host_debug_hex_nibble
+        pop     af
+        and     #0F
+p127_host_debug_hex_nibble:
+        cp      10
+        jr      c,p127_host_debug_hex_digit
+        add     a,'A'-10
+        jr      p127_host_debug_char
+p127_host_debug_hex_digit:
+        add     a,'0'
+        jr      p127_host_debug_char
 
 p127_host_debug_string:
         ld      a,(hl)
@@ -55,13 +107,19 @@ p127_host_debug_string:
         jr      p127_host_debug_string
 
 p127_host_banner:
-        db "[P127] ATM HOST ENTRY v0.3.1",13,10
+        db "[P127] ATM HOST ENTRY v0.3.3",13,10
         db "[P127] TR-DOS BOOT OK",13,10
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
 p127_host_range_ok:
         db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
 p127_host_range_error:
         db "[P127] UINT32 RANGE SELFTEST FAIL TEST ",0
+p127_host_diag_offset:
+        db " OFFSET=",0
+p127_host_diag_length:
+        db " LENGTH=",0
+p127_host_diag_capacity:
+        db " CAPACITY=",0
 
         INCLUDE "drivers/atm/atm_memory_backend.asm"
 
