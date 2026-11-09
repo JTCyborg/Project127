@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.5.9
+; Project127 — boot stage 0.6.0
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -83,6 +83,12 @@ p127_start:
         jp      c,p127_w3_recovery_failed
         ld      hl,p127_msg_w3_recovery_pass
         call    p127_puts
+        ; Stage 2.11: enforce the explicit DI-only interrupt ownership contract.
+        call    p127_irq_init
+        call    p127_irq_selftest
+        jp      c,p127_irq_failed
+        ld      hl,p127_msg_irq_pass
+        call    p127_puts
         ; Stage 2.10: verify the resident trampoline's real linked placement,
         ; resident data placement, live W2 stack and DI-only entry contract.
         call    p127_resident_trampoline_preflight
@@ -106,6 +112,10 @@ p127_w3_failed:
         jr      p127_idle
 p127_w3_recovery_failed:
         ld      hl,p127_msg_w3_recovery_fail
+        call    p127_puts
+        jr      p127_idle
+p127_irq_failed:
+        ld      hl,p127_msg_irq_fail
         call    p127_puts
         jr      p127_idle
 p127_trampoline_preflight_failed:
@@ -211,6 +221,10 @@ p127_msg_w3_recovery_pass:
         db      "[P127] W3 ROLLBACK/RECOVERY PASS; OUT DISABLED",13,10,0
 p127_msg_w3_recovery_fail:
         db      "[P127] W3 ROLLBACK/RECOVERY FAIL",13,10,0
+p127_msg_irq_pass:
+        db "[P127] IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED",13,10,0
+p127_msg_irq_fail:
+        db "[P127] IRQ MASK/VECTOR CONTRACT FAIL",13,10,0
 p127_msg_trampoline_preflight_pass:
         db      "[P127] RESIDENT TRAMPOLINE PREFLIGHT PASS; OUT DISABLED",13,10,0
 p127_msg_trampoline_preflight_fail:
@@ -219,6 +233,7 @@ p127_msg_trampoline_preflight_fail:
 ; Keep the remap-critical code/data at the start of the Stage2 image so it
 ; remains inside W1/P5. The preflight below verifies the actual linked bounds.
         INCLUDE "src/kernel/p127_resident.asm"
+        INCLUDE "src/kernel/p127_irq.asm"
         INCLUDE "src/kernel/p127_mem.asm"
         INCLUDE "src/kernel/p127_map.asm"
         INCLUDE "src/kernel/p127_handoff.asm"

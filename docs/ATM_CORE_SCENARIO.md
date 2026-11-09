@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.17**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; physical bank switching not yet enabled**  
+Scenario revision: **0.8.18**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 implemented, runtime pending; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -26,7 +26,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
-| 5 — Process/context manager | **SOFTWARE PREREQUISITES + TRAMPOLINE ADDRESS PREFLIGHT ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0 | Implement interrupt-entry/return and transactional physical remap; address preflight is runtime accepted but does not prove independent physical stack backing. |
+| 5 — Process/context manager | **DI-ONLY INTERRUPT SAFETY PREFLIGHT IMPLEMENTED; RUNTIME PENDING** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0 | Implement interrupt-entry/return and transactional physical remap; address preflight is runtime accepted but does not prove independent physical stack backing. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
@@ -39,11 +39,11 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.5.9 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
+| `src/boot/p127_boot.asm` | 0.6.0 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
 | `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
-| `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership, UI leases and software snapshot/rollback; no page OUT |
+| `src/kernel/p127_irq.asm` | 0.1.0 | DI-only mask/vector ownership preflight; no EI, IM, vector writes or IRQ dispatcher |\n| `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership, UI leases and software snapshot/rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
 ## Stage 1 — physical page-state manager 0.2.0
@@ -380,3 +380,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - No source module changed in this acceptance update. Scenario revision advanced to 0.8.17.
 - The complete diagnostic chain is accepted for this software-only stage; all reported tests retain the `OUT DISABLED` boundary.
 - Remaining acceptance groups before the first controlled physical W3 remap: (1) interrupt-entry/return and DI/IFF/IM/vector ownership; (2) resident transition with complete register/context preservation; (3) software target-map commit plus post-transition failure injection/rollback; (4) controlled physical W3 switch with UI quiesced and W1/W2 resident; (5) full boot/UI/memory/application regression after switch and rollback.
+
+
+### 2026-11-09 — Stage 2.11: DI-only interrupt ownership preflight v0.1.0
+
+- Added `src/kernel/p127_irq.asm` v0.1.0 and integrated its software contract self-test into boot v0.6.0.
+- The current boot phase is explicitly DI-protected. The module asserts DI, records the only permitted bootstrap tuple (interrupts masked, no vector owner, IM policy unset), and rejects inconsistent software claims through fault-injection tests.
+- Deliberately does not execute EI or IM, install/write an interrupt vector, or claim to preserve an unknown prior IFF/IM state. A stock Z80 cannot directly read its IM mode; `LD A,I` exposes IFF2 through P/V but is not a general IFF1/IFF2 restoration mechanism. No interrupt dispatcher is claimed.
+- New #EF diagnostic: `IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED`. Runtime acceptance is pending the user's build and emulator log.
+- This is only the safe bootstrap interrupt-ownership preflight. Real interrupt entry/return, handler/vector installation, IM selection, and context preservation remain unimplemented. Physical page-port OUT remains disabled.
+- Build was not run in this environment.
