@@ -1,6 +1,6 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.5.0
+; Version: P127_ATM_HOST v0.6.0
 ; ATM allocator record-copy fix.
 ; =========================================================================
 
@@ -30,6 +30,21 @@ p127_host_entry:
         jr      c,p127_host_allocator_fail
         ld      hl,p127_host_allocator_ok
         call    p127_host_debug_string
+        call    atm_mem_ops_selftest
+        jr      c,p127_host_ops_fail
+        ld      hl,p127_host_ops_ok
+        call    p127_host_debug_string
+        jr      p127_host_idle
+p127_host_ops_fail:
+        ld      d,a
+        ld      hl,p127_host_ops_error
+        call    p127_host_debug_string
+        ld      a,d
+        call    p127_host_debug_hex_byte
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
         jr      p127_host_idle
 p127_host_memory_init_fail:
         ld      hl,p127_host_memory_init_error
@@ -134,13 +149,17 @@ p127_host_debug_string:
         jr      p127_host_debug_string
 
 p127_host_banner:
-        db "[P127] ATM HOST ENTRY v0.5.0",13,10
+        db "[P127] ATM HOST ENTRY v0.6.0",13,10
         db "[P127] TR-DOS BOOT OK",13,10
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
 p127_host_range_ok:
         db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
 p127_host_allocator_ok:
         db "[P127] ATM PAGE ALLOCATOR SELFTEST PASS",13,10,0
+p127_host_ops_ok:
+        db "[P127] ATM MEMORY OPS SELFTEST PASS",13,10,0
+p127_host_ops_error:
+        db "[P127] ATM MEMORY OPS SELFTEST FAIL STEP=0x",0
 p127_host_allocator_error:
         db "[P127] ATM PAGE ALLOCATOR SELFTEST FAIL",0
 p127_host_allocator_stage:
