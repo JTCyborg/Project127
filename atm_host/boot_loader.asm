@@ -18,8 +18,8 @@ basic_loader:
         DW      L10_END-L10
 L10:
         DB      CLEAR
-        DB      "24000",$0E,0,0
-        DW      24000
+        DB      "24575",$0E,0,0
+        DW      24575
         DB      0,$0D
 L10_END:
 
