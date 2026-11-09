@@ -1,13 +1,13 @@
 ; ============================================================================
 ; Project127 physical ATM RAM page test — Stage 2.19
-; Module version: 0.3.1
+; Module version: 0.3.2
 ; Runs from W2 (#A000..), with stack in W2. W1 resident/kernel remains fixed.
 ; W3 is exclusively leased from the UI and restored to physical page 0.
 ; This is the first general-purpose physical W3 remap test.
 ; ============================================================================
 P127_PHYSMEM_VERSION_MAJOR EQU 0
 P127_PHYSMEM_VERSION_MINOR EQU 3
-P127_PHYSMEM_VERSION_PATCH EQU 1
+P127_PHYSMEM_VERSION_PATCH EQU 2
 P127_PHYSMEM_PAGE_SIZE     EQU 04000h
 P127_PHYSMEM_WINDOW_BASE   EQU 0C000h
 P127_PHYSMEM_PAGE_PORT     EQU 0FFF7h
@@ -269,7 +269,9 @@ p127_physmem_full_fill_loop:
         ld      a,(p127_physmem_current_page)
         xor     05Ah
         ld      d,a
+        push    hl
         call    p127_physmem_fill_pattern
+        pop     hl
         ld      a,(p127_physmem_scan_remaining)
         dec     a
         ld      (p127_physmem_scan_remaining),a
@@ -291,7 +293,9 @@ p127_physmem_full_verify_loop:
         ld      a,(p127_physmem_current_page)
         xor     05Ah
         ld      d,a
+        push    hl
         call    p127_physmem_verify_pattern
+        pop     hl
         jp      c,p127_physmem_fail_data
         ld      a,(p127_physmem_scan_remaining)
         ; Reinitialize the reverse counter on first entry.

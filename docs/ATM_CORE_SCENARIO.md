@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.38**  
+Scenario revision: **0.8.39**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -39,13 +39,13 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.6.9 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/boot/p127_boot.asm` | 0.7.0 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; Stage 2.19 validates full allocator exhaustion/reuse and reserved-page invariants through physical-memory batch |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
 | `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract; 16-check exhaustive readiness-mask/prerequisite batch runtime accepted; P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
-| `src/kernel/p127_physmem.asm` | 0.3.1 | Full free-page allocation/uniqueness sweep; per-page address-pattern fill/reverse verification; allocator state/reservation/reuse checks; W3/P0 recovery |
+| `src/kernel/p127_physmem.asm` | 0.3.2 | Full free-page allocation/uniqueness sweep; per-page address-pattern fill/reverse verification; allocator state/reservation/reuse checks; W3/P0 recovery |
 | `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership and software rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel modules |
 ## Stage 1 — physical page-state manager 0.2.0
@@ -582,3 +582,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Added a post-release audit of all 64 page-state entries: the seven fixed pages must remain RESERVED and every other page must be FREE. The first-fit allocation/release check remains in place.
 - Physical-memory module advanced to v0.3.1. Scenario revision 0.8.38. Test coverage and boot marker are unchanged.
 - Build and emulator verification remain pending; no successful assembly is claimed.
+
+
+### 2026-11-09 — Stage 2.19 runtime failure correction v0.3.2
+
+- User runtime log passed all diagnostics through the mapper model, then failed in the full physical-memory batch.
+- Source audit found a deterministic pointer-clobber bug: the full-page fill/verify routines use HL as the W3 data cursor and leave it at the end of the 16 KiB window. The outer page-list traversal also used HL, so the next iteration read from the wrong address. The list cursor is now preserved on the stack around both pattern routines.
+- Boot source advanced to v0.7.0 and now prints the physical-memory error byte in hexadecimal after the failure line, enabling precise diagnosis if another check fails.
+- Physical-memory module advanced to v0.3.2; scenario revision 0.8.39.
+- This corrects the identified control-flow defect but is not yet runtime accepted. Rebuild and rerun; expected success marker remains `PHYS W3 FULL FREE-PAGE SWEEP/ALLOCATOR/RESERVES/P0 RESTORE PASS`. On failure, the new `PHYSMEM ERROR=XX` line identifies the failure class.
