@@ -313,3 +313,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Added both exact global labels and their diagnostic strings immediately after the existing handoff diagnostics, before the kernel INCLUDE directives. This matches the source's actual label-based layout and ensures both definitions are in the same assembly unit.
 - Advanced boot module to 0.5.6; scenario revision 0.8.10. No resident ownership logic or physical mapping behavior changed.
 - Fresh SjASMPlus build and emulator runtime verification remain pending. No successful build is claimed; physical page-port OUT remains disabled.
+
+
+### 2026-11-09 — Runtime acceptance: UI quiesce/W3 ownership v0.2.0
+
+- User rebuilt and ran the Project127 TR-DOS image after boot diagnostic-label correction v0.5.6. The supplied runtime log reaches `UI QUIESCE/W3 OWNERSHIP PASS; OUT DISABLED` and continues through `RESIDENT WINDOW CONTRACT PASS; OUT DISABLED`, `HANDOFF GUARD TEST PASS; OUT DISABLED`, and `MAP MODEL TEST PASS; OUT DISABLED`.
+- Stage 2.8 software W3 lifecycle and UI writer-lease self-test v0.2.0 is accepted in the emulator. The log also reconfirms memory-page accounting, video/bootstrap reservations, and the resident stack probe.
+- Acceptance is limited to software state/lease behavior. It does not prove asynchronous interrupt exclusion, actual UI shutdown during a physical remap, independent physical stack backing, page-register writes, or rollback after a hardware bank change. Physical page-port `OUT` remains disabled.
+- No functional module code changed in this acceptance update. Scenario revision advanced to 0.8.11.
+- Next: implement and test explicit rollback/recovery using the software model only, including failed acquisition, failed transition, and restoration of the prior owner/state. Keep physical page-port writes disabled until rollback, interrupt/IFF handling, and all resident dependencies are validated.
