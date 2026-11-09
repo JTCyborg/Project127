@@ -1,32 +1,36 @@
-# ATM Core Stage 1 — page-state manager 0.1.0
+# ATM Core Stage 1/2 — page-state manager 0.2.0
 
 ## Scope
 
-Software accounting for 64 × 16 KiB pages (1 MiB total). No physical page-register writes and no application allocation are enabled in this stage.
+Software accounting for 64 × 16 KiB ATM RAM pages (1 MiB total). No physical page-register writes and no application allocation.
 
-## API
+## Verified video reservations
 
-- `p127_mem_init`: clear the 64-entry state table.
-- `p127_mem_reserve`: A=first page, B=count; carry set for invalid range or overlap.
-- `p127_mem_alloc`: returns first-fit page in A; carry set if exhausted.
-- `p127_mem_free`: A=page; carry set unless that page is currently ALLOCATED.
-- `p127_mem_selftest`: allocate/free/reallocate same first-fit page/free.
+Based on Project112 ATM710 video implementation and the ATM Turbo 2+ architecture reference:
 
-## Boot integration
+- ZX video bank D3=0: page 5.
+- ZX video bank D3=1: page 7.
+- ATM640/EGA/80x25 bank D3=0: pages 5 and 1.
+- ATM640/EGA/80x25 bank D3=1: pages 7 and 3.
 
-The original four BOOT0 diagnostics are retained. The Stage 1 test then emits:
+The allocator therefore reserves pages 1, 3, 5 and 7 (64 KiB union) before any program page can be allocated.
+
+## Runtime checks
+
+After the original BOOT0 diagnostics, expect:
 
 ```text
 [P127] MEM INIT 1MB/64P
+[P127] VIDEO RAM RESERVED P1,P3,P5,P7
 [P127] MEM PAGE TEST PASS
 ```
 
-A failure prints:
+The self-test verifies that freeing each reserved video page fails, then verifies allocate/free/reallocate/free on an ordinary free page.
 
-```text
-[P127] MEM PAGE TEST FAIL
-```
+## Not covered
 
-## Acceptance boundary
+This test does not validate physical page-register writes, ROM mapping, kernel relocation, dynamic kernel-end discovery, top-down program arena, DMA, or video output. Those remain separate acceptance stages.
 
-Passing this test validates the allocator's basic software state transitions only. It does not validate ATM physical page IDs, memory mapping, video reservations, DMA, or application memory availability.
+## Verification status
+
+Source changes committed; SjASMPlus build and target-emulator run have not been performed in this environment.

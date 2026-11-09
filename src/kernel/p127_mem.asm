@@ -1,6 +1,6 @@
 ; ============================================================================
 ; Project127 ATM Core — physical page-state manager
-; Module version: 0.1.2
+; Module version: 0.2.0
 ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
 ;      free A=page, C=invalid/not allocated.
 ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
@@ -9,7 +9,7 @@
 ; ============================================================================
 P127_MEM_VERSION_MAJOR EQU 0
 P127_MEM_VERSION_MINOR EQU 1
-P127_MEM_VERSION_PATCH EQU 2
+P127_MEM_VERSION_PATCH EQU 0
 P127_MEM_PAGE_COUNT    EQU 64
 P127_MEM_PAGE_SIZE     EQU 04000h
 P127_MEM_FREE          EQU 0
@@ -65,6 +65,30 @@ p127_mem_reserve_set:
         or      a
         ret
 
+; Reserve ATM video RAM used by the complete Project112 mode set.
+; Project112 ATM710: ZX uses page 5 or 7; ATM640/EGA/Text use page
+; pairs 5+1 or 7+3. Reserve the union so any supported mode can be selected.
+; OUT: carry=1 if a reservation conflicts or is out of range.
+p127_mem_reserve_video:
+        ld      a,1
+        ld      b,1
+        call    p127_mem_reserve
+        ret     c
+        ld      a,3
+        ld      b,1
+        call    p127_mem_reserve
+        ret     c
+        ld      a,5
+        ld      b,1
+        call    p127_mem_reserve
+        ret     c
+        ld      a,7
+        ld      b,1
+        call    p127_mem_reserve
+        ret     c
+        or      a
+        ret
+
 ; Allocate the first free physical page.
 ; OUT: A=page ID, carry=1 when exhausted.
 p127_mem_alloc:
@@ -107,9 +131,21 @@ p127_mem_error:
         scf
         ret
 
-; Runtime smoke test: allocate -> free -> allocate same first-fit page -> free.
-; OUT: carry=1 on failure. Does not reserve or retain any page.
+; Runtime smoke test: reserved video pages are immutable; allocation/free works.
+; OUT: carry=1 on failure. Does not retain any allocated page.
 p127_mem_selftest:
+        ld      a,1
+        call    p127_mem_free
+        jr      nc,p127_mem_test_fail
+        ld      a,3
+        call    p127_mem_free
+        jr      nc,p127_mem_test_fail
+        ld      a,5
+        call    p127_mem_free
+        jr      nc,p127_mem_test_fail
+        ld      a,7
+        call    p127_mem_free
+        jr      nc,p127_mem_test_fail
         call    p127_mem_alloc
         ret     c
         ld      (p127_mem_test_page),a

@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.3.0**  
-Status: **Stage 1 implementation committed; emulator acceptance pending**  
+Scenario revision: **0.4.0**  
+Status: **Stage 1 committed; ATM video-page reservations implemented; runtime acceptance pending**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -23,7 +23,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 |---|---|---|
 | 0 — Bootstrap baseline | **PASS (baseline)** | BASIC `boot.B` loads `P127BOOT.C` at #6000; original four BOOT0 diagnostic lines retained. |
 | 1 — Physical page-state manager | **IMPLEMENTED; runtime pending** | 64-entry page-state table; reserve/allocate/free; allocator smoke test wired into Stage 2 boot. |
-| 2 — Physical memory map | PLANNED — UPDATED | Verify ROM boundary and ATM bank mapping; place kernel immediately beside ROM; derive kernel end; reserve stacks, firmware and all video-mode regions; identify highest eligible RAM boundary for top-down program arena. No guessed ranges. |
+| 2 — Physical memory map | IN PROGRESS | Project112 confirms video page IDs 1, 3, 5, 7; these are now reserved. Verify ROM boundary and ATM bank mapping; place kernel immediately beside ROM; derive kernel end; reserve stacks, firmware and remaining device regions; identify highest eligible RAM boundary for top-down program arena. No guessed ranges. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
 | 4 — Page mapper | PLANNED | Verified ATM hardware page-register backend; map/unmap API; no direct hardware writes from applications. |
 | 5 — Process/context manager | PLANNED | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
@@ -40,17 +40,18 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | Module | Version | State |
 |---|---:|---|
 | `src/boot/p127_boot.asm` | 0.3.0 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
-| `src/kernel/p127_mem.asm` | 0.1.2 | Software page-state manager; no physical mapping; top-down arena policy specified for Stage 2/3 |
+| `src/kernel/p127_mem.asm` | 0.2.0 | Software page-state manager; reserves verified video pages 1,3,5,7; no hardware mapping yet |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
-## Stage 1 — physical page-state manager 0.1.2
+## Stage 1 — physical page-state manager 0.2.0
 
 - Page IDs: 0..63; page size: 16 KiB.
 - Per-page states: FREE=0, RESERVED=1, ALLOCATED=2.
 - `p127_mem_reserve`: A=first page, B=count; validates full range and overlap before changing state.
 - `p127_mem_alloc`: first-fit allocation.
 - `p127_mem_free`: only releases ALLOCATED pages; RESERVED pages cannot be freed.
-- `p127_mem_selftest`: allocate -> free -> allocate same first-fit page -> free.
+- `p127_mem_reserve_video`: reserves the union of ATM video pages 1, 3, 5, 7.
+- `p127_mem_selftest`: verifies video pages cannot be freed, then allocate -> free -> allocate same first-fit page -> free.
 - Boot emits `MEM INIT` and `MEM PAGE TEST PASS/FAIL` on #EF after the original BOOT0 messages.
 
 **Acceptance boundary:** the smoke test validates software state transitions only. It does not validate ATM physical page IDs, hardware mapping, video reservations, DMA, or availability of pages for applications. The allocator must not be exposed to application loading until Stage 2 supplies the verified physical map.
@@ -82,3 +83,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 **Implementation constraint:** This is a placement policy, not yet a physical-address assertion. Stage 2 must inspect the actual ATM ROM/RAM banking and Project112 video layouts before assigning page IDs or emitting hardware mapping writes. The existing Stage 1 page-state module remains accounting-only until then.
 
 **Next acceptance:** Stage 2 must report the verified ROM boundary, kernel load/start/end, all reserved physical ranges, highest eligible RAM address, and computed initial program-arena size in the #EF boot log and scenario table.
+
+
+### 2026-11-09 — Stage 2.1: video-page map confirmed and reserved
+
+- Inspected Project112 `112/src/mode_atm.asm`, `112/src/video_mode_control.asm`, and ATM Turbo 2+ architecture documentation.
+- Confirmed physical ATM RAM page IDs: ZX video uses page 5 or 7; ATM640, EGA and 80x25 text use pairs 5+1 or 7+3 depending on the selected video bank.
+- Reserved the union `{1,3,5,7}` (64 KiB) in `p127_mem_reserve_video`; these pages are not available to program allocations in any supported mode.
+- `src/kernel/p127_mem.asm` advanced to v0.2.0. Boot logs the reservation result and tests that reserved pages cannot be freed.
+- Still not implemented: actual low-memory kernel relocation, ROM-window mapping, kernel-end discovery, top-down program arena, and hardware page switching. These require the Stage 2 memory-map transition and must not be inferred from the video page IDs.
+- Build/emulator verification remains pending; expected log includes `[P127] VIDEO RAM RESERVED P1,P3,P5,P7` before the allocator self-test.

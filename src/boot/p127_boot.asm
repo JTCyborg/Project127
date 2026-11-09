@@ -34,13 +34,21 @@ p127_start:
         ld      hl, p127_msg_pass
         call    p127_puts
 
-        ; Stage 1: software-only physical page accounting.
+        ; Stage 1/2: software page accounting plus verified ATM video reserves.
         call    p127_mem_init
         ld      hl,p127_msg_mem_init
+        call    p127_puts
+        call    p127_mem_reserve_video
+        jr      c,p127_mem_map_failed
+        ld      hl,p127_msg_video_reserved
         call    p127_puts
         call    p127_mem_selftest
         jr      c,p127_mem_failed
         ld      hl,p127_msg_mem_pass
+        call    p127_puts
+        jr      p127_idle
+p127_mem_map_failed:
+        ld      hl,p127_msg_mem_map_fail
         call    p127_puts
         jr      p127_idle
 p127_mem_failed:
@@ -74,6 +82,10 @@ p127_msg_pass:
         db      "[P127] BOOT0 PASS; IDLE", 13, 10, 0
 p127_msg_mem_init:
         db      "[P127] MEM INIT 1MB/64P", 13, 10, 0
+p127_msg_video_reserved:
+        db      "[P127] VIDEO RAM RESERVED P1,P3,P5,P7", 13, 10, 0
+p127_msg_mem_map_fail:
+        db      "[P127] VIDEO RAM RESERVE FAIL", 13, 10, 0
 p127_msg_mem_pass:
         db      "[P127] MEM PAGE TEST PASS", 13, 10, 0
 p127_msg_mem_fail:
