@@ -1,13 +1,13 @@
 ; ============================================================================
 ; Project127 physical ATM RAM page test — Stage 2.19
-; Module version: 0.4.0
+; Module version: 0.4.1
 ; Runs from W2 (#A000..), with stack in W2. W1 resident/kernel remains fixed.
 ; W3 is exclusively leased from the UI and restored to physical page 0.
 ; This is the first general-purpose physical W3 remap test.
 ; ============================================================================
 P127_PHYSMEM_VERSION_MAJOR EQU 0
 P127_PHYSMEM_VERSION_MINOR EQU 4
-P127_PHYSMEM_VERSION_PATCH EQU 0
+P127_PHYSMEM_VERSION_PATCH EQU 1
 P127_PHYSMEM_PAGE_SIZE     EQU 04000h
 P127_PHYSMEM_WINDOW_BASE   EQU 0C000h
 P127_PHYSMEM_PAGE_PORT     EQU 0FFF7h
@@ -438,9 +438,103 @@ p127_physmem_cleanup_done:
 p127_physmem_cleanup_return:
         ld      a,(p127_physmem_error)
         or      a
-        ret     z
+        jr      nz,p127_physmem_cleanup_return_error
+        ; The live page sweep ran with W3 exclusively leased, so progress was
+        ; mirrored to #EF only. Replay the compact page list now that W3=P0
+        ; and the UI owner has been restored.
+        call    p127_physmem_replay_page_log
+        or      a
+        ret
+p127_physmem_cleanup_return_error:
         scf
         ret
+
+; Replay all successful physical-page selections on the visible ATM console.
+; The 57 IDs are compacted into two wrapped lines rather than 114 long lines.
+p127_physmem_replay_page_log:
+        ld      hl,p127_physmem_screen_fill_label
+        call    p127_physmem_screen_puts
+        ld      a,(p127_physmem_alloc_count)
+        ld      (p127_physmem_scan_remaining),a
+        ld      hl,p127_physmem_page_list
+p127_physmem_replay_fill_loop:
+        ld      a,(hl)
+        inc     hl
+        call    p127_physmem_screen_hex8
+        ld      a,' '
+        call    BIOS_DebugConsole_PrintChar
+        ld      a,(p127_physmem_scan_remaining)
+        dec     a
+        ld      (p127_physmem_scan_remaining),a
+        jr      nz,p127_physmem_replay_fill_loop
+        ld      a,13
+        call    BIOS_DebugConsole_PrintChar
+        ld      a,10
+        call    BIOS_DebugConsole_PrintChar
+
+        ld      hl,p127_physmem_screen_verify_label
+        call    p127_physmem_screen_puts
+        ld      a,(p127_physmem_alloc_count)
+        ld      e,a
+        ld      d,0
+        ld      hl,p127_physmem_page_list
+        add     hl,de
+        ld      a,(p127_physmem_alloc_count)
+        ld      (p127_physmem_scan_remaining),a
+p127_physmem_replay_verify_loop:
+        dec     hl
+        ld      a,(hl)
+        call    p127_physmem_screen_hex8
+        ld      a,' '
+        call    BIOS_DebugConsole_PrintChar
+        ld      a,(p127_physmem_scan_remaining)
+        dec     a
+        ld      (p127_physmem_scan_remaining),a
+        jr      nz,p127_physmem_replay_verify_loop
+        ld      a,13
+        call    BIOS_DebugConsole_PrintChar
+        ld      a,10
+        call    BIOS_DebugConsole_PrintChar
+        ret
+
+; HL=zero-terminated string. The console routine preserves HL.
+p127_physmem_screen_puts:
+        ld      a,(hl)
+        or      a
+        ret     z
+        inc     hl
+        push    hl
+        call    BIOS_DebugConsole_PrintChar
+        pop     hl
+        jr      p127_physmem_screen_puts
+
+; A=page ID. Emit two hexadecimal digits through the visible UI console.
+p127_physmem_screen_hex8:
+        push    hl
+        push    af
+        and     0F0h
+        rrca
+        rrca
+        rrca
+        rrca
+        call    p127_physmem_screen_nibble
+        pop     af
+        and     00Fh
+        call    p127_physmem_screen_nibble
+        pop     hl
+        ret
+p127_physmem_screen_nibble:
+        ld      e,a
+        ld      d,0
+        ld      hl,p127_physmem_trace_hex_table
+        add     hl,de
+        ld      a,(hl)
+        jp      BIOS_DebugConsole_PrintChar
+
+p127_physmem_screen_fill_label:
+        db      "W3 FILL: ",0
+p127_physmem_screen_verify_label:
+        db      "W3 VERIFY: ",0
 
 p127_physmem_cleanup_error:
         ld      a,0FFh
