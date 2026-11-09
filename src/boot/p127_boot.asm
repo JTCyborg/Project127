@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.6.8
+; Project127 — boot stage 0.6.9
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -260,7 +260,7 @@ p127_msg_map_txn_fail:
 p127_msg_map_pass:
         db      "[P127] MAP MODEL TEST PASS; SOFTWARE SHADOW", 13, 10, 0
 p127_msg_physmem_pass:
-        db      "[P127] PHYS W3 ADDR PATTERN/4ROUND/20MAP/2PAGE VERIFY/P0 RESTORE PASS",13,10,0
+        db      "[P127] PHYS W3 FULL FREE-PAGE SWEEP/ALLOCATOR/RESERVES/P0 RESTORE PASS",13,10,0
 p127_msg_physmem_fail:
         db      "[P127] PHYS W3 PAGE SWITCH/MEMORY TEST FAIL; CHECK ERROR CODE",13,10,0
 p127_msg_map_fail:
