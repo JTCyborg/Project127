@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.20**  
+Scenario revision: **0.8.21**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 implemented, runtime pending; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -409,3 +409,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Architectural blocker remains explicit: IM1's fixed vector #0038 resides in the current W0 ROM mapping and cannot be claimed writable by this stage. IM2 requires a verified, writable 257-byte table and known I-register mapping that do not overlap resident code/data; neither reservation has yet been established. Therefore no mode is selected and no vector is installed.
 - New boot calls run the gate self-test; the existing #EF pass line remains `IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED`. Runtime acceptance pending.
 - Physical page-port OUT remains disabled. Build not run in this environment.
+
+
+### 2026-11-09 — Runtime acceptance: interrupt-enable readiness gate v0.2.0
+
+- User supplied the rebuilt Project127 #EF runtime log for boot v0.6.1 / IRQ module v0.2.0.
+- The log reaches `IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED` and continues through resident trampoline, resident-window, handoff-guard and map-model diagnostics. In boot source v0.6.1, the new `p127_irq_gate_selftest` is called before this marker and branches to the IRQ failure path on any failed assertion. Reaching the later diagnostics therefore confirms that the closed-by-default readiness-gate self-test returned successfully.
+- Acceptance is limited to the software gate test: incomplete readiness tuples are rejected, the complete synthetic tuple is accepted, and the routine restores the safe DI/no-vector/IM-unset boot tuple.
+- The log does not independently identify the gate test with its own marker, and does not demonstrate real asynchronous interrupt entry/return, an installed vector/handler, a selected IM, IFF preservation, or execution of EI. The system remains DI-only; physical page-port OUT remains disabled.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.21.
+- Next: reserve and verify a writable interrupt vector/table strategy compatible with the actual ATM memory map, then implement controlled handler entry/return and context preservation. Do not enable interrupts until those prerequisites have dedicated runtime diagnostics.
