@@ -5,7 +5,7 @@ from pathlib import Path
 SECTOR, SPT, TRACKS = 256, 16, 160
 IMAGE_SIZE = SECTOR * SPT * TRACKS
 LOAD_ADDRESS = 0x6000
-TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR, TOK_VAL = 0xEF, 0xAF, 0xF9, 0xC0, 0xB0
+TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR, TOK_VAL, TOK_OUT = 0xEF, 0xAF, 0xF9, 0xC0, 0xB0, 0xDF
 
 def le16(n):
     if not 0 <= n <= 0xFFFF:
@@ -13,13 +13,26 @@ def le16(n):
     return bytes((n & 255, n >> 8))
 
 def basic_loader():
-    # VAL "24576" avoids malformed tokenized numeric literals: Spectrum
-    # BASIC stores a binary numeric marker after each numeric source token.
+    # Spectrum BASIC numeric source is kept inside VAL strings to avoid
+    # malformed numeric-literal markers in the tokenized program.
+    # OUT 239,value writes each progress character to ATM debug port #EF.
     # No CLEAR is used, so the current RAMTOP is left untouched.
     address = bytes([TOK_VAL]) + b' "24576"'
-    body = (bytes([TOK_LOAD]) + b' "P127BOOT" ' + bytes([TOK_CODE]) +
-            b" " + address + b":" + bytes([TOK_RANDOMIZE]) + b" " +
-            bytes([TOK_USR]) + b" " + address)
+
+    def debug_text(message):
+        statements = []
+        for value in message.encode("ascii"):
+            statements.append(bytes([TOK_OUT]) + b' ' +
+                              bytes([TOK_VAL]) + b' "239",' +
+                              bytes([TOK_VAL]) + b' "' + str(value).encode("ascii") + b'"')
+        return b":".join(statements)
+
+    body = (debug_text("[P127] BASIC START\r\n") + b":" +
+            bytes([TOK_LOAD]) + b' "P127BOOT" ' + bytes([TOK_CODE]) +
+            b" " + address + b":" +
+            debug_text("[P127] LOAD OK\r\n") + b":" +
+            debug_text("[P127] CALL 6000\r\n") + b":" +
+            bytes([TOK_RANDOMIZE]) + b" " + bytes([TOK_USR]) + b" " + address)
     line = bytes([0, 10]) + le16(len(body) + 1) + body + b"\x0d"
     area = line + b"\x80"
     return area + b"\xaa\x0a\x00", len(area)
@@ -102,7 +115,7 @@ def verify_trd(image, expected_code=None):
     basic = image[pos:pos + n + 3]
     if not basic.endswith(b"\x80\xaa\x0a\x00"):
         raise ValueError("Invalid BASIC/TR-DOS run-line terminator")
-    for token in (TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR, TOK_VAL):
+    for token in (TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR, TOK_VAL, TOK_OUT):
         if token not in basic:
             raise ValueError("BASIC loader token missing")
     if 0xFD in basic:
@@ -123,6 +136,7 @@ def main():
     print(f"[P127 TRD] FILES=2 CODE_BYTES={len(code)} IMAGE_BYTES={len(image)}")
     print("[P127 TRD] BOOT_FILENAME=boot TYPE=B")
     print("[P127 TRD] BASIC_AUTOSTART_LINE=10")
+    print("[P127 TRD] BASIC_DEBUG=OUT_239_PROGRESS_MARKERS")
     print("[P127 TRD] BASIC_ADDRESS=VAL_STRING_24576")
     print(f"[P127 TRD] OUTPUT={args.output}")
     print("[P127 TRD] VERIFY OK")
