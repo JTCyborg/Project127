@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.5**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model and handoff guard v0.2.2 accepted by user runtime test; physical bank switching not yet enabled**  
+Scenario revision: **0.8.6**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 accepted by user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -26,7 +26,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
-| 5 — Process/context manager | PLANNED — stack probe v0.1.0 added as a prerequisite | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
+| 5 — Process/context manager | PLANNED — stack probe v0.1.0 and resident-window contract v0.1.0 prerequisites added | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
@@ -43,6 +43,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
+| `src/kernel/p127_resident.asm` | 0.1.0 | Fixed W1/P5 code + W2/P2 stack contract; W3 target only after UI quiescence; software-only |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
 ## Stage 1 — physical page-state manager 0.2.0
@@ -259,3 +260,15 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - The boot test is entered with interrupts disabled; the probe leaves them disabled and does not modify IM or interrupt vectors.
 - No source module changed in this acceptance update. Scenario revision advanced to 0.8.5.
 - Next: define and reserve a genuinely independent resident execution/data/stack region, then validate interrupt-entry and return conventions. Keep physical page switching disabled until the trampoline, stack and rollback path are independent of the target window and have explicit runtime coverage.
+
+### 2026-11-09 — Stage 2.7: resident-window contract v0.1.0
+
+- Added `src/kernel/p127_resident.asm` v0.1.0 and boot integration v0.5.4.
+- Fixed the first remap contract explicitly: W1/P5 contains resident execution and resident data; W2/P2 contains the resident stack/control state; W3 is the sole candidate target window; W0 remains ROM.
+- The validator rejects any target other than W3, any code window other than W1, any stack window other than W2, and any request whose UI-quiesced flag is not set. It also explicitly checks target/resident-window separation.
+- The self-test exercises the valid synthetic W3 case and rejects attempts to target W1/W2, a non-quiesced UI state, and a displaced resident-code window.
+- Important: the self-test passes a synthetic quiesced-UI flag. It does not actually stop the console or its page-restore routines. The existing UI uses W3 as a temporary video/staging window and restores P0, so physical W3 remapping must remain disabled until the UI is explicitly suspended and cannot execute again before restoration/reinitialization.
+- This stage formalizes a safe candidate topology; it does not reserve or map a new physical page, execute from an independent physical page, change the active map, or issue `OUT`.
+- Boot reports `RESIDENT WINDOW CONTRACT PASS; OUT DISABLED` when the software contract tests pass.
+- Build and emulator runtime verification are pending user confirmation. Scenario revision 0.8.6.
+- Next: implement an explicit UI quiesce/resume state machine and host-staging ownership transfer for W3. Only after that is runtime-verified may W3 become a physical remap candidate. Keep all physical bank writes disabled.
