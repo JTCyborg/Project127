@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.31**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; physical bank switching not yet enabled**  
+Scenario revision: **0.8.33**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping awaiting Stage 2.17 runtime acceptance**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -39,12 +39,13 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.6.6 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/boot/p127_boot.asm` | 0.6.7 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; reserves video P1/P3/P5/P7, bootstrap P0/P2 and future IRQ table P4 |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
-| `src/ui/p127_console.asm` | 0.1.1 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
+| `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
-| `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract, exhaustive readiness-mask/prerequisite batch test, P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
+| `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract; 16-check exhaustive readiness-mask/prerequisite batch runtime accepted; P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
+| `src/kernel/p127_physmem.asm` | 0.1.0 | Real W3 page switching, non-destructive port probe, two-page full 16 KiB isolation/readback and P0 restoration; runtime pending |
 | `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership and software rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel modules |
 ## Stage 1 — physical page-state manager 0.2.0
@@ -504,3 +505,25 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Therefore this batch deliberately tests only the software readiness/ownership contract. It does not synthesize an asynchronous interrupt, invent a vector byte, emulate an interrupt source, or claim acknowledgement/EOI behavior. No IM 1/IM 2, EI, I-register write, P4 physical mapping or page-port OUT is introduced.
 - Scenario revision 0.8.31. Build and emulator runtime verification are pending the user's single batch run; no successful assembly or runtime acceptance is claimed.
 - Next research gate: inspect the exact Unreal Speccy source/revision used by the user and trace its ATM INT assertion, vector-bus response and source-clear behavior. Only then can a real source/vector test be added.
+
+
+### 2026-11-09 — Stage 2.16 runtime acceptance: consolidated IRQ contract batch
+
+- User supplied the complete #EF startup log from the v0.5.0 IRQ batch. It reports `IRQ BATCH 16-CHECK PASS; SOURCE UNRESOLVED; IM/EI/OUT DISABLED`.
+- Stage 2.16 software-only batch is runtime accepted. The run also reports PASS for IRQ frame round-trip, IRQ table-slot preflight, IRQ mask/vector contract, resident trampoline/window, handoff guard and mapper model.
+- The batch validates the software readiness gate and rejection/restoration paths only. It does not establish an ATM interrupt source, vector-bus byte, acknowledge/EOI sequence, interrupt timing, asynchronous entry, or actual IM1/IM2 behavior.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.32.
+- Next: trace the exact Unreal Speccy revision used for Project127 and the ATM Turbo 2+ interrupt implementation in its source. Record the source assertion, vector response and clear/acknowledge behavior before adding any asynchronous IRQ test. Keep IM, EI and physical page-port OUT disabled.
+- Build is not independently verified in this environment; the user's runtime log confirms that the tested image executed the batch successfully.
+
+
+### 2026-11-09 — Stage 2.17: first physical W3 RAM switching test v0.1.0
+
+- Corrected the architecture record after auditing `src/ui/p127_console.asm`: Project127 already opens ATM shadow ports through the documented TR-DOS ROM trampoline and performs bounded physical video mapping (W1=page 7, W3=page 3), then restores W1=page 5 and W3=page 0. The earlier blanket statement that Project127 performed no physical page OUT was too broad. The pure software mapper and resident preflight modules still do not issue OUT.
+- Added `src/kernel/p127_physmem.asm` v0.1.0 in W2, after the console image at #A000. The test code and live stack therefore remain outside the remapped W3 window; UI ownership is quiesced and acquired before the test.
+- The test allocates two currently free physical pages from the page-state manager. It first performs a non-destructive one-byte probe against the existing P0 contents: it saves the byte at #C000, writes its complement into the candidate page, switches back to P0 and verifies P0 was unchanged, then switches to the candidate page and verifies persistence. If the dispatcher does not switch, cleanup restores the one touched P0 byte; full-page writes are not attempted.
+- After the probe succeeds, the test writes distinct patterns (#A5 and #5A) across all 16,384 bytes of each allocated page, switches between them, verifies every byte on both pages, and rechecks page A after page B to detect aliasing. It then restores W3 to P0, restores the saved P0 byte, releases the UI lease, and frees both test pages.
+- Boot advanced to v0.6.7 and runs the complete physical test as one batch after the existing software diagnostics. Success marker: `PHYS W3 SWITCH/2X16K ISOLATION/VERIFY/P0 RESTORE PASS`. Failure has a dedicated boot diagnostic.
+- The test writes only the W3 page port #FFF7. It does not remap W0/W1/W2, enable interrupts, alter IM/IFF policy, use P4, or enable general application mapping. The existing console's bounded video mapping remains unchanged.
+- Scenario revision 0.8.33. Build and emulator runtime verification are pending the user's next single run; no successful assembly or physical test is claimed.
+- Next: if this batch passes, add multi-pattern/address-sensitive sweeps and test repeated map/restore cycles, then expose a guarded page-map API. If it fails, use the returned diagnostic and preserve the P0 recovery path before expanding scope.

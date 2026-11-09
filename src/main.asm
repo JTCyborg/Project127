@@ -90,6 +90,7 @@ basic_loader_end:
         PAGE 0
         ORG #A000
         INCLUDE "src/ui/p127_console.asm"
+        INCLUDE "src/kernel/p127_physmem.asm"
 p127_image_end:
         ASSERT p127_image_end <= #B000
         SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_image_end-P127_LOAD_ADDRESS
