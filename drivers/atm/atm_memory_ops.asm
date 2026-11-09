@@ -451,6 +451,70 @@ atm_mem_ops_selftest::
         cp      #44
         jp      nz,atm_mem_ops_test_fail_09
 
+        ; Zero-length FILL at exactly 1 MiB is a valid no-op.
+        ld      hl,0
+        ld      (atm_mem_destination_offset),hl
+        ld      hl,#0010
+        ld      (atm_mem_destination_offset+2),hl
+        ld      hl,0
+        ld      (atm_mem_op_length),hl
+        ld      (atm_mem_op_length+2),hl
+        call    atm_mem_fill
+        jp      c,atm_mem_ops_test_fail_11
+
+        ; Zero-length COPY at exactly 1 MiB is also a valid no-op.
+        ld      hl,0
+        ld      (atm_mem_source_offset),hl
+        ld      hl,#0010
+        ld      (atm_mem_source_offset+2),hl
+        ld      hl,0
+        ld      (atm_mem_destination_offset),hl
+        ld      hl,#0010
+        ld      (atm_mem_destination_offset+2),hl
+        call    atm_mem_copy
+        jp      c,atm_mem_ops_test_fail_12
+
+        ; A nonzero FILL beginning at capacity must be rejected.
+        ld      hl,1
+        ld      (atm_mem_op_length),hl
+        ld      hl,0
+        ld      (atm_mem_op_length+2),hl
+        call    atm_mem_fill
+        jp      nc,atm_mem_ops_test_fail_13
+
+        ; Invalid destination COPY must fail before modifying its target.
+        ld      hl,(atm_mem_test_source)
+        ld      (atm_mem_source_offset),hl
+        ld      hl,(atm_mem_test_source+2)
+        ld      (atm_mem_source_offset+2),hl
+        ld      hl,0
+        ld      (atm_mem_destination_offset),hl
+        ld      hl,#0010
+        ld      (atm_mem_destination_offset+2),hl
+        call    atm_mem_copy
+        jp      nc,atm_mem_ops_test_fail_14
+        ld      hl,(atm_mem_test_destination)
+        ld      (atm_mem_work_offset),hl
+        ld      hl,(atm_mem_test_destination+2)
+        ld      (atm_mem_work_offset+2),hl
+        call    atm_mem_map_work_offset
+        jp      c,atm_mem_ops_test_fail_14
+        ld      a,(hl)
+        cp      #A5
+        jp      nz,atm_mem_ops_test_fail_14
+
+        ; Invalid source COPY must also be rejected.
+        ld      hl,0
+        ld      (atm_mem_source_offset),hl
+        ld      hl,#0010
+        ld      (atm_mem_source_offset+2),hl
+        ld      hl,(atm_mem_test_destination)
+        ld      (atm_mem_destination_offset),hl
+        ld      hl,(atm_mem_test_destination+2)
+        ld      (atm_mem_destination_offset+2),hl
+        call    atm_mem_copy
+        jp      nc,atm_mem_ops_test_fail_15
+
         ; Free second allocation.
         ld      hl,(atm_mem_test_destination)
         ld      (atm_mem_request_offset),hl
@@ -493,8 +557,18 @@ atm_mem_ops_test_fail_08: ld a,8
         jr atm_mem_ops_test_fail
 atm_mem_ops_test_fail_09: ld a,9
         jr atm_mem_ops_test_fail
-atm_mem_ops_test_fail_10:
-        ld a,10
+atm_mem_ops_test_fail_10: ld a,10
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_11: ld a,11
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_12: ld a,12
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_13: ld a,13
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_14: ld a,14
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_15:
+        ld a,15
 atm_mem_ops_test_fail:
         scf
         ret

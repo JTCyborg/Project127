@@ -1,6 +1,6 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.6.0
+; Version: P127_ATM_HOST v0.7.0
 ; ATM allocator record-copy fix.
 ; =========================================================================
 
@@ -149,7 +149,7 @@ p127_host_debug_string:
         jr      p127_host_debug_string
 
 p127_host_banner:
-        db "[P127] ATM HOST ENTRY v0.6.0",13,10
+        db "[P127] ATM HOST ENTRY v0.7.0",13,10
         db "[P127] TR-DOS BOOT OK",13,10
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
 p127_host_range_ok:
@@ -184,3 +184,4 @@ p127_host_diag_capacity:
 p127_host_program_end:
         ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
         ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
+        ASSERT p127_host_program_end <= #8000

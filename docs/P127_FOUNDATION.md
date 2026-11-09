@@ -1,7 +1,7 @@
 # Project127 — low-level foundation
 
-**Revision:** 0.3  
-**Status:** architecture baseline plus initial ATM physical-page allocator.  
+**Revision:** 0.4  
+**Status:** architecture baseline; ATM range core, contiguous allocator and byte-range operations pass runtime self-tests.  
 **Scope:** ATM Turbo 2+ Z80 firmware, NeoGS Z80 firmware, their shared memory/transport ABI, and the later 8086 emulator.
 
 ## 1. Non-negotiable design rule
@@ -221,8 +221,9 @@ bytewise physical-range primitive, not yet an ownership-checked handle API.
 
 ## 11. Implementation order
 
-1. Extend the ATM contiguous allocator to multi-extent handles and implement
-   READ/WRITE/FILL/COPY with internal physical-page chunking.
+1. Extend the ATM contiguous allocator to multi-extent handles and replace
+   the current bytewise READ/WRITE/FILL/COPY engine with page-bounded block
+   transfers while preserving the UINT32 public ABI.
 2. Implement the NeoGS memory backend and reserve its firmware/stack/IRQ/DMA
    regions before advertising allocatable capacity.
 3. Implement shared DMA streaming and capability negotiation.
