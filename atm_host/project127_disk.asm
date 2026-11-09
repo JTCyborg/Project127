@@ -21,7 +21,7 @@
         INCLUDE "drivers/atm/atm_video_service.asm"
 
         ; Keep the RTC in its own non-overlapping range after the v0.2 video core.
-        ORG #9400
+        ORG #9800
         INCLUDE "drivers/atm/atm_rtc_service.asm"
 
         ; Keep the proven single-file TR-DOS boot path.
