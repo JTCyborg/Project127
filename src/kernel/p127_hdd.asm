@@ -1,13 +1,13 @@
 ; ============================================================================
 ; Project127 Nemo IDE HDD read-only transport
-; Module version: 0.1.0
+; Module version: 0.1.2
 ; Port map and LBA28 protocol adapted from Project127/113/src/nemo_ide.asm.
 ; Only single-sector ATA READ SECTORS (20h) is exposed in this stage.
 ; No ATA write command, DMA, IRQ, IM/EI or page-port access is used.
 ; ============================================================================
 P127_HDD_VERSION_MAJOR EQU 0
 P127_HDD_VERSION_MINOR EQU 1
-P127_HDD_VERSION_PATCH EQU 1
+P127_HDD_VERSION_PATCH EQU 2
 
 P127_HDD_PORT_DATA_LO   EQU 00010h
 P127_HDD_PORT_DATA_HI   EQU 00011h
@@ -38,9 +38,44 @@ p127_hdd_probe_read:
         ld      hl,p127_hdd_msg_probe
         call    p127_puts
 
+        ; Non-destructive bus probe before selecting the Master device.
+        ld      hl,p127_hdd_msg_status_pre
+        call    p127_puts
+        ld      bc,P127_HDD_PORT_STATUS
+        in      a,(c)
+        ld      (p127_hdd_last_status),a
+        call    p127_put_hex8
+        ld      a,13
+        call    p127_put_char
+        ld      a,10
+        call    p127_put_char
+
         ld      a,0E0h
         ld      bc,P127_HDD_PORT_DRIVE
         out     (c),a
+
+        ; Read back the task-file device/head register and Status after select.
+        ld      hl,p127_hdd_msg_drive_readback
+        call    p127_puts
+        ld      bc,P127_HDD_PORT_DRIVE
+        in      a,(c)
+        call    p127_put_hex8
+        ld      a,13
+        call    p127_put_char
+        ld      a,10
+        call    p127_put_char
+
+        ld      hl,p127_hdd_msg_status_post
+        call    p127_puts
+        ld      bc,P127_HDD_PORT_STATUS
+        in      a,(c)
+        ld      (p127_hdd_last_status),a
+        call    p127_put_hex8
+        ld      a,13
+        call    p127_put_char
+        ld      a,10
+        call    p127_put_char
+
         call    p127_hdd_wait_ready
         jp      c,p127_hdd_probe_not_ready
 
@@ -296,6 +331,9 @@ p127_hdd_complete_ok:
         ret
 
 p127_hdd_msg_probe:   db "[HDD] NEMO IDE LBA28 PROBE",13,10,0
+p127_hdd_msg_status_pre: db "[HDD] STATUS PRE-SELECT=",0
+p127_hdd_msg_drive_readback: db "[HDD] DRIVE REG READBACK=",0
+p127_hdd_msg_status_post: db "[HDD] STATUS POST-SELECT=",0
 p127_hdd_msg_ready:   db "[HDD] MASTER READY",13,10,0
 p127_hdd_msg_read_ok: db "[HDD] LBA 63 READ OK; 512B / BPB / 55AA",13,10,0
 p127_hdd_msg_error:   db "[HDD] ERROR=",0

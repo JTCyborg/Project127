@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.81**  
+Scenario revision: **0.8.82**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -53,6 +53,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract; 16-check exhaustive readiness-mask/prerequisite batch runtime accepted; P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
 | `src/kernel/p127_physmem.asm` | 0.4.3 | Exhaustive free-page W3 sweep; guarded W3 lease API; visible W3 replay after ATM video-bank reinitialization; W3/P0 recovery |
 | `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership and software rollback; no page OUT |
+| `src/kernel/p127_hdd.asm` | 0.1.2 | Read-only Nemo IDE LBA28 probe; captures Status before/after Master select and Drive/Head readback; ATA READ SECTORS only |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel modules |
 ## Stage 1 — physical page-state manager 0.2.0
 
@@ -1005,3 +1006,14 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Stage 10.1 remains runtime-pending. Rebuild and report the next `[HDD]` lines. A successful probe should continue to `MASTER READY`, then `LBA 63 READ OK; 512B / BPB / 55AA`; if it fails, include the new `STATUS=XX` value.
 - No SjASMPlus or Unreal Speccy execution is claimed.
 - Scenario revision: 0.8.81.
+
+
+### 2026-11-10 — Stage 10.1 Nemo IDE bus-response diagnostics v0.1.2
+
+- User runtime evidence after v0.1.1 reports `[HDD] ERROR=01 STATUS=FF`. The supplied `unreal.ini` declares `Scheme=NEMO`, an `Image0` path, `CHS0=20/16/63`, `LBA0=20160`, and `HD0RO=0`; this confirms the configuration text, but does not prove which INI file or image path the running emulator instance actually opened.
+- Status `FF` is consistent with an unresponding/unmapped read, but does not identify whether the cause is the active emulator configuration, port decoding, or absent image/device attachment. No speculative controller or filesystem change is made.
+- Updated `p127_hdd.asm` to v0.1.2. Before selecting Master, it prints the Status register at `#00F0`; after writing `#E0` to the Drive/Head register at `#00D0`, it prints the Drive/Head readback and Status again. These reads occur before issuing any ATA command, so they do not consume sector data.
+- The existing bounded READY polling and single-sector READ SECTORS (`20h`) path remain unchanged. No write command, DMA, IRQ/IM/EI, page-map OUT, or memory-map behavior is introduced.
+- Diagnostic output: `[HDD] STATUS PRE-SELECT=XX`, `[HDD] DRIVE REG READBACK=XX`, and `[HDD] STATUS POST-SELECT=XX`, followed by the existing result.
+- This commit is a diagnostic source update only. SjASMPlus and Unreal Speccy were not run by the assistant; Stage 10.1 remains runtime-pending. The next log will distinguish a permanently unresponsive port from a response caused by device selection.
+- Scenario revision: 0.8.82.
