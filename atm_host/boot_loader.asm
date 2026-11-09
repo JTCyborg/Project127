@@ -55,8 +55,8 @@ LINE20:
         DW      15619
         DB      0
         DB      $3A, REM, $3A
-        DB      "LOAD ", 34, "p127ui", 34, " CODE 40960", $0D
-        DB      $0D
+        DB      "LOAD ", 34, "p127ui", 34, " CODE 40960", $3A
+        DB      "LOAD ", 34, "@@HOST_NAME@@", 34, " CODE 24576", $0D
 LINE20_END:
 
         DB      0, 19
