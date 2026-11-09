@@ -50,20 +50,13 @@ LINE11_END:
         DB      0, 20
         DW      LINE20_END-LINE20
 LINE20:
-        ; Emit the hand-off marker before entering the TR-DOS ROM.
+        ; Emit the load marker, then execute LOAD as a tokenized BASIC command.
         DB      OUT_CMD
         DB      "239", $0E, $00, $00, $EF, $00, $00
         DB      ","
         DB      "3", $0E, $00, $00, $03, $00, $00
         DB      ":"
-        ; The documented TR-DOS BASIC hand-off is USR 15619: REM : command.
-        ; Keep REM immediately after USR so TR-DOS can consume the command.
-        DB      RANDOMIZE
-        DB      USR, "15619", $0E, 0, 0
-        DW      15619
-        DB      0
-        DB      $3A, REM, $3A
-        DB      "LOAD ", 34, "@@HOST_NAME@@", 34, " CODE 24576", $0D
+        DB      $EF, 34, "@@HOST_NAME@@", 34, " CODE 24576", $0D
 LINE20_END:
 
         ; This marker is reached only after TR-DOS LOAD has returned.
