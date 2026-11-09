@@ -5,7 +5,7 @@ and 32-bit lengths; ATM and NeoGS capacities are independent.
 
 ## Current executable milestone
 
-- drivers/atm/atm_memory_backend.asm: ATM 1 MiB capability record and checked range validation.
+- drivers/atm/atm_memory_backend.asm: ATM 1 MiB capability record, checked range validation, and executable edge-case self-test.
 - drivers/neogs/neogs_memory_backend.asm: NeoGS 4 MiB capability record and checked range validation.
 - drivers/shared/p127_memory_core.inc: common overflow-safe UINT32 range primitive.
 
