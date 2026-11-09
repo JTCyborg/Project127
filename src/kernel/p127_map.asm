@@ -1,6 +1,6 @@
 ; ============================================================================
 ; Project127 ATM Core — pure software page-mapper model
-; Module version: 0.2.1
+; Module version: 0.2.2
 ; No hardware OUT instructions are permitted in this stage.
 ; ============================================================================
 P127_MAP_VERSION_MAJOR EQU 0
@@ -183,20 +183,24 @@ p127_map_selftest:
 ; Caller must include execution, stack, UI, interrupt and host/staging windows
 ; in C. The bootstrap currently protects all four windows (#0F).
 p127_map_handoff_prepare:
-        ld      d,a
+        ; Keep the target in E, invalidate any older staged request, then
+        ; validate the page/window and index the four-byte mask with DE=0:E.
+        ld      e,a
+        xor     a
+        ld      (p127_map_pending_valid),a
         ld      a,b
         cp      64
         jp      nc,p127_map_handoff_reject
-        ld      a,d
+        ld      a,e
         cp      P127_MAP_WINDOW_COUNT
         jp      nc,p127_map_handoff_reject
-        ld      e,a
+        ld      d,0
         ld      hl,p127_map_window_mask
         add     hl,de
         ld      a,(hl)
         and     c
         jp      nz,p127_map_handoff_reject
-        ld      a,d
+        ld      a,e
         ld      (p127_map_pending_window),a
         ld      a,b
         ld      (p127_map_pending_page),a
@@ -245,6 +249,17 @@ p127_map_handoff_selftest:
         ld      a,(p127_map_pending_page)
         cp      10
         jp      nz,p127_map_test_fail
+        ; A rejected request must invalidate a previously staged request.
+        ld      b,10
+        ld      c,0Fh
+        ld      a,0
+        call    p127_map_handoff_prepare
+        jp      nc,p127_map_test_fail
+        ld      a,(p127_map_pending_valid)
+        or      a
+        jp      nz,p127_map_test_fail
+
+        ; Explicit abort remains idempotent.
         call    p127_map_handoff_abort
         ld      a,(p127_map_pending_valid)
         or      a
@@ -256,10 +271,16 @@ p127_map_handoff_selftest:
         ld      a,4
         call    p127_map_handoff_prepare
         jp      nc,p127_map_test_fail
+        ld      a,(p127_map_pending_valid)
+        or      a
+        jp      nz,p127_map_test_fail
         ld      b,64
         ld      a,0
         call    p127_map_handoff_prepare
         jp      nc,p127_map_test_fail
+        ld      a,(p127_map_pending_valid)
+        or      a
+        jp      nz,p127_map_test_fail
         or      a
         ret
 
