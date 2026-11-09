@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.5.4
+; Project127 — boot stage 0.5.5
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -48,11 +48,11 @@ p127_start:
         ld      hl,p127_msg_mem_init
         call    p127_puts
         call    p127_mem_reserve_video
-        jr      c,p127_mem_map_failed
+        jp      c,p127_mem_map_failed
         ld      hl,p127_msg_video_reserved
         call    p127_puts
         call    p127_mem_reserve_boot
-        jr      c,p127_mem_boot_failed
+        jp      c,p127_mem_boot_failed
         ld      hl,p127_msg_boot_reserved
         call    p127_puts
         call    p127_mem_selftest

@@ -294,3 +294,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - This is a software lease/state machine only. It does not remap W3 or issue page-port OUT, and does not prove asynchronous interrupt exclusion. Existing video initialization/clear executes before the handoff self-test. Low-level page-map/restore helpers remain hardware operations and must only be reached through guarded public writers after initialization.
 - Build and emulator runtime verification are pending user confirmation. Scenario revision 0.8.8.
 - Next: run the new diagnostic in the user's emulator and add explicit rollback/recovery validation before any physical W3 remap is considered.
+
+
+### 2026-11-09 — Build correction: UI quiesce/W3 ownership v0.2.1
+
+- User's SjASMPlus v1.24.0 build of commit `19e37ad` failed on two out-of-range conditional relative branches in boot, one out-of-range conditional relative branch in the console, and missing W3 ownership diagnostic labels.
+- Replaced the boot memory-reservation failure branches and console writer-denial branch with absolute conditional `JP` instructions.
+- Added the missing `p127_msg_w3_pass` and `p127_msg_w3_fail` strings at the actual diagnostic-string section. The previous patch attempted to insert them using a label form that does not exist in this source file.
+- Corrected a related parameter-preservation issue in `BIOS_DebugConsole_PrintAt`: the W3 lease routine changes A, so the caller's AF/BC/DE/HL frame is restored and re-stacked after successful lease acquisition before row/column parameters are consumed.
+- Boot module remains v0.5.5; resident module remains v0.2.0; console module advanced to v0.1.2. Scenario revision 0.8.9.
+- This addresses the exact reported assembler errors and the adjacent PrintAt parameter-clobber defect. A fresh SjASMPlus build and emulator run are still required; no successful build is claimed. Physical page-port `OUT` remains disabled.
