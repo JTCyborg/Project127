@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.36**  
+Scenario revision: **0.8.37**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -39,13 +39,13 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.6.8 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
-| `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; reserves video P1/P3/P5/P7, bootstrap P0/P2 and future IRQ table P4 |
+| `src/boot/p127_boot.asm` | 0.6.9 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; Stage 2.19 validates full allocator exhaustion/reuse and reserved-page invariants through physical-memory batch |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
 | `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract; 16-check exhaustive readiness-mask/prerequisite batch runtime accepted; P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
-| `src/kernel/p127_physmem.asm` | 0.2.0 | Real W3 page switching; non-destructive port probe; two-page 16 KiB isolation; address-sensitive patterns and repeated switching batch; P0 restoration |
+| `src/kernel/p127_physmem.asm` | 0.3.0 | Full free-page allocation/uniqueness sweep; per-page address-pattern fill/reverse verification; allocator state/reservation/reuse checks; W3/P0 recovery |
 | `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership and software rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel modules |
 ## Stage 1 — physical page-state manager 0.2.0
@@ -563,3 +563,14 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Runtime acceptance is limited to the two allocator-selected physical pages and the W3 path covered by the batch. It is not an exhaustive test of all 64 pages, W0/W1/W2 mapping, concurrent mapping, application allocation policy under load, or interrupt operation. IM/EI remain disabled and IRQ source/vector/acknowledgement remain unresolved.
 - No functional source module changed in this acceptance update. Scenario revision advanced to 0.8.36.
 - Next stage: expand the same single-run batch to allocator/page-state integrity and broader physical-page pair coverage, retaining guarded W3 ownership, P0 restoration, UI recovery and full cleanup. Do not enable unrestricted remapping or interrupts based solely on this test.
+
+
+### 2026-11-09 — Stage 2.19: full free-page W3 sweep and allocator integrity batch v0.3.0
+
+- Advanced `src/kernel/p127_physmem.asm` to v0.3.0 and boot source to v0.6.9.
+- The existing Stage 2.18 two-page test remains first. Under the same UI quiesce/W3 ownership lease, the batch then allocates every remaining free page, stores each physical page ID in a private 64-byte list, and rejects duplicate IDs. The current reservation map expects exactly 57 allocatable pages and seven protected pages: P0/P1/P2/P3/P4/P5/P7.
+- Every allocated page is mapped through W3 and filled with an address-derived pattern seeded by its physical page ID. A reverse-order second sweep verifies all 16 KiB of every page after all other pages have been written, detecting aliases and data loss across page switches.
+- The batch validates that every listed page remains ALLOCATED during the sweep and that all seven protected page-state entries remain RESERVED. Cleanup restores W3=P0 and the saved P0 byte, releases UI ownership, resumes the UI, frees every page in reverse order, checks reservation invariants again, and verifies allocator reuse returns the original first-fit page.
+- This exercises all 57 currently allocatable physical pages, not the seven intentionally reserved pages. It does not prove arbitrary concurrent remapping, W0/W1/W2 mapping, DMA, or interrupt operation. IM/EI remain disabled.
+- Success marker: `PHYS W3 FULL FREE-PAGE SWEEP/ALLOCATOR/RESERVES/P0 RESTORE PASS`.
+- Scenario revision 0.8.37. Build and emulator verification are pending; no successful assembly or runtime acceptance is claimed.
