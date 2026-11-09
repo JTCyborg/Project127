@@ -13,7 +13,7 @@
 # file opened: p127_host.asm
   1+  0000              ; =========================================================================
   2+  0000              ; PROJECT127 - ATM Turbo 2+ host entry
-  3+  0000              ; Version: P127_ATM_HOST v0.9.0
+  3+  0000              ; Version: P127_ATM_HOST v0.9.1
   4+  0000              ; ATM allocator record-copy fix.
   5+  0000              ; =========================================================================
   6+  0000
@@ -47,11 +47,11 @@
  34+  6034 DA 88 60             jp      c,p127_host_ops_fail
  35+  6037 21 05 62             ld      hl,p127_host_ops_ok
  36+  603A CD 55 61             call    p127_host_debug_string
- 37+  603D CD D4 70             call    atm_mem_scatter_selftest
+ 37+  603D CD D5 70             call    atm_mem_scatter_selftest
  38+  6040 DA 70 60             jp      c,p127_host_scatter_fail
  39+  6043 21 2B 62             ld      hl,p127_host_scatter_ok
  40+  6046 CD 55 61             call    p127_host_debug_string
- 41+  6049 CD 5C 7B             call    atm_mem_handle_ops_selftest
+ 41+  6049 CD 85 7B             call    atm_mem_handle_ops_selftest
  42+  604C DA 58 60             jp      c,p127_host_handle_ops_fail
  43+  604F 21 55 62             ld      hl,p127_host_handle_ops_ok
  44+  6052 CD 55 61             call    p127_host_debug_string
@@ -192,13 +192,13 @@
 179+  615E 18 F5                jr      p127_host_debug_string
 180+  6160
 181+  6160              p127_host_banner:
-182+  6160 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.9.0",13,10
+182+  6160 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.9.1",13,10
 182+  6164 37 5D 20 41
 182+  6168 54 4D 20 48
 182+  616C 4F 53 54 20
 182+  6170 45 4E 54 52
 182+  6174 59 20 76 30
-182+  6178 2E 39 2E 30
+182+  6178 2E 39 2E 31
 182+  617C 0D 0A
 183+  617E 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
 183+  6182 37 5D 20 54
@@ -1893,21 +1893,21 @@
  21+++6F3A 47                   ld      b,a
  22+++6F3B 3A FF 68             ld      a,(atm_mem_request_length+3)
  23+++6F3E B0                   or      b
- 24+++6F3F CA 4E 70             jp      z,atm_mem_scatter_fail
+ 24+++6F3F CA 4F 70             jp      z,atm_mem_scatter_fail
  25+++6F42 CD A4 65             call    atm_mem_validate_request
- 26+++6F45 DA 4E 70             jp      c,atm_mem_scatter_fail
+ 26+++6F45 DA 4F 70             jp      c,atm_mem_scatter_fail
  27+++6F48 CD BF 65             call    atm_mem_pages_for_length
  28+++6F4B B7                   or      a
- 29+++6F4C CA 4E 70             jp      z,atm_mem_scatter_fail
+ 29+++6F4C CA 4F 70             jp      z,atm_mem_scatter_fail
  30+++6F4F FE 3B                cp      ATM_SCATTER_MAX_EXTENTS+1
- 31+++6F51 D2 4E 70             jp      nc,atm_mem_scatter_fail
- 32+++6F54 32 73 71             ld      (atm_mem_scatter_needed),a
+ 31+++6F51 D2 4F 70             jp      nc,atm_mem_scatter_fail
+ 32+++6F54 32 9C 71             ld      (atm_mem_scatter_needed),a
  33+++6F57 21 FC 68             ld      hl,atm_mem_request_length
- 34+++6F5A 11 83 71             ld      de,atm_mem_scatter_length
+ 34+++6F5A 11 AC 71             ld      de,atm_mem_scatter_length
  35+++6F5D 01 04 00             ld      bc,4
  36+++6F60 ED B0                ldir
  37+++6F62
- 38+++6F62 21 87 71             ld      hl,atm_mem_scatter_handles
+ 38+++6F62 21 B0 71             ld      hl,atm_mem_scatter_handles
  39+++6F65 06 08                ld      b,ATM_SCATTER_HANDLE_COUNT
  40+++6F67 0E 01                ld      c,1
  41+++6F69              atm_mem_scatter_find_handle:
@@ -1920,13 +1920,13 @@
  48+++6F73 C1                   pop     bc
  49+++6F74 0C                   inc     c
  50+++6F75 10 F2                djnz    atm_mem_scatter_find_handle
- 51+++6F77 C3 4E 70             jp      atm_mem_scatter_fail
+ 51+++6F77 C3 4F 70             jp      atm_mem_scatter_fail
  52+++6F7A              atm_mem_scatter_handle_found:
- 53+++6F7A 22 7F 71             ld      (atm_mem_scatter_record),hl
+ 53+++6F7A 22 A8 71             ld      (atm_mem_scatter_record),hl
  54+++6F7D 79                   ld      a,c
- 55+++6F7E 32 75 71             ld      (atm_mem_scatter_handle),a
+ 55+++6F7E 32 9E 71             ld      (atm_mem_scatter_handle),a
  56+++6F81 0D                   dec     c
- 57+++6F82 21 B7 71             ld      hl,atm_mem_scatter_extents
+ 57+++6F82 21 E0 71             ld      hl,atm_mem_scatter_extents
  58+++6F85 11 E8 00             ld      de,ATM_SCATTER_EXTENT_BYTES
  59+++6F88 79                   ld      a,c
  60+++6F89 B7                   or      a
@@ -1936,9 +1936,9 @@
  64+++6F8E 3D                   dec     a
  65+++6F8F C2 8D 6F             jp      nz,atm_mem_scatter_vector_offset
  66+++6F92              atm_mem_scatter_vector_ready:
- 67+++6F92 22 81 71             ld      (atm_mem_scatter_vector),hl
+ 67+++6F92 22 AA 71             ld      (atm_mem_scatter_vector),hl
  68+++6F95 AF                   xor     a
- 69+++6F96 32 74 71             ld      (atm_mem_scatter_done),a
+ 69+++6F96 32 9D 71             ld      (atm_mem_scatter_done),a
  70+++6F99
  71+++6F99              atm_mem_scatter_alloc_loop:
  72+++6F99 21 01 00             ld      hl,1
@@ -1946,855 +1946,884 @@
  74+++6F9F 21 00 00             ld      hl,0
  75+++6FA2 22 FE 68             ld      (atm_mem_request_length+2),hl
  76+++6FA5 CD E8 65             call    atm_mem_alloc
- 77+++6FA8 DA F5 6F             jp      c,atm_mem_scatter_rollback
+ 77+++6FA8 DA F6 6F             jp      c,atm_mem_scatter_rollback
  78+++6FAB                      ; Store the allocator's physical byte offset in this extent slot.
  79+++6FAB                      ; LDIR copies HL -> DE; do not reverse these endpoints.
  80+++6FAB 21 00 69             ld      hl,atm_mem_result_offset
- 81+++6FAE ED 5B 81 71          ld      de,(atm_mem_scatter_vector)
+ 81+++6FAE ED 5B AA 71          ld      de,(atm_mem_scatter_vector)
  82+++6FB2 01 04 00             ld      bc,4
  83+++6FB5 ED B0                ldir
- 84+++6FB7 2A 81 71             ld      hl,(atm_mem_scatter_vector)
+ 84+++6FB7 2A AA 71             ld      hl,(atm_mem_scatter_vector)
  85+++6FBA 11 04 00             ld      de,4
  86+++6FBD 19                   add     hl,de
- 87+++6FBE 22 81 71             ld      (atm_mem_scatter_vector),hl
- 88+++6FC1 3A 74 71             ld      a,(atm_mem_scatter_done)
+ 87+++6FBE 22 AA 71             ld      (atm_mem_scatter_vector),hl
+ 88+++6FC1 3A 9D 71             ld      a,(atm_mem_scatter_done)
  89+++6FC4 3C                   inc     a
- 90+++6FC5 32 74 71             ld      (atm_mem_scatter_done),a
+ 90+++6FC5 32 9D 71             ld      (atm_mem_scatter_done),a
  91+++6FC8 47                   ld      b,a
- 92+++6FC9 3A 73 71             ld      a,(atm_mem_scatter_needed)
+ 92+++6FC9 3A 9C 71             ld      a,(atm_mem_scatter_needed)
  93+++6FCC B8                   cp      b
  94+++6FCD C2 99 6F             jp      nz,atm_mem_scatter_alloc_loop
  95+++6FD0
- 96+++6FD0 2A 7F 71             ld      hl,(atm_mem_scatter_record)
- 97+++6FD3 3A 75 71             ld      a,(atm_mem_scatter_handle)
+ 96+++6FD0 2A A8 71             ld      hl,(atm_mem_scatter_record)
+ 97+++6FD3 3A 9E 71             ld      a,(atm_mem_scatter_handle)
  98+++6FD6 77                   ld      (hl),a
  99+++6FD7 23                   inc     hl
-100+++6FD8 3A 74 71             ld      a,(atm_mem_scatter_done)
+100+++6FD8 3A 9D 71             ld      a,(atm_mem_scatter_done)
 101+++6FDB 77                   ld      (hl),a
 102+++6FDC 23                   inc     hl
-103+++6FDD 11 83 71             ld      de,atm_mem_scatter_length
-104+++6FE0 01 04 00             ld      bc,4
-105+++6FE3 ED B0                ldir
-106+++6FE5 21 83 71             ld      hl,atm_mem_scatter_length
-107+++6FE8 11 FC 68             ld      de,atm_mem_request_length
-108+++6FEB 01 04 00             ld      bc,4
-109+++6FEE ED B0                ldir
-110+++6FF0 3A 75 71             ld      a,(atm_mem_scatter_handle)
-111+++6FF3 B7                   or      a
-112+++6FF4 C9                   ret
-113+++6FF5
-114+++6FF5              atm_mem_scatter_rollback:
-115+++6FF5 3A 74 71             ld      a,(atm_mem_scatter_done)
-116+++6FF8 B7                   or      a
-117+++6FF9 CA 43 70             jp      z,atm_mem_scatter_restore_fail
-118+++6FFC 32 76 71             ld      (atm_mem_scatter_rollback_count),a
-119+++6FFF 3A 75 71             ld      a,(atm_mem_scatter_handle)
-120+++7002 3D                   dec     a
-121+++7003 21 B7 71             ld      hl,atm_mem_scatter_extents
-122+++7006 11 E8 00             ld      de,ATM_SCATTER_EXTENT_BYTES
-123+++7009 B7                   or      a
-124+++700A CA 12 70             jp      z,atm_mem_scatter_rollback_vector_ready
-125+++700D              atm_mem_scatter_rollback_vector:
-126+++700D 19                   add     hl,de
-127+++700E 3D                   dec     a
-128+++700F C2 0D 70             jp      nz,atm_mem_scatter_rollback_vector
-129+++7012              atm_mem_scatter_rollback_vector_ready:
-130+++7012 22 81 71             ld      (atm_mem_scatter_vector),hl
-131+++7015              atm_mem_scatter_rollback_loop:
-132+++7015 2A 81 71             ld      hl,(atm_mem_scatter_vector)
-133+++7018 11 F8 68             ld      de,atm_mem_request_offset
-134+++701B 01 04 00             ld      bc,4
-135+++701E ED B0                ldir
-136+++7020 21 01 00             ld      hl,1
-137+++7023 22 FC 68             ld      (atm_mem_request_length),hl
-138+++7026 21 00 00             ld      hl,0
-139+++7029 22 FE 68             ld      (atm_mem_request_length+2),hl
-140+++702C CD A7 66             call    atm_mem_free
-141+++702F 2A 81 71             ld      hl,(atm_mem_scatter_vector)
-142+++7032 11 04 00             ld      de,4
-143+++7035 19                   add     hl,de
-144+++7036 22 81 71             ld      (atm_mem_scatter_vector),hl
-145+++7039 3A 76 71             ld      a,(atm_mem_scatter_rollback_count)
-146+++703C 3D                   dec     a
-147+++703D 32 76 71             ld      (atm_mem_scatter_rollback_count),a
-148+++7040 C2 15 70             jp      nz,atm_mem_scatter_rollback_loop
-149+++7043              atm_mem_scatter_restore_fail:
-150+++7043 21 83 71             ld      hl,atm_mem_scatter_length
-151+++7046 11 FC 68             ld      de,atm_mem_request_length
-152+++7049 01 04 00             ld      bc,4
-153+++704C ED B0                ldir
-154+++704E              atm_mem_scatter_fail:
-155+++704E 37                   scf
-156+++704F C9                   ret
-157+++7050
-158+++7050              atm_mem_scatter_free:
-158+++7050
-159+++7050 B7                   or      a
-160+++7051 CA 4E 70             jp      z,atm_mem_scatter_fail
-161+++7054 FE 09                cp      ATM_SCATTER_HANDLE_COUNT+1
-162+++7056 D2 4E 70             jp      nc,atm_mem_scatter_fail
-163+++7059 32 75 71             ld      (atm_mem_scatter_handle),a
-164+++705C 3D                   dec     a
-165+++705D 21 87 71             ld      hl,atm_mem_scatter_handles
-166+++7060 11 06 00             ld      de,6
-167+++7063 B7                   or      a
-168+++7064 CA 6C 70             jp      z,atm_mem_scatter_free_record_ready
-169+++7067              atm_mem_scatter_free_record:
-170+++7067 19                   add     hl,de
-171+++7068 3D                   dec     a
-172+++7069 C2 67 70             jp      nz,atm_mem_scatter_free_record
-173+++706C              atm_mem_scatter_free_record_ready:
-174+++706C 7E                   ld      a,(hl)
-175+++706D B7                   or      a
-176+++706E CA 4E 70             jp      z,atm_mem_scatter_fail
-177+++7071 23                   inc     hl
-178+++7072 7E                   ld      a,(hl)
-179+++7073 32 76 71             ld      (atm_mem_scatter_rollback_count),a
-180+++7076 3A 75 71             ld      a,(atm_mem_scatter_handle)
-181+++7079 3D                   dec     a
-182+++707A 21 B7 71             ld      hl,atm_mem_scatter_extents
-183+++707D 11 E8 00             ld      de,ATM_SCATTER_EXTENT_BYTES
-184+++7080 B7                   or      a
-185+++7081 CA 89 70             jp      z,atm_mem_scatter_free_vector_ready
-186+++7084              atm_mem_scatter_free_vector:
-187+++7084 19                   add     hl,de
-188+++7085 3D                   dec     a
-189+++7086 C2 84 70             jp      nz,atm_mem_scatter_free_vector
-190+++7089              atm_mem_scatter_free_vector_ready:
-191+++7089 22 81 71             ld      (atm_mem_scatter_vector),hl
-192+++708C              atm_mem_scatter_free_loop:
-193+++708C 2A 81 71             ld      hl,(atm_mem_scatter_vector)
-194+++708F 11 F8 68             ld      de,atm_mem_request_offset
-195+++7092 01 04 00             ld      bc,4
-196+++7095 ED B0                ldir
-197+++7097 21 01 00             ld      hl,1
-198+++709A 22 FC 68             ld      (atm_mem_request_length),hl
-199+++709D 21 00 00             ld      hl,0
-200+++70A0 22 FE 68             ld      (atm_mem_request_length+2),hl
-201+++70A3 CD A7 66             call    atm_mem_free
-202+++70A6 DA 4E 70             jp      c,atm_mem_scatter_fail
-203+++70A9 2A 81 71             ld      hl,(atm_mem_scatter_vector)
-204+++70AC 11 04 00             ld      de,4
-205+++70AF 19                   add     hl,de
-206+++70B0 22 81 71             ld      (atm_mem_scatter_vector),hl
-207+++70B3 3A 76 71             ld      a,(atm_mem_scatter_rollback_count)
-208+++70B6 3D                   dec     a
-209+++70B7 32 76 71             ld      (atm_mem_scatter_rollback_count),a
-210+++70BA C2 8C 70             jp      nz,atm_mem_scatter_free_loop
-211+++70BD
-212+++70BD 3A 75 71             ld      a,(atm_mem_scatter_handle)
-213+++70C0 3D                   dec     a
-214+++70C1 21 87 71             ld      hl,atm_mem_scatter_handles
-215+++70C4 11 06 00             ld      de,6
-216+++70C7 B7                   or      a
-217+++70C8 CA D0 70             jp      z,atm_mem_scatter_clear_ready
-218+++70CB              atm_mem_scatter_clear_record:
-219+++70CB 19                   add     hl,de
-220+++70CC 3D                   dec     a
-221+++70CD C2 CB 70             jp      nz,atm_mem_scatter_clear_record
-222+++70D0              atm_mem_scatter_clear_ready:
-223+++70D0 AF                   xor     a
-224+++70D1 77                   ld      (hl),a
-225+++70D2 B7                   or      a
-226+++70D3 C9                   ret
-227+++70D4
-228+++70D4              ; Smoke test verifies an object spanning two private extent records.
-229+++70D4              atm_mem_scatter_selftest:
-229+++70D4
-230+++70D4 3E 01                ld      a,1
-231+++70D6 32 78 71             ld      (atm_mem_scatter_test_stage),a
-232+++70D9 21 01 40             ld      hl,#4001
-233+++70DC 22 FC 68             ld      (atm_mem_request_length),hl
-234+++70DF 21 00 00             ld      hl,0
-235+++70E2 22 FE 68             ld      (atm_mem_request_length+2),hl
-236+++70E5 CD 24 6F             call    atm_mem_scatter_alloc
-237+++70E8 DA 6E 71             jp      c,atm_mem_scatter_test_fail
-238+++70EB 32 77 71             ld      (atm_mem_scatter_test_handle),a
-239+++70EE
-240+++70EE 3E 02                ld      a,2
-241+++70F0 32 78 71             ld      (atm_mem_scatter_test_stage),a
-242+++70F3 3A 74 71             ld      a,(atm_mem_scatter_done)
-243+++70F6 FE 02                cp      2
-244+++70F8 C2 6E 71             jp      nz,atm_mem_scatter_test_fail
-245+++70FB 2A 81 71             ld      hl,(atm_mem_scatter_vector)
-246+++70FE 11 08 00             ld      de,8
-247+++7101 B7                   or      a
-248+++7102 ED 52                sbc     hl,de
-249+++7104 22 79 71             ld      (atm_mem_scatter_test_vector),hl
-250+++7107
-251+++7107 3E 03                ld      a,3
-252+++7109 32 78 71             ld      (atm_mem_scatter_test_stage),a
-253+++710C 2A 79 71             ld      hl,(atm_mem_scatter_test_vector)
-254+++710F 7E                   ld      a,(hl)
-255+++7110 23                   inc     hl
-256+++7111 B6                   or      (hl)
-257+++7112 23                   inc     hl
-258+++7113 B6                   or      (hl)
-259+++7114 23                   inc     hl
-260+++7115 B6                   or      (hl)
-261+++7116 CA 6E 71             jp      z,atm_mem_scatter_test_fail
-262+++7119 2A 79 71             ld      hl,(atm_mem_scatter_test_vector)
-263+++711C 11 7B 71             ld      de,atm_mem_scatter_test_first
-264+++711F 01 04 00             ld      bc,4
-265+++7122 ED B0                ldir
-266+++7124
-267+++7124 3E 04                ld      a,4
-268+++7126 32 78 71             ld      (atm_mem_scatter_test_stage),a
-269+++7129 2A 79 71             ld      hl,(atm_mem_scatter_test_vector)
-270+++712C 11 04 00             ld      de,4
-271+++712F 19                   add     hl,de
-272+++7130 7E                   ld      a,(hl)
-273+++7131 47                   ld      b,a
-274+++7132 23                   inc     hl
-275+++7133 7E                   ld      a,(hl)
-276+++7134 B0                   or      b
-277+++7135 47                   ld      b,a
-278+++7136 23                   inc     hl
-279+++7137 7E                   ld      a,(hl)
-280+++7138 B0                   or      b
-281+++7139 47                   ld      b,a
-282+++713A 23                   inc     hl
-283+++713B 7E                   ld      a,(hl)
-284+++713C B0                   or      b
-285+++713D CA 6E 71             jp      z,atm_mem_scatter_test_fail
-286+++7140
-287+++7140 3E 05                ld      a,5
-288+++7142 32 78 71             ld      (atm_mem_scatter_test_stage),a
-289+++7145 21 7B 71             ld      hl,atm_mem_scatter_test_first
-290+++7148 ED 5B 79 71          ld      de,(atm_mem_scatter_test_vector)
-291+++714C 13                   inc     de
-292+++714D 13                   inc     de
-293+++714E 13                   inc     de
-294+++714F 13                   inc     de
-295+++7150 06 04                ld      b,4
-296+++7152              atm_mem_scatter_test_compare_offsets:
-297+++7152 1A                   ld      a,(de)
-298+++7153 BE                   cp      (hl)
-299+++7154 C2 5E 71             jp      nz,atm_mem_scatter_test_offsets_distinct
-300+++7157 23                   inc     hl
-301+++7158 13                   inc     de
-302+++7159 10 F7                djnz    atm_mem_scatter_test_compare_offsets
-303+++715B C3 6E 71             jp      atm_mem_scatter_test_fail
-304+++715E              atm_mem_scatter_test_offsets_distinct:
-305+++715E 3E 06                ld      a,6
-306+++7160 32 78 71             ld      (atm_mem_scatter_test_stage),a
-307+++7163 3A 77 71             ld      a,(atm_mem_scatter_test_handle)
-308+++7166 CD 50 70             call    atm_mem_scatter_free
-309+++7169 DA 6E 71             jp      c,atm_mem_scatter_test_fail
-310+++716C AF                   xor     a
-311+++716D C9                   ret
-312+++716E              atm_mem_scatter_test_fail:
-313+++716E 3A 78 71             ld      a,(atm_mem_scatter_test_stage)
-314+++7171 37                   scf
-315+++7172 C9                   ret
-316+++7173
-317+++7173 00           atm_mem_scatter_needed:          db 0
-318+++7174 00           atm_mem_scatter_done:            db 0
-319+++7175 00           atm_mem_scatter_handle:          db 0
-320+++7176 00           atm_mem_scatter_rollback_count:  db 0
-321+++7177 00           atm_mem_scatter_test_handle:     db 0
-322+++7178 00           atm_mem_scatter_test_stage:      db 0
-323+++7179 00 00        atm_mem_scatter_test_vector:     dw 0
-324+++717B 00 00 00 00  atm_mem_scatter_test_first:      defs 4,0
-325+++717F 00 00        atm_mem_scatter_record:          dw 0
-326+++7181 00 00        atm_mem_scatter_vector:          dw 0
-327+++7183 00 00 00 00  atm_mem_scatter_length:          defs 4,0
-328+++7187 00 00 00...  atm_mem_scatter_handles:         defs ATM_SCATTER_HANDLE_COUNT*6,0
-329+++71B7 00 00 00...  atm_mem_scatter_extents:         defs ATM_SCATTER_HANDLE_COUNT*ATM_SCATTER_MAX_EXTENTS*4,0
-330+++78F7
+103+++6FDD                      ; Copy the exact UINT32 logical length INTO the handle record.
+104+++6FDD                      ; LDIR source is HL and destination is DE.
+105+++6FDD EB                   ex      de,hl
+106+++6FDE 21 AC 71             ld      hl,atm_mem_scatter_length
+107+++6FE1 01 04 00             ld      bc,4
+108+++6FE4 ED B0                ldir
+109+++6FE6 21 AC 71             ld      hl,atm_mem_scatter_length
+110+++6FE9 11 FC 68             ld      de,atm_mem_request_length
+111+++6FEC 01 04 00             ld      bc,4
+112+++6FEF ED B0                ldir
+113+++6FF1 3A 9E 71             ld      a,(atm_mem_scatter_handle)
+114+++6FF4 B7                   or      a
+115+++6FF5 C9                   ret
+116+++6FF6
+117+++6FF6              atm_mem_scatter_rollback:
+118+++6FF6 3A 9D 71             ld      a,(atm_mem_scatter_done)
+119+++6FF9 B7                   or      a
+120+++6FFA CA 44 70             jp      z,atm_mem_scatter_restore_fail
+121+++6FFD 32 9F 71             ld      (atm_mem_scatter_rollback_count),a
+122+++7000 3A 9E 71             ld      a,(atm_mem_scatter_handle)
+123+++7003 3D                   dec     a
+124+++7004 21 E0 71             ld      hl,atm_mem_scatter_extents
+125+++7007 11 E8 00             ld      de,ATM_SCATTER_EXTENT_BYTES
+126+++700A B7                   or      a
+127+++700B CA 13 70             jp      z,atm_mem_scatter_rollback_vector_ready
+128+++700E              atm_mem_scatter_rollback_vector:
+129+++700E 19                   add     hl,de
+130+++700F 3D                   dec     a
+131+++7010 C2 0E 70             jp      nz,atm_mem_scatter_rollback_vector
+132+++7013              atm_mem_scatter_rollback_vector_ready:
+133+++7013 22 AA 71             ld      (atm_mem_scatter_vector),hl
+134+++7016              atm_mem_scatter_rollback_loop:
+135+++7016 2A AA 71             ld      hl,(atm_mem_scatter_vector)
+136+++7019 11 F8 68             ld      de,atm_mem_request_offset
+137+++701C 01 04 00             ld      bc,4
+138+++701F ED B0                ldir
+139+++7021 21 01 00             ld      hl,1
+140+++7024 22 FC 68             ld      (atm_mem_request_length),hl
+141+++7027 21 00 00             ld      hl,0
+142+++702A 22 FE 68             ld      (atm_mem_request_length+2),hl
+143+++702D CD A7 66             call    atm_mem_free
+144+++7030 2A AA 71             ld      hl,(atm_mem_scatter_vector)
+145+++7033 11 04 00             ld      de,4
+146+++7036 19                   add     hl,de
+147+++7037 22 AA 71             ld      (atm_mem_scatter_vector),hl
+148+++703A 3A 9F 71             ld      a,(atm_mem_scatter_rollback_count)
+149+++703D 3D                   dec     a
+150+++703E 32 9F 71             ld      (atm_mem_scatter_rollback_count),a
+151+++7041 C2 16 70             jp      nz,atm_mem_scatter_rollback_loop
+152+++7044              atm_mem_scatter_restore_fail:
+153+++7044 21 AC 71             ld      hl,atm_mem_scatter_length
+154+++7047 11 FC 68             ld      de,atm_mem_request_length
+155+++704A 01 04 00             ld      bc,4
+156+++704D ED B0                ldir
+157+++704F              atm_mem_scatter_fail:
+158+++704F 37                   scf
+159+++7050 C9                   ret
+160+++7051
+161+++7051              atm_mem_scatter_free:
+161+++7051
+162+++7051 B7                   or      a
+163+++7052 CA 4F 70             jp      z,atm_mem_scatter_fail
+164+++7055 FE 09                cp      ATM_SCATTER_HANDLE_COUNT+1
+165+++7057 D2 4F 70             jp      nc,atm_mem_scatter_fail
+166+++705A 32 9E 71             ld      (atm_mem_scatter_handle),a
+167+++705D 3D                   dec     a
+168+++705E 21 B0 71             ld      hl,atm_mem_scatter_handles
+169+++7061 11 06 00             ld      de,6
+170+++7064 B7                   or      a
+171+++7065 CA 6D 70             jp      z,atm_mem_scatter_free_record_ready
+172+++7068              atm_mem_scatter_free_record:
+173+++7068 19                   add     hl,de
+174+++7069 3D                   dec     a
+175+++706A C2 68 70             jp      nz,atm_mem_scatter_free_record
+176+++706D              atm_mem_scatter_free_record_ready:
+177+++706D 7E                   ld      a,(hl)
+178+++706E B7                   or      a
+179+++706F CA 4F 70             jp      z,atm_mem_scatter_fail
+180+++7072 23                   inc     hl
+181+++7073 7E                   ld      a,(hl)
+182+++7074 32 9F 71             ld      (atm_mem_scatter_rollback_count),a
+183+++7077 3A 9E 71             ld      a,(atm_mem_scatter_handle)
+184+++707A 3D                   dec     a
+185+++707B 21 E0 71             ld      hl,atm_mem_scatter_extents
+186+++707E 11 E8 00             ld      de,ATM_SCATTER_EXTENT_BYTES
+187+++7081 B7                   or      a
+188+++7082 CA 8A 70             jp      z,atm_mem_scatter_free_vector_ready
+189+++7085              atm_mem_scatter_free_vector:
+190+++7085 19                   add     hl,de
+191+++7086 3D                   dec     a
+192+++7087 C2 85 70             jp      nz,atm_mem_scatter_free_vector
+193+++708A              atm_mem_scatter_free_vector_ready:
+194+++708A 22 AA 71             ld      (atm_mem_scatter_vector),hl
+195+++708D              atm_mem_scatter_free_loop:
+196+++708D 2A AA 71             ld      hl,(atm_mem_scatter_vector)
+197+++7090 11 F8 68             ld      de,atm_mem_request_offset
+198+++7093 01 04 00             ld      bc,4
+199+++7096 ED B0                ldir
+200+++7098 21 01 00             ld      hl,1
+201+++709B 22 FC 68             ld      (atm_mem_request_length),hl
+202+++709E 21 00 00             ld      hl,0
+203+++70A1 22 FE 68             ld      (atm_mem_request_length+2),hl
+204+++70A4 CD A7 66             call    atm_mem_free
+205+++70A7 DA 4F 70             jp      c,atm_mem_scatter_fail
+206+++70AA 2A AA 71             ld      hl,(atm_mem_scatter_vector)
+207+++70AD 11 04 00             ld      de,4
+208+++70B0 19                   add     hl,de
+209+++70B1 22 AA 71             ld      (atm_mem_scatter_vector),hl
+210+++70B4 3A 9F 71             ld      a,(atm_mem_scatter_rollback_count)
+211+++70B7 3D                   dec     a
+212+++70B8 32 9F 71             ld      (atm_mem_scatter_rollback_count),a
+213+++70BB C2 8D 70             jp      nz,atm_mem_scatter_free_loop
+214+++70BE
+215+++70BE 3A 9E 71             ld      a,(atm_mem_scatter_handle)
+216+++70C1 3D                   dec     a
+217+++70C2 21 B0 71             ld      hl,atm_mem_scatter_handles
+218+++70C5 11 06 00             ld      de,6
+219+++70C8 B7                   or      a
+220+++70C9 CA D1 70             jp      z,atm_mem_scatter_clear_ready
+221+++70CC              atm_mem_scatter_clear_record:
+222+++70CC 19                   add     hl,de
+223+++70CD 3D                   dec     a
+224+++70CE C2 CC 70             jp      nz,atm_mem_scatter_clear_record
+225+++70D1              atm_mem_scatter_clear_ready:
+226+++70D1 AF                   xor     a
+227+++70D2 77                   ld      (hl),a
+228+++70D3 B7                   or      a
+229+++70D4 C9                   ret
+230+++70D5
+231+++70D5              ; Smoke test verifies an object spanning two private extent records.
+232+++70D5              atm_mem_scatter_selftest:
+232+++70D5
+233+++70D5 3E 01                ld      a,1
+234+++70D7 32 A1 71             ld      (atm_mem_scatter_test_stage),a
+235+++70DA 21 01 40             ld      hl,#4001
+236+++70DD 22 FC 68             ld      (atm_mem_request_length),hl
+237+++70E0 21 00 00             ld      hl,0
+238+++70E3 22 FE 68             ld      (atm_mem_request_length+2),hl
+239+++70E6 CD 24 6F             call    atm_mem_scatter_alloc
+240+++70E9 DA 97 71             jp      c,atm_mem_scatter_test_fail
+241+++70EC 32 A0 71             ld      (atm_mem_scatter_test_handle),a
+242+++70EF
+243+++70EF 3E 02                ld      a,2
+244+++70F1 32 A1 71             ld      (atm_mem_scatter_test_stage),a
+245+++70F4 3A 9D 71             ld      a,(atm_mem_scatter_done)
+246+++70F7 FE 02                cp      2
+247+++70F9 C2 97 71             jp      nz,atm_mem_scatter_test_fail
+248+++70FC 3E 07                ld      a,7
+249+++70FE 32 A1 71             ld      (atm_mem_scatter_test_stage),a
+250+++7101                      ; The public logical length must be stored in record bytes 2..5.
+251+++7101 3A A0 71             ld      a,(atm_mem_scatter_test_handle)
+252+++7104 3D                   dec     a
+253+++7105 21 B0 71             ld      hl,atm_mem_scatter_handles
+254+++7108 11 06 00             ld      de,6
+255+++710B B7                   or      a
+256+++710C CA 14 71             jp      z,atm_mem_scatter_test_length_record_ready
+257+++710F              atm_mem_scatter_test_length_record_step:
+258+++710F 19                   add     hl,de
+259+++7110 3D                   dec     a
+260+++7111 C2 0F 71             jp      nz,atm_mem_scatter_test_length_record_step
+261+++7114              atm_mem_scatter_test_length_record_ready:
+262+++7114 23                   inc     hl
+263+++7115 23                   inc     hl
+264+++7116 11 AC 71             ld      de,atm_mem_scatter_length
+265+++7119 06 04                ld      b,4
+266+++711B              atm_mem_scatter_test_length_record_compare:
+267+++711B 1A                   ld      a,(de)
+268+++711C BE                   cp      (hl)
+269+++711D C2 97 71             jp      nz,atm_mem_scatter_test_fail
+270+++7120 13                   inc     de
+271+++7121 23                   inc     hl
+272+++7122 10 F7                djnz    atm_mem_scatter_test_length_record_compare
+273+++7124
+274+++7124 2A AA 71             ld      hl,(atm_mem_scatter_vector)
+275+++7127 11 08 00             ld      de,8
+276+++712A B7                   or      a
+277+++712B ED 52                sbc     hl,de
+278+++712D 22 A2 71             ld      (atm_mem_scatter_test_vector),hl
+279+++7130
+280+++7130 3E 03                ld      a,3
+281+++7132 32 A1 71             ld      (atm_mem_scatter_test_stage),a
+282+++7135 2A A2 71             ld      hl,(atm_mem_scatter_test_vector)
+283+++7138 7E                   ld      a,(hl)
+284+++7139 23                   inc     hl
+285+++713A B6                   or      (hl)
+286+++713B 23                   inc     hl
+287+++713C B6                   or      (hl)
+288+++713D 23                   inc     hl
+289+++713E B6                   or      (hl)
+290+++713F CA 97 71             jp      z,atm_mem_scatter_test_fail
+291+++7142 2A A2 71             ld      hl,(atm_mem_scatter_test_vector)
+292+++7145 11 A4 71             ld      de,atm_mem_scatter_test_first
+293+++7148 01 04 00             ld      bc,4
+294+++714B ED B0                ldir
+295+++714D
+296+++714D 3E 04                ld      a,4
+297+++714F 32 A1 71             ld      (atm_mem_scatter_test_stage),a
+298+++7152 2A A2 71             ld      hl,(atm_mem_scatter_test_vector)
+299+++7155 11 04 00             ld      de,4
+300+++7158 19                   add     hl,de
+301+++7159 7E                   ld      a,(hl)
+302+++715A 47                   ld      b,a
+303+++715B 23                   inc     hl
+304+++715C 7E                   ld      a,(hl)
+305+++715D B0                   or      b
+306+++715E 47                   ld      b,a
+307+++715F 23                   inc     hl
+308+++7160 7E                   ld      a,(hl)
+309+++7161 B0                   or      b
+310+++7162 47                   ld      b,a
+311+++7163 23                   inc     hl
+312+++7164 7E                   ld      a,(hl)
+313+++7165 B0                   or      b
+314+++7166 CA 97 71             jp      z,atm_mem_scatter_test_fail
+315+++7169
+316+++7169 3E 05                ld      a,5
+317+++716B 32 A1 71             ld      (atm_mem_scatter_test_stage),a
+318+++716E 21 A4 71             ld      hl,atm_mem_scatter_test_first
+319+++7171 ED 5B A2 71          ld      de,(atm_mem_scatter_test_vector)
+320+++7175 13                   inc     de
+321+++7176 13                   inc     de
+322+++7177 13                   inc     de
+323+++7178 13                   inc     de
+324+++7179 06 04                ld      b,4
+325+++717B              atm_mem_scatter_test_compare_offsets:
+326+++717B 1A                   ld      a,(de)
+327+++717C BE                   cp      (hl)
+328+++717D C2 87 71             jp      nz,atm_mem_scatter_test_offsets_distinct
+329+++7180 23                   inc     hl
+330+++7181 13                   inc     de
+331+++7182 10 F7                djnz    atm_mem_scatter_test_compare_offsets
+332+++7184 C3 97 71             jp      atm_mem_scatter_test_fail
+333+++7187              atm_mem_scatter_test_offsets_distinct:
+334+++7187 3E 06                ld      a,6
+335+++7189 32 A1 71             ld      (atm_mem_scatter_test_stage),a
+336+++718C 3A A0 71             ld      a,(atm_mem_scatter_test_handle)
+337+++718F CD 51 70             call    atm_mem_scatter_free
+338+++7192 DA 97 71             jp      c,atm_mem_scatter_test_fail
+339+++7195 AF                   xor     a
+340+++7196 C9                   ret
+341+++7197              atm_mem_scatter_test_fail:
+342+++7197 3A A1 71             ld      a,(atm_mem_scatter_test_stage)
+343+++719A 37                   scf
+344+++719B C9                   ret
+345+++719C
+346+++719C 00           atm_mem_scatter_needed:          db 0
+347+++719D 00           atm_mem_scatter_done:            db 0
+348+++719E 00           atm_mem_scatter_handle:          db 0
+349+++719F 00           atm_mem_scatter_rollback_count:  db 0
+350+++71A0 00           atm_mem_scatter_test_handle:     db 0
+351+++71A1 00           atm_mem_scatter_test_stage:      db 0
+352+++71A2 00 00        atm_mem_scatter_test_vector:     dw 0
+353+++71A4 00 00 00 00  atm_mem_scatter_test_first:      defs 4,0
+354+++71A8 00 00        atm_mem_scatter_record:          dw 0
+355+++71AA 00 00        atm_mem_scatter_vector:          dw 0
+356+++71AC 00 00 00 00  atm_mem_scatter_length:          defs 4,0
+357+++71B0 00 00 00...  atm_mem_scatter_handles:         defs ATM_SCATTER_HANDLE_COUNT*6,0
+358+++71E0 00 00 00...  atm_mem_scatter_extents:         defs ATM_SCATTER_HANDLE_COUNT*ATM_SCATTER_MAX_EXTENTS*4,0
+359+++7920
 # file closed: atm_memory_handles.asm
-160++ 78F7                      INCLUDE "drivers/atm/atm_memory_handle_ops.asm"
+160++ 7920                      INCLUDE "drivers/atm/atm_memory_handle_ops.asm"
 # file opened: atm_memory_handle_ops.asm
-  1+++78F7              ; Project127 ATM logical scatter-handle operations.
-  2+++78F7              ; All offsets and lengths are UINT32 byte quantities relative to an opaque
-  3+++78F7              ; handle. Physical extent vectors are resolved privately for each byte.
-  4+++78F7              ;
-  5+++78F7              ; Descriptors:
-  6+++78F7              ;   atm_mem_handle_source       db handle id
-  7+++78F7              ;   atm_mem_handle_destination  db handle id
-  8+++78F7              ;   atm_mem_handle_source_offset      defs 4
-  9+++78F7              ;   atm_mem_handle_destination_offset defs 4
- 10+++78F7              ;   atm_mem_handle_op_length          defs 4
- 11+++78F7              ;   atm_mem_handle_fill_value   db value
- 12+++78F7              ;
- 13+++78F7              ; READ and WRITE use the same validated handle-to-handle copy primitive:
- 14+++78F7              ; READ convention: source=object, destination=transfer handle.
- 15+++78F7              ; WRITE convention: source=transfer handle, destination=object.
- 16+++78F7              ; FILL and COPY are handle-relative. Carry clear means complete operation.
- 17+++78F7              ;
- 18+++78F7              ; Bytewise implementation intentionally favors correctness first. It maps
- 19+++78F7              ; only window 3 and restores page 1 on successful completion.
- 20+++78F7
- 21+++78F7              atm_mem_handle_read:
- 21+++78F7
- 22+++78F7 C3 FD 78             jp      atm_mem_handle_copy
- 23+++78FA
- 24+++78FA              atm_mem_handle_write:
- 24+++78FA
- 25+++78FA C3 FD 78             jp      atm_mem_handle_copy
- 26+++78FD
- 27+++78FD              atm_mem_handle_copy:
- 27+++78FD
- 28+++78FD 3A 40 7B             ld      a,(atm_mem_handle_source)
- 29+++7900 21 42 7B             ld      hl,atm_mem_handle_source_offset
- 30+++7903 CD 0A 7A             call    atm_mem_handle_validate_range
- 31+++7906 D8                   ret     c
- 32+++7907 3A 41 7B             ld      a,(atm_mem_handle_destination)
- 33+++790A 21 46 7B             ld      hl,atm_mem_handle_destination_offset
- 34+++790D CD 0A 7A             call    atm_mem_handle_validate_range
- 35+++7910 D8                   ret     c
- 36+++7911 21 42 7B             ld      hl,atm_mem_handle_source_offset
- 37+++7914 11 B2 6C             ld      de,atm_mem_source_cursor
- 38+++7917 01 04 00             ld      bc,4
- 39+++791A ED B0                ldir
- 40+++791C 21 46 7B             ld      hl,atm_mem_handle_destination_offset
- 41+++791F 11 B6 6C             ld      de,atm_mem_destination_cursor
- 42+++7922 01 04 00             ld      bc,4
- 43+++7925 ED B0                ldir
- 44+++7927 21 4A 7B             ld      hl,atm_mem_handle_op_length
- 45+++792A 11 BA 6C             ld      de,atm_mem_remaining
- 46+++792D 01 04 00             ld      bc,4
- 47+++7930 ED B0                ldir
- 48+++7932 CD DB 6B             call    atm_mem_remaining_is_zero
- 49+++7935 C8                   ret     z
- 50+++7936                      ; Backward traversal for same-handle overlapping ranges where dst>src.
- 51+++7936 3A 40 7B             ld      a,(atm_mem_handle_source)
- 52+++7939 47                   ld      b,a
- 53+++793A 3A 41 7B             ld      a,(atm_mem_handle_destination)
- 54+++793D B8                   cp      b
- 55+++793E C2 91 79             jp      nz,atm_mem_handle_copy_forward
- 56+++7941 CD BB 6B             call    atm_mem_destination_after_source
- 57+++7944 D2 91 79             jp      nc,atm_mem_handle_copy_forward
- 58+++7947 2A B2 6C             ld      hl,(atm_mem_source_cursor)
- 59+++794A ED 5B BA 6C          ld      de,(atm_mem_remaining)
- 60+++794E 19                   add     hl,de
- 61+++794F 22 B2 6C             ld      (atm_mem_source_cursor),hl
- 62+++7952 2A B4 6C             ld      hl,(atm_mem_source_cursor+2)
- 63+++7955 ED 5B BC 6C          ld      de,(atm_mem_remaining+2)
- 64+++7959 ED 5A                adc     hl,de
- 65+++795B 22 B4 6C             ld      (atm_mem_source_cursor+2),hl
- 66+++795E CD 67 6C             call    atm_mem_source_dec
- 67+++7961 2A B6 6C             ld      hl,(atm_mem_destination_cursor)
- 68+++7964 ED 5B BA 6C          ld      de,(atm_mem_remaining)
- 69+++7968 19                   add     hl,de
- 70+++7969 22 B6 6C             ld      (atm_mem_destination_cursor),hl
- 71+++796C 2A B8 6C             ld      hl,(atm_mem_destination_cursor+2)
- 72+++796F ED 5B BC 6C          ld      de,(atm_mem_remaining+2)
- 73+++7973 ED 5A                adc     hl,de
- 74+++7975 22 B8 6C             ld      (atm_mem_destination_cursor+2),hl
- 75+++7978 CD 7C 6C             call    atm_mem_destination_dec
- 76+++797B              atm_mem_handle_copy_backward_loop:
- 77+++797B CD 14 7B             call    atm_mem_handle_copy_one
- 78+++797E D8                   ret     c
- 79+++797F CD 67 6C             call    atm_mem_source_dec
- 80+++7982 CD 7C 6C             call    atm_mem_destination_dec
- 81+++7985 CD 91 6C             call    atm_mem_length_dec
- 82+++7988 CD DB 6B             call    atm_mem_remaining_is_zero
- 83+++798B C2 7B 79             jp      nz,atm_mem_handle_copy_backward_loop
- 84+++798E C3 16 6C             jp      atm_mem_restore_window3
- 85+++7991              atm_mem_handle_copy_forward:
- 86+++7991              atm_mem_handle_copy_forward_loop:
- 87+++7991 CD 14 7B             call    atm_mem_handle_copy_one
- 88+++7994 D8                   ret     c
- 89+++7995 CD 43 6C             call    atm_mem_source_inc
- 90+++7998 CD 55 6C             call    atm_mem_destination_inc
- 91+++799B CD 91 6C             call    atm_mem_length_dec
- 92+++799E CD DB 6B             call    atm_mem_remaining_is_zero
- 93+++79A1 C2 91 79             jp      nz,atm_mem_handle_copy_forward_loop
- 94+++79A4 C3 16 6C             jp      atm_mem_restore_window3
- 95+++79A7
- 96+++79A7              atm_mem_handle_fill:
- 96+++79A7
- 97+++79A7 3E 03                ld      a,3
- 98+++79A9 32 34 7D             ld      (atm_mem_handle_test_stage),a
- 99+++79AC 3A 41 7B             ld      a,(atm_mem_handle_destination)
-100+++79AF 21 46 7B             ld      hl,atm_mem_handle_destination_offset
-101+++79B2 CD 0A 7A             call    atm_mem_handle_validate_range
-102+++79B5 D8                   ret     c
-103+++79B6 3E 31                ld      a,#31
-104+++79B8 32 34 7D             ld      (atm_mem_handle_test_stage),a
-105+++79BB 21 46 7B             ld      hl,atm_mem_handle_destination_offset
-106+++79BE 11 B6 6C             ld      de,atm_mem_destination_cursor
-107+++79C1 01 04 00             ld      bc,4
-108+++79C4 ED B0                ldir
-109+++79C6 21 4A 7B             ld      hl,atm_mem_handle_op_length
-110+++79C9 11 BA 6C             ld      de,atm_mem_remaining
-111+++79CC 01 04 00             ld      bc,4
-112+++79CF ED B0                ldir
-113+++79D1 CD DB 6B             call    atm_mem_remaining_is_zero
-114+++79D4 C8                   ret     z
-115+++79D5              atm_mem_handle_fill_loop:
-116+++79D5 3E 32                ld      a,#32
-117+++79D7 32 34 7D             ld      (atm_mem_handle_test_stage),a
-118+++79DA 3A 41 7B             ld      a,(atm_mem_handle_destination)
-119+++79DD 21 B6 6C             ld      hl,atm_mem_destination_cursor
-120+++79E0 CD A4 7A             call    atm_mem_handle_resolve
-121+++79E3 D8                   ret     c
-122+++79E4 3E 33                ld      a,#33
-123+++79E6 32 34 7D             ld      (atm_mem_handle_test_stage),a
-124+++79E9 CD 1B 6C             call    atm_mem_map_work_offset
-125+++79EC D8                   ret     c
-126+++79ED 3E 34                ld      a,#34
-127+++79EF 32 34 7D             ld      (atm_mem_handle_test_stage),a
-128+++79F2 3A 4E 7B             ld      a,(atm_mem_handle_fill_value)
-129+++79F5 77                   ld      (hl),a
-130+++79F6 3E 35                ld      a,#35
-131+++79F8 32 34 7D             ld      (atm_mem_handle_test_stage),a
-132+++79FB CD 55 6C             call    atm_mem_destination_inc
-133+++79FE CD 91 6C             call    atm_mem_length_dec
-134+++7A01 CD DB 6B             call    atm_mem_remaining_is_zero
-135+++7A04 C2 D5 79             jp      nz,atm_mem_handle_fill_loop
-136+++7A07 C3 16 6C             jp      atm_mem_restore_window3
-137+++7A0A
-138+++7A0A              ; Validate [offset, offset+op_length) against the exact logical handle length.
-139+++7A0A              ; A=handle id, HL=pointer to UINT32 logical offset.
-140+++7A0A              atm_mem_handle_validate_range:
-141+++7A0A 32 4F 7B             ld      (atm_mem_handle_temp_id),a
-142+++7A0D 22 52 7B             ld      (atm_mem_handle_temp_offset_ptr),hl
-143+++7A10 CD 7F 7A             call    atm_mem_handle_find_record
-144+++7A13 DA 71 7A             jp      c,atm_mem_handle_validate_find_fail
-145+++7A16 3E 41                ld      a,#41
-146+++7A18 32 34 7D             ld      (atm_mem_handle_test_stage),a
-147+++7A1B 22 50 7B             ld      (atm_mem_handle_temp_record),hl
-148+++7A1E                      ; Compute end = offset + operation length with full carry checking.
-149+++7A1E 2A 52 7B             ld      hl,(atm_mem_handle_temp_offset_ptr)
-150+++7A21 11 58 7B             ld      de,atm_mem_handle_temp_end
-151+++7A24 01 04 00             ld      bc,4
-152+++7A27 ED B0                ldir
-153+++7A29 2A 58 7B             ld      hl,(atm_mem_handle_temp_end)
-154+++7A2C ED 5B 4A 7B          ld      de,(atm_mem_handle_op_length)
-155+++7A30 19                   add     hl,de
-156+++7A31 22 58 7B             ld      (atm_mem_handle_temp_end),hl
-157+++7A34 2A 5A 7B             ld      hl,(atm_mem_handle_temp_end+2)
-158+++7A37 ED 5B 4C 7B          ld      de,(atm_mem_handle_op_length+2)
-159+++7A3B ED 5A                adc     hl,de
-160+++7A3D 22 5A 7B             ld      (atm_mem_handle_temp_end+2),hl
-161+++7A40 DA 78 7A             jp      c,atm_mem_handle_validate_overflow
-162+++7A43 3E 42                ld      a,#42
-163+++7A45 32 34 7D             ld      (atm_mem_handle_test_stage),a
-164+++7A48 2A 50 7B             ld      hl,(atm_mem_handle_temp_record)
-165+++7A4B 23                   inc     hl
-166+++7A4C 23                   inc     hl
-167+++7A4D 23                   inc     hl
-168+++7A4E 23                   inc     hl
-169+++7A4F 23                   inc     hl
-170+++7A50                      ; Compare end against recorded UINT32 logical length, high byte first.
-171+++7A50 11 5B 7B             ld      de,atm_mem_handle_temp_end+3
-172+++7A53 3E 50                ld      a,#50
-173+++7A55 32 34 7D             ld      (atm_mem_handle_test_stage),a
-174+++7A58 06 04                ld      b,4
-175+++7A5A              atm_mem_handle_range_compare:
-176+++7A5A 1A                   ld      a,(de)
-177+++7A5B BE                   cp      (hl)
-178+++7A5C DA 6D 7A             jp      c,atm_mem_handle_range_ok
-179+++7A5F C2 6F 7A             jp      nz,atm_mem_handle_range_fail
-180+++7A62 1B                   dec     de
-181+++7A63 2B                   dec     hl
-182+++7A64 3A 34 7D             ld      a,(atm_mem_handle_test_stage)
-183+++7A67 3C                   inc     a
-184+++7A68 32 34 7D             ld      (atm_mem_handle_test_stage),a
-185+++7A6B 10 ED                djnz    atm_mem_handle_range_compare
-186+++7A6D              atm_mem_handle_range_ok:
-187+++7A6D B7                   or      a
-188+++7A6E C9                   ret
-189+++7A6F              atm_mem_handle_range_fail:
-190+++7A6F                      ; Preserve the comparison byte index (50..53) for the host log.
-191+++7A6F 37                   scf
-192+++7A70 C9                   ret
-193+++7A71              atm_mem_handle_validate_find_fail:
-194+++7A71 3E 40                ld      a,#40
-195+++7A73 32 34 7D             ld      (atm_mem_handle_test_stage),a
-196+++7A76 37                   scf
-197+++7A77 C9                   ret
-198+++7A78              atm_mem_handle_validate_overflow:
-199+++7A78 3E 45                ld      a,#45
-200+++7A7A 32 34 7D             ld      (atm_mem_handle_test_stage),a
-201+++7A7D 37                   scf
-202+++7A7E C9                   ret
-203+++7A7F
-204+++7A7F              ; A=handle id. Returns HL=6-byte handle record, carry set if invalid/free.
-205+++7A7F              atm_mem_handle_find_record:
-206+++7A7F B7                   or      a
-207+++7A80 CA A2 7A             jp      z,atm_mem_handle_lookup_fail
-208+++7A83 FE 09                cp      ATM_SCATTER_HANDLE_COUNT+1
-209+++7A85 D2 A2 7A             jp      nc,atm_mem_handle_lookup_fail
-210+++7A88 3D                   dec     a
-211+++7A89 21 87 71             ld      hl,atm_mem_scatter_handles
-212+++7A8C 11 06 00             ld      de,6
-213+++7A8F CA 97 7A             jp      z,atm_mem_handle_lookup_check
-214+++7A92              atm_mem_handle_lookup_step:
-215+++7A92 19                   add     hl,de
-216+++7A93 3D                   dec     a
-217+++7A94 C2 92 7A             jp      nz,atm_mem_handle_lookup_step
-218+++7A97              atm_mem_handle_lookup_check:
-219+++7A97 7E                   ld      a,(hl)
-220+++7A98 47                   ld      b,a
-221+++7A99 3A 4F 7B             ld      a,(atm_mem_handle_temp_id)
-222+++7A9C B8                   cp      b
-223+++7A9D C2 A2 7A             jp      nz,atm_mem_handle_lookup_fail
-224+++7AA0 B7                   or      a
-225+++7AA1 C9                   ret
-226+++7AA2              atm_mem_handle_lookup_fail:
-227+++7AA2 37                   scf
-228+++7AA3 C9                   ret
-229+++7AA4
-230+++7AA4              ; Resolve handle-relative cursor into physical UINT32 atm_mem_work_offset.
-231+++7AA4              ; A=handle id, HL=pointer to UINT32 logical cursor.
-232+++7AA4              atm_mem_handle_resolve:
-233+++7AA4 32 4F 7B             ld      (atm_mem_handle_temp_id),a
-234+++7AA7 22 56 7B             ld      (atm_mem_handle_cursor_ptr),hl
-235+++7AAA CD 7F 7A             call    atm_mem_handle_find_record
-236+++7AAD D8                   ret     c
-237+++7AAE 22 50 7B             ld      (atm_mem_handle_temp_record),hl
-238+++7AB1                      ; Vector base = extents + (handle-1)*232.
-239+++7AB1 3A 4F 7B             ld      a,(atm_mem_handle_temp_id)
-240+++7AB4 3D                   dec     a
-241+++7AB5 21 B7 71             ld      hl,atm_mem_scatter_extents
-242+++7AB8 11 E8 00             ld      de,ATM_SCATTER_EXTENT_BYTES
-243+++7ABB B7                   or      a
-244+++7ABC CA C4 7A             jp      z,atm_mem_handle_vector_base_ready
-245+++7ABF              atm_mem_handle_vector_base_loop:
-246+++7ABF 19                   add     hl,de
-247+++7AC0 3D                   dec     a
-248+++7AC1 C2 BF 7A             jp      nz,atm_mem_handle_vector_base_loop
-249+++7AC4              atm_mem_handle_vector_base_ready:
-250+++7AC4 22 54 7B             ld      (atm_mem_handle_temp_vector),hl
-251+++7AC7                      ; Page index = (cursor >> 14), with cursor guaranteed in range.
-252+++7AC7 2A 56 7B             ld      hl,(atm_mem_handle_cursor_ptr)
-253+++7ACA 23                   inc     hl
-254+++7ACB 23                   inc     hl
-255+++7ACC 7E                   ld      a,(hl)
-256+++7ACD 87                   add     a,a
-257+++7ACE 87                   add     a,a
-258+++7ACF 47                   ld      b,a
-259+++7AD0 2B                   dec     hl
-260+++7AD1 7E                   ld      a,(hl)
-261+++7AD2 CB 3F                srl     a
-262+++7AD4 CB 3F                srl     a
-263+++7AD6 CB 3F                srl     a
-264+++7AD8 CB 3F                srl     a
-265+++7ADA CB 3F                srl     a
-266+++7ADC CB 3F                srl     a
-267+++7ADE B0                   or      b
-268+++7ADF 47                   ld      b,a
-269+++7AE0 2A 54 7B             ld      hl,(atm_mem_handle_temp_vector)
-270+++7AE3 11 04 00             ld      de,4
-271+++7AE6 78                   ld      a,b
-272+++7AE7 B7                   or      a
-273+++7AE8 CA EE 7A             jp      z,atm_mem_handle_extent_ready
-274+++7AEB              atm_mem_handle_extent_step:
-275+++7AEB 19                   add     hl,de
-276+++7AEC 10 FD                djnz    atm_mem_handle_extent_step
-277+++7AEE              atm_mem_handle_extent_ready:
-278+++7AEE 11 BE 6C             ld      de,atm_mem_work_offset
-279+++7AF1 01 04 00             ld      bc,4
-280+++7AF4 ED B0                ldir
-281+++7AF6                      ; Add cursor's intra-page offset (low 14 bits) to physical base.
-282+++7AF6 2A 56 7B             ld      hl,(atm_mem_handle_cursor_ptr)
-283+++7AF9 7E                   ld      a,(hl)
-284+++7AFA 5F                   ld      e,a
-285+++7AFB 23                   inc     hl
-286+++7AFC 7E                   ld      a,(hl)
-287+++7AFD E6 3F                and     #3F
-288+++7AFF 57                   ld      d,a
-289+++7B00 2A BE 6C             ld      hl,(atm_mem_work_offset)
-290+++7B03 19                   add     hl,de
-291+++7B04 22 BE 6C             ld      (atm_mem_work_offset),hl
-292+++7B07 2A C0 6C             ld      hl,(atm_mem_work_offset+2)
-293+++7B0A 11 00 00             ld      de,0
-294+++7B0D ED 5A                adc     hl,de
-295+++7B0F 22 C0 6C             ld      (atm_mem_work_offset+2),hl
-296+++7B12 B7                   or      a
-297+++7B13 C9                   ret
-298+++7B14
-299+++7B14              atm_mem_handle_copy_one:
-300+++7B14 21 B2 6C             ld      hl,atm_mem_source_cursor
-301+++7B17 22 56 7B             ld      (atm_mem_handle_cursor_ptr),hl
-302+++7B1A 3A 40 7B             ld      a,(atm_mem_handle_source)
-303+++7B1D CD A4 7A             call    atm_mem_handle_resolve
-304+++7B20 D8                   ret     c
-305+++7B21 CD 1B 6C             call    atm_mem_map_work_offset
-306+++7B24 D8                   ret     c
-307+++7B25 7E                   ld      a,(hl)
-308+++7B26 32 C3 6C             ld      (atm_mem_copy_byte),a
-309+++7B29 21 B6 6C             ld      hl,atm_mem_destination_cursor
-310+++7B2C 22 56 7B             ld      (atm_mem_handle_cursor_ptr),hl
-311+++7B2F 3A 41 7B             ld      a,(atm_mem_handle_destination)
-312+++7B32 CD A4 7A             call    atm_mem_handle_resolve
-313+++7B35 D8                   ret     c
-314+++7B36 CD 1B 6C             call    atm_mem_map_work_offset
-315+++7B39 D8                   ret     c
-316+++7B3A 3A C3 6C             ld      a,(atm_mem_copy_byte)
-317+++7B3D 77                   ld      (hl),a
-318+++7B3E B7                   or      a
-319+++7B3F C9                   ret
-320+++7B40
-321+++7B40 00           atm_mem_handle_source:             db 0
-322+++7B41 00           atm_mem_handle_destination:        db 0
-323+++7B42 00 00 00 00  atm_mem_handle_source_offset:      defs 4,0
-324+++7B46 00 00 00 00  atm_mem_handle_destination_offset: defs 4,0
-325+++7B4A 00 00 00 00  atm_mem_handle_op_length:          defs 4,0
-326+++7B4E 00           atm_mem_handle_fill_value:         db 0
-327+++7B4F 00           atm_mem_handle_temp_id:            db 0
-328+++7B50 00 00        atm_mem_handle_temp_record:        dw 0
-329+++7B52 00 00        atm_mem_handle_temp_offset_ptr:    dw 0
-330+++7B54 00 00        atm_mem_handle_temp_vector:        dw 0
-331+++7B56 00 00        atm_mem_handle_cursor_ptr:         dw 0
-332+++7B58 00 00 00 00  atm_mem_handle_temp_end:            defs 4,0
-333+++7B5C
-334+++7B5C
-335+++7B5C              ; =========================================================================
-336+++7B5C              ; Runtime acceptance test for logical scatter-handle data operations.
-337+++7B5C              ; Allocates two 0x4001-byte objects, fills/copies across an extent boundary,
-338+++7B5C              ; verifies both sides of the boundary, then checks overlapping COPY.
-339+++7B5C              ; =========================================================================
-340+++7B5C              atm_mem_handle_ops_selftest:
-340+++7B5C
-341+++7B5C 3E 01                ld      a,1
-342+++7B5E 32 34 7D             ld      (atm_mem_handle_test_stage),a
-343+++7B61 21 01 40             ld      hl,#4001
-344+++7B64 22 FC 68             ld      (atm_mem_request_length),hl
-345+++7B67 21 00 00             ld      hl,0
-346+++7B6A 22 FE 68             ld      (atm_mem_request_length+2),hl
-347+++7B6D CD 24 6F             call    atm_mem_scatter_alloc
-348+++7B70 DA 2D 7D             jp      c,atm_mem_handle_test_fail
-349+++7B73 32 32 7D             ld      (atm_mem_handle_test_source),a
-350+++7B76
-351+++7B76 3E 02                ld      a,2
-352+++7B78 32 34 7D             ld      (atm_mem_handle_test_stage),a
-353+++7B7B 21 01 40             ld      hl,#4001
-354+++7B7E 22 FC 68             ld      (atm_mem_request_length),hl
-355+++7B81 21 00 00             ld      hl,0
-356+++7B84 22 FE 68             ld      (atm_mem_request_length+2),hl
-357+++7B87 CD 24 6F             call    atm_mem_scatter_alloc
-358+++7B8A DA 2D 7D             jp      c,atm_mem_handle_test_fail
-359+++7B8D 32 33 7D             ld      (atm_mem_handle_test_destination),a
-360+++7B90
-361+++7B90                      ; FILL source with a known byte over the full logical 0x4001 range.
-362+++7B90 3E 03                ld      a,3
-363+++7B92 32 34 7D             ld      (atm_mem_handle_test_stage),a
-364+++7B95 3A 32 7D             ld      a,(atm_mem_handle_test_source)
-365+++7B98 32 41 7B             ld      (atm_mem_handle_destination),a
-366+++7B9B 21 00 00             ld      hl,0
-367+++7B9E 22 46 7B             ld      (atm_mem_handle_destination_offset),hl
-368+++7BA1 22 48 7B             ld      (atm_mem_handle_destination_offset+2),hl
-369+++7BA4 21 01 40             ld      hl,#4001
-370+++7BA7 22 4A 7B             ld      (atm_mem_handle_op_length),hl
-371+++7BAA 21 00 00             ld      hl,0
-372+++7BAD 22 4C 7B             ld      (atm_mem_handle_op_length+2),hl
-373+++7BB0 3E A5                ld      a,#A5
-374+++7BB2 32 4E 7B             ld      (atm_mem_handle_fill_value),a
-375+++7BB5 CD A7 79             call    atm_mem_handle_fill
-376+++7BB8 DA 2D 7D             jp      c,atm_mem_handle_test_fail
-377+++7BBB
-378+++7BBB                      ; READ object -> transfer object. Both descriptors are opaque handles.
-379+++7BBB 3E 04                ld      a,4
-380+++7BBD 32 34 7D             ld      (atm_mem_handle_test_stage),a
-381+++7BC0 3A 32 7D             ld      a,(atm_mem_handle_test_source)
-382+++7BC3 32 40 7B             ld      (atm_mem_handle_source),a
-383+++7BC6 3A 33 7D             ld      a,(atm_mem_handle_test_destination)
-384+++7BC9 32 41 7B             ld      (atm_mem_handle_destination),a
-385+++7BCC 21 00 00             ld      hl,0
-386+++7BCF 22 42 7B             ld      (atm_mem_handle_source_offset),hl
-387+++7BD2 22 44 7B             ld      (atm_mem_handle_source_offset+2),hl
-388+++7BD5 22 46 7B             ld      (atm_mem_handle_destination_offset),hl
-389+++7BD8 22 48 7B             ld      (atm_mem_handle_destination_offset+2),hl
-390+++7BDB 21 01 40             ld      hl,#4001
-391+++7BDE 22 4A 7B             ld      (atm_mem_handle_op_length),hl
-392+++7BE1 21 00 00             ld      hl,0
-393+++7BE4 22 4C 7B             ld      (atm_mem_handle_op_length+2),hl
-394+++7BE7 CD F7 78             call    atm_mem_handle_read
-395+++7BEA DA 2D 7D             jp      c,atm_mem_handle_test_fail
-396+++7BED
-397+++7BED                      ; Verify first byte, last byte of extent 0, and first byte of extent 1.
-398+++7BED 3E 05                ld      a,5
-399+++7BEF 32 34 7D             ld      (atm_mem_handle_test_stage),a
-400+++7BF2 3A 33 7D             ld      a,(atm_mem_handle_test_destination)
-401+++7BF5 21 36 7D             ld      hl,atm_mem_handle_test_cursor
-402+++7BF8 11 00 00             ld      de,0
-403+++7BFB CD 03 7D             call    atm_mem_handle_test_set_cursor
-404+++7BFE CD 1C 7D             call    atm_mem_handle_test_verify_a5
-405+++7C01 DA 2D 7D             jp      c,atm_mem_handle_test_fail
-406+++7C04
-407+++7C04 3A 33 7D             ld      a,(atm_mem_handle_test_destination)
-408+++7C07 21 36 7D             ld      hl,atm_mem_handle_test_cursor
-409+++7C0A 11 FF 3F             ld      de,#3FFF
-410+++7C0D CD 03 7D             call    atm_mem_handle_test_set_cursor
-411+++7C10 CD 1C 7D             call    atm_mem_handle_test_verify_a5
-412+++7C13 DA 2D 7D             jp      c,atm_mem_handle_test_fail
-413+++7C16
-414+++7C16 3A 33 7D             ld      a,(atm_mem_handle_test_destination)
-415+++7C19 21 36 7D             ld      hl,atm_mem_handle_test_cursor
-416+++7C1C 11 00 40             ld      de,#4000
-417+++7C1F CD 03 7D             call    atm_mem_handle_test_set_cursor
-418+++7C22 CD 1C 7D             call    atm_mem_handle_test_verify_a5
-419+++7C25 DA 2D 7D             jp      c,atm_mem_handle_test_fail
-420+++7C28
-421+++7C28                      ; Seed 11 22 33 44 55 at logical offset zero.
-422+++7C28 3E 06                ld      a,6
-423+++7C2A 32 34 7D             ld      (atm_mem_handle_test_stage),a
-424+++7C2D 3A 33 7D             ld      a,(atm_mem_handle_test_destination)
-425+++7C30 21 36 7D             ld      hl,atm_mem_handle_test_cursor
-426+++7C33 CD 0E 7D             call    atm_mem_handle_test_set_zero_cursor
-427+++7C36 CD A4 7A             call    atm_mem_handle_resolve
-428+++7C39 DA 2D 7D             jp      c,atm_mem_handle_test_fail
-429+++7C3C CD 1B 6C             call    atm_mem_map_work_offset
-430+++7C3F DA 2D 7D             jp      c,atm_mem_handle_test_fail
-431+++7C42 36 11                ld      (hl),#11
-432+++7C44 23                   inc     hl
-433+++7C45 36 22                ld      (hl),#22
-434+++7C47 23                   inc     hl
-435+++7C48 36 33                ld      (hl),#33
-436+++7C4A 23                   inc     hl
-437+++7C4B 36 44                ld      (hl),#44
-438+++7C4D 23                   inc     hl
-439+++7C4E 36 55                ld      (hl),#55
-440+++7C50
-441+++7C50                      ; Same-handle overlap: [0..3] -> [1..4], memmove semantics required.
-442+++7C50 3E 07                ld      a,7
-443+++7C52 32 34 7D             ld      (atm_mem_handle_test_stage),a
-444+++7C55 3A 33 7D             ld      a,(atm_mem_handle_test_destination)
-445+++7C58 32 40 7B             ld      (atm_mem_handle_source),a
-446+++7C5B 32 41 7B             ld      (atm_mem_handle_destination),a
-447+++7C5E 21 00 00             ld      hl,0
-448+++7C61 22 42 7B             ld      (atm_mem_handle_source_offset),hl
-449+++7C64 22 44 7B             ld      (atm_mem_handle_source_offset+2),hl
-450+++7C67 21 01 00             ld      hl,1
-451+++7C6A 22 46 7B             ld      (atm_mem_handle_destination_offset),hl
-452+++7C6D 21 00 00             ld      hl,0
-453+++7C70 22 48 7B             ld      (atm_mem_handle_destination_offset+2),hl
-454+++7C73 21 04 00             ld      hl,4
-455+++7C76 22 4A 7B             ld      (atm_mem_handle_op_length),hl
-456+++7C79 21 00 00             ld      hl,0
-457+++7C7C 22 4C 7B             ld      (atm_mem_handle_op_length+2),hl
-458+++7C7F CD FD 78             call    atm_mem_handle_copy
-459+++7C82 DA 2D 7D             jp      c,atm_mem_handle_test_fail
-460+++7C85
-461+++7C85                      ; Check resulting bytes: 11 11 22 33 44.
-462+++7C85 3E 08                ld      a,8
-463+++7C87 32 34 7D             ld      (atm_mem_handle_test_stage),a
-464+++7C8A 3A 33 7D             ld      a,(atm_mem_handle_test_destination)
-465+++7C8D 21 36 7D             ld      hl,atm_mem_handle_test_cursor
-466+++7C90 CD 0E 7D             call    atm_mem_handle_test_set_zero_cursor
-467+++7C93 CD A4 7A             call    atm_mem_handle_resolve
-468+++7C96 DA 2D 7D             jp      c,atm_mem_handle_test_fail
-469+++7C99 CD 1B 6C             call    atm_mem_map_work_offset
-470+++7C9C DA 2D 7D             jp      c,atm_mem_handle_test_fail
-471+++7C9F 7E                   ld      a,(hl)
-472+++7CA0 FE 11                cp      #11
-473+++7CA2 C2 2D 7D             jp      nz,atm_mem_handle_test_fail
-474+++7CA5 23                   inc     hl
-475+++7CA6 7E                   ld      a,(hl)
-476+++7CA7 FE 11                cp      #11
-477+++7CA9 C2 2D 7D             jp      nz,atm_mem_handle_test_fail
-478+++7CAC 23                   inc     hl
-479+++7CAD 7E                   ld      a,(hl)
-480+++7CAE FE 22                cp      #22
-481+++7CB0 C2 2D 7D             jp      nz,atm_mem_handle_test_fail
-482+++7CB3 23                   inc     hl
-483+++7CB4 7E                   ld      a,(hl)
-484+++7CB5 FE 33                cp      #33
-485+++7CB7 C2 2D 7D             jp      nz,atm_mem_handle_test_fail
-486+++7CBA 23                   inc     hl
-487+++7CBB 7E                   ld      a,(hl)
-488+++7CBC FE 44                cp      #44
-489+++7CBE C2 2D 7D             jp      nz,atm_mem_handle_test_fail
-490+++7CC1
-491+++7CC1                      ; Reject a one-byte range beginning exactly at logical end.
-492+++7CC1 3E 09                ld      a,9
-493+++7CC3 32 34 7D             ld      (atm_mem_handle_test_stage),a
-494+++7CC6 3A 33 7D             ld      a,(atm_mem_handle_test_destination)
-495+++7CC9 32 41 7B             ld      (atm_mem_handle_destination),a
-496+++7CCC 21 01 40             ld      hl,#4001
-497+++7CCF 22 46 7B             ld      (atm_mem_handle_destination_offset),hl
-498+++7CD2 21 00 00             ld      hl,0
-499+++7CD5 22 48 7B             ld      (atm_mem_handle_destination_offset+2),hl
-500+++7CD8 21 01 00             ld      hl,1
-501+++7CDB 22 4A 7B             ld      (atm_mem_handle_op_length),hl
-502+++7CDE 21 00 00             ld      hl,0
-503+++7CE1 22 4C 7B             ld      (atm_mem_handle_op_length+2),hl
-504+++7CE4 CD A7 79             call    atm_mem_handle_fill
-505+++7CE7 D2 2D 7D             jp      nc,atm_mem_handle_test_fail
-506+++7CEA
-507+++7CEA                      ; Release both handles after all checks pass.
-508+++7CEA 3E 0A                ld      a,10
-509+++7CEC 32 34 7D             ld      (atm_mem_handle_test_stage),a
-510+++7CEF 3A 33 7D             ld      a,(atm_mem_handle_test_destination)
-511+++7CF2 CD 50 70             call    atm_mem_scatter_free
-512+++7CF5 DA 2D 7D             jp      c,atm_mem_handle_test_fail
-513+++7CF8 3A 32 7D             ld      a,(atm_mem_handle_test_source)
-514+++7CFB CD 50 70             call    atm_mem_scatter_free
-515+++7CFE DA 2D 7D             jp      c,atm_mem_handle_test_fail
-516+++7D01 AF                   xor     a
-517+++7D02 C9                   ret
-518+++7D03
-519+++7D03              ; A=handle, HL=cursor pointer, DE=16-bit test offset.
-520+++7D03              atm_mem_handle_test_set_cursor:
-521+++7D03 F5                   push    af
-522+++7D04 73                   ld      (hl),e
-523+++7D05 23                   inc     hl
-524+++7D06 72                   ld      (hl),d
-525+++7D07 23                   inc     hl
-526+++7D08 AF                   xor     a
-527+++7D09 77                   ld      (hl),a
-528+++7D0A 23                   inc     hl
-529+++7D0B 77                   ld      (hl),a
-530+++7D0C F1                   pop     af
-531+++7D0D C9                   ret
-532+++7D0E
-533+++7D0E              ; A=handle, HL=cursor pointer; set logical offset zero.
-534+++7D0E              atm_mem_handle_test_set_zero_cursor:
-535+++7D0E F5                   push    af
-536+++7D0F AF                   xor     a
-537+++7D10 77                   ld      (hl),a
-538+++7D11 23                   inc     hl
-539+++7D12 77                   ld      (hl),a
-540+++7D13 23                   inc     hl
-541+++7D14 77                   ld      (hl),a
-542+++7D15 23                   inc     hl
-543+++7D16 77                   ld      (hl),a
-544+++7D17 21 36 7D             ld      hl,atm_mem_handle_test_cursor
-545+++7D1A F1                   pop     af
-546+++7D1B C9                   ret
-547+++7D1C
-548+++7D1C              ; A=handle, HL=cursor pointer. Verify resolved byte equals #A5.
-549+++7D1C              atm_mem_handle_test_verify_a5:
-550+++7D1C 32 35 7D             ld      (atm_mem_handle_test_expected_handle),a
-551+++7D1F CD A4 7A             call    atm_mem_handle_resolve
-552+++7D22 D8                   ret     c
-553+++7D23 CD 1B 6C             call    atm_mem_map_work_offset
-554+++7D26 D8                   ret     c
-555+++7D27 7E                   ld      a,(hl)
-556+++7D28 FE A5                cp      #A5
-557+++7D2A C8                   ret     z
-558+++7D2B 37                   scf
-559+++7D2C C9                   ret
-560+++7D2D
-561+++7D2D              atm_mem_handle_test_fail:
-562+++7D2D 3A 34 7D             ld      a,(atm_mem_handle_test_stage)
-563+++7D30 37                   scf
-564+++7D31 C9                   ret
-565+++7D32
-566+++7D32 00           atm_mem_handle_test_source:       db 0
-567+++7D33 00           atm_mem_handle_test_destination:  db 0
-568+++7D34 00           atm_mem_handle_test_stage:         db 0
-569+++7D35 00           atm_mem_handle_test_expected_handle: db 0
-570+++7D36 00 00 00 00  atm_mem_handle_test_cursor:        defs 4,0
-571+++7D3A
+  1+++7920              ; Project127 ATM logical scatter-handle operations.
+  2+++7920              ; All offsets and lengths are UINT32 byte quantities relative to an opaque
+  3+++7920              ; handle. Physical extent vectors are resolved privately for each byte.
+  4+++7920              ;
+  5+++7920              ; Descriptors:
+  6+++7920              ;   atm_mem_handle_source       db handle id
+  7+++7920              ;   atm_mem_handle_destination  db handle id
+  8+++7920              ;   atm_mem_handle_source_offset      defs 4
+  9+++7920              ;   atm_mem_handle_destination_offset defs 4
+ 10+++7920              ;   atm_mem_handle_op_length          defs 4
+ 11+++7920              ;   atm_mem_handle_fill_value   db value
+ 12+++7920              ;
+ 13+++7920              ; READ and WRITE use the same validated handle-to-handle copy primitive:
+ 14+++7920              ; READ convention: source=object, destination=transfer handle.
+ 15+++7920              ; WRITE convention: source=transfer handle, destination=object.
+ 16+++7920              ; FILL and COPY are handle-relative. Carry clear means complete operation.
+ 17+++7920              ;
+ 18+++7920              ; Bytewise implementation intentionally favors correctness first. It maps
+ 19+++7920              ; only window 3 and restores page 1 on successful completion.
+ 20+++7920
+ 21+++7920              atm_mem_handle_read:
+ 21+++7920
+ 22+++7920 C3 26 79             jp      atm_mem_handle_copy
+ 23+++7923
+ 24+++7923              atm_mem_handle_write:
+ 24+++7923
+ 25+++7923 C3 26 79             jp      atm_mem_handle_copy
+ 26+++7926
+ 27+++7926              atm_mem_handle_copy:
+ 27+++7926
+ 28+++7926 3A 69 7B             ld      a,(atm_mem_handle_source)
+ 29+++7929 21 6B 7B             ld      hl,atm_mem_handle_source_offset
+ 30+++792C CD 33 7A             call    atm_mem_handle_validate_range
+ 31+++792F D8                   ret     c
+ 32+++7930 3A 6A 7B             ld      a,(atm_mem_handle_destination)
+ 33+++7933 21 6F 7B             ld      hl,atm_mem_handle_destination_offset
+ 34+++7936 CD 33 7A             call    atm_mem_handle_validate_range
+ 35+++7939 D8                   ret     c
+ 36+++793A 21 6B 7B             ld      hl,atm_mem_handle_source_offset
+ 37+++793D 11 B2 6C             ld      de,atm_mem_source_cursor
+ 38+++7940 01 04 00             ld      bc,4
+ 39+++7943 ED B0                ldir
+ 40+++7945 21 6F 7B             ld      hl,atm_mem_handle_destination_offset
+ 41+++7948 11 B6 6C             ld      de,atm_mem_destination_cursor
+ 42+++794B 01 04 00             ld      bc,4
+ 43+++794E ED B0                ldir
+ 44+++7950 21 73 7B             ld      hl,atm_mem_handle_op_length
+ 45+++7953 11 BA 6C             ld      de,atm_mem_remaining
+ 46+++7956 01 04 00             ld      bc,4
+ 47+++7959 ED B0                ldir
+ 48+++795B CD DB 6B             call    atm_mem_remaining_is_zero
+ 49+++795E C8                   ret     z
+ 50+++795F                      ; Backward traversal for same-handle overlapping ranges where dst>src.
+ 51+++795F 3A 69 7B             ld      a,(atm_mem_handle_source)
+ 52+++7962 47                   ld      b,a
+ 53+++7963 3A 6A 7B             ld      a,(atm_mem_handle_destination)
+ 54+++7966 B8                   cp      b
+ 55+++7967 C2 BA 79             jp      nz,atm_mem_handle_copy_forward
+ 56+++796A CD BB 6B             call    atm_mem_destination_after_source
+ 57+++796D D2 BA 79             jp      nc,atm_mem_handle_copy_forward
+ 58+++7970 2A B2 6C             ld      hl,(atm_mem_source_cursor)
+ 59+++7973 ED 5B BA 6C          ld      de,(atm_mem_remaining)
+ 60+++7977 19                   add     hl,de
+ 61+++7978 22 B2 6C             ld      (atm_mem_source_cursor),hl
+ 62+++797B 2A B4 6C             ld      hl,(atm_mem_source_cursor+2)
+ 63+++797E ED 5B BC 6C          ld      de,(atm_mem_remaining+2)
+ 64+++7982 ED 5A                adc     hl,de
+ 65+++7984 22 B4 6C             ld      (atm_mem_source_cursor+2),hl
+ 66+++7987 CD 67 6C             call    atm_mem_source_dec
+ 67+++798A 2A B6 6C             ld      hl,(atm_mem_destination_cursor)
+ 68+++798D ED 5B BA 6C          ld      de,(atm_mem_remaining)
+ 69+++7991 19                   add     hl,de
+ 70+++7992 22 B6 6C             ld      (atm_mem_destination_cursor),hl
+ 71+++7995 2A B8 6C             ld      hl,(atm_mem_destination_cursor+2)
+ 72+++7998 ED 5B BC 6C          ld      de,(atm_mem_remaining+2)
+ 73+++799C ED 5A                adc     hl,de
+ 74+++799E 22 B8 6C             ld      (atm_mem_destination_cursor+2),hl
+ 75+++79A1 CD 7C 6C             call    atm_mem_destination_dec
+ 76+++79A4              atm_mem_handle_copy_backward_loop:
+ 77+++79A4 CD 3D 7B             call    atm_mem_handle_copy_one
+ 78+++79A7 D8                   ret     c
+ 79+++79A8 CD 67 6C             call    atm_mem_source_dec
+ 80+++79AB CD 7C 6C             call    atm_mem_destination_dec
+ 81+++79AE CD 91 6C             call    atm_mem_length_dec
+ 82+++79B1 CD DB 6B             call    atm_mem_remaining_is_zero
+ 83+++79B4 C2 A4 79             jp      nz,atm_mem_handle_copy_backward_loop
+ 84+++79B7 C3 16 6C             jp      atm_mem_restore_window3
+ 85+++79BA              atm_mem_handle_copy_forward:
+ 86+++79BA              atm_mem_handle_copy_forward_loop:
+ 87+++79BA CD 3D 7B             call    atm_mem_handle_copy_one
+ 88+++79BD D8                   ret     c
+ 89+++79BE CD 43 6C             call    atm_mem_source_inc
+ 90+++79C1 CD 55 6C             call    atm_mem_destination_inc
+ 91+++79C4 CD 91 6C             call    atm_mem_length_dec
+ 92+++79C7 CD DB 6B             call    atm_mem_remaining_is_zero
+ 93+++79CA C2 BA 79             jp      nz,atm_mem_handle_copy_forward_loop
+ 94+++79CD C3 16 6C             jp      atm_mem_restore_window3
+ 95+++79D0
+ 96+++79D0              atm_mem_handle_fill:
+ 96+++79D0
+ 97+++79D0 3E 03                ld      a,3
+ 98+++79D2 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+ 99+++79D5 3A 6A 7B             ld      a,(atm_mem_handle_destination)
+100+++79D8 21 6F 7B             ld      hl,atm_mem_handle_destination_offset
+101+++79DB CD 33 7A             call    atm_mem_handle_validate_range
+102+++79DE D8                   ret     c
+103+++79DF 3E 31                ld      a,#31
+104+++79E1 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+105+++79E4 21 6F 7B             ld      hl,atm_mem_handle_destination_offset
+106+++79E7 11 B6 6C             ld      de,atm_mem_destination_cursor
+107+++79EA 01 04 00             ld      bc,4
+108+++79ED ED B0                ldir
+109+++79EF 21 73 7B             ld      hl,atm_mem_handle_op_length
+110+++79F2 11 BA 6C             ld      de,atm_mem_remaining
+111+++79F5 01 04 00             ld      bc,4
+112+++79F8 ED B0                ldir
+113+++79FA CD DB 6B             call    atm_mem_remaining_is_zero
+114+++79FD C8                   ret     z
+115+++79FE              atm_mem_handle_fill_loop:
+116+++79FE 3E 32                ld      a,#32
+117+++7A00 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+118+++7A03 3A 6A 7B             ld      a,(atm_mem_handle_destination)
+119+++7A06 21 B6 6C             ld      hl,atm_mem_destination_cursor
+120+++7A09 CD CD 7A             call    atm_mem_handle_resolve
+121+++7A0C D8                   ret     c
+122+++7A0D 3E 33                ld      a,#33
+123+++7A0F 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+124+++7A12 CD 1B 6C             call    atm_mem_map_work_offset
+125+++7A15 D8                   ret     c
+126+++7A16 3E 34                ld      a,#34
+127+++7A18 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+128+++7A1B 3A 77 7B             ld      a,(atm_mem_handle_fill_value)
+129+++7A1E 77                   ld      (hl),a
+130+++7A1F 3E 35                ld      a,#35
+131+++7A21 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+132+++7A24 CD 55 6C             call    atm_mem_destination_inc
+133+++7A27 CD 91 6C             call    atm_mem_length_dec
+134+++7A2A CD DB 6B             call    atm_mem_remaining_is_zero
+135+++7A2D C2 FE 79             jp      nz,atm_mem_handle_fill_loop
+136+++7A30 C3 16 6C             jp      atm_mem_restore_window3
+137+++7A33
+138+++7A33              ; Validate [offset, offset+op_length) against the exact logical handle length.
+139+++7A33              ; A=handle id, HL=pointer to UINT32 logical offset.
+140+++7A33              atm_mem_handle_validate_range:
+141+++7A33 32 78 7B             ld      (atm_mem_handle_temp_id),a
+142+++7A36 22 7B 7B             ld      (atm_mem_handle_temp_offset_ptr),hl
+143+++7A39 CD A8 7A             call    atm_mem_handle_find_record
+144+++7A3C DA 9A 7A             jp      c,atm_mem_handle_validate_find_fail
+145+++7A3F 3E 41                ld      a,#41
+146+++7A41 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+147+++7A44 22 79 7B             ld      (atm_mem_handle_temp_record),hl
+148+++7A47                      ; Compute end = offset + operation length with full carry checking.
+149+++7A47 2A 7B 7B             ld      hl,(atm_mem_handle_temp_offset_ptr)
+150+++7A4A 11 81 7B             ld      de,atm_mem_handle_temp_end
+151+++7A4D 01 04 00             ld      bc,4
+152+++7A50 ED B0                ldir
+153+++7A52 2A 81 7B             ld      hl,(atm_mem_handle_temp_end)
+154+++7A55 ED 5B 73 7B          ld      de,(atm_mem_handle_op_length)
+155+++7A59 19                   add     hl,de
+156+++7A5A 22 81 7B             ld      (atm_mem_handle_temp_end),hl
+157+++7A5D 2A 83 7B             ld      hl,(atm_mem_handle_temp_end+2)
+158+++7A60 ED 5B 75 7B          ld      de,(atm_mem_handle_op_length+2)
+159+++7A64 ED 5A                adc     hl,de
+160+++7A66 22 83 7B             ld      (atm_mem_handle_temp_end+2),hl
+161+++7A69 DA A1 7A             jp      c,atm_mem_handle_validate_overflow
+162+++7A6C 3E 42                ld      a,#42
+163+++7A6E 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+164+++7A71 2A 79 7B             ld      hl,(atm_mem_handle_temp_record)
+165+++7A74 23                   inc     hl
+166+++7A75 23                   inc     hl
+167+++7A76 23                   inc     hl
+168+++7A77 23                   inc     hl
+169+++7A78 23                   inc     hl
+170+++7A79                      ; Compare end against recorded UINT32 logical length, high byte first.
+171+++7A79 11 84 7B             ld      de,atm_mem_handle_temp_end+3
+172+++7A7C 3E 50                ld      a,#50
+173+++7A7E 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+174+++7A81 06 04                ld      b,4
+175+++7A83              atm_mem_handle_range_compare:
+176+++7A83 1A                   ld      a,(de)
+177+++7A84 BE                   cp      (hl)
+178+++7A85 DA 96 7A             jp      c,atm_mem_handle_range_ok
+179+++7A88 C2 98 7A             jp      nz,atm_mem_handle_range_fail
+180+++7A8B 1B                   dec     de
+181+++7A8C 2B                   dec     hl
+182+++7A8D 3A 5D 7D             ld      a,(atm_mem_handle_test_stage)
+183+++7A90 3C                   inc     a
+184+++7A91 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+185+++7A94 10 ED                djnz    atm_mem_handle_range_compare
+186+++7A96              atm_mem_handle_range_ok:
+187+++7A96 B7                   or      a
+188+++7A97 C9                   ret
+189+++7A98              atm_mem_handle_range_fail:
+190+++7A98                      ; Preserve the comparison byte index (50..53) for the host log.
+191+++7A98 37                   scf
+192+++7A99 C9                   ret
+193+++7A9A              atm_mem_handle_validate_find_fail:
+194+++7A9A 3E 40                ld      a,#40
+195+++7A9C 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+196+++7A9F 37                   scf
+197+++7AA0 C9                   ret
+198+++7AA1              atm_mem_handle_validate_overflow:
+199+++7AA1 3E 45                ld      a,#45
+200+++7AA3 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+201+++7AA6 37                   scf
+202+++7AA7 C9                   ret
+203+++7AA8
+204+++7AA8              ; A=handle id. Returns HL=6-byte handle record, carry set if invalid/free.
+205+++7AA8              atm_mem_handle_find_record:
+206+++7AA8 B7                   or      a
+207+++7AA9 CA CB 7A             jp      z,atm_mem_handle_lookup_fail
+208+++7AAC FE 09                cp      ATM_SCATTER_HANDLE_COUNT+1
+209+++7AAE D2 CB 7A             jp      nc,atm_mem_handle_lookup_fail
+210+++7AB1 3D                   dec     a
+211+++7AB2 21 B0 71             ld      hl,atm_mem_scatter_handles
+212+++7AB5 11 06 00             ld      de,6
+213+++7AB8 CA C0 7A             jp      z,atm_mem_handle_lookup_check
+214+++7ABB              atm_mem_handle_lookup_step:
+215+++7ABB 19                   add     hl,de
+216+++7ABC 3D                   dec     a
+217+++7ABD C2 BB 7A             jp      nz,atm_mem_handle_lookup_step
+218+++7AC0              atm_mem_handle_lookup_check:
+219+++7AC0 7E                   ld      a,(hl)
+220+++7AC1 47                   ld      b,a
+221+++7AC2 3A 78 7B             ld      a,(atm_mem_handle_temp_id)
+222+++7AC5 B8                   cp      b
+223+++7AC6 C2 CB 7A             jp      nz,atm_mem_handle_lookup_fail
+224+++7AC9 B7                   or      a
+225+++7ACA C9                   ret
+226+++7ACB              atm_mem_handle_lookup_fail:
+227+++7ACB 37                   scf
+228+++7ACC C9                   ret
+229+++7ACD
+230+++7ACD              ; Resolve handle-relative cursor into physical UINT32 atm_mem_work_offset.
+231+++7ACD              ; A=handle id, HL=pointer to UINT32 logical cursor.
+232+++7ACD              atm_mem_handle_resolve:
+233+++7ACD 32 78 7B             ld      (atm_mem_handle_temp_id),a
+234+++7AD0 22 7F 7B             ld      (atm_mem_handle_cursor_ptr),hl
+235+++7AD3 CD A8 7A             call    atm_mem_handle_find_record
+236+++7AD6 D8                   ret     c
+237+++7AD7 22 79 7B             ld      (atm_mem_handle_temp_record),hl
+238+++7ADA                      ; Vector base = extents + (handle-1)*232.
+239+++7ADA 3A 78 7B             ld      a,(atm_mem_handle_temp_id)
+240+++7ADD 3D                   dec     a
+241+++7ADE 21 E0 71             ld      hl,atm_mem_scatter_extents
+242+++7AE1 11 E8 00             ld      de,ATM_SCATTER_EXTENT_BYTES
+243+++7AE4 B7                   or      a
+244+++7AE5 CA ED 7A             jp      z,atm_mem_handle_vector_base_ready
+245+++7AE8              atm_mem_handle_vector_base_loop:
+246+++7AE8 19                   add     hl,de
+247+++7AE9 3D                   dec     a
+248+++7AEA C2 E8 7A             jp      nz,atm_mem_handle_vector_base_loop
+249+++7AED              atm_mem_handle_vector_base_ready:
+250+++7AED 22 7D 7B             ld      (atm_mem_handle_temp_vector),hl
+251+++7AF0                      ; Page index = (cursor >> 14), with cursor guaranteed in range.
+252+++7AF0 2A 7F 7B             ld      hl,(atm_mem_handle_cursor_ptr)
+253+++7AF3 23                   inc     hl
+254+++7AF4 23                   inc     hl
+255+++7AF5 7E                   ld      a,(hl)
+256+++7AF6 87                   add     a,a
+257+++7AF7 87                   add     a,a
+258+++7AF8 47                   ld      b,a
+259+++7AF9 2B                   dec     hl
+260+++7AFA 7E                   ld      a,(hl)
+261+++7AFB CB 3F                srl     a
+262+++7AFD CB 3F                srl     a
+263+++7AFF CB 3F                srl     a
+264+++7B01 CB 3F                srl     a
+265+++7B03 CB 3F                srl     a
+266+++7B05 CB 3F                srl     a
+267+++7B07 B0                   or      b
+268+++7B08 47                   ld      b,a
+269+++7B09 2A 7D 7B             ld      hl,(atm_mem_handle_temp_vector)
+270+++7B0C 11 04 00             ld      de,4
+271+++7B0F 78                   ld      a,b
+272+++7B10 B7                   or      a
+273+++7B11 CA 17 7B             jp      z,atm_mem_handle_extent_ready
+274+++7B14              atm_mem_handle_extent_step:
+275+++7B14 19                   add     hl,de
+276+++7B15 10 FD                djnz    atm_mem_handle_extent_step
+277+++7B17              atm_mem_handle_extent_ready:
+278+++7B17 11 BE 6C             ld      de,atm_mem_work_offset
+279+++7B1A 01 04 00             ld      bc,4
+280+++7B1D ED B0                ldir
+281+++7B1F                      ; Add cursor's intra-page offset (low 14 bits) to physical base.
+282+++7B1F 2A 7F 7B             ld      hl,(atm_mem_handle_cursor_ptr)
+283+++7B22 7E                   ld      a,(hl)
+284+++7B23 5F                   ld      e,a
+285+++7B24 23                   inc     hl
+286+++7B25 7E                   ld      a,(hl)
+287+++7B26 E6 3F                and     #3F
+288+++7B28 57                   ld      d,a
+289+++7B29 2A BE 6C             ld      hl,(atm_mem_work_offset)
+290+++7B2C 19                   add     hl,de
+291+++7B2D 22 BE 6C             ld      (atm_mem_work_offset),hl
+292+++7B30 2A C0 6C             ld      hl,(atm_mem_work_offset+2)
+293+++7B33 11 00 00             ld      de,0
+294+++7B36 ED 5A                adc     hl,de
+295+++7B38 22 C0 6C             ld      (atm_mem_work_offset+2),hl
+296+++7B3B B7                   or      a
+297+++7B3C C9                   ret
+298+++7B3D
+299+++7B3D              atm_mem_handle_copy_one:
+300+++7B3D 21 B2 6C             ld      hl,atm_mem_source_cursor
+301+++7B40 22 7F 7B             ld      (atm_mem_handle_cursor_ptr),hl
+302+++7B43 3A 69 7B             ld      a,(atm_mem_handle_source)
+303+++7B46 CD CD 7A             call    atm_mem_handle_resolve
+304+++7B49 D8                   ret     c
+305+++7B4A CD 1B 6C             call    atm_mem_map_work_offset
+306+++7B4D D8                   ret     c
+307+++7B4E 7E                   ld      a,(hl)
+308+++7B4F 32 C3 6C             ld      (atm_mem_copy_byte),a
+309+++7B52 21 B6 6C             ld      hl,atm_mem_destination_cursor
+310+++7B55 22 7F 7B             ld      (atm_mem_handle_cursor_ptr),hl
+311+++7B58 3A 6A 7B             ld      a,(atm_mem_handle_destination)
+312+++7B5B CD CD 7A             call    atm_mem_handle_resolve
+313+++7B5E D8                   ret     c
+314+++7B5F CD 1B 6C             call    atm_mem_map_work_offset
+315+++7B62 D8                   ret     c
+316+++7B63 3A C3 6C             ld      a,(atm_mem_copy_byte)
+317+++7B66 77                   ld      (hl),a
+318+++7B67 B7                   or      a
+319+++7B68 C9                   ret
+320+++7B69
+321+++7B69 00           atm_mem_handle_source:             db 0
+322+++7B6A 00           atm_mem_handle_destination:        db 0
+323+++7B6B 00 00 00 00  atm_mem_handle_source_offset:      defs 4,0
+324+++7B6F 00 00 00 00  atm_mem_handle_destination_offset: defs 4,0
+325+++7B73 00 00 00 00  atm_mem_handle_op_length:          defs 4,0
+326+++7B77 00           atm_mem_handle_fill_value:         db 0
+327+++7B78 00           atm_mem_handle_temp_id:            db 0
+328+++7B79 00 00        atm_mem_handle_temp_record:        dw 0
+329+++7B7B 00 00        atm_mem_handle_temp_offset_ptr:    dw 0
+330+++7B7D 00 00        atm_mem_handle_temp_vector:        dw 0
+331+++7B7F 00 00        atm_mem_handle_cursor_ptr:         dw 0
+332+++7B81 00 00 00 00  atm_mem_handle_temp_end:            defs 4,0
+333+++7B85
+334+++7B85
+335+++7B85              ; =========================================================================
+336+++7B85              ; Runtime acceptance test for logical scatter-handle data operations.
+337+++7B85              ; Allocates two 0x4001-byte objects, fills/copies across an extent boundary,
+338+++7B85              ; verifies both sides of the boundary, then checks overlapping COPY.
+339+++7B85              ; =========================================================================
+340+++7B85              atm_mem_handle_ops_selftest:
+340+++7B85
+341+++7B85 3E 01                ld      a,1
+342+++7B87 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+343+++7B8A 21 01 40             ld      hl,#4001
+344+++7B8D 22 FC 68             ld      (atm_mem_request_length),hl
+345+++7B90 21 00 00             ld      hl,0
+346+++7B93 22 FE 68             ld      (atm_mem_request_length+2),hl
+347+++7B96 CD 24 6F             call    atm_mem_scatter_alloc
+348+++7B99 DA 56 7D             jp      c,atm_mem_handle_test_fail
+349+++7B9C 32 5B 7D             ld      (atm_mem_handle_test_source),a
+350+++7B9F
+351+++7B9F 3E 02                ld      a,2
+352+++7BA1 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+353+++7BA4 21 01 40             ld      hl,#4001
+354+++7BA7 22 FC 68             ld      (atm_mem_request_length),hl
+355+++7BAA 21 00 00             ld      hl,0
+356+++7BAD 22 FE 68             ld      (atm_mem_request_length+2),hl
+357+++7BB0 CD 24 6F             call    atm_mem_scatter_alloc
+358+++7BB3 DA 56 7D             jp      c,atm_mem_handle_test_fail
+359+++7BB6 32 5C 7D             ld      (atm_mem_handle_test_destination),a
+360+++7BB9
+361+++7BB9                      ; FILL source with a known byte over the full logical 0x4001 range.
+362+++7BB9 3E 03                ld      a,3
+363+++7BBB 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+364+++7BBE 3A 5B 7D             ld      a,(atm_mem_handle_test_source)
+365+++7BC1 32 6A 7B             ld      (atm_mem_handle_destination),a
+366+++7BC4 21 00 00             ld      hl,0
+367+++7BC7 22 6F 7B             ld      (atm_mem_handle_destination_offset),hl
+368+++7BCA 22 71 7B             ld      (atm_mem_handle_destination_offset+2),hl
+369+++7BCD 21 01 40             ld      hl,#4001
+370+++7BD0 22 73 7B             ld      (atm_mem_handle_op_length),hl
+371+++7BD3 21 00 00             ld      hl,0
+372+++7BD6 22 75 7B             ld      (atm_mem_handle_op_length+2),hl
+373+++7BD9 3E A5                ld      a,#A5
+374+++7BDB 32 77 7B             ld      (atm_mem_handle_fill_value),a
+375+++7BDE CD D0 79             call    atm_mem_handle_fill
+376+++7BE1 DA 56 7D             jp      c,atm_mem_handle_test_fail
+377+++7BE4
+378+++7BE4                      ; READ object -> transfer object. Both descriptors are opaque handles.
+379+++7BE4 3E 04                ld      a,4
+380+++7BE6 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+381+++7BE9 3A 5B 7D             ld      a,(atm_mem_handle_test_source)
+382+++7BEC 32 69 7B             ld      (atm_mem_handle_source),a
+383+++7BEF 3A 5C 7D             ld      a,(atm_mem_handle_test_destination)
+384+++7BF2 32 6A 7B             ld      (atm_mem_handle_destination),a
+385+++7BF5 21 00 00             ld      hl,0
+386+++7BF8 22 6B 7B             ld      (atm_mem_handle_source_offset),hl
+387+++7BFB 22 6D 7B             ld      (atm_mem_handle_source_offset+2),hl
+388+++7BFE 22 6F 7B             ld      (atm_mem_handle_destination_offset),hl
+389+++7C01 22 71 7B             ld      (atm_mem_handle_destination_offset+2),hl
+390+++7C04 21 01 40             ld      hl,#4001
+391+++7C07 22 73 7B             ld      (atm_mem_handle_op_length),hl
+392+++7C0A 21 00 00             ld      hl,0
+393+++7C0D 22 75 7B             ld      (atm_mem_handle_op_length+2),hl
+394+++7C10 CD 20 79             call    atm_mem_handle_read
+395+++7C13 DA 56 7D             jp      c,atm_mem_handle_test_fail
+396+++7C16
+397+++7C16                      ; Verify first byte, last byte of extent 0, and first byte of extent 1.
+398+++7C16 3E 05                ld      a,5
+399+++7C18 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+400+++7C1B 3A 5C 7D             ld      a,(atm_mem_handle_test_destination)
+401+++7C1E 21 5F 7D             ld      hl,atm_mem_handle_test_cursor
+402+++7C21 11 00 00             ld      de,0
+403+++7C24 CD 2C 7D             call    atm_mem_handle_test_set_cursor
+404+++7C27 CD 45 7D             call    atm_mem_handle_test_verify_a5
+405+++7C2A DA 56 7D             jp      c,atm_mem_handle_test_fail
+406+++7C2D
+407+++7C2D 3A 5C 7D             ld      a,(atm_mem_handle_test_destination)
+408+++7C30 21 5F 7D             ld      hl,atm_mem_handle_test_cursor
+409+++7C33 11 FF 3F             ld      de,#3FFF
+410+++7C36 CD 2C 7D             call    atm_mem_handle_test_set_cursor
+411+++7C39 CD 45 7D             call    atm_mem_handle_test_verify_a5
+412+++7C3C DA 56 7D             jp      c,atm_mem_handle_test_fail
+413+++7C3F
+414+++7C3F 3A 5C 7D             ld      a,(atm_mem_handle_test_destination)
+415+++7C42 21 5F 7D             ld      hl,atm_mem_handle_test_cursor
+416+++7C45 11 00 40             ld      de,#4000
+417+++7C48 CD 2C 7D             call    atm_mem_handle_test_set_cursor
+418+++7C4B CD 45 7D             call    atm_mem_handle_test_verify_a5
+419+++7C4E DA 56 7D             jp      c,atm_mem_handle_test_fail
+420+++7C51
+421+++7C51                      ; Seed 11 22 33 44 55 at logical offset zero.
+422+++7C51 3E 06                ld      a,6
+423+++7C53 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+424+++7C56 3A 5C 7D             ld      a,(atm_mem_handle_test_destination)
+425+++7C59 21 5F 7D             ld      hl,atm_mem_handle_test_cursor
+426+++7C5C CD 37 7D             call    atm_mem_handle_test_set_zero_cursor
+427+++7C5F CD CD 7A             call    atm_mem_handle_resolve
+428+++7C62 DA 56 7D             jp      c,atm_mem_handle_test_fail
+429+++7C65 CD 1B 6C             call    atm_mem_map_work_offset
+430+++7C68 DA 56 7D             jp      c,atm_mem_handle_test_fail
+431+++7C6B 36 11                ld      (hl),#11
+432+++7C6D 23                   inc     hl
+433+++7C6E 36 22                ld      (hl),#22
+434+++7C70 23                   inc     hl
+435+++7C71 36 33                ld      (hl),#33
+436+++7C73 23                   inc     hl
+437+++7C74 36 44                ld      (hl),#44
+438+++7C76 23                   inc     hl
+439+++7C77 36 55                ld      (hl),#55
+440+++7C79
+441+++7C79                      ; Same-handle overlap: [0..3] -> [1..4], memmove semantics required.
+442+++7C79 3E 07                ld      a,7
+443+++7C7B 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+444+++7C7E 3A 5C 7D             ld      a,(atm_mem_handle_test_destination)
+445+++7C81 32 69 7B             ld      (atm_mem_handle_source),a
+446+++7C84 32 6A 7B             ld      (atm_mem_handle_destination),a
+447+++7C87 21 00 00             ld      hl,0
+448+++7C8A 22 6B 7B             ld      (atm_mem_handle_source_offset),hl
+449+++7C8D 22 6D 7B             ld      (atm_mem_handle_source_offset+2),hl
+450+++7C90 21 01 00             ld      hl,1
+451+++7C93 22 6F 7B             ld      (atm_mem_handle_destination_offset),hl
+452+++7C96 21 00 00             ld      hl,0
+453+++7C99 22 71 7B             ld      (atm_mem_handle_destination_offset+2),hl
+454+++7C9C 21 04 00             ld      hl,4
+455+++7C9F 22 73 7B             ld      (atm_mem_handle_op_length),hl
+456+++7CA2 21 00 00             ld      hl,0
+457+++7CA5 22 75 7B             ld      (atm_mem_handle_op_length+2),hl
+458+++7CA8 CD 26 79             call    atm_mem_handle_copy
+459+++7CAB DA 56 7D             jp      c,atm_mem_handle_test_fail
+460+++7CAE
+461+++7CAE                      ; Check resulting bytes: 11 11 22 33 44.
+462+++7CAE 3E 08                ld      a,8
+463+++7CB0 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+464+++7CB3 3A 5C 7D             ld      a,(atm_mem_handle_test_destination)
+465+++7CB6 21 5F 7D             ld      hl,atm_mem_handle_test_cursor
+466+++7CB9 CD 37 7D             call    atm_mem_handle_test_set_zero_cursor
+467+++7CBC CD CD 7A             call    atm_mem_handle_resolve
+468+++7CBF DA 56 7D             jp      c,atm_mem_handle_test_fail
+469+++7CC2 CD 1B 6C             call    atm_mem_map_work_offset
+470+++7CC5 DA 56 7D             jp      c,atm_mem_handle_test_fail
+471+++7CC8 7E                   ld      a,(hl)
+472+++7CC9 FE 11                cp      #11
+473+++7CCB C2 56 7D             jp      nz,atm_mem_handle_test_fail
+474+++7CCE 23                   inc     hl
+475+++7CCF 7E                   ld      a,(hl)
+476+++7CD0 FE 11                cp      #11
+477+++7CD2 C2 56 7D             jp      nz,atm_mem_handle_test_fail
+478+++7CD5 23                   inc     hl
+479+++7CD6 7E                   ld      a,(hl)
+480+++7CD7 FE 22                cp      #22
+481+++7CD9 C2 56 7D             jp      nz,atm_mem_handle_test_fail
+482+++7CDC 23                   inc     hl
+483+++7CDD 7E                   ld      a,(hl)
+484+++7CDE FE 33                cp      #33
+485+++7CE0 C2 56 7D             jp      nz,atm_mem_handle_test_fail
+486+++7CE3 23                   inc     hl
+487+++7CE4 7E                   ld      a,(hl)
+488+++7CE5 FE 44                cp      #44
+489+++7CE7 C2 56 7D             jp      nz,atm_mem_handle_test_fail
+490+++7CEA
+491+++7CEA                      ; Reject a one-byte range beginning exactly at logical end.
+492+++7CEA 3E 09                ld      a,9
+493+++7CEC 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+494+++7CEF 3A 5C 7D             ld      a,(atm_mem_handle_test_destination)
+495+++7CF2 32 6A 7B             ld      (atm_mem_handle_destination),a
+496+++7CF5 21 01 40             ld      hl,#4001
+497+++7CF8 22 6F 7B             ld      (atm_mem_handle_destination_offset),hl
+498+++7CFB 21 00 00             ld      hl,0
+499+++7CFE 22 71 7B             ld      (atm_mem_handle_destination_offset+2),hl
+500+++7D01 21 01 00             ld      hl,1
+501+++7D04 22 73 7B             ld      (atm_mem_handle_op_length),hl
+502+++7D07 21 00 00             ld      hl,0
+503+++7D0A 22 75 7B             ld      (atm_mem_handle_op_length+2),hl
+504+++7D0D CD D0 79             call    atm_mem_handle_fill
+505+++7D10 D2 56 7D             jp      nc,atm_mem_handle_test_fail
+506+++7D13
+507+++7D13                      ; Release both handles after all checks pass.
+508+++7D13 3E 0A                ld      a,10
+509+++7D15 32 5D 7D             ld      (atm_mem_handle_test_stage),a
+510+++7D18 3A 5C 7D             ld      a,(atm_mem_handle_test_destination)
+511+++7D1B CD 51 70             call    atm_mem_scatter_free
+512+++7D1E DA 56 7D             jp      c,atm_mem_handle_test_fail
+513+++7D21 3A 5B 7D             ld      a,(atm_mem_handle_test_source)
+514+++7D24 CD 51 70             call    atm_mem_scatter_free
+515+++7D27 DA 56 7D             jp      c,atm_mem_handle_test_fail
+516+++7D2A AF                   xor     a
+517+++7D2B C9                   ret
+518+++7D2C
+519+++7D2C              ; A=handle, HL=cursor pointer, DE=16-bit test offset.
+520+++7D2C              atm_mem_handle_test_set_cursor:
+521+++7D2C F5                   push    af
+522+++7D2D 73                   ld      (hl),e
+523+++7D2E 23                   inc     hl
+524+++7D2F 72                   ld      (hl),d
+525+++7D30 23                   inc     hl
+526+++7D31 AF                   xor     a
+527+++7D32 77                   ld      (hl),a
+528+++7D33 23                   inc     hl
+529+++7D34 77                   ld      (hl),a
+530+++7D35 F1                   pop     af
+531+++7D36 C9                   ret
+532+++7D37
+533+++7D37              ; A=handle, HL=cursor pointer; set logical offset zero.
+534+++7D37              atm_mem_handle_test_set_zero_cursor:
+535+++7D37 F5                   push    af
+536+++7D38 AF                   xor     a
+537+++7D39 77                   ld      (hl),a
+538+++7D3A 23                   inc     hl
+539+++7D3B 77                   ld      (hl),a
+540+++7D3C 23                   inc     hl
+541+++7D3D 77                   ld      (hl),a
+542+++7D3E 23                   inc     hl
+543+++7D3F 77                   ld      (hl),a
+544+++7D40 21 5F 7D             ld      hl,atm_mem_handle_test_cursor
+545+++7D43 F1                   pop     af
+546+++7D44 C9                   ret
+547+++7D45
+548+++7D45              ; A=handle, HL=cursor pointer. Verify resolved byte equals #A5.
+549+++7D45              atm_mem_handle_test_verify_a5:
+550+++7D45 32 5E 7D             ld      (atm_mem_handle_test_expected_handle),a
+551+++7D48 CD CD 7A             call    atm_mem_handle_resolve
+552+++7D4B D8                   ret     c
+553+++7D4C CD 1B 6C             call    atm_mem_map_work_offset
+554+++7D4F D8                   ret     c
+555+++7D50 7E                   ld      a,(hl)
+556+++7D51 FE A5                cp      #A5
+557+++7D53 C8                   ret     z
+558+++7D54 37                   scf
+559+++7D55 C9                   ret
+560+++7D56
+561+++7D56              atm_mem_handle_test_fail:
+562+++7D56 3A 5D 7D             ld      a,(atm_mem_handle_test_stage)
+563+++7D59 37                   scf
+564+++7D5A C9                   ret
+565+++7D5B
+566+++7D5B 00           atm_mem_handle_test_source:       db 0
+567+++7D5C 00           atm_mem_handle_test_destination:  db 0
+568+++7D5D 00           atm_mem_handle_test_stage:         db 0
+569+++7D5E 00           atm_mem_handle_test_expected_handle: db 0
+570+++7D5F 00 00 00 00  atm_mem_handle_test_cursor:        defs 4,0
+571+++7D63
 # file closed: atm_memory_handle_ops.asm
-161++ 7D3A
+161++ 7D63
 # file closed: atm_memory_backend.asm
-221+  7D3A
-222+  7D3A              p127_host_program_end:
-223+  7D3A                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
-224+  7D3A                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
-225+  7D3A                      ASSERT p127_host_program_end <= #8000
-226+  7D3A
+221+  7D63
+222+  7D63              p127_host_program_end:
+223+  7D63                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
+224+  7D63                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
+225+  7D63                      ASSERT p127_host_program_end <= #8000
+226+  7D63
 # file closed: p127_host.asm
- 12   7D3A                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
- 13   7D3A
- 14   7D3A                      PAGE 0
- 15   7D3A                      ORG #E000
+ 12   7D63                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
+ 13   7D63
+ 14   7D63                      PAGE 0
+ 15   7D63                      ORG #E000
  16   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
 # file opened: boot_loader.generated.asm
   1+  E000              ; =========================================================================
@@ -3037,52 +3066,52 @@ Value    Label
 0x6732   atm_mem_free_next_record
 0x673D   atm_mem_free_record_found
 0x6731   atm_mem_free_record_mismatch
-0x78FD   atm_mem_handle_copy
-0x797B   atm_mem_handle_copy_backward_loop
-0x7991   atm_mem_handle_copy_forward
-0x7991   atm_mem_handle_copy_forward_loop
-0x7B14   atm_mem_handle_copy_one
-0x7B56   atm_mem_handle_cursor_ptr
-0x7B41   atm_mem_handle_destination
-0x7B46   atm_mem_handle_destination_offset
-0x7AEE   atm_mem_handle_extent_ready
-0x7AEB   atm_mem_handle_extent_step
-0x79A7   atm_mem_handle_fill
-0x79D5   atm_mem_handle_fill_loop
-0x7B4E   atm_mem_handle_fill_value
-0x7A7F   atm_mem_handle_find_record
-0x7A97   atm_mem_handle_lookup_check
-0x7AA2   atm_mem_handle_lookup_fail
-0x7A92   atm_mem_handle_lookup_step
-0x7B4A   atm_mem_handle_op_length
-0x7B5C   atm_mem_handle_ops_selftest
-0x7A5A   atm_mem_handle_range_compare
-0x7A6F   atm_mem_handle_range_fail
-0x7A6D   atm_mem_handle_range_ok
-0x78F7   atm_mem_handle_read
-0x7AA4   atm_mem_handle_resolve
-0x7B40   atm_mem_handle_source
-0x7B42   atm_mem_handle_source_offset
-0x7B58   atm_mem_handle_temp_end
-0x7B4F   atm_mem_handle_temp_id
-0x7B52   atm_mem_handle_temp_offset_ptr
-0x7B50   atm_mem_handle_temp_record
-0x7B54   atm_mem_handle_temp_vector
-0x7D36   atm_mem_handle_test_cursor
-0x7D33   atm_mem_handle_test_destination
-0x7D35   atm_mem_handle_test_expected_handle
-0x7D2D   atm_mem_handle_test_fail
-0x7D03   atm_mem_handle_test_set_cursor
-0x7D0E   atm_mem_handle_test_set_zero_cursor
-0x7D32   atm_mem_handle_test_source
-0x7D34   atm_mem_handle_test_stage
-0x7D1C   atm_mem_handle_test_verify_a5
-0x7A71   atm_mem_handle_validate_find_fail
-0x7A78   atm_mem_handle_validate_overflow
-0x7A0A   atm_mem_handle_validate_range
-0x7ABF   atm_mem_handle_vector_base_loop
-0x7AC4   atm_mem_handle_vector_base_ready
-0x78FA X atm_mem_handle_write
+0x7926   atm_mem_handle_copy
+0x79A4   atm_mem_handle_copy_backward_loop
+0x79BA   atm_mem_handle_copy_forward
+0x79BA   atm_mem_handle_copy_forward_loop
+0x7B3D   atm_mem_handle_copy_one
+0x7B7F   atm_mem_handle_cursor_ptr
+0x7B6A   atm_mem_handle_destination
+0x7B6F   atm_mem_handle_destination_offset
+0x7B17   atm_mem_handle_extent_ready
+0x7B14   atm_mem_handle_extent_step
+0x79D0   atm_mem_handle_fill
+0x79FE   atm_mem_handle_fill_loop
+0x7B77   atm_mem_handle_fill_value
+0x7AA8   atm_mem_handle_find_record
+0x7AC0   atm_mem_handle_lookup_check
+0x7ACB   atm_mem_handle_lookup_fail
+0x7ABB   atm_mem_handle_lookup_step
+0x7B73   atm_mem_handle_op_length
+0x7B85   atm_mem_handle_ops_selftest
+0x7A83   atm_mem_handle_range_compare
+0x7A98   atm_mem_handle_range_fail
+0x7A96   atm_mem_handle_range_ok
+0x7920   atm_mem_handle_read
+0x7ACD   atm_mem_handle_resolve
+0x7B69   atm_mem_handle_source
+0x7B6B   atm_mem_handle_source_offset
+0x7B81   atm_mem_handle_temp_end
+0x7B78   atm_mem_handle_temp_id
+0x7B7B   atm_mem_handle_temp_offset_ptr
+0x7B79   atm_mem_handle_temp_record
+0x7B7D   atm_mem_handle_temp_vector
+0x7D5F   atm_mem_handle_test_cursor
+0x7D5C   atm_mem_handle_test_destination
+0x7D5E   atm_mem_handle_test_expected_handle
+0x7D56   atm_mem_handle_test_fail
+0x7D2C   atm_mem_handle_test_set_cursor
+0x7D37   atm_mem_handle_test_set_zero_cursor
+0x7D5B   atm_mem_handle_test_source
+0x7D5D   atm_mem_handle_test_stage
+0x7D45   atm_mem_handle_test_verify_a5
+0x7A9A   atm_mem_handle_validate_find_fail
+0x7AA1   atm_mem_handle_validate_overflow
+0x7A33   atm_mem_handle_validate_range
+0x7AE8   atm_mem_handle_vector_base_loop
+0x7AED   atm_mem_handle_vector_base_ready
+0x7923 X atm_mem_handle_write
 0x6562   atm_mem_init
 0x6C91   atm_mem_length_dec
 0x6591   atm_mem_map_page
@@ -3136,39 +3165,42 @@ Value    Label
 0x6900   atm_mem_result_offset
 0x6F24   atm_mem_scatter_alloc
 0x6F99   atm_mem_scatter_alloc_loop
-0x70D0   atm_mem_scatter_clear_ready
-0x70CB   atm_mem_scatter_clear_record
-0x7174   atm_mem_scatter_done
-0x71B7   atm_mem_scatter_extents
-0x704E   atm_mem_scatter_fail
+0x70D1   atm_mem_scatter_clear_ready
+0x70CC   atm_mem_scatter_clear_record
+0x719D   atm_mem_scatter_done
+0x71E0   atm_mem_scatter_extents
+0x704F   atm_mem_scatter_fail
 0x6F69   atm_mem_scatter_find_handle
-0x7050   atm_mem_scatter_free
-0x708C   atm_mem_scatter_free_loop
-0x7067   atm_mem_scatter_free_record
-0x706C   atm_mem_scatter_free_record_ready
-0x7084   atm_mem_scatter_free_vector
-0x7089   atm_mem_scatter_free_vector_ready
-0x7175   atm_mem_scatter_handle
+0x7051   atm_mem_scatter_free
+0x708D   atm_mem_scatter_free_loop
+0x7068   atm_mem_scatter_free_record
+0x706D   atm_mem_scatter_free_record_ready
+0x7085   atm_mem_scatter_free_vector
+0x708A   atm_mem_scatter_free_vector_ready
+0x719E   atm_mem_scatter_handle
 0x6F7A   atm_mem_scatter_handle_found
-0x7187   atm_mem_scatter_handles
-0x7183   atm_mem_scatter_length
-0x7173   atm_mem_scatter_needed
-0x717F   atm_mem_scatter_record
-0x7043   atm_mem_scatter_restore_fail
-0x6FF5   atm_mem_scatter_rollback
-0x7176   atm_mem_scatter_rollback_count
-0x7015   atm_mem_scatter_rollback_loop
-0x700D   atm_mem_scatter_rollback_vector
-0x7012   atm_mem_scatter_rollback_vector_ready
-0x70D4   atm_mem_scatter_selftest
-0x7152   atm_mem_scatter_test_compare_offsets
-0x716E   atm_mem_scatter_test_fail
-0x717B   atm_mem_scatter_test_first
-0x7177   atm_mem_scatter_test_handle
-0x715E   atm_mem_scatter_test_offsets_distinct
-0x7178   atm_mem_scatter_test_stage
-0x7179   atm_mem_scatter_test_vector
-0x7181   atm_mem_scatter_vector
+0x71B0   atm_mem_scatter_handles
+0x71AC   atm_mem_scatter_length
+0x719C   atm_mem_scatter_needed
+0x71A8   atm_mem_scatter_record
+0x7044   atm_mem_scatter_restore_fail
+0x6FF6   atm_mem_scatter_rollback
+0x719F   atm_mem_scatter_rollback_count
+0x7016   atm_mem_scatter_rollback_loop
+0x700E   atm_mem_scatter_rollback_vector
+0x7013   atm_mem_scatter_rollback_vector_ready
+0x70D5   atm_mem_scatter_selftest
+0x717B   atm_mem_scatter_test_compare_offsets
+0x7197   atm_mem_scatter_test_fail
+0x71A4   atm_mem_scatter_test_first
+0x71A0   atm_mem_scatter_test_handle
+0x711B   atm_mem_scatter_test_length_record_compare
+0x7114   atm_mem_scatter_test_length_record_ready
+0x710F   atm_mem_scatter_test_length_record_step
+0x7187   atm_mem_scatter_test_offsets_distinct
+0x71A1   atm_mem_scatter_test_stage
+0x71A2   atm_mem_scatter_test_vector
+0x71AA   atm_mem_scatter_vector
 0x6F8D   atm_mem_scatter_vector_offset
 0x6F92   atm_mem_scatter_vector_ready
 0x654E   atm_mem_selftest_fail
@@ -3248,7 +3280,7 @@ Value    Label
 0x62D7   p127_host_ops_error
 0x6088   p127_host_ops_fail
 0x6205   p127_host_ops_ok
-0x7D3A   p127_host_program_end
+0x7D63   p127_host_program_end
 0x6000   p127_host_program_start
 0x6355   p127_host_range_error
 0x60C7   p127_host_range_fail
