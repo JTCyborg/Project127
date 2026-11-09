@@ -5,7 +5,7 @@ from pathlib import Path
 SECTOR, SPT, TRACKS = 256, 16, 160
 IMAGE_SIZE = SECTOR * SPT * TRACKS
 LOAD_ADDRESS = 0x6000
-TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR, TOK_VAL, TOK_OUT = 0xEF, 0xAF, 0xF9, 0xC0, 0xB0, 0xDF
+TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR, TOK_VAL, TOK_OUT, TOK_CLEAR, TOK_REM = 0xEF, 0xAF, 0xF9, 0xC0, 0xB0, 0xDF, 0xFD, 0xEA
 
 def le16(n):
     if not 0 <= n <= 0xFFFF:
@@ -13,19 +13,18 @@ def le16(n):
     return bytes((n & 255, n >> 8))
 
 def basic_loader():
-    # Match the proven Project125/126 TR-DOS BASIC boot sequence:
-    # line 10 performs a direct numeric OUT before any VAL/string parsing.
-    # Subsequent progress text uses the same VAL-based OUT form as P125.
-    address = bytes([TOK_VAL]) + b' "24576"'
-
+    # Follow the proven Project125/126 TR-DOS autostart protocol exactly:
+    # RANDOMIZE USR 15619 : REM : LOAD "name" CODE address.
+    # TR-DOS intercepts the LOAD command stored after REM; a normal BASIC
+    # LOAD statement on a separate line is not an equivalent boot sequence.
     def line(number, body):
-        return bytes((0, number)) + le16(len(body) + 1) + body + b"\x0d"
+        if not 0 <= number <= 9999:
+            raise ValueError("BASIC line number out of range")
+        return bytes((number >> 8, number & 255)) + le16(len(body) + 1) + body + b"\\x0d"
 
     def debug_lines(first_number, message):
-        # Keep every tokenized BASIC line below the Spectrum 255-byte limit.
-        # Match Project125's exact OUT VAL "239",VAL "<byte>" token sequence.
+        # Use the byte-for-byte Project125 OUT VAL form, in short BASIC lines.
         result = []
-        line_number = first_number
         values = message.encode("ascii")
         for start in range(0, len(values), 8):
             statements = []
@@ -36,29 +35,38 @@ def basic_loader():
             body = b":".join(statements)
             if len(body) + 1 > 255:
                 raise ValueError("Generated BASIC debug line exceeds 255 bytes")
-            result.append(line(line_number, body))
-            line_number += 1
-            if line_number > 255:
-                raise ValueError("BASIC line number overflow")
+            number = first_number + len(result)
+            result.append(line(number, body))
         return result
 
-    # Spectrum BASIC stores a five-byte numeric value after the 0x0E marker.
-    direct_out = (bytes([TOK_OUT]) + b" 239" +
-                  bytes([0x0E, 0x00, 0x00, 0xEF, 0x00, 0x00]) +
-                  b",1" + bytes([0x0E, 0x00, 0x00, 0x01, 0x00, 0x00]))
+    # Line 10: OUT 239,1:CLEAR 24000 (same token/numeric encoding as P125/126).
+    line10 = (bytes([TOK_OUT]) + b"239" +
+              bytes([0x0E, 0x00, 0x00, 0xEF, 0x00, 0x00]) +
+              b"," + b"1" + bytes([0x0E, 0x00, 0x00, 0x01, 0x00, 0x00]) +
+              b":" + bytes([TOK_CLEAR]) + b"24000" +
+              bytes([0x0E, 0x00, 0x00, 0x5D, 0xC0, 0x00]))
 
-    lines = [line(10, direct_out)]
-    lines += debug_lines(11, "[P127] BASIC START\r\n")
-    lines.append(line(20, bytes([TOK_LOAD]) + b' "P127BOOT" ' +
-                      bytes([TOK_CODE]) + b" " + address))
-    lines += debug_lines(21, "[P127] LOAD OK\r\n")
-    lines += debug_lines(23, "[P127] CALL 6000\r\n")
-    lines.append(line(30, bytes([TOK_OUT]) + b" 239" +
-                      bytes([0x0E, 0x00, 0x00, 0xEF, 0x00, 0x00]) +
-                      b",2" + bytes([0x0E, 0x00, 0x00, 0x02, 0x00, 0x00]) +
-                      b":" + bytes([TOK_RANDOMIZE, TOK_USR]) + b" " + address))
-    area = b"".join(lines) + b"\x80"
-    return area + b"\xaa\x0a\x00", len(area)
+    # Line 20: exact TR-DOS bootstrap form used by the working P125/P126 loader.
+    line20 = (bytes([TOK_RANDOMIZE, TOK_USR]) + b"15619" +
+              bytes([0x0E, 0x00, 0x00]) + le16(15619) + b"\\x00" +
+              b":" + bytes([TOK_REM]) + b":" +
+              b'LOAD "P127BOOT" CODE 24576')
+
+    # Line 30: signal that the code is loaded, then enter it at 6000h.
+    line30 = (bytes([TOK_OUT]) + b"239" +
+              bytes([0x0E, 0x00, 0x00, 0xEF, 0x00, 0x00]) +
+              b"," + b"2" + bytes([0x0E, 0x00, 0x00, 0x02, 0x00, 0x00]) +
+              b":" + bytes([TOK_RANDOMIZE, TOK_USR, TOK_VAL, 34]) +
+              b"24576" + bytes([34]))
+
+    lines = [line(10, line10)]
+    lines += debug_lines(11, "[P127] BASIC START\\r\\n")
+    lines.append(line(20, line20))
+    lines += debug_lines(21, "[P127] LOAD OK\\r\\n")
+    lines += debug_lines(23, "[P127] CALL 6000\\r\\n")
+    lines.append(line(30, line30))
+    area = b"".join(lines) + b"\\x80"
+    return area + b"\\xaa\\x0a\\x00", len(area)
 
 def offset(track, sector):
     if not 0 <= track < TRACKS or not 0 <= sector < SPT:
