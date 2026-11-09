@@ -129,7 +129,7 @@ P127_Storage_Flush:
 p127_storage_validate_request:
         ld      a,(p127_storage_available)
         or      a
-        jr      z,p127_storage_not_ready
+        jp      z,p127_storage_not_ready
         ; Unsigned 32-bit compare: high word first, then low word.
         ld      hl,(p127_storage_lba+2)
         ld      de,(p127_storage_capacity+2)
