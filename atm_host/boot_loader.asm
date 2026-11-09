@@ -50,16 +50,19 @@ LINE11_END:
         DB      0, 20
         DW      LINE20_END-LINE20
 LINE20:
-        ; OUT marker, followed by fully tokenized Spectrum BASIC LOAD syntax.
+        ; TR-DOS requires the ROM hand-off: RANDOMIZE USR 15619: REM : LOAD ...
         DB      OUT_CMD
         DB      "239", $0E, $00, $00, $EF, $00, $00
         DB      ","
         DB      "3", $0E, $00, $00, $03, $00, $00
         DB      ":"
-        DB      $EF, 34, "@@HOST_NAME@@", 34
-        DB      $AF
-        DB      "24576", $0E, $00, $00, $60, $00, $00
-        DB      $0D
+        DB      RANDOMIZE
+        DB      USR, "15619", $0E, 0, 0
+        DW      15619
+        DB      0
+        DB      $3A, REM, $3A
+        ; LOAD is plain text because it is part of the TR-DOS REM command.
+        DB      "LOAD ", 34, "@@HOST_NAME@@", 34, " CODE 24576", $0D
 LINE20_END:
 
         ; This marker is reached only after TR-DOS LOAD has returned.
