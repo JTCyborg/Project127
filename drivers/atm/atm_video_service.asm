@@ -505,21 +505,21 @@ P127_ATM_Video_BufferSelfTest::
         ld a,1
         ld (p127_video_buffer_id),a
         call P127_ATM_Video_BufferCreate
-        jr c,p127_video_buffer_test_fail_1
+        jp c,p127_video_buffer_test_fail_
         cp 1
-        jr nz,p127_video_buffer_test_fail_1
+        jp nz,p127_video_buffer_test_fail_
         ld a,2
         call P127_ATM_Video_BufferCreate
-        jr c,p127_video_buffer_test_fail_1
+        jp c,p127_video_buffer_test_fail_
         cp 2
-        jr nz,p127_video_buffer_test_fail_1
+        jp nz,p127_video_buffer_test_fail_
         ld a,1
         call P127_ATM_Video_BufferClear
-        jr c,p127_video_buffer_test_fail_2
+        jp c,p127_video_buffer_test_fail_
         ld a,1
         ld b,2
         call P127_ATM_Video_BufferCopy
-        jr c,p127_video_buffer_test_fail_3
+        jp c,p127_video_buffer_test_fail_
         ; Reject a range extending one byte beyond the frame.
         ld a,1
         ld (p127_video_buffer_id),a
@@ -533,11 +533,11 @@ P127_ATM_Video_BufferSelfTest::
         ld (p127_video_length+2),hl
         ld a,1
         call p127_video_buffer_get_handle
-        jr c,p127_video_buffer_test_fail_4
+        jp c,p127_video_buffer_test_fail_
         ld (atm_mem_handle_source),a
         ld a,2
         call p127_video_buffer_get_handle
-        jr c,p127_video_buffer_test_fail_4
+        jp c,p127_video_buffer_test_fail_
         ld (atm_mem_handle_destination),a
         ld hl,(p127_video_buffer_offset)
         ld (atm_mem_handle_source_offset),hl
@@ -551,22 +551,22 @@ P127_ATM_Video_BufferSelfTest::
         ld hl,(p127_video_length+2)
         ld (atm_mem_handle_op_length+2),hl
         call atm_mem_handle_copy
-        jr nc,p127_video_buffer_test_fail_4
+        jp nc,p127_video_buffer_test_fail_
         ld a,1
         call P127_ATM_Video_BufferPrepare
-        jr c,p127_video_buffer_test_fail_5
+        jp c,p127_video_buffer_test_fail_
         ld a,1
         call P127_ATM_Video_BufferDestroy
-        jr nc,p127_video_buffer_test_fail_6
+        jp nc,p127_video_buffer_test_fail_
         ld a,1
         call P127_ATM_Video_BufferUnprepare
-        jr c,p127_video_buffer_test_fail_7
+        jp c,p127_video_buffer_test_fail_
         ld a,1
         call P127_ATM_Video_BufferDestroy
-        jr c,p127_video_buffer_test_fail_8
+        jp c,p127_video_buffer_test_fail_
         ld a,2
         call P127_ATM_Video_BufferDestroy
-        jr c,p127_video_buffer_test_fail_9
+        jp c,p127_video_buffer_test_fail_
         xor a
         ret
 p127_video_buffer_test_fail_1:
