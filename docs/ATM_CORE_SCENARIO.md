@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.5.1**  
-Status: **Project126 console port integrated; build and emulator acceptance pending**  
+Scenario revision: **0.5.2**  
+Status: **BOOT0, console, and Stage 1 memory smoke test accepted in user-reported emulator run**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -22,7 +22,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | Stage | Status | Deliverable / acceptance |
 |---|---|---|
 | 0 — Bootstrap baseline | **PASS (baseline)** | BASIC `boot.B` loads `P127BOOT.C` at #6000; original four BOOT0 diagnostic lines retained. |
-| 1 — Physical page-state manager | **IMPLEMENTED; runtime pending** | 64-entry page-state table; reserve/allocate/free; allocator smoke test wired into Stage 2 boot. |
+| 1 — Physical page-state manager | **PASS (runtime smoke test)** | 64-entry page-state table; video reservations; allocate/free/reallocate smoke test passed in user-reported emulator log. |
 | 2 — Physical memory map | IN PROGRESS | Project112 confirms video page IDs 1, 3, 5, 7; these are now reserved. Verify ROM boundary and ATM bank mapping; place kernel immediately beside ROM; derive kernel end; reserve stacks, firmware and remaining device regions; identify highest eligible RAM boundary for top-down program arena. No guessed ranges. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
 | 4 — Page mapper | PLANNED | Verified ATM hardware page-register backend; map/unmap API; no direct hardware writes from applications. |
@@ -41,7 +41,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 |---|---:|---|
 | `src/boot/p127_boot.asm` | 0.3.0 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
 | `src/kernel/p127_mem.asm` | 0.2.0 | Software page-state manager; reserves verified video pages 1,3,5,7; no hardware mapping yet |
-| `src/ui/p127_console.asm` | 0.1.0 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF |
+| `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
 ## Stage 1 — physical page-state manager 0.2.0
@@ -114,3 +114,14 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - No changes to BOOT0 entry, BASIC loader, memory allocator, or UI address placement.
 - Module version: `src/ui/p127_console.asm` 0.1.1; scenario revision 0.5.1.
 - Build and emulator verification remain pending.
+
+
+### 2026-11-09 — Runtime acceptance: BOOT0, console and Stage 1 memory smoke test
+
+- User-reported emulator output confirms the BASIC loader and second-stage entry at `#6000`; stack initialization at `#BFFF`; debug transmission through port `#EF`; and `BOOT0 PASS; IDLE`.
+- Project127 ATM RG6 console starts and reports `UI READY; ALL DEBUG OUTPUT MIRRORED TO EF`.
+- Physical page-state manager initializes its 64-page / 1 MiB accounting table; video pages P1, P3, P5 and P7 are reserved; allocator smoke test reports `MEM PAGE TEST PASS`.
+- Acceptance applies to the software page-state manager and visible console/log path only. It does not yet prove physical bank-register mapping, true physical page IDs on hardware, kernel relocation, DMA, or application memory availability.
+- RTC diagnostic remains `NOT INITIALIZED`; RTC/SMUC integration remains open under Stage 9.
+- Runtime acceptance source: user-provided emulator log in the Project127 development conversation.
+- Next implementation step: audit the real ATM Turbo 2+ memory map and ROM/RAM banking against Project112 before implementing low-memory kernel placement, runtime kernel-end discovery, and the top-down program arena. Do not expose the current page allocator to application loading until that map is verified.
