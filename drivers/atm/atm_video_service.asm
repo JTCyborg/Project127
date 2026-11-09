@@ -619,6 +619,8 @@ p127_video_saved_char:   db 0
 p127_video_saved_attr:   db 0
 p127_host_video_ok:
         db "[P127] ATM NATIVE VIDEO CORE v0.3.0 SELFTEST PASS",13,10,0
+p127_host_video_buffers_ok:
+        db "[P127] ATM VIDEO BUFFERS UINT32 SELFTEST PASS",13,10,0
 p127_host_video_error:
         db "[P127] ATM NATIVE VIDEO CORE SELFTEST FAIL STEP=0x",0
 
