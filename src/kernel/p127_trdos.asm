@@ -76,7 +76,7 @@ p127_trdos_read_directory:
 p127_trdos_read_sector:
         ld      a,(p127_trdos_sector_index)
         cp      8
-        jr      nc,p127_trdos_read_restore
+        jr      nc,p127_trdos_read_complete
 
         ld      e,a
         ld      d,0
@@ -104,6 +104,10 @@ p127_trdos_read_sector:
         inc     a
         ld      (p127_trdos_sector_index),a
         jr      p127_trdos_read_sector
+
+p127_trdos_read_complete:
+        xor     a
+        jr      p127_trdos_read_restore
 
 p127_trdos_read_restore:
         ld      (p127_trdos_read_failed),a
