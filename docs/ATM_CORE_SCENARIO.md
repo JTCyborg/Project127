@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.16**  
+Scenario revision: **0.8.17**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -363,7 +363,7 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - This is an address/layout preflight, not a bank-switch trampoline. No page-port OUT, physical remap, interrupt scheduling, or hardware rollback is implemented. The runtime pass is still required to establish that the linked image really fits W1 and the live stack is in W2.
 - Build and emulator verification have not been run in this environment. Do not treat the new preflight as accepted until the user rebuilds with SjASMPlus and supplies the #EF result.
 
-**Remaining acceptance groups before physical remap (6):**
+**Remaining acceptance groups before physical remap (5):**
 1. Interrupt-entry/return protocol and explicit DI/IFF/IM/vector ownership.
 2. Resident trampoline execution with register/context preservation across the software transition.
 3. Software-model target-map commit, failure injection, and rollback from the post-transition path.
@@ -377,5 +377,6 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Stage 2.10 address preflight v0.1.0 is accepted in the user's emulator. The runtime test confirms the linked resident module's bounds satisfy the W1 address checks, the selected resident state byte lies inside that module, and the live SP at the preflight call site satisfies the W2 range checks.
 - The same run reconfirms memory accounting, the resident stack probe, W3 ownership and software rollback/recovery.
 - Acceptance is strictly an address/layout and software-contract result. It does not prove the stack is backed by an independent physical page, that W3 has been remapped, or that interrupt entry/return and IFF/IM/vector restoration are safe. No page-port OUT is enabled.
-- No source module changed in this acceptance update. Scenario revision advanced to 0.8.16.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.17.
+- The complete diagnostic chain is accepted for this software-only stage; all reported tests retain the `OUT DISABLED` boundary.
 - Remaining acceptance groups before the first controlled physical W3 remap: (1) interrupt-entry/return and DI/IFF/IM/vector ownership; (2) resident transition with complete register/context preservation; (3) software target-map commit plus post-transition failure injection/rollback; (4) controlled physical W3 switch with UI quiesced and W1/W2 resident; (5) full boot/UI/memory/application regression after switch and rollback.
