@@ -141,7 +141,9 @@ atm_mem_handle_validate_range:
         ld      (atm_mem_handle_temp_id),a
         ld      (atm_mem_handle_temp_offset_ptr),hl
         call    atm_mem_handle_find_record
-        ret     c
+        jp      c,atm_mem_handle_validate_find_fail
+        ld      a,#41
+        ld      (atm_mem_handle_test_stage),a
         ld      (atm_mem_handle_temp_record),hl
         ; Compute end = offset + operation length with full carry checking.
         ld      hl,(atm_mem_handle_temp_offset_ptr)
@@ -156,7 +158,9 @@ atm_mem_handle_validate_range:
         ld      de,(atm_mem_handle_op_length+2)
         adc     hl,de
         ld      (atm_mem_handle_temp_end+2),hl
-        ret     c
+        jp      c,atm_mem_handle_validate_overflow
+        ld      a,#42
+        ld      (atm_mem_handle_test_stage),a
         ld      hl,(atm_mem_handle_temp_record)
         inc     hl
         inc     hl
@@ -165,6 +169,8 @@ atm_mem_handle_validate_range:
         inc     hl
         ; Compare end against recorded UINT32 logical length, high byte first.
         ld      de,atm_mem_handle_temp_end+3
+        ld      a,#43
+        ld      (atm_mem_handle_test_stage),a
         ld      b,4
 atm_mem_handle_range_compare:
         ld      a,(de)
@@ -178,6 +184,18 @@ atm_mem_handle_range_ok:
         or      a
         ret
 atm_mem_handle_range_fail:
+        ld      a,#44
+        ld      (atm_mem_handle_test_stage),a
+        scf
+        ret
+atm_mem_handle_validate_find_fail:
+        ld      a,#40
+        ld      (atm_mem_handle_test_stage),a
+        scf
+        ret
+atm_mem_handle_validate_overflow:
+        ld      a,#45
+        ld      (atm_mem_handle_test_stage),a
         scf
         ret
 
