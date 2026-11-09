@@ -1,13 +1,13 @@
 ; ============================================================================
 ; Project127 physical ATM RAM page test — Stage 2.19
-; Module version: 0.3.4
+; Module version: 0.4.0
 ; Runs from W2 (#A000..), with stack in W2. W1 resident/kernel remains fixed.
 ; W3 is exclusively leased from the UI and restored to physical page 0.
 ; This is the first general-purpose physical W3 remap test.
 ; ============================================================================
 P127_PHYSMEM_VERSION_MAJOR EQU 0
-P127_PHYSMEM_VERSION_MINOR EQU 3
-P127_PHYSMEM_VERSION_PATCH EQU 4
+P127_PHYSMEM_VERSION_MINOR EQU 4
+P127_PHYSMEM_VERSION_PATCH EQU 0
 P127_PHYSMEM_PAGE_SIZE     EQU 04000h
 P127_PHYSMEM_WINDOW_BASE   EQU 0C000h
 P127_PHYSMEM_PAGE_PORT     EQU 0FFF7h
@@ -562,6 +562,206 @@ p127_physmem_free_state_fail:
 
 ; Emit one printable phase marker directly on the established #EF debug port.
 ; This remains available while the UI is quiesced and W3 is leased.
+
+; ============================================================================
+; Stage 2.20 — guarded physical-page API.
+; All code and stack remain in W2. The only hardware mapping operation is W3.
+; Public ABI:
+;   alloc_page: OUT A=allocated page, carry=1 if exhausted.
+;   free_page:  IN A=allocated page, carry=1 if invalid or lease active.
+;   w3_begin:  quiesce UI, acquire W3, save P0 byte; DI remains in force.
+;   w3_map:    IN A=allocated page; valid only inside an active W3 lease.
+;   w3_end:    restore W3=P0 and saved byte, release lease, resume UI.
+; No API maps W0/W1/W2, frees a currently mapped page, or enables IRQs.
+; ============================================================================
+p127_physmem_alloc_page:
+        jp      p127_mem_alloc
+
+p127_physmem_free_page:
+        ld      (p127_physmem_api_page_arg),a
+        ld      a,(p127_physmem_api_active)
+        or      a
+        jp      nz,p127_physmem_api_reject
+        ld      a,(p127_physmem_api_page_arg)
+        ld      b,a
+        ld      a,(p127_map_shadow+3)
+        cp      b
+        jp      z,p127_physmem_api_reject
+        ld      a,(p127_physmem_api_page_arg)
+        jp      p127_mem_free
+
+; Begin a bounded W3 lease. Bootstrap mapping must be W3=P0.
+p127_physmem_w3_begin:
+        di
+        ld      a,(p127_physmem_api_active)
+        or      a
+        jp      nz,p127_physmem_api_reject
+        ld      a,(p127_map_shadow+3)
+        or      a
+        jp      nz,p127_physmem_api_reject
+        call    p127_w3_quiesce
+        ret     c
+        ld      a,1
+        ld      (p127_physmem_api_quiesced),a
+        call    p127_w3_handoff_acquire
+        jr      c,p127_physmem_w3_begin_rollback
+        ld      a,1
+        ld      (p127_physmem_api_acquired),a
+        ld      a,(P127_PHYSMEM_WINDOW_BASE)
+        ld      (p127_physmem_api_saved_p0),a
+        ld      a,1
+        ld      (p127_physmem_api_saved_valid),a
+        ld      (p127_physmem_api_active),a
+        or      a
+        ret
+p127_physmem_w3_begin_rollback:
+        call    p127_w3_resume
+        xor     a
+        ld      (p127_physmem_api_quiesced),a
+        scf
+        ret
+
+; Map only an allocator-owned page into W3.
+p127_physmem_w3_map:
+        ld      (p127_physmem_api_page_arg),a
+        ld      a,(p127_physmem_api_active)
+        cp      1
+        jp      nz,p127_physmem_api_reject
+        ld      a,(p127_physmem_api_page_arg)
+        cp      P127_PHYSMEM_MAX_PAGES
+        jp      nc,p127_physmem_api_reject
+        ld      e,a
+        ld      d,0
+        ld      hl,p127_mem_page_state
+        add     hl,de
+        ld      a,(hl)
+        cp      P127_MEM_ALLOCATED
+        jp      nz,p127_physmem_api_reject
+        ld      a,(p127_physmem_api_page_arg)
+        jp      p127_physmem_set_w3
+
+; End the lease in recovery order. If release/resume fails, state flags are
+; retained so the caller can retry this routine without losing ownership.
+p127_physmem_w3_end:
+        ld      a,(p127_physmem_api_active)
+        cp      1
+        jp      nz,p127_physmem_api_reject
+        xor     a
+        call    p127_physmem_set_w3
+        ret     c
+        ld      a,(p127_physmem_api_saved_valid)
+        or      a
+        jr      z,p127_physmem_w3_end_release
+        ld      a,(p127_physmem_api_saved_p0)
+        ld      (P127_PHYSMEM_WINDOW_BASE),a
+p127_physmem_w3_end_release:
+        ld      a,(p127_physmem_api_acquired)
+        or      a
+        jr      z,p127_physmem_w3_end_resume
+        call    p127_w3_handoff_release
+        ret     c
+        xor     a
+        ld      (p127_physmem_api_acquired),a
+p127_physmem_w3_end_resume:
+        ld      a,(p127_physmem_api_quiesced)
+        or      a
+        jr      z,p127_physmem_w3_end_done
+        call    p127_w3_resume
+        ret     c
+        xor     a
+        ld      (p127_physmem_api_quiesced),a
+p127_physmem_w3_end_done:
+        xor     a
+        ld      (p127_physmem_api_saved_valid),a
+        ld      (p127_physmem_api_active),a
+        or      a
+        ret
+
+p127_physmem_api_reject:
+        scf
+        ret
+
+; Runtime API contract test. It proves rejection paths, allocated-page-only
+; mapping, mapped-page free protection, P0 byte restoration and UI recovery.
+p127_physmem_api_selftest:
+        xor     a
+        ld      (p127_physmem_api_active),a
+        ld      (p127_physmem_api_quiesced),a
+        ld      (p127_physmem_api_acquired),a
+        ld      (p127_physmem_api_saved_valid),a
+        ld      a,1
+        call    p127_physmem_free_page
+        jp      nc,p127_physmem_api_test_fail
+        call    p127_physmem_alloc_page
+        jp      c,p127_physmem_api_test_fail
+        ld      (p127_physmem_api_test_page),a
+        ld      a,(P127_PHYSMEM_WINDOW_BASE)
+        ld      (p127_physmem_api_test_p0),a
+        call    p127_physmem_w3_begin
+        jp      c,p127_physmem_api_test_free
+        ; A reserved page must never be accepted by the map API.
+        ld      a,1
+        call    p127_physmem_w3_map
+        jp      nc,p127_physmem_api_test_end
+        ld      a,(p127_physmem_api_test_page)
+        call    p127_physmem_w3_map
+        jp      c,p127_physmem_api_test_end
+        ; The currently mapped page cannot be freed while the lease is held.
+        ld      a,(p127_physmem_api_test_page)
+        call    p127_physmem_free_page
+        jp      nc,p127_physmem_api_test_end
+        ld      a,0A5h
+        ld      (P127_PHYSMEM_WINDOW_BASE),a
+        call    p127_physmem_w3_end
+        jp      c,p127_physmem_api_test_fail
+        ld      a,(P127_PHYSMEM_WINDOW_BASE)
+        ld      b,a
+        ld      a,(p127_physmem_api_test_p0)
+        cp      b
+        jp      nz,p127_physmem_api_test_fail
+        ld      a,(p127_physmem_api_test_page)
+        call    p127_physmem_free_page
+        jp      c,p127_physmem_api_test_fail
+        ; First-fit must return the same page after release.
+        call    p127_physmem_alloc_page
+        jp      c,p127_physmem_api_test_fail
+        ld      b,a
+        ld      a,(p127_physmem_api_test_page)
+        cp      b
+        jp      nz,p127_physmem_api_test_fail
+        ld      a,b
+        call    p127_physmem_free_page
+        jp      c,p127_physmem_api_test_fail
+        ld      a,(p127_w3_state)
+        cp      P127_W3_STATE_UI_ACTIVE
+        jp      nz,p127_physmem_api_test_fail
+        ld      a,(p127_w3_owner)
+        cp      P127_W3_OWNER_UI
+        jp      nz,p127_physmem_api_test_fail
+        ld      a,(p127_map_shadow+3)
+        or      a
+        jp      nz,p127_physmem_api_test_fail
+        or      a
+        ret
+
+p127_physmem_api_test_end:
+        call    p127_physmem_w3_end
+p127_physmem_api_test_free:
+        ld      a,(p127_physmem_api_test_page)
+        call    p127_physmem_free_page
+p127_physmem_api_test_fail:
+        scf
+        ret
+
+p127_physmem_api_active: db 0
+p127_physmem_api_quiesced: db 0
+p127_physmem_api_acquired: db 0
+p127_physmem_api_saved_valid: db 0
+p127_physmem_api_saved_p0: db 0
+p127_physmem_api_page_arg: db 0
+p127_physmem_api_test_page: db 0
+p127_physmem_api_test_p0: db 0
+
 p127_physmem_trace:
         ld      bc,00EFh
         out     (c),a

@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.7.1
+; Project127 — boot stage 0.7.2
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -138,6 +138,15 @@ p127_start:
         call    p127_physmem_batch_selftest
         jp      c,p127_physmem_failed
         ld      hl,p127_msg_physmem_pass
+        call    p127_puts
+        ; Stage 2.20: public page allocator and guarded W3 lease API.
+        call    p127_physmem_api_selftest
+        jp      c,p127_physmem_api_failed
+        ld      hl,p127_msg_physmem_api_pass
+        call    p127_puts
+        jp      p127_idle
+p127_physmem_api_failed:
+        ld      hl,p127_msg_physmem_api_fail
         call    p127_puts
         jp      p127_idle
 p127_physmem_failed:
@@ -299,6 +308,10 @@ p127_msg_map_pass:
         db      "[P127] MAP MODEL TEST PASS; SOFTWARE SHADOW", 13, 10, 0
 p127_msg_physmem_pass:
         db      "[P127] PHYS W3 FULL FREE-PAGE SWEEP/ALLOCATOR/RESERVES/P0 RESTORE PASS",13,10,0
+p127_msg_physmem_api_pass:
+        db      "[P127] PAGE ALLOC/FREE + GUARDED W3 LEASE API PASS; IM/EI DISABLED",13,10,0
+p127_msg_physmem_api_fail:
+        db      "[P127] PAGE ALLOC/FREE + GUARDED W3 LEASE API FAIL",13,10,0
 p127_msg_physmem_fail:
         db      "[P127] PHYS W3 PAGE SWITCH/MEMORY TEST FAIL",13,10,0
 p127_msg_physmem_error:
