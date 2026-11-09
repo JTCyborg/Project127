@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.18**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 implemented, runtime pending; physical bank switching not yet enabled**  
+Scenario revision: **0.8.20**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 implemented, runtime pending; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -26,7 +26,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
-| 5 — Process/context manager | **DI-ONLY INTERRUPT SAFETY PREFLIGHT IMPLEMENTED; RUNTIME PENDING** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0 | Implement interrupt-entry/return and transactional physical remap; address preflight is runtime accepted but does not prove independent physical stack backing. |
+| 5 — Process/context manager | **DI-ONLY INTERRUPT OWNERSHIP PREFLIGHT RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0 | Implement interrupt-entry/return and transactional physical remap; address preflight is runtime accepted but does not prove independent physical stack backing. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
@@ -39,11 +39,11 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.6.0 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
+| `src/boot/p127_boot.asm` | 0.6.1 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
 | `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
-| `src/kernel/p127_irq.asm` | 0.1.0 | DI-only mask/vector ownership preflight; no EI, IM, vector writes or IRQ dispatcher |\n| `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership, UI leases and software snapshot/rollback; no page OUT |
+| `src/kernel/p127_irq.asm` | 0.2.0 | DI-only mask/vector ownership plus closed-by-default interrupt-enable readiness gate; no EI/IM or vector writes | DI-only mask/vector ownership preflight; no EI, IM, vector writes or IRQ dispatcher |\n| `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership, UI leases and software snapshot/rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
 ## Stage 1 — physical page-state manager 0.2.0
@@ -390,3 +390,22 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - New #EF diagnostic: `IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED`. Runtime acceptance is pending the user's build and emulator log.
 - This is only the safe bootstrap interrupt-ownership preflight. Real interrupt entry/return, handler/vector installation, IM selection, and context preservation remain unimplemented. Physical page-port OUT remains disabled.
 - Build was not run in this environment.
+
+
+### 2026-11-09 — Runtime acceptance: DI-only interrupt ownership preflight v0.1.0
+
+- User supplied the #EF log for boot v0.6.0. The run reports `IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED` and continues through `RESIDENT TRAMPOLINE PREFLIGHT PASS; OUT DISABLED`, `RESIDENT WINDOW CONTRACT PASS; OUT DISABLED`, `HANDOFF GUARD TEST PASS; OUT DISABLED`, and `MAP MODEL TEST PASS; OUT DISABLED`.
+- The Stage 2.11 DI-only interrupt ownership preflight v0.1.0 is accepted in the user's emulator. The acceptance covers the software fault-injection checks for the declared masked/no-vector/IM-unset bootstrap contract.
+- This does not validate asynchronous interrupt entry/return, an installed interrupt handler/vector, IM selection, IFF1/IFF2 preservation/restoration, or complete register/context preservation. It is not permission to execute EI or IM. Physical page-port OUT remains disabled.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.19.
+- The first remaining acceptance group is still open: implement a real controlled interrupt-entry/return protocol with explicit vector ownership and a defined interrupt-mode policy. The current bootstrap remains DI-only. Then test resident transition/context preservation, software target-map commit/rollback, controlled physical W3 remap, and full regression.
+
+
+### 2026-11-09 — Stage 2.12: interrupt-enable readiness gate v0.2.0
+
+- Advanced `src/kernel/p127_irq.asm` to v0.2.0 and boot to v0.6.1.
+- Added a closed-by-default readiness gate. It rejects interrupt enablement unless all three future prerequisites are explicitly committed: vector ownership, verified vector-table mapping, and installed resident handler. A synthetic self-test proves the default-closed state, rejects an incomplete tuple, accepts only the complete tuple, and restores the safe boot state.
+- The gate is a preflight only and never executes EI or IM. The boot still runs DI-only with no owned vector and no installed handler. No interrupt entry/return routine is claimed.
+- Architectural blocker remains explicit: IM1's fixed vector #0038 resides in the current W0 ROM mapping and cannot be claimed writable by this stage. IM2 requires a verified, writable 257-byte table and known I-register mapping that do not overlap resident code/data; neither reservation has yet been established. Therefore no mode is selected and no vector is installed.
+- New boot calls run the gate self-test; the existing #EF pass line remains `IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED`. Runtime acceptance pending.
+- Physical page-port OUT remains disabled. Build not run in this environment.
