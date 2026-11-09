@@ -1,7 +1,7 @@
 ; ============================================================================
 ; Project127 ATM-native debug console, ported from Project126
 ; Source: Project126/atm_host/p126_screen_console.asm
-; Module version: 0.1.1
+; Module version: 0.1.2
 ; ATM Turbo 2+ RG6 80x25; upper 12 rows status, lower 13 rows scrolling log.
 ; Every displayed debug character and static UI label is mirrored to #EF.
 ; Resident placement: #A000, in the Project126 host display window.
@@ -245,6 +245,16 @@ BIOS_DebugConsole_PrintAt::
         push    hl
         call    p127_w3_ui_enter
         jp      c,.p126_print_at_denied
+        ; The lease routine uses A; restore the complete caller frame before
+        ; consuming the PrintAt row/column parameters.
+        pop     hl
+        pop     de
+        pop     bc
+        pop     af
+        push    af
+        push    bc
+        push    de
+        push    hl
         ld      (bios_dbg_text_ptr), hl
         ld      (bios_dbg_print_row), a
         ld      a, c
@@ -303,7 +313,7 @@ BIOS_DebugConsole_PrintAt::
 BIOS_DebugConsole_PrintChar::
         push    af
         call    p127_w3_ui_enter
-        jr      c,.p126_console_denied
+        jp      c,.p126_console_denied
         pop     af
         push    af
         push    bc
