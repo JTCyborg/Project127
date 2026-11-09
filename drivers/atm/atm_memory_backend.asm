@@ -32,7 +32,7 @@ atm_mem_validate_range::
         jp      p127_range_check
 
 atm_mem_range_selftest::
-        ; Last byte of installed RAM is valid: 0x000FFFFF + 1.
+        ; Test 1: final installed byte is valid.
         ld      hl,#FFFF
         ld      (p127_range_offset),hl
         ld      hl,#000F
@@ -42,9 +42,9 @@ atm_mem_range_selftest::
         ld      hl,0
         ld      (p127_range_length+2),hl
         call    atm_mem_validate_range
-        jp      c,atm_mem_selftest_fail
+        jp      c,atm_mem_selftest_fail_1
 
-        ; First byte beyond installed RAM is invalid: 0x00100000 + 1.
+        ; Test 2: first byte beyond installed RAM is invalid.
         ld      hl,0
         ld      (p127_range_offset),hl
         ld      hl,#0010
@@ -54,9 +54,9 @@ atm_mem_range_selftest::
         ld      hl,0
         ld      (p127_range_length+2),hl
         call    atm_mem_validate_range
-        jp      nc,atm_mem_selftest_fail
+        jp      nc,atm_mem_selftest_fail_2
 
-        ; Exact full-capacity range: 0 + 0x00100000.
+        ; Test 3: exact full-capacity range is valid.
         ld      hl,0
         ld      (p127_range_offset),hl
         ld      (p127_range_offset+2),hl
@@ -64,9 +64,9 @@ atm_mem_range_selftest::
         ld      hl,#0010
         ld      (p127_range_length+2),hl
         call    atm_mem_validate_range
-        jp      c,atm_mem_selftest_fail
+        jp      c,atm_mem_selftest_fail_3
 
-        ; Zero length exactly at capacity is a valid empty range.
+        ; Test 4: zero length at capacity is valid.
         ld      hl,0
         ld      (p127_range_offset),hl
         ld      hl,#0010
@@ -74,9 +74,9 @@ atm_mem_range_selftest::
         ld      (p127_range_length),hl
         ld      (p127_range_length+2),hl
         call    atm_mem_validate_range
-        jp      c,atm_mem_selftest_fail
+        jp      c,atm_mem_selftest_fail_4
 
-        ; Zero length beyond capacity is invalid.
+        ; Test 5: zero length beyond capacity is invalid.
         ld      hl,1
         ld      (p127_range_offset),hl
         ld      hl,#0010
@@ -85,9 +85,9 @@ atm_mem_range_selftest::
         ld      (p127_range_length),hl
         ld      (p127_range_length+2),hl
         call    atm_mem_validate_range
-        jp      nc,atm_mem_selftest_fail
+        jp      nc,atm_mem_selftest_fail_5
 
-        ; A two-byte range starting at the last byte crosses the end.
+        ; Test 6: two bytes from the final byte cross the end.
         ld      hl,#FFFF
         ld      (p127_range_offset),hl
         ld      hl,#000F
@@ -97,9 +97,9 @@ atm_mem_range_selftest::
         ld      hl,0
         ld      (p127_range_length+2),hl
         call    atm_mem_validate_range
-        jp      nc,atm_mem_selftest_fail
+        jp      nc,atm_mem_selftest_fail_6
 
-        ; UINT32 addition overflow must be rejected.
+        ; Test 7: UINT32 addition overflow is rejected.
         ld      hl,#FFFF
         ld      (p127_range_offset),hl
         ld      (p127_range_offset+2),hl
@@ -108,9 +108,30 @@ atm_mem_range_selftest::
         ld      hl,0
         ld      (p127_range_length+2),hl
         call    atm_mem_validate_range
-        jp      nc,atm_mem_selftest_fail
-        or      a
+        jp      nc,atm_mem_selftest_fail_7
+        xor     a
         ret
+
+atm_mem_selftest_fail_1:
+        ld      a,1
+        jr      atm_mem_selftest_fail
+atm_mem_selftest_fail_2:
+        ld      a,2
+        jr      atm_mem_selftest_fail
+atm_mem_selftest_fail_3:
+        ld      a,3
+        jr      atm_mem_selftest_fail
+atm_mem_selftest_fail_4:
+        ld      a,4
+        jr      atm_mem_selftest_fail
+atm_mem_selftest_fail_5:
+        ld      a,5
+        jr      atm_mem_selftest_fail
+atm_mem_selftest_fail_6:
+        ld      a,6
+        jr      atm_mem_selftest_fail
+atm_mem_selftest_fail_7:
+        ld      a,7
 atm_mem_selftest_fail:
         scf
         ret
