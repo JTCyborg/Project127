@@ -18,6 +18,9 @@ ATM_RAM_CAPACITY_MID EQU #00
 ATM_RAM_CAPACITY_HI  EQU #10
 ATM_RAM_CAPACITY_TOP EQU #00
 
+atm_mem_test4_length_snapshot:
+        defs    4,0
+
 atm_mem_query_caps::
         ld      hl,atm_mem_capabilities
         ret
@@ -73,6 +76,11 @@ atm_mem_range_selftest::
         ld      (p127_range_offset+2),hl
         ld      (p127_range_length),hl
         ld      (p127_range_length+2),hl
+        ; Preserve the exact test input before the validator runs.
+        ld      hl,p127_range_length
+        ld      de,atm_mem_test4_length_snapshot
+        ld      bc,4
+        ldir
         call    atm_mem_validate_range
         jp      c,atm_mem_selftest_fail_4
 
