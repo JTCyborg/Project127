@@ -19,7 +19,7 @@ def basic_loader():
     address = bytes([TOK_VAL]) + b' "24576"'
 
     def line(number, body):
-        return bytes((0, number)) + le16(len(body) + 1) + body + b"\\x0d"
+        return bytes((0, number)) + le16(len(body) + 1) + body + b"\x0d"
 
     def debug_text(message):
         statements = []
@@ -36,17 +36,17 @@ def basic_loader():
 
     lines = [
         line(10, direct_out),
-        line(11, debug_text("[P127] BASIC START\\r\\n")),
+        line(11, debug_text("[P127] BASIC START\r\n")),
         line(20, bytes([TOK_LOAD]) + b' "P127BOOT" ' +
              bytes([TOK_CODE]) + b" " + address),
-        line(21, debug_text("[P127] LOAD OK\\r\\n")),
-        line(22, debug_text("[P127] CALL 6000\\r\\n")),
+        line(21, debug_text("[P127] LOAD OK\r\n")),
+        line(22, debug_text("[P127] CALL 6000\r\n")),
         line(30, bytes([TOK_OUT]) + b" 239" +
              bytes([0x0E, 0x00, 0x00, 0xEF, 0x00, 0x00]) +
              b",2" + bytes([0x0E, 0x00, 0x00, 0x02, 0x00, 0x00]) +
              b":" + bytes([TOK_RANDOMIZE, TOK_USR]) + b" " + address),
     ]
-    area = b"".join(lines) + b"\\x80"
+    area = b"".join(lines) + b"\x80"
     return area + b"\\xaa\\x0a\\x00", len(area)
 
 def offset(track, sector):
