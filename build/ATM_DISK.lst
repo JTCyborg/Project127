@@ -3590,9 +3590,9 @@
  46+  E0CF 0D                   DB      $0D
  47+  E0D0              LINE11_END:
  48+  E0D0
- 49+  E0D0                      ; The same Project126 ROM trampoline and CODE load address.
+ 49+  E0D0                      ; Project126 ROM trampoline: load the UI module first.
  50+  E0D0 00 14                DB      0, 20
- 51+  E0D2 44 00                DW      LINE20_END-LINE20
+ 51+  E0D2 29 00                DW      LINE20_END-LINE20
  52+  E0D4              LINE20:
  53+  E0D4 F9                   DB      RANDOMIZE
  54+  E0D5 C0 31 35 36          DB      USR, "15619", $0E, 0, 0
@@ -3601,115 +3601,97 @@
  55+  E0DE 03 3D                DW      15619
  56+  E0E0 00                   DB      0
  57+  E0E1 3A EA 3A             DB      $3A, REM, $3A
- 58+  E0E4 4C 4F 41 44          DB      "LOAD ", 34, "p127ui", 34, " CODE 40960", $3A
+ 58+  E0E4 4C 4F 41 44          DB      "LOAD ", 34, "p127ui", 34, " CODE 40960", $0D
  58+  E0E8 20 22 70 31
  58+  E0EC 32 37 75 69
  58+  E0F0 22 20 43 4F
  58+  E0F4 44 45 20 34
  58+  E0F8 30 39 36 30
- 58+  E0FC 3A
- 59+  E0FD 4C 4F 41 44          DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D
- 59+  E101 20 22 70 31
- 59+  E105 32 37 68 6F
- 59+  E109 73 74 22 20
- 59+  E10D 43 4F 44 45
- 59+  E111 20 32 34 35
- 59+  E115 37 36 0D
- 60+  E118              LINE20_END:
- 61+  E118
- 62+  E118 00 13                DB      0, 19
- 63+  E11A 1B 00                DW      LINE19_END-LINE19
- 64+  E11C              LINE19:
- 65+  E11C 4C 4F 41 44          DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D
- 65+  E120 20 22 70 31
- 65+  E124 32 37 68 6F
- 65+  E128 73 74 22 20
- 65+  E12C 43 4F 44 45
- 65+  E130 20 32 34 35
- 65+  E134 37 36 0D
- 66+  E137              LINE19_END:
- 67+  E137
- 68+  E137 00 12                DB      0, 18
- 69+  E139 12 00                DW      LINE18_END-LINE18
- 70+  E13B              LINE18:
- 71+  E13B EA 20 48 4F          DB      REM, " HOST IMAGE LOAD", $0D
- 71+  E13F 53 54 20 49
- 71+  E143 4D 41 47 45
- 71+  E147 20 4C 4F 41
- 71+  E14B 44 0D
- 72+  E14D              LINE18_END:
- 73+  E14D
- 74+  E14D                      ; Host image is loaded after the independent UI image.
- 75+  E14D
- 76+  E14D                      ; Announce that both host and UI images have been loaded.
- 77+  E14D 00 15                DB      0, 21
- 78+  E14F 70 00                DW      LINE21_END-LINE21
- 79+  E151              LINE21:
- 80+  E151 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "76", 34, ":"
- 80+  E155 33 39 22 2C
- 80+  E159 B0 22 37 36
- 80+  E15D 22 3A
- 81+  E15F DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "79", 34, ":"
- 81+  E163 33 39 22 2C
- 81+  E167 B0 22 37 39
- 81+  E16B 22 3A
- 82+  E16D DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "65", 34, ":"
- 82+  E171 33 39 22 2C
- 82+  E175 B0 22 36 35
- 82+  E179 22 3A
- 83+  E17B DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
- 83+  E17F 33 39 22 2C
- 83+  E183 B0 22 36 38
- 83+  E187 22 3A
- 84+  E189 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "69", 34, ":"
- 84+  E18D 33 39 22 2C
- 84+  E191 B0 22 36 39
- 84+  E195 22 3A
- 85+  E197 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
- 85+  E19B 33 39 22 2C
- 85+  E19F B0 22 36 38
- 85+  E1A3 22 3A
- 86+  E1A5 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "13", 34, ":"
- 86+  E1A9 33 39 22 2C
- 86+  E1AD B0 22 31 33
- 86+  E1B1 22 3A
- 87+  E1B3 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "10", 34
- 87+  E1B7 33 39 22 2C
- 87+  E1BB B0 22 31 30
- 87+  E1BF 22
- 88+  E1C0 0D                   DB      $0D
- 89+  E1C1              LINE21_END:
- 90+  E1C1
- 91+  E1C1                      ; Enter the host program at 6009h, exactly as Project126 does.
- 92+  E1C1 00 1E                DB      0, 30
- 93+  E1C3 1E 00                DW      LINE30_END-LINE30
- 94+  E1C5              LINE30:
- 95+  E1C5 DF                   DB      OUT_CMD
- 96+  E1C6 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
- 96+  E1CA 00 00 EF 00
- 96+  E1CE 00
- 97+  E1CF 2C                   DB      ","
- 98+  E1D0 32 0E 00 00          DB      "2", $0E, $00, $00, $02, $00, $00
- 98+  E1D4 02 00 00
- 99+  E1D7 3A                   DB      ":"
-100+  E1D8 F9                   DB      RANDOMIZE
-101+  E1D9 C0                   DB      USR
-102+  E1DA B0                   DB      VAL
-103+  E1DB 22                   DB      34
-104+  E1DC 32 34 35 38          DEFM    "24585"
-104+  E1E0 35
-105+  E1E1 22                   DB      34
-106+  E1E2 0D                   DB      $0D
-107+  E1E3              LINE30_END:
-108+  E1E3
-109+  E1E3 80                   DB      $80
-110+  E1E4              BASIC_END:
-111+  E1E4
+ 58+  E0FC 0D
+ 59+  E0FD              LINE20_END:
+ 60+  E0FD
+ 61+  E0FD                      ; Load the ATM host image on the next BASIC line.
+ 62+  E0FD 00 15                DB      0, 21
+ 63+  E0FF 1B 00                DW      LINE21_END-LINE21
+ 64+  E101              LINE21:
+ 65+  E101 4C 4F 41 44          DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D
+ 65+  E105 20 22 70 31
+ 65+  E109 32 37 68 6F
+ 65+  E10D 73 74 22 20
+ 65+  E111 43 4F 44 45
+ 65+  E115 20 32 34 35
+ 65+  E119 37 36 0D
+ 66+  E11C              LINE21_END:
+ 67+  E11C
+ 68+  E11C                      ; Announce that both host and UI images have been loaded.
+ 69+  E11C 00 16                DB      0, 22
+ 70+  E11E 70 00                DW      LINE22_END-LINE22
+ 71+  E120              LINE22:
+ 72+  E120 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "76", 34, ":"
+ 72+  E124 33 39 22 2C
+ 72+  E128 B0 22 37 36
+ 72+  E12C 22 3A
+ 73+  E12E DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "79", 34, ":"
+ 73+  E132 33 39 22 2C
+ 73+  E136 B0 22 37 39
+ 73+  E13A 22 3A
+ 74+  E13C DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "65", 34, ":"
+ 74+  E140 33 39 22 2C
+ 74+  E144 B0 22 36 35
+ 74+  E148 22 3A
+ 75+  E14A DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
+ 75+  E14E 33 39 22 2C
+ 75+  E152 B0 22 36 38
+ 75+  E156 22 3A
+ 76+  E158 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "69", 34, ":"
+ 76+  E15C 33 39 22 2C
+ 76+  E160 B0 22 36 39
+ 76+  E164 22 3A
+ 77+  E166 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
+ 77+  E16A 33 39 22 2C
+ 77+  E16E B0 22 36 38
+ 77+  E172 22 3A
+ 78+  E174 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "13", 34, ":"
+ 78+  E178 33 39 22 2C
+ 78+  E17C B0 22 31 33
+ 78+  E180 22 3A
+ 79+  E182 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "10", 34
+ 79+  E186 33 39 22 2C
+ 79+  E18A B0 22 31 30
+ 79+  E18E 22
+ 80+  E18F 0D                   DB      $0D
+ 81+  E190              LINE22_END:
+ 82+  E190
+ 83+  E190                      ; Enter the host program at 6009h, exactly as Project126 does.
+ 84+  E190 00 1E                DB      0, 30
+ 85+  E192 1E 00                DW      LINE30_END-LINE30
+ 86+  E194              LINE30:
+ 87+  E194 DF                   DB      OUT_CMD
+ 88+  E195 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
+ 88+  E199 00 00 EF 00
+ 88+  E19D 00
+ 89+  E19E 2C                   DB      ","
+ 90+  E19F 32 0E 00 00          DB      "2", $0E, $00, $00, $02, $00, $00
+ 90+  E1A3 02 00 00
+ 91+  E1A6 3A                   DB      ":"
+ 92+  E1A7 F9                   DB      RANDOMIZE
+ 93+  E1A8 C0                   DB      USR
+ 94+  E1A9 B0                   DB      VAL
+ 95+  E1AA 22                   DB      34
+ 96+  E1AB 32 34 35 38          DEFM    "24585"
+ 96+  E1AF 35
+ 97+  E1B0 22                   DB      34
+ 98+  E1B1 0D                   DB      $0D
+ 99+  E1B2              LINE30_END:
+100+  E1B2
+101+  E1B2 80                   DB      $80
+102+  E1B3              BASIC_END:
+103+  E1B3
 # file closed: boot_loader.generated.asm
- 22   E1E4                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
- 23   E1E4
- 24   E1E4                      PAGE 0
- 25   E1E4
+ 22   E1B3                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
+ 23   E1B3
+ 24   E1B3                      PAGE 0
+ 25   E1B3
 # file closed: project127_disk.generated.asm
 
 Value    Label
@@ -3956,7 +3938,7 @@ Value    Label
 0x00E8   ATM_SCATTER_EXTENT_BYTES
 0x0008   ATM_SCATTER_HANDLE_COUNT
 0x003A   ATM_SCATTER_MAX_EXTENTS
-0xE1E4 X BASIC_END
+0xE1B3 X BASIC_END
 0xE000 X basic_loader
 0xE000 X BASIC_START
 0x00FD   CLEAR
@@ -3964,16 +3946,14 @@ Value    Label
 0xE024   LINE10_END
 0xE028   LINE11
 0xE0D0   LINE11_END
-0xE13B   LINE18
-0xE14D   LINE18_END
-0xE11C   LINE19
-0xE137   LINE19_END
 0xE0D4   LINE20
-0xE118   LINE20_END
-0xE151   LINE21
-0xE1C1   LINE21_END
-0xE1C5   LINE30
-0xE1E3   LINE30_END
+0xE0FD   LINE20_END
+0xE101   LINE21
+0xE11C   LINE21_END
+0xE120   LINE22
+0xE190   LINE22_END
+0xE194   LINE30
+0xE1B2   LINE30_END
 0x00DF   OUT_CMD
 0x0001   P127_ABI_MAJOR
 0x0000   P127_ABI_MINOR
