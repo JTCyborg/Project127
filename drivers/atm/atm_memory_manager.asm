@@ -227,13 +227,13 @@ atm_mem_alloc_fail:
 atm_mem_free::
         ld      a,(atm_mem_request_offset)
         or      a
-        jp      nz,atm_mem_free_fail
+        jp      nz,atm_mem_free_fail_01
         ld      a,(atm_mem_request_offset+3)
         or      a
-        jp      nz,atm_mem_free_fail
+        jp      nz,atm_mem_free_fail_02
         ld      a,(atm_mem_request_offset+1)
         and     #3F
-        jp      nz,atm_mem_free_fail
+        jp      nz,atm_mem_free_fail_03
         ld      a,(atm_mem_request_length)
         ld      b,a
         ld      a,(atm_mem_request_length+1)
@@ -244,9 +244,9 @@ atm_mem_free::
         ld      b,a
         ld      a,(atm_mem_request_length+3)
         or      b
-        jp      z,atm_mem_free_fail
+        jp      z,atm_mem_free_fail_04
         call    atm_mem_validate_request
-        jp      c,atm_mem_free_fail
+        jp      c,atm_mem_free_fail_05
 
         ; Page index = (offset >> 14).
         ld      a,(atm_mem_request_offset+2)
@@ -322,9 +322,9 @@ atm_mem_free_record_found:
 atm_mem_free_check:
         ld      a,b
         cp      ATM_PAGE_COUNT
-        jp      nc,atm_mem_free_fail
+        jp      nc,atm_mem_free_fail_06
         call    atm_mem_page_is_allocated
-        jp      z,atm_mem_free_fail
+        jp      z,atm_mem_free_fail_07
         inc     b
         dec     c
         jp      nz,atm_mem_free_check
@@ -345,8 +345,46 @@ atm_mem_free_clear:
         ld      (hl),a
         or      a
         ret
-
+atm_mem_free_fail_01:
+        ld      a,1
+        ld      (atm_mem_free_error),a
+        scf
+        ret
+atm_mem_free_fail_02:
+        ld      a,2
+        ld      (atm_mem_free_error),a
+        scf
+        ret
+atm_mem_free_fail_03:
+        ld      a,3
+        ld      (atm_mem_free_error),a
+        scf
+        ret
+atm_mem_free_fail_04:
+        ld      a,4
+        ld      (atm_mem_free_error),a
+        scf
+        ret
+atm_mem_free_fail_05:
+        ld      a,5
+        ld      (atm_mem_free_error),a
+        scf
+        ret
+atm_mem_free_fail_06:
+        ld      a,6
+        ld      (atm_mem_free_error),a
+        scf
+        ret
+atm_mem_free_fail_07:
+        ld      a,7
+        ld      (atm_mem_free_error),a
+        scf
+        ret
 atm_mem_free_fail:
+        ld      a,255
+        ld      (atm_mem_free_error),a
+        scf
+        ret
         scf
         ret
 
@@ -509,7 +547,7 @@ atm_mem_allocator_selftest::
         ld      hl,(atm_mem_result_offset+2)
         ld      (atm_mem_request_offset+2),hl
         call    atm_mem_free
-        jp      c,atm_mem_allocator_fail_06
+        jp      c,atm_mem_allocator_free_fail_06
 
         ld      hl,1
         ld      (atm_mem_request_length),hl
@@ -551,8 +589,9 @@ atm_mem_allocator_fail_04:
 atm_mem_allocator_fail_05:
         ld      a,5
         jr      atm_mem_allocator_selftest_fail
-atm_mem_allocator_fail_06:
-        ld      a,6
+atm_mem_allocator_free_fail_06:
+        ld      a,(atm_mem_free_error)
+        or      #80
         jr      atm_mem_allocator_selftest_fail
 atm_mem_allocator_fail_07:
         ld      a,7
@@ -576,6 +615,7 @@ atm_mem_pages_needed:       db 0
 atm_mem_candidate:          db 0
 atm_mem_alloc_start:        db 0
 atm_mem_record_ptr:         dw 0
+atm_mem_free_error:         db 0
 ; 64 records * 6 bytes: start page, page count, exact UINT32 byte length.
 atm_mem_alloc_table:        defs 384,0
 
