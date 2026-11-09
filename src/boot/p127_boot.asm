@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.5.0
+; Project127 — boot stage 0.5.1
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -132,8 +132,13 @@ p127_msg_mem_pass:
         db      "[P127] MEM PAGE TEST PASS", 13, 10, 0
 p127_msg_mem_fail:
         db      "[P127] MEM PAGE TEST FAIL", 13, 10, 0
+p127_msg_map_pass:
+        db      "[P127] MAP MODEL TEST PASS; OUT DISABLED", 13, 10, 0
+p127_msg_map_fail:
+        db      "[P127] MAP MODEL TEST FAIL", 13, 10, 0
 
-        INCLUDE "src/kernel/p127_mem.asm"\n        INCLUDE "src/kernel/p127_map.asm"
+        INCLUDE "src/kernel/p127_mem.asm"
+        INCLUDE "src/kernel/p127_map.asm"
 
 p127_end:
         ASSERT  p127_entry = P127_LOAD_ADDRESS
