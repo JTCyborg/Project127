@@ -16,6 +16,10 @@ p127_host_program_start:
         BLOCK   6,0
 
 p127_host_entry:
+        ; Earliest possible proof that execution reached the loaded host image.
+        ld      bc,#00EF
+        ld      a,'E'
+        out     (c),a
         di
         ld      sp,P127_HOST_STACK_TOP
         ld      hl,p127_host_banner
