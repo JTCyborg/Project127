@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.47**  
+Scenario revision: **0.8.48**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -662,3 +662,14 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Scope limits remain: no arbitrary concurrent remapping, no W0/W1/W2 general-purpose remapping, no DMA validation, and no established IRQ source/vector/acknowledge path. This result does not authorize enabling IM/EI or unrestricted application mapping.
 - No source module changed in this acceptance update. Scenario revision advanced to 0.8.47. Build was not independently run here; runtime acceptance is based on the user's supplied #EF log.
 - Next: audit the actual `p127_console.asm` output path, screen-page selection and console restore sequence against the Project112 video implementation. Reproduce a minimal fixed-row screen write after the W3 lease is released; only after that is visibly confirmed should the page-ID replay be expanded or other physical windows be considered.
+
+
+### 2026-11-09 — Stage 2.23: reassert ATM text video bank before screen replay v0.4.3
+
+- Audited Project127 `src/ui/p127_console.asm` against Project126 `atm_host/p126_screen_console.asm` and Project112 `112/src/mode_atm.asm` / `112/src/video_mode_control.asm`.
+- Confirmed the Project127 console's text-cell geometry and plane layout match the Project126 implementation: RG6 80×25; row offset `#01C0 + row*64 + column/2`; character bytes on the alternate character page P7 at `#4000/#6000`; attributes on alternate attribute page P3 at `#E000/#C000(+1)`; alternate video selection is initialized by `#7FFD=#18` and mode `#C6` through the TR-DOS ROM trampoline. Project112's standalone text demo uses the primary P5/P1 bank; Project127 intentionally uses the alternate P7/P3 bank selected by bit 3.
+- The existing `p126_screen_write_char` already maps P7/P3 for each cell and restores CPU windows to P5/P0. The remaining unverified state was the video-bank selector itself: restoring CPU window mappings does not reassert `#7FFD` alternate-screen selection or RG6 mode.
+- Updated `src/kernel/p127_physmem.asm` to v0.4.3. After the physical W3 sweep has restored W3=P0, released HANDOFF, resumed UI, freed all pages and verified allocator state, the screen replay now calls the existing `p126_atm_video_init` to reapply the known-good ATM setup. This happens outside the W3 lease; the full physical sweep and its ownership protocol are unchanged.
+- Added a fixed-row probe at row 4: `VIDEO MAP: RG6 ALT P7/P3 ACTIVE`. It is emitted through the normal `BIOS_DebugConsole_PrintAt` path immediately after video reinitialization, before the page-ID replay. Existing fixed result rows 2 and 3 and the scrolling `W3 FILL` / `W3 VERIFY` replay remain.
+- The probe is a runtime visibility test, not a claimed pass: the user must rebuild and confirm the row appears on the ATM screen. If #EF contains the probe but the screen does not, the next diagnosis must compare the emulator's active display-bank fetch with the P7/P3 CPU mapping; do not add speculative writes to other pages.
+- No W0/W1/W2 general-purpose remapping, DMA, IM/EI enablement, or IRQ source changes. Build and emulator runtime verification have not been run here.

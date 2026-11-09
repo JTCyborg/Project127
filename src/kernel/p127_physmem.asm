@@ -1,13 +1,13 @@
 ; ============================================================================
-; Project127 physical ATM RAM page test — Stage 2.19
-; Module version: 0.4.2
+; Project127 physical ATM RAM page test — Stage 2.23
+; Module version: 0.4.3
 ; Runs from W2 (#A000..), with stack in W2. W1 resident/kernel remains fixed.
 ; W3 is exclusively leased from the UI and restored to physical page 0.
 ; This is the first general-purpose physical W3 remap test.
 ; ============================================================================
 P127_PHYSMEM_VERSION_MAJOR EQU 0
 P127_PHYSMEM_VERSION_MINOR EQU 4
-P127_PHYSMEM_VERSION_PATCH EQU 2
+P127_PHYSMEM_VERSION_PATCH EQU 3
 P127_PHYSMEM_PAGE_SIZE     EQU 04000h
 P127_PHYSMEM_WINDOW_BASE   EQU 0C000h
 P127_PHYSMEM_PAGE_PORT     EQU 0FFF7h
@@ -452,6 +452,19 @@ p127_physmem_cleanup_return_error:
 ; Replay all successful physical-page selections on the visible ATM console.
 ; The 57 IDs are compacted into two wrapped lines rather than 114 long lines.
 p127_physmem_replay_page_log:
+        ; The W3 sweep and its cleanup may leave the video-bank selector in a
+        ; different state even though the CPU windows have been restored.
+        ; Reapply the proven Project126/ATM RG6 setup only after the W3 lease
+        ; is released and UI ownership is active. This preserves screen RAM.
+        call    p126_atm_video_init
+
+        ; Fixed-row probe: if this label is visible, the selected alternate
+        ; text bank (P7 characters / P3 attributes) and PrintAt path agree.
+        ld      hl,p127_physmem_screen_video_line
+        ld      a,4
+        ld      c,1
+        call    BIOS_DebugConsole_PrintAt
+
         ld      hl,p127_physmem_screen_fill_label
         call    p127_physmem_screen_puts
         ld      a,(p127_physmem_alloc_count)
@@ -543,6 +556,8 @@ p127_physmem_screen_nibble:
         ld      a,(hl)
         jp      BIOS_DebugConsole_PrintChar
 
+p127_physmem_screen_video_line:
+        db      "VIDEO MAP: RG6 ALT P7/P3 ACTIVE",0
 p127_physmem_screen_status_line0:
         db      "PHYSICAL RAM: 57/57 FREE PAGES VERIFIED",0
 p127_physmem_screen_status_line1:
