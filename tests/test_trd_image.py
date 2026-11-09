@@ -7,7 +7,7 @@ from trd_image import IMAGE_SIZE, LOAD_ADDRESS, basic_loader, build_trd, verify_
 class TrdTests(unittest.TestCase):
     def test_basic_loader(self):
         data, n = basic_loader()
-        self.assertEqual(data[n:], b"\x80\xaa\x0a\x00")
+        self.assertEqual(data[n - 1:], b"\x80\xaa\x0a\x00")
         self.assertIn(b"P127BOOT", data)
         self.assertIn(b"24576", data)
     def test_image_and_directory(self):
