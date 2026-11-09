@@ -75,7 +75,7 @@
  62+  6088 3E 01                ld      a,1
  63+  608A 32 E1 61             ld      (p127_host_console_ready),a
  64+  608D CD 43 99             call    P127_RTC_Startup
- 65+  6090 CD 00 A8             call    P127_StorageAndFAT16_Startup
+ 65+  6090 CD 00 B0             call    P127_StorageAndFAT16_Startup
  66+  6093 21 BC 99             ld      hl,p127_host_ui_ready
  67+  6096 CD C9 61             call    p127_host_debug_string
  68+  6099 C3 91 61             jp      p127_host_idle
@@ -5371,294 +5371,298 @@
 307+  A8AA                      ASSERT p127_storage_end <= #C000
 308+  A8AA
 # file closed: atm_storage_nemo.asm
- 33   A8AA                      ORG #A800
- 34   A800                      INCLUDE "drivers/atm/atm_fat16.asm"
+ 33   A8AA                      ASSERT p127_storage_end <= #B000
+ 34   A8AA
+ 35   A8AA                      ; FAT16 code and its 512-byte sector buffer must be included in the
+ 36   A8AA                      ; TR-DOS host file. Keep it after the complete Nemo IDE module.
+ 37   A8AA                      ORG #B000
+ 38   B000                      INCLUDE "drivers/atm/atm_fat16.asm"
 # file opened: atm_fat16.asm
-  1+  A800              ; =========================================================================
-  2+  A800              ; PROJECT127 — read-only FAT16 mount core v0.1.0
-  3+  A800              ; ATM Z80 / Nemo IDE backend. No disk writes.
-  4+  A800              ;
-  5+  A800              ; API:
-  6+  A800              ;   P127_FAT16_Mount
-  7+  A800              ;       Carry clear: FAT16 partition mounted.
-  8+  A800              ;       Carry set: A=error (20 invalid MBR, 21 no FAT16 partition,
-  9+  A800              ;                  22 invalid BPB; storage errors are passed through).
- 10+  A800              ;   P127_FAT16_ReadRootSector
- 11+  A800              ;       HL = zero-based sector index in FAT16 root directory.
- 12+  A800              ;       Reads one sector into p127_fat16_sector_buffer.
- 13+  A800              ;       Carry clear on success; A=error on failure.
- 14+  A800              ;
- 15+  A800              ; Geometry exported as 32-bit little-endian values:
- 16+  A800              ;   p127_fat16_partition_lba, p127_fat16_fat_lba,
- 17+  A800              ;   p127_fat16_root_lba, p127_fat16_data_lba
- 18+  A800              ; =========================================================================
- 19+  A800
- 20+  A800              P127_FAT16_VERSION       EQU #0100
- 21+  A800              P127_FAT16_ERR_MBR       EQU 20
- 22+  A800              P127_FAT16_ERR_PARTITION EQU 21
- 23+  A800              P127_FAT16_ERR_BPB       EQU 22
- 24+  A800
- 25+  A800              ; Combined storage + filesystem startup is kept outside the 8 KiB host image.
- 26+  A800              P127_StorageAndFAT16_Startup:
- 27+  A800 21 BC AB             ld      hl,p127_fat16_log_probe_start
- 28+  A803 CD C9 61             call    p127_host_debug_string
- 29+  A806 CD 00 A4             call    P127_Storage_Startup
- 30+  A809 38 11                jr      c,p127_fat16_storage_missing
- 31+  A80B 21 5C A8             ld      hl,p127_storage_log_ready
- 32+  A80E CD C9 61             call    p127_host_debug_string
- 33+  A811 CD 28 A8             call    P127_FAT16_Mount
- 34+  A814 38 0C                jr      c,p127_fat16_mount_missing
- 35+  A816 21 DD AB             ld      hl,p127_fat16_log_mounted
- 36+  A819 C3 C9 61             jp      p127_host_debug_string
- 37+  A81C              p127_fat16_storage_missing:
- 38+  A81C 21 86 A8             ld      hl,p127_storage_log_missing
- 39+  A81F C3 C9 61             jp      p127_host_debug_string
- 40+  A822              p127_fat16_mount_missing:
- 41+  A822 21 01 AC             ld      hl,p127_fat16_log_failed
- 42+  A825 C3 C9 61             jp      p127_host_debug_string
- 43+  A828
- 44+  A828              P127_FAT16_Mount:
- 45+  A828 AF                   xor     a
- 46+  A829 32 9D A9             ld      (p127_fat16_available),a
- 47+  A82C 21 00 00             ld      hl,0
- 48+  A82F 11 00 00             ld      de,0
- 49+  A832 22 AC A9             ld      (p127_fat16_io_lba),hl
- 50+  A835 ED 53 AE A9          ld      (p127_fat16_io_lba+2),de
- 51+  A839 CD 7E A9             call    p127_fat16_read_lba
- 52+  A83C D8                   ret     c
- 53+  A83D
- 54+  A83D                      ; MBR signature 55 AA.
- 55+  A83D 3A BA AB             ld      a,(p127_fat16_sector_buffer+510)
- 56+  A840 FE 55                cp      #55
- 57+  A842 C2 91 A9             jp      nz,p127_fat16_bad_mbr
- 58+  A845 3A BB AB             ld      a,(p127_fat16_sector_buffer+511)
- 59+  A848 FE AA                cp      #AA
- 60+  A84A C2 91 A9             jp      nz,p127_fat16_bad_mbr
- 61+  A84D
- 62+  A84D                      ; Search the four primary partition entries for FAT16 types 04/06/0E.
- 63+  A84D DD 21 7A AB          ld      ix,p127_fat16_sector_buffer+446
- 64+  A851 06 04                ld      b,4
- 65+  A853              p127_fat16_partition_scan:
- 66+  A853 DD 7E 04             ld      a,(ix+4)
- 67+  A856 FE 04                cp      #04
- 68+  A858 CA 6F A8             jp      z,p127_fat16_partition_found
- 69+  A85B FE 06                cp      #06
- 70+  A85D CA 6F A8             jp      z,p127_fat16_partition_found
- 71+  A860 FE 0E                cp      #0E
- 72+  A862 CA 6F A8             jp      z,p127_fat16_partition_found
- 73+  A865 11 10 00             ld      de,16
- 74+  A868 DD 19                add     ix,de
- 75+  A86A 10 E7                djnz    p127_fat16_partition_scan
- 76+  A86C C3 95 A9             jp      p127_fat16_no_partition
- 77+  A86F
- 78+  A86F              p127_fat16_partition_found:
- 79+  A86F DD 6E 08             ld      l,(ix+8)
- 80+  A872 DD 66 09             ld      h,(ix+9)
- 81+  A875 DD 5E 0A             ld      e,(ix+10)
- 82+  A878 DD 56 0B             ld      d,(ix+11)
- 83+  A87B 22 A8 A9             ld      (p127_fat16_partition_lba),hl
- 84+  A87E ED 53 AA A9          ld      (p127_fat16_partition_lba+2),de
- 85+  A882 22 AC A9             ld      (p127_fat16_io_lba),hl
- 86+  A885 ED 53 AE A9          ld      (p127_fat16_io_lba+2),de
- 87+  A889 CD 7E A9             call    p127_fat16_read_lba
- 88+  A88C D8                   ret     c
- 89+  A88D
- 90+  A88D                      ; BPB: bytes/sector must be 512.
- 91+  A88D 2A C7 A9             ld      hl,(p127_fat16_sector_buffer+11)
- 92+  A890 11 00 02             ld      de,512
- 93+  A893 B7                   or      a
- 94+  A894 ED 52                sbc     hl,de
- 95+  A896 C2 99 A9             jp      nz,p127_fat16_bad_bpb
- 96+  A899
- 97+  A899                      ; Sectors/cluster must be non-zero.
- 98+  A899 3A C9 A9             ld      a,(p127_fat16_sector_buffer+13)
- 99+  A89C B7                   or      a
-100+  A89D CA 99 A9             jp      z,p127_fat16_bad_bpb
-101+  A8A0 32 9E A9             ld      (p127_fat16_sectors_per_cluster),a
-102+  A8A3
-103+  A8A3                      ; Reserved sectors must be non-zero.
-104+  A8A3 2A CA A9             ld      hl,(p127_fat16_sector_buffer+14)
-105+  A8A6 7C                   ld      a,h
-106+  A8A7 B5                   or      l
-107+  A8A8 CA 99 A9             jp      z,p127_fat16_bad_bpb
-108+  A8AB 22 A0 A9             ld      (p127_fat16_reserved_sectors),hl
-109+  A8AE
-110+  A8AE                      ; One or two FAT copies are supported.
-111+  A8AE 3A CC A9             ld      a,(p127_fat16_sector_buffer+16)
-112+  A8B1 FE 01                cp      1
-113+  A8B3 CA BB A8             jp      z,p127_fat16_fat_count_ok
-114+  A8B6 FE 02                cp      2
-115+  A8B8 C2 99 A9             jp      nz,p127_fat16_bad_bpb
-116+  A8BB              p127_fat16_fat_count_ok:
-117+  A8BB 32 9F A9             ld      (p127_fat16_fat_count),a
-118+  A8BE
-119+  A8BE                      ; Root entry count and FAT size must both be non-zero.
-120+  A8BE 2A CD A9             ld      hl,(p127_fat16_sector_buffer+17)
-121+  A8C1 7C                   ld      a,h
-122+  A8C2 B5                   or      l
-123+  A8C3 CA 99 A9             jp      z,p127_fat16_bad_bpb
-124+  A8C6 22 A2 A9             ld      (p127_fat16_root_entries),hl
-125+  A8C9 2A D2 A9             ld      hl,(p127_fat16_sector_buffer+22)
-126+  A8CC 7C                   ld      a,h
-127+  A8CD B5                   or      l
-128+  A8CE CA 99 A9             jp      z,p127_fat16_bad_bpb
-129+  A8D1 22 A4 A9             ld      (p127_fat16_sectors_per_fat),hl
-130+  A8D4
-131+  A8D4                      ; FAT_LBA = partition_LBA + reserved_sectors.
-132+  A8D4 2A A8 A9             ld      hl,(p127_fat16_partition_lba)
-133+  A8D7 ED 5B A0 A9          ld      de,(p127_fat16_reserved_sectors)
-134+  A8DB 19                   add     hl,de
-135+  A8DC 22 B0 A9             ld      (p127_fat16_fat_lba),hl
-136+  A8DF 2A AA A9             ld      hl,(p127_fat16_partition_lba+2)
-137+  A8E2 11 00 00             ld      de,0
-138+  A8E5 ED 5A                adc     hl,de
-139+  A8E7 22 B2 A9             ld      (p127_fat16_fat_lba+2),hl
-140+  A8EA
-141+  A8EA                      ; ROOT_LBA = FAT_LBA + (FAT_count * sectors_per_FAT).
-142+  A8EA 2A B0 A9             ld      hl,(p127_fat16_fat_lba)
-143+  A8ED ED 5B A4 A9          ld      de,(p127_fat16_sectors_per_fat)
-144+  A8F1 19                   add     hl,de
-145+  A8F2 22 B4 A9             ld      (p127_fat16_root_lba),hl
-146+  A8F5 2A B2 A9             ld      hl,(p127_fat16_fat_lba+2)
-147+  A8F8 11 00 00             ld      de,0
-148+  A8FB ED 5A                adc     hl,de
-149+  A8FD 22 B6 A9             ld      (p127_fat16_root_lba+2),hl
-150+  A900 3A 9F A9             ld      a,(p127_fat16_fat_count)
-151+  A903 FE 02                cp      2
-152+  A905 C2 1E A9             jp      nz,p127_fat16_root_lba_ready
-153+  A908 2A B4 A9             ld      hl,(p127_fat16_root_lba)
-154+  A90B ED 5B A4 A9          ld      de,(p127_fat16_sectors_per_fat)
-155+  A90F 19                   add     hl,de
-156+  A910 22 B4 A9             ld      (p127_fat16_root_lba),hl
-157+  A913 2A B6 A9             ld      hl,(p127_fat16_root_lba+2)
-158+  A916 11 00 00             ld      de,0
-159+  A919 ED 5A                adc     hl,de
-160+  A91B 22 B6 A9             ld      (p127_fat16_root_lba+2),hl
-161+  A91E              p127_fat16_root_lba_ready:
-162+  A91E
-163+  A91E                      ; Root directory sectors = ceil(root_entries / 16).
-164+  A91E 2A A2 A9             ld      hl,(p127_fat16_root_entries)
-165+  A921 11 0F 00             ld      de,15
-166+  A924 19                   add     hl,de
-167+  A925 CB 3C                srl     h
-168+  A927 CB 1D                rr      l
-169+  A929 CB 3C                srl     h
-170+  A92B CB 1D                rr      l
-171+  A92D CB 3C                srl     h
-172+  A92F CB 1D                rr      l
-173+  A931 CB 3C                srl     h
-174+  A933 CB 1D                rr      l
-175+  A935 22 A6 A9             ld      (p127_fat16_root_sectors),hl
-176+  A938
-177+  A938                      ; DATA_LBA = ROOT_LBA + root_directory_sectors.
-178+  A938 2A B4 A9             ld      hl,(p127_fat16_root_lba)
-179+  A93B ED 5B A6 A9          ld      de,(p127_fat16_root_sectors)
-180+  A93F 19                   add     hl,de
-181+  A940 22 B8 A9             ld      (p127_fat16_data_lba),hl
-182+  A943 2A B6 A9             ld      hl,(p127_fat16_root_lba+2)
-183+  A946 11 00 00             ld      de,0
-184+  A949 ED 5A                adc     hl,de
-185+  A94B 22 BA A9             ld      (p127_fat16_data_lba+2),hl
-186+  A94E
-187+  A94E 3E 01                ld      a,1
-188+  A950 32 9D A9             ld      (p127_fat16_available),a
-189+  A953 AF                   xor     a
-190+  A954 C9                   ret
-191+  A955
-192+  A955              P127_FAT16_ReadRootSector:
-193+  A955 3A 9D A9             ld      a,(p127_fat16_available)
-194+  A958 B7                   or      a
-195+  A959 CA 99 A9             jp      z,p127_fat16_bad_bpb
-196+  A95C                      ; Reject root-sector indices >= root_sectors.
-197+  A95C ED 5B A6 A9          ld      de,(p127_fat16_root_sectors)
-198+  A960 E5                   push    hl
-199+  A961 B7                   or      a
-200+  A962 ED 52                sbc     hl,de
-201+  A964 E1                   pop     hl
-202+  A965 D2 99 A9             jp      nc,p127_fat16_bad_bpb
-203+  A968 ED 5B B4 A9          ld      de,(p127_fat16_root_lba)
-204+  A96C 19                   add     hl,de
-205+  A96D 22 AC A9             ld      (p127_fat16_io_lba),hl
-206+  A970 2A B6 A9             ld      hl,(p127_fat16_root_lba+2)
-207+  A973 11 00 00             ld      de,0
-208+  A976 ED 5A                adc     hl,de
-209+  A978 22 AE A9             ld      (p127_fat16_io_lba+2),hl
-210+  A97B C3 7E A9             jp      p127_fat16_read_lba
-211+  A97E
-212+  A97E              p127_fat16_read_lba:
-213+  A97E 2A AC A9             ld      hl,(p127_fat16_io_lba)
-214+  A981 ED 5B AE A9          ld      de,(p127_fat16_io_lba+2)
-215+  A985 CD 6F A4             call    P127_Storage_SetLBA
-216+  A988 D8                   ret     c
-217+  A989 DD 21 BC A9          ld      ix,p127_fat16_sector_buffer
-218+  A98D CD 81 A4             call    P127_Storage_ReadSector
-219+  A990 C9                   ret
-220+  A991
-221+  A991              p127_fat16_bad_mbr:
-222+  A991 3E 14                ld      a,P127_FAT16_ERR_MBR
-223+  A993 37                   scf
-224+  A994 C9                   ret
-225+  A995              p127_fat16_no_partition:
-226+  A995 3E 15                ld      a,P127_FAT16_ERR_PARTITION
-227+  A997 37                   scf
-228+  A998 C9                   ret
-229+  A999              p127_fat16_bad_bpb:
-230+  A999 3E 16                ld      a,P127_FAT16_ERR_BPB
-231+  A99B 37                   scf
-232+  A99C C9                   ret
-233+  A99D
-234+  A99D 00           p127_fat16_available:       db 0
-235+  A99E 00           p127_fat16_sectors_per_cluster: db 0
-236+  A99F 00           p127_fat16_fat_count:       db 0
-237+  A9A0 00 00        p127_fat16_reserved_sectors: dw 0
-238+  A9A2 00 00        p127_fat16_root_entries:    dw 0
-239+  A9A4 00 00        p127_fat16_sectors_per_fat: dw 0
-240+  A9A6 00 00        p127_fat16_root_sectors:    dw 0
-241+  A9A8 00 00 00 00  p127_fat16_partition_lba:  dd 0
-242+  A9AC 00 00 00 00  p127_fat16_io_lba:         dd 0
-243+  A9B0 00 00 00 00  p127_fat16_fat_lba:        dd 0
-244+  A9B4 00 00 00 00  p127_fat16_root_lba:       dd 0
-245+  A9B8 00 00 00 00  p127_fat16_data_lba:       dd 0
-246+  A9BC 00 00 00...  p127_fat16_sector_buffer:  defs 512,0
-247+  ABBC              p127_fat16_log_probe_start:
-248+  ABBC 5B 50 31 32          db "[P127] HDD STORAGE PROBE ENTER",13,10,0
-248+  ABC0 37 5D 20 48
-248+  ABC4 44 44 20 53
-248+  ABC8 54 4F 52 41
-248+  ABCC 47 45 20 50
-248+  ABD0 52 4F 42 45
-248+  ABD4 20 45 4E 54
-248+  ABD8 45 52 0D 0A
-248+  ABDC 00
-249+  ABDD              p127_fat16_log_mounted:
-250+  ABDD 5B 50 31 32          db "[P127] FAT16 READ-ONLY MOUNT PASS",13,10,0
-250+  ABE1 37 5D 20 46
-250+  ABE5 41 54 31 36
-250+  ABE9 20 52 45 41
-250+  ABED 44 2D 4F 4E
-250+  ABF1 4C 59 20 4D
-250+  ABF5 4F 55 4E 54
-250+  ABF9 20 50 41 53
-250+  ABFD 53 0D 0A 00
-251+  AC01              p127_fat16_log_failed:
-252+  AC01 5B 50 31 32          db "[P127] FAT16 MOUNT NOT AVAILABLE",13,10,0
-252+  AC05 37 5D 20 46
-252+  AC09 41 54 31 36
-252+  AC0D 20 4D 4F 55
-252+  AC11 4E 54 20 4E
-252+  AC15 4F 54 20 41
-252+  AC19 56 41 49 4C
-252+  AC1D 41 42 4C 45
-252+  AC21 0D 0A 00
-253+  AC24              p127_fat16_end:
-254+  AC24                      ASSERT p127_fat16_end <= #C000
-255+  AC24
+  1+  B000              ; =========================================================================
+  2+  B000              ; PROJECT127 — read-only FAT16 mount core v0.1.0
+  3+  B000              ; ATM Z80 / Nemo IDE backend. No disk writes.
+  4+  B000              ;
+  5+  B000              ; API:
+  6+  B000              ;   P127_FAT16_Mount
+  7+  B000              ;       Carry clear: FAT16 partition mounted.
+  8+  B000              ;       Carry set: A=error (20 invalid MBR, 21 no FAT16 partition,
+  9+  B000              ;                  22 invalid BPB; storage errors are passed through).
+ 10+  B000              ;   P127_FAT16_ReadRootSector
+ 11+  B000              ;       HL = zero-based sector index in FAT16 root directory.
+ 12+  B000              ;       Reads one sector into p127_fat16_sector_buffer.
+ 13+  B000              ;       Carry clear on success; A=error on failure.
+ 14+  B000              ;
+ 15+  B000              ; Geometry exported as 32-bit little-endian values:
+ 16+  B000              ;   p127_fat16_partition_lba, p127_fat16_fat_lba,
+ 17+  B000              ;   p127_fat16_root_lba, p127_fat16_data_lba
+ 18+  B000              ; =========================================================================
+ 19+  B000
+ 20+  B000              P127_FAT16_VERSION       EQU #0100
+ 21+  B000              P127_FAT16_ERR_MBR       EQU 20
+ 22+  B000              P127_FAT16_ERR_PARTITION EQU 21
+ 23+  B000              P127_FAT16_ERR_BPB       EQU 22
+ 24+  B000
+ 25+  B000              ; Combined storage + filesystem startup is kept outside the 8 KiB host image.
+ 26+  B000              P127_StorageAndFAT16_Startup:
+ 27+  B000 21 BC B3             ld      hl,p127_fat16_log_probe_start
+ 28+  B003 CD C9 61             call    p127_host_debug_string
+ 29+  B006 CD 00 A4             call    P127_Storage_Startup
+ 30+  B009 38 11                jr      c,p127_fat16_storage_missing
+ 31+  B00B 21 5C A8             ld      hl,p127_storage_log_ready
+ 32+  B00E CD C9 61             call    p127_host_debug_string
+ 33+  B011 CD 28 B0             call    P127_FAT16_Mount
+ 34+  B014 38 0C                jr      c,p127_fat16_mount_missing
+ 35+  B016 21 DD B3             ld      hl,p127_fat16_log_mounted
+ 36+  B019 C3 C9 61             jp      p127_host_debug_string
+ 37+  B01C              p127_fat16_storage_missing:
+ 38+  B01C 21 86 A8             ld      hl,p127_storage_log_missing
+ 39+  B01F C3 C9 61             jp      p127_host_debug_string
+ 40+  B022              p127_fat16_mount_missing:
+ 41+  B022 21 01 B4             ld      hl,p127_fat16_log_failed
+ 42+  B025 C3 C9 61             jp      p127_host_debug_string
+ 43+  B028
+ 44+  B028              P127_FAT16_Mount:
+ 45+  B028 AF                   xor     a
+ 46+  B029 32 9D B1             ld      (p127_fat16_available),a
+ 47+  B02C 21 00 00             ld      hl,0
+ 48+  B02F 11 00 00             ld      de,0
+ 49+  B032 22 AC B1             ld      (p127_fat16_io_lba),hl
+ 50+  B035 ED 53 AE B1          ld      (p127_fat16_io_lba+2),de
+ 51+  B039 CD 7E B1             call    p127_fat16_read_lba
+ 52+  B03C D8                   ret     c
+ 53+  B03D
+ 54+  B03D                      ; MBR signature 55 AA.
+ 55+  B03D 3A BA B3             ld      a,(p127_fat16_sector_buffer+510)
+ 56+  B040 FE 55                cp      #55
+ 57+  B042 C2 91 B1             jp      nz,p127_fat16_bad_mbr
+ 58+  B045 3A BB B3             ld      a,(p127_fat16_sector_buffer+511)
+ 59+  B048 FE AA                cp      #AA
+ 60+  B04A C2 91 B1             jp      nz,p127_fat16_bad_mbr
+ 61+  B04D
+ 62+  B04D                      ; Search the four primary partition entries for FAT16 types 04/06/0E.
+ 63+  B04D DD 21 7A B3          ld      ix,p127_fat16_sector_buffer+446
+ 64+  B051 06 04                ld      b,4
+ 65+  B053              p127_fat16_partition_scan:
+ 66+  B053 DD 7E 04             ld      a,(ix+4)
+ 67+  B056 FE 04                cp      #04
+ 68+  B058 CA 6F B0             jp      z,p127_fat16_partition_found
+ 69+  B05B FE 06                cp      #06
+ 70+  B05D CA 6F B0             jp      z,p127_fat16_partition_found
+ 71+  B060 FE 0E                cp      #0E
+ 72+  B062 CA 6F B0             jp      z,p127_fat16_partition_found
+ 73+  B065 11 10 00             ld      de,16
+ 74+  B068 DD 19                add     ix,de
+ 75+  B06A 10 E7                djnz    p127_fat16_partition_scan
+ 76+  B06C C3 95 B1             jp      p127_fat16_no_partition
+ 77+  B06F
+ 78+  B06F              p127_fat16_partition_found:
+ 79+  B06F DD 6E 08             ld      l,(ix+8)
+ 80+  B072 DD 66 09             ld      h,(ix+9)
+ 81+  B075 DD 5E 0A             ld      e,(ix+10)
+ 82+  B078 DD 56 0B             ld      d,(ix+11)
+ 83+  B07B 22 A8 B1             ld      (p127_fat16_partition_lba),hl
+ 84+  B07E ED 53 AA B1          ld      (p127_fat16_partition_lba+2),de
+ 85+  B082 22 AC B1             ld      (p127_fat16_io_lba),hl
+ 86+  B085 ED 53 AE B1          ld      (p127_fat16_io_lba+2),de
+ 87+  B089 CD 7E B1             call    p127_fat16_read_lba
+ 88+  B08C D8                   ret     c
+ 89+  B08D
+ 90+  B08D                      ; BPB: bytes/sector must be 512.
+ 91+  B08D 2A C7 B1             ld      hl,(p127_fat16_sector_buffer+11)
+ 92+  B090 11 00 02             ld      de,512
+ 93+  B093 B7                   or      a
+ 94+  B094 ED 52                sbc     hl,de
+ 95+  B096 C2 99 B1             jp      nz,p127_fat16_bad_bpb
+ 96+  B099
+ 97+  B099                      ; Sectors/cluster must be non-zero.
+ 98+  B099 3A C9 B1             ld      a,(p127_fat16_sector_buffer+13)
+ 99+  B09C B7                   or      a
+100+  B09D CA 99 B1             jp      z,p127_fat16_bad_bpb
+101+  B0A0 32 9E B1             ld      (p127_fat16_sectors_per_cluster),a
+102+  B0A3
+103+  B0A3                      ; Reserved sectors must be non-zero.
+104+  B0A3 2A CA B1             ld      hl,(p127_fat16_sector_buffer+14)
+105+  B0A6 7C                   ld      a,h
+106+  B0A7 B5                   or      l
+107+  B0A8 CA 99 B1             jp      z,p127_fat16_bad_bpb
+108+  B0AB 22 A0 B1             ld      (p127_fat16_reserved_sectors),hl
+109+  B0AE
+110+  B0AE                      ; One or two FAT copies are supported.
+111+  B0AE 3A CC B1             ld      a,(p127_fat16_sector_buffer+16)
+112+  B0B1 FE 01                cp      1
+113+  B0B3 CA BB B0             jp      z,p127_fat16_fat_count_ok
+114+  B0B6 FE 02                cp      2
+115+  B0B8 C2 99 B1             jp      nz,p127_fat16_bad_bpb
+116+  B0BB              p127_fat16_fat_count_ok:
+117+  B0BB 32 9F B1             ld      (p127_fat16_fat_count),a
+118+  B0BE
+119+  B0BE                      ; Root entry count and FAT size must both be non-zero.
+120+  B0BE 2A CD B1             ld      hl,(p127_fat16_sector_buffer+17)
+121+  B0C1 7C                   ld      a,h
+122+  B0C2 B5                   or      l
+123+  B0C3 CA 99 B1             jp      z,p127_fat16_bad_bpb
+124+  B0C6 22 A2 B1             ld      (p127_fat16_root_entries),hl
+125+  B0C9 2A D2 B1             ld      hl,(p127_fat16_sector_buffer+22)
+126+  B0CC 7C                   ld      a,h
+127+  B0CD B5                   or      l
+128+  B0CE CA 99 B1             jp      z,p127_fat16_bad_bpb
+129+  B0D1 22 A4 B1             ld      (p127_fat16_sectors_per_fat),hl
+130+  B0D4
+131+  B0D4                      ; FAT_LBA = partition_LBA + reserved_sectors.
+132+  B0D4 2A A8 B1             ld      hl,(p127_fat16_partition_lba)
+133+  B0D7 ED 5B A0 B1          ld      de,(p127_fat16_reserved_sectors)
+134+  B0DB 19                   add     hl,de
+135+  B0DC 22 B0 B1             ld      (p127_fat16_fat_lba),hl
+136+  B0DF 2A AA B1             ld      hl,(p127_fat16_partition_lba+2)
+137+  B0E2 11 00 00             ld      de,0
+138+  B0E5 ED 5A                adc     hl,de
+139+  B0E7 22 B2 B1             ld      (p127_fat16_fat_lba+2),hl
+140+  B0EA
+141+  B0EA                      ; ROOT_LBA = FAT_LBA + (FAT_count * sectors_per_FAT).
+142+  B0EA 2A B0 B1             ld      hl,(p127_fat16_fat_lba)
+143+  B0ED ED 5B A4 B1          ld      de,(p127_fat16_sectors_per_fat)
+144+  B0F1 19                   add     hl,de
+145+  B0F2 22 B4 B1             ld      (p127_fat16_root_lba),hl
+146+  B0F5 2A B2 B1             ld      hl,(p127_fat16_fat_lba+2)
+147+  B0F8 11 00 00             ld      de,0
+148+  B0FB ED 5A                adc     hl,de
+149+  B0FD 22 B6 B1             ld      (p127_fat16_root_lba+2),hl
+150+  B100 3A 9F B1             ld      a,(p127_fat16_fat_count)
+151+  B103 FE 02                cp      2
+152+  B105 C2 1E B1             jp      nz,p127_fat16_root_lba_ready
+153+  B108 2A B4 B1             ld      hl,(p127_fat16_root_lba)
+154+  B10B ED 5B A4 B1          ld      de,(p127_fat16_sectors_per_fat)
+155+  B10F 19                   add     hl,de
+156+  B110 22 B4 B1             ld      (p127_fat16_root_lba),hl
+157+  B113 2A B6 B1             ld      hl,(p127_fat16_root_lba+2)
+158+  B116 11 00 00             ld      de,0
+159+  B119 ED 5A                adc     hl,de
+160+  B11B 22 B6 B1             ld      (p127_fat16_root_lba+2),hl
+161+  B11E              p127_fat16_root_lba_ready:
+162+  B11E
+163+  B11E                      ; Root directory sectors = ceil(root_entries / 16).
+164+  B11E 2A A2 B1             ld      hl,(p127_fat16_root_entries)
+165+  B121 11 0F 00             ld      de,15
+166+  B124 19                   add     hl,de
+167+  B125 CB 3C                srl     h
+168+  B127 CB 1D                rr      l
+169+  B129 CB 3C                srl     h
+170+  B12B CB 1D                rr      l
+171+  B12D CB 3C                srl     h
+172+  B12F CB 1D                rr      l
+173+  B131 CB 3C                srl     h
+174+  B133 CB 1D                rr      l
+175+  B135 22 A6 B1             ld      (p127_fat16_root_sectors),hl
+176+  B138
+177+  B138                      ; DATA_LBA = ROOT_LBA + root_directory_sectors.
+178+  B138 2A B4 B1             ld      hl,(p127_fat16_root_lba)
+179+  B13B ED 5B A6 B1          ld      de,(p127_fat16_root_sectors)
+180+  B13F 19                   add     hl,de
+181+  B140 22 B8 B1             ld      (p127_fat16_data_lba),hl
+182+  B143 2A B6 B1             ld      hl,(p127_fat16_root_lba+2)
+183+  B146 11 00 00             ld      de,0
+184+  B149 ED 5A                adc     hl,de
+185+  B14B 22 BA B1             ld      (p127_fat16_data_lba+2),hl
+186+  B14E
+187+  B14E 3E 01                ld      a,1
+188+  B150 32 9D B1             ld      (p127_fat16_available),a
+189+  B153 AF                   xor     a
+190+  B154 C9                   ret
+191+  B155
+192+  B155              P127_FAT16_ReadRootSector:
+193+  B155 3A 9D B1             ld      a,(p127_fat16_available)
+194+  B158 B7                   or      a
+195+  B159 CA 99 B1             jp      z,p127_fat16_bad_bpb
+196+  B15C                      ; Reject root-sector indices >= root_sectors.
+197+  B15C ED 5B A6 B1          ld      de,(p127_fat16_root_sectors)
+198+  B160 E5                   push    hl
+199+  B161 B7                   or      a
+200+  B162 ED 52                sbc     hl,de
+201+  B164 E1                   pop     hl
+202+  B165 D2 99 B1             jp      nc,p127_fat16_bad_bpb
+203+  B168 ED 5B B4 B1          ld      de,(p127_fat16_root_lba)
+204+  B16C 19                   add     hl,de
+205+  B16D 22 AC B1             ld      (p127_fat16_io_lba),hl
+206+  B170 2A B6 B1             ld      hl,(p127_fat16_root_lba+2)
+207+  B173 11 00 00             ld      de,0
+208+  B176 ED 5A                adc     hl,de
+209+  B178 22 AE B1             ld      (p127_fat16_io_lba+2),hl
+210+  B17B C3 7E B1             jp      p127_fat16_read_lba
+211+  B17E
+212+  B17E              p127_fat16_read_lba:
+213+  B17E 2A AC B1             ld      hl,(p127_fat16_io_lba)
+214+  B181 ED 5B AE B1          ld      de,(p127_fat16_io_lba+2)
+215+  B185 CD 6F A4             call    P127_Storage_SetLBA
+216+  B188 D8                   ret     c
+217+  B189 DD 21 BC B1          ld      ix,p127_fat16_sector_buffer
+218+  B18D CD 81 A4             call    P127_Storage_ReadSector
+219+  B190 C9                   ret
+220+  B191
+221+  B191              p127_fat16_bad_mbr:
+222+  B191 3E 14                ld      a,P127_FAT16_ERR_MBR
+223+  B193 37                   scf
+224+  B194 C9                   ret
+225+  B195              p127_fat16_no_partition:
+226+  B195 3E 15                ld      a,P127_FAT16_ERR_PARTITION
+227+  B197 37                   scf
+228+  B198 C9                   ret
+229+  B199              p127_fat16_bad_bpb:
+230+  B199 3E 16                ld      a,P127_FAT16_ERR_BPB
+231+  B19B 37                   scf
+232+  B19C C9                   ret
+233+  B19D
+234+  B19D 00           p127_fat16_available:       db 0
+235+  B19E 00           p127_fat16_sectors_per_cluster: db 0
+236+  B19F 00           p127_fat16_fat_count:       db 0
+237+  B1A0 00 00        p127_fat16_reserved_sectors: dw 0
+238+  B1A2 00 00        p127_fat16_root_entries:    dw 0
+239+  B1A4 00 00        p127_fat16_sectors_per_fat: dw 0
+240+  B1A6 00 00        p127_fat16_root_sectors:    dw 0
+241+  B1A8 00 00 00 00  p127_fat16_partition_lba:  dd 0
+242+  B1AC 00 00 00 00  p127_fat16_io_lba:         dd 0
+243+  B1B0 00 00 00 00  p127_fat16_fat_lba:        dd 0
+244+  B1B4 00 00 00 00  p127_fat16_root_lba:       dd 0
+245+  B1B8 00 00 00 00  p127_fat16_data_lba:       dd 0
+246+  B1BC 00 00 00...  p127_fat16_sector_buffer:  defs 512,0
+247+  B3BC              p127_fat16_log_probe_start:
+248+  B3BC 5B 50 31 32          db "[P127] HDD STORAGE PROBE ENTER",13,10,0
+248+  B3C0 37 5D 20 48
+248+  B3C4 44 44 20 53
+248+  B3C8 54 4F 52 41
+248+  B3CC 47 45 20 50
+248+  B3D0 52 4F 42 45
+248+  B3D4 20 45 4E 54
+248+  B3D8 45 52 0D 0A
+248+  B3DC 00
+249+  B3DD              p127_fat16_log_mounted:
+250+  B3DD 5B 50 31 32          db "[P127] FAT16 READ-ONLY MOUNT PASS",13,10,0
+250+  B3E1 37 5D 20 46
+250+  B3E5 41 54 31 36
+250+  B3E9 20 52 45 41
+250+  B3ED 44 2D 4F 4E
+250+  B3F1 4C 59 20 4D
+250+  B3F5 4F 55 4E 54
+250+  B3F9 20 50 41 53
+250+  B3FD 53 0D 0A 00
+251+  B401              p127_fat16_log_failed:
+252+  B401 5B 50 31 32          db "[P127] FAT16 MOUNT NOT AVAILABLE",13,10,0
+252+  B405 37 5D 20 46
+252+  B409 41 54 31 36
+252+  B40D 20 4D 4F 55
+252+  B411 4E 54 20 4E
+252+  B415 4F 54 20 41
+252+  B419 56 41 49 4C
+252+  B41D 41 42 4C 45
+252+  B421 0D 0A 00
+253+  B424              p127_fat16_end:
+254+  B424                      ASSERT p127_fat16_end <= #C000
+255+  B424
 # file closed: atm_fat16.asm
- 35   AC24                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_storage_end-P127_HOST_LOAD_ADDRESS
- 36   AC24
- 37   AC24                      PAGE 0
- 38   AC24                      ORG #E000
- 39   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
+ 39   B424                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_fat16_end-P127_HOST_LOAD_ADDRESS
+ 40   B424
+ 41   B424                      PAGE 0
+ 42   B424                      ORG #E000
+ 43   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
 # file opened: boot_loader.generated.asm
   1+  E000              ; =========================================================================
   2+  E000              ; PROJECT127 ??? TR-DOS BASIC BOOT.B loader
@@ -5796,10 +5800,10 @@
  81+  E122              BASIC_END:
  82+  E122
 # file closed: boot_loader.generated.asm
- 40   E122                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
- 41   E122
- 42   E122                      PAGE 0
- 43   E122
+ 44   E122                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
+ 45   E122
+ 46   E122                      PAGE 0
+ 47   E122
 # file closed: project127_disk.generated.asm
 
 Value    Label
@@ -6123,38 +6127,38 @@ Value    Label
 0xA17F   P127_DebugConsole_Char.store
 0xA000   P127_DebugConsole_Init
 0xA142   P127_DebugConsole_String
-0xA99D   p127_fat16_available
-0xA999   p127_fat16_bad_bpb
-0xA991   p127_fat16_bad_mbr
-0xA9B8   p127_fat16_data_lba
-0xAC24   p127_fat16_end
+0xB19D   p127_fat16_available
+0xB199   p127_fat16_bad_bpb
+0xB191   p127_fat16_bad_mbr
+0xB1B8   p127_fat16_data_lba
+0xB424   p127_fat16_end
 0x0016   P127_FAT16_ERR_BPB
 0x0014   P127_FAT16_ERR_MBR
 0x0015   P127_FAT16_ERR_PARTITION
-0xA99F   p127_fat16_fat_count
-0xA8BB   p127_fat16_fat_count_ok
-0xA9B0   p127_fat16_fat_lba
-0xA9AC   p127_fat16_io_lba
-0xAC01   p127_fat16_log_failed
-0xABDD   p127_fat16_log_mounted
-0xABBC   p127_fat16_log_probe_start
-0xA828   P127_FAT16_Mount
-0xA822   p127_fat16_mount_missing
-0xA995   p127_fat16_no_partition
-0xA86F   p127_fat16_partition_found
-0xA9A8   p127_fat16_partition_lba
-0xA853   p127_fat16_partition_scan
-0xA97E   p127_fat16_read_lba
-0xA955 X P127_FAT16_ReadRootSector
-0xA9A0   p127_fat16_reserved_sectors
-0xA9A2   p127_fat16_root_entries
-0xA9B4   p127_fat16_root_lba
-0xA91E   p127_fat16_root_lba_ready
-0xA9A6   p127_fat16_root_sectors
-0xA9BC   p127_fat16_sector_buffer
-0xA99E   p127_fat16_sectors_per_cluster
-0xA9A4   p127_fat16_sectors_per_fat
-0xA81C   p127_fat16_storage_missing
+0xB19F   p127_fat16_fat_count
+0xB0BB   p127_fat16_fat_count_ok
+0xB1B0   p127_fat16_fat_lba
+0xB1AC   p127_fat16_io_lba
+0xB401   p127_fat16_log_failed
+0xB3DD   p127_fat16_log_mounted
+0xB3BC   p127_fat16_log_probe_start
+0xB028   P127_FAT16_Mount
+0xB022   p127_fat16_mount_missing
+0xB195   p127_fat16_no_partition
+0xB06F   p127_fat16_partition_found
+0xB1A8   p127_fat16_partition_lba
+0xB053   p127_fat16_partition_scan
+0xB17E   p127_fat16_read_lba
+0xB155 X P127_FAT16_ReadRootSector
+0xB1A0   p127_fat16_reserved_sectors
+0xB1A2   p127_fat16_root_entries
+0xB1B4   p127_fat16_root_lba
+0xB11E   p127_fat16_root_lba_ready
+0xB1A6   p127_fat16_root_sectors
+0xB1BC   p127_fat16_sector_buffer
+0xB19E   p127_fat16_sectors_per_cluster
+0xB1A4   p127_fat16_sectors_per_fat
+0xB01C   p127_fat16_storage_missing
 0x0100 X P127_FAT16_VERSION
 0x6440   p127_host_allocator_error
 0x6471 X p127_host_allocator_error_nl
@@ -6340,7 +6344,7 @@ Value    Label
 0xA586   p127_storage_write_256_words
 0xA589   p127_storage_write_256_words.write_word
 0xA485 X P127_Storage_WriteSector
-0xA800   P127_StorageAndFAT16_Startup
+0xB000   P127_StorageAndFAT16_Startup
 0x8019   p127_trdos_catalog_bad_length
 0x8000   p127_trdos_catalog_begin
 0x8081   p127_trdos_catalog_count
