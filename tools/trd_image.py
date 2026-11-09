@@ -62,7 +62,7 @@ def build_trd(code, label="P127DISK"):
         used += nsec
 
     basic, basic_len = basic_loader()
-    add("boot", ord("B"), basic_len, basic_len, basic)
+    add("boot", ord("B"), 10, basic_len, basic)
     add("P127BOOT", ord("C"), LOAD_ADDRESS, len(code), code)
     info = offset(0, 8)
     image[info + 225] = sector
@@ -86,6 +86,10 @@ def verify_trd(image, expected_code=None):
     boot, code = image[:16], image[16:32]
     if boot[:9] != b"boot    B" or code[:9] != b"P127BOOTC":
         raise ValueError("Invalid boot directory entry (expected 'boot    B')")
+    if int.from_bytes(boot[9:11], "little") != 10:
+        raise ValueError("Wrong BASIC autostart line (expected 10)")
+    if int.from_bytes(boot[11:13], "little") == 0:
+        raise ValueError("Empty BASIC loader file")
     if int.from_bytes(code[9:11], "little") != LOAD_ADDRESS:
         raise ValueError("Wrong P127BOOT load address")
     if expected_code is not None:
@@ -93,7 +97,7 @@ def verify_trd(image, expected_code=None):
         pos = offset(code[15], code[14])
         if image[pos:pos + n] != expected_code:
             raise ValueError("Stored code differs from assembled code")
-    n = int.from_bytes(boot[9:11], "little")
+    n = int.from_bytes(boot[11:13], "little")
     pos = offset(boot[15], boot[14])
     basic = image[pos:pos + n + 3]
     if not basic.endswith(b"\x80\xaa\x0a\x00"):
@@ -118,6 +122,7 @@ def main():
     print("[P127 TRD] FORMAT=80T_DOUBLE_SIDED")
     print(f"[P127 TRD] FILES=2 CODE_BYTES={len(code)} IMAGE_BYTES={len(image)}")
     print("[P127 TRD] BOOT_FILENAME=boot TYPE=B")
+    print("[P127 TRD] BASIC_AUTOSTART_LINE=10")
     print("[P127 TRD] BASIC_ADDRESS=VAL_STRING_24576")
     print(f"[P127 TRD] OUTPUT={args.output}")
     print("[P127 TRD] VERIFY OK")
