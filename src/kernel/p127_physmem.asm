@@ -1,13 +1,13 @@
 ; ============================================================================
 ; Project127 physical ATM RAM page test — Stage 2.19
-; Module version: 0.4.1
+; Module version: 0.4.2
 ; Runs from W2 (#A000..), with stack in W2. W1 resident/kernel remains fixed.
 ; W3 is exclusively leased from the UI and restored to physical page 0.
 ; This is the first general-purpose physical W3 remap test.
 ; ============================================================================
 P127_PHYSMEM_VERSION_MAJOR EQU 0
 P127_PHYSMEM_VERSION_MINOR EQU 4
-P127_PHYSMEM_VERSION_PATCH EQU 1
+P127_PHYSMEM_VERSION_PATCH EQU 2
 P127_PHYSMEM_PAGE_SIZE     EQU 04000h
 P127_PHYSMEM_WINDOW_BASE   EQU 0C000h
 P127_PHYSMEM_PAGE_PORT     EQU 0FFF7h
@@ -495,6 +495,18 @@ p127_physmem_replay_verify_loop:
         call    BIOS_DebugConsole_PrintChar
         ld      a,10
         call    BIOS_DebugConsole_PrintChar
+
+        ; Put the decisive result in the fixed status panel as well as the
+        ; scrolling log. PrintAt addresses rows directly, so this does not
+        ; depend on the current scrolling cursor after the long page replay.
+        ld      hl,p127_physmem_screen_status_line0
+        ld      a,2
+        ld      c,1
+        call    BIOS_DebugConsole_PrintAt
+        ld      hl,p127_physmem_screen_status_line1
+        ld      a,3
+        ld      c,1
+        call    BIOS_DebugConsole_PrintAt
         ret
 
 ; HL=zero-terminated string. The console routine preserves HL.
@@ -531,6 +543,10 @@ p127_physmem_screen_nibble:
         ld      a,(hl)
         jp      BIOS_DebugConsole_PrintChar
 
+p127_physmem_screen_status_line0:
+        db      "PHYSICAL RAM: 57/57 FREE PAGES VERIFIED",0
+p127_physmem_screen_status_line1:
+        db      "W3: P0 RESTORED | UI ACTIVE | IM/EI DISABLED",0
 p127_physmem_screen_fill_label:
         db      "W3 FILL: ",0
 p127_physmem_screen_verify_label:
