@@ -46,18 +46,31 @@ LINE11:
         DB      $0D
 LINE11_END:
 
-        ; Preserve the original, proven Project126 ROM trampoline and
-        ; single CODE load. The UI is now part of the host CODE image.
+        ; Mark the ROM hand-off separately from the actual CODE load.
         DB      0, 20
         DW      LINE20_END-LINE20
 LINE20:
         DB      RANDOMIZE
         DB      USR, "15619", $0E, 0, 0
         DW      15619
-        DB      0
+        DB      $3A, OUT_CMD
+        DB      "239", $0E, $00, $00, $EF, $00, $00
+        DB      ","
+        DB      "3", $0E, $00, $00, $03, $00, $00
         DB      $3A, REM, $3A
         DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D
 LINE20_END:
+
+        ; This marker is reached only after TR-DOS LOAD has returned.
+        DB      0, 25
+        DW      LINE25_END-LINE25
+LINE25:
+        DB      OUT_CMD
+        DB      "239", $0E, $00, $00, $EF, $00, $00
+        DB      ","
+        DB      "4", $0E, $00, $00, $04, $00, $00
+        DB      $0D
+LINE25_END:
 
         ; Enter the host program at 6009h, exactly as Project126 does.
         DB      0, 30
