@@ -1,11 +1,11 @@
 ; ============================================================================
 ; Project127 ATM Core — pure software page-mapper model
-; Module version: 0.1.0
+; Module version: 0.1.1
 ; No hardware OUT instructions are permitted in this stage.
 ; ============================================================================
 P127_MAP_VERSION_MAJOR EQU 0
 P127_MAP_VERSION_MINOR EQU 1
-P127_MAP_VERSION_PATCH EQU 0
+P127_MAP_VERSION_PATCH EQU 1
 
 P127_MAP_WINDOW_COUNT  EQU 4
 P127_MAP_ROM            EQU 0FFh
@@ -72,7 +72,7 @@ p127_map_port_w3:
 ; IN: A=window 0..3. OUT: A=page ID or FFh (ROM); carry=1 if invalid.
 p127_map_get_shadow:
         cp      P127_MAP_WINDOW_COUNT
-        jr      nc,p127_map_invalid
+        jp      nc,p127_map_invalid
         ld      e,a
         ld      d,0
         ld      hl,p127_map_shadow
