@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.6.0**  
+Scenario revision: **0.6.1**  
 Status: **BOOT0, console, and Stage 1 smoke test accepted; bootstrap physical-map reservations added, runtime retest pending**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -40,7 +40,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | Module | Version | State |
 |---|---:|---|
 | `src/boot/p127_boot.asm` | 0.4.1 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
-| `src/kernel/p127_mem.asm` | 0.3.0 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |
+| `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
@@ -137,3 +137,11 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - RTC diagnostic remains `NOT INITIALIZED`; RTC/SMUC integration remains open under Stage 9.
 - Runtime acceptance source: user-provided emulator log in the Project127 development conversation.
 - Next implementation step: audit the real ATM Turbo 2+ memory map and ROM/RAM banking against Project112 before implementing low-memory kernel placement, runtime kernel-end discovery, and the top-down program arena. Do not expose the current page allocator to application loading until that map is verified.
+
+
+### 2026-11-09 — Stage 2.3 build correction: memory manager v0.3.1
+
+- User build with SjASMPlus v1.24.0 reported two relative-branch range errors in `p127_mem.asm` (source lines 38 and 41): both branches targeted the shared `p127_mem_error` handler beyond the signed 8-bit JR displacement.
+- Replaced only those two conditional relative branches with absolute conditional `JP` instructions. Reservation validation and error handling are unchanged.
+- Advanced `src/kernel/p127_mem.asm` from v0.3.0 to v0.3.1; scenario revision 0.6.1.
+- The reported assembler failure is addressed at source level. A fresh SjASMPlus build and emulator run are still required; no successful build is claimed.
