@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.60**  
+Scenario revision: **0.8.61**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -24,7 +24,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 0 — Bootstrap baseline | **PASS (baseline)** | BASIC `boot.B` loads `P127BOOT.C` at #6000; original four BOOT0 diagnostic lines retained. |
 | 1 — Physical page-state manager | **PASS (runtime accepted)** | 64-entry page-state table; video and active boot-map reservations; allocate/free/reallocate smoke test. |
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
-| 3 — UINT32 memory/range API and program arena | **STAGE 3.1/3.2/3.3 PASS (user runtime log); STAGE 3.4 IMPLEMENTED (runtime pending)** | UINT32 half-open range validation plus a map-derived top-down arena. Current reservations yield P8..P63 (56 pages); LIFO release; no physical mapping or byte-granular ABI. |
+| 3 — UINT32 memory/range API and program arena | **STAGE 3.1/3.2/3.3/3.4 PASS (user runtime log)** | UINT32 half-open range validation plus a map-derived top-down arena. Current reservations yield P8..P63 (56 pages); LIFO release; no physical mapping or byte-granular ABI. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | **SOFTWARE PREFLIGHT + MAP TRANSACTION RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0, P4 table-slot preflight v0.3.0, map transaction v0.3.0 | Implement resident interrupt-entry/return and controlled physical W3 mapping. Physical remap remains blocked; independent physical stack backing and IFF/IM/vector handling are not proven. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
@@ -43,7 +43,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | `src/kernel/p127_mem.asm` | 0.4.3 | Software page-state manager; allocator negative-path tests use absolute JP failure branches to remain in range under SjASMPlus |
 | `src/kernel/p127_range.asm` | 0.1.2 | UINT32 end-exclusive physical range validator; 1 MiB bounds/overflow self-test; arithmetic only, no mapping or memory access |
 | `src/kernel/p127_arena.asm` | 0.1.2 | Map-derived highest contiguous FREE run; bounded allocation and LIFO release; accounting only, no mapping |
-| `src/kernel/p127_layout.asm` | 0.1.0 | Measures linked Stage2 image size from `p127_entry` to `p127_end`; validates #6000..#A000 and P5/P2 reservations |
+| `src/kernel/p127_layout.asm` | 0.1.0 | Runtime accepted: reports actual linked Stage2 size; validates #6000..#A000 and P5/P2 reservations |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -794,3 +794,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Integrated after video, boot and IRQ reservations, before allocator/arena self-tests. Boot module advanced to v0.7.6; layout module v0.1.0; scenario revision 0.8.60.
 - The #A000 boundary remains a loader/resident-UI boundary, not a claim that the kernel has a fixed size. The actual linked end determines its measured size; the current image is constrained to the available resident window.
 - No relocation, page mapping, extra OUT, DMA, IRQ activation, IM or EI is added. Build and Unreal Speccy verification are pending the user's rebuild.
+
+
+### 2026-11-09 — Stage 3.4 runtime acceptance: linked kernel layout v0.1.0
+
+- User supplied the complete #EF startup log after the Stage 3.4 layout integration. It reports `KERNEL IMAGE SIZE=0x17C7 BYTES; P5/P2 BOUNDS PASS`, confirming a measured linked image size of 6,087 bytes from `#6000` and successful resident-page checks.
+- The measured image is non-empty and fits the 16 KiB resident window (`#6000..#9FFF`), with the linked end within the `#A000` boundary. P5 and P2 are confirmed RESERVED by the runtime layout self-test.
+- Stage 3.4 is accepted from the user's supplied runtime evidence. The same run repeats the map-derived arena test and exhaustive W3 sweep: 57/57 free pages verified, W3 restored to P0, UI active, and guarded allocator/W3 lease API PASS.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.61. The assembler/emulator were not independently run here; acceptance is based on the user's #EF log.
+- Scope remains unchanged: no kernel relocation, no managed program loader, no unrestricted page mapping, no DMA, and no IRQ/IM/EI activation. Physical page switching remains bounded by the guarded W3 lease protocol.
