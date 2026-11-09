@@ -78,8 +78,12 @@ atm_mem_validate_request:
 atm_mem_pages_for_length:
         ld      a,(atm_mem_request_length+1)
         and     #C0
-        rrca
-        rrca
+        srl     a
+        srl     a
+        srl     a
+        srl     a
+        srl     a
+        srl     a
         ld      b,a
         ld      a,(atm_mem_request_length+2)
         add     a,a
@@ -162,24 +166,6 @@ atm_mem_alloc_mark:
         add     a,a
         add     a,a
         add     a,a
-        ld      (atm_mem_result_offset),a
-        ld      a,(atm_mem_alloc_start)
-        srl     a
-        srl     a
-        ld      (atm_mem_result_offset+1),a
-        xor     a
-        ld      (atm_mem_result_offset+2),a
-        ld      (atm_mem_result_offset+3),a
-        ; Correct byte layout: page << 14 => byte1=(page&3)<<6,
-        ; byte2=page>>2. The stores above are finalized below.
-        ld      a,(atm_mem_alloc_start)
-        and     3
-        add     a,a
-        add     a,a
-        add     a,a
-        add     a,a
-        add     a,a
-        add     a,a
         ld      (atm_mem_result_offset+1),a
         ld      a,(atm_mem_alloc_start)
         srl     a
@@ -235,8 +221,12 @@ atm_mem_free::
         add     a,a
         ld      b,a
         ld      a,(atm_mem_request_offset+1)
-        rrca
-        rrca
+        srl     a
+        srl     a
+        srl     a
+        srl     a
+        srl     a
+        srl     a
         and     3
         or      b
         ld      (atm_mem_alloc_start),a
@@ -255,7 +245,8 @@ atm_mem_free_check:
         dec     c
         jr      nz,atm_mem_free_check
 
-        ld      b,(atm_mem_alloc_start)
+        ld      a,(atm_mem_alloc_start)
+        ld      b,a
         ld      a,(atm_mem_pages_needed)
         ld      c,a
 atm_mem_free_clear:
@@ -282,15 +273,14 @@ atm_mem_page_is_free:
         srl     a
         srl     a
         ld      c,a
-        ld      a,1
-atm_mem_page_free_mask:
-        djnz    atm_mem_page_free_mask_done
-        jr      atm_mem_page_free_mask_ready
-atm_mem_page_free_mask_done:
-        add     a,a
-        djnz    atm_mem_page_free_mask
+        ld      e,1
+        ld      a,b
+        or      a
+        jr      z,atm_mem_page_free_mask_ready
+atm_mem_page_free_mask_loop:
+        sla     e
+        djnz    atm_mem_page_free_mask_loop
 atm_mem_page_free_mask_ready:
-        ld      e,a
         ld      a,c
         ld      c,a
         ld      b,0
@@ -322,16 +312,15 @@ atm_mem_page_set_allocated:
         srl     a
         srl     a
         ld      c,a
-        ld      a,1
-atm_mem_page_set_mask:
+        ld      e,1
+        ld      a,b
         or      a
         jr      z,atm_mem_page_set_mask_ready
-        djnz    atm_mem_page_set_mask_step
-        jr      atm_mem_page_set_mask_ready
-atm_mem_page_set_mask_step:
-        add     a,a
-        djnz    atm_mem_page_set_mask_step
+atm_mem_page_set_mask_loop:
+        sla     e
+        djnz    atm_mem_page_set_mask_loop
 atm_mem_page_set_mask_ready:
+        ld      a,e
         push    af
         ld      a,c
         ld      c,a
@@ -355,17 +344,14 @@ atm_mem_page_is_allocated:
         srl     a
         srl     a
         ld      c,a
-        ld      a,1
-atm_mem_page_alloc_test_mask:
+        ld      e,1
+        ld      a,b
         or      a
         jr      z,atm_mem_page_alloc_test_ready
-        djnz    atm_mem_page_alloc_test_step
-        jr      atm_mem_page_alloc_test_ready
-atm_mem_page_alloc_test_step:
-        add     a,a
-        djnz    atm_mem_page_alloc_test_step
+atm_mem_page_alloc_test_loop:
+        sla     e
+        djnz    atm_mem_page_alloc_test_loop
 atm_mem_page_alloc_test_ready:
-        ld      e,a
         ld      a,c
         ld      c,a
         ld      b,0
@@ -387,16 +373,15 @@ atm_mem_page_clear_allocated:
         srl     a
         srl     a
         ld      c,a
-        ld      a,1
-atm_mem_page_clear_mask:
+        ld      e,1
+        ld      a,b
         or      a
         jr      z,atm_mem_page_clear_mask_ready
-        djnz    atm_mem_page_clear_mask_step
-        jr      atm_mem_page_clear_mask_ready
-atm_mem_page_clear_mask_step:
-        add     a,a
-        djnz    atm_mem_page_clear_mask_step
+atm_mem_page_clear_mask_loop:
+        sla     e
+        djnz    atm_mem_page_clear_mask_loop
 atm_mem_page_clear_mask_ready:
+        ld      a,e
         cpl
         push    af
         ld      a,c
