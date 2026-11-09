@@ -168,6 +168,7 @@ p127_rtc_tick_pass:
 
 ; A=hour, B=minute, C=second. Carry if any field is out of range.
 P127_RTC_ValidateTime:
+        push af
         cp 24
         jr nc,p127_rtc_time_invalid
         ld a,b
@@ -176,9 +177,11 @@ P127_RTC_ValidateTime:
         ld a,c
         cp 60
         jr nc,p127_rtc_time_invalid
+        pop af
         or a
         ret
 p127_rtc_time_invalid:
+        pop af
         scf
         ret
 
