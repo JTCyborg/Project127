@@ -20,8 +20,7 @@ L10:
         DB      CLEAR
         DB      "24575",$0E,0,0
         DW      24575
-        DB      0
-        DB      0,$0D
+        DB      $0D
 L10_END:
 
 ; 20 OUT 239,50:... "P127 START"... (debug only)
@@ -50,8 +49,6 @@ L30:
         DB      RANDOMIZE,USR
         DB      "15619",$0E,0,0
         DW      15619
-        DB      0
-        DB      0
         DB      $3A,REM,$3A
         DB      "LOAD ",34,"p127host",34," CODE 24576",$0D
 L30_END:
@@ -78,17 +75,14 @@ L50:
         DB      OUT_CMD
         DB      "239",$0E,0,0
         DW      239
-        DB      0
-        DB      0,","
+        DB      ","
         DB      "2",$0E,0,0
         DW      2
-        DB      0
-        DB      0,":"
+        DB      ":"
         DB      RANDOMIZE,USR
         DB      "24576",$0E,0,0
         DW      24576
-        DB      0
-        DB      0,$0D
+        DB      $0D
 L50_END:
 
         DB      $80
