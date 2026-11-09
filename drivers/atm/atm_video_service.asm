@@ -276,7 +276,6 @@ p127_video_test_fail:
 p127_video_restore_cell_0:
         ld d,0
         ld e,0
-        ld a,(p127_video_saved_char)
         ld a,(p127_video_saved_attr)
         ld b,a
         ld a,(p127_video_saved_char)
@@ -285,8 +284,9 @@ p127_video_restore_cell_0:
 p127_video_restore_cell_1:
         ld d,24
         ld e,79
+        ld a,(p127_video_saved_attr)
+        ld b,a
         ld a,(p127_video_saved_char)
-        ld b,(p127_video_saved_attr)
         jp P127_ATM_Video_WriteCellEx
 
 p127_video_row:          db 0
