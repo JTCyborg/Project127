@@ -54,17 +54,9 @@ LINE11_END:
         DB      0, 20                   
         DW      LINE20_END-LINE20       
 LINE20:
-<<<<<<< HEAD
-        ; Match the proven Project126 TR-DOS hand-off exactly.
-        ; USR 15619 must be the first statement in this BASIC line.
-        DB      RANDOMIZE
-        DB      USR, "15619", $0E, 0, 0
-        DW      15619
-=======
         DB      RANDOMIZE               ; RANDOMIZE
         DB      USR, "15619", $0E, 0, 0 ; USR 15619
         DW      15619                   
->>>>>>> 444dda37fe3de6bed902b7a821324b2327c4a183
         DB      0
         DB      $3A, REM, $3A           
         DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D 
