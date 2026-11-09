@@ -7,6 +7,10 @@ ATM_SCATTER_MAX_EXTENTS  EQU 58
 ATM_SCATTER_EXTENT_BYTES EQU 232
 
 atm_mem_scatter_alloc::
+        ; Validate logical size from offset zero, independent of stale callers.
+        ld      hl,0
+        ld      (atm_mem_request_offset),hl
+        ld      (atm_mem_request_offset+2),hl
         ld      a,(atm_mem_request_length)
         ld      b,a
         ld      a,(atm_mem_request_length+1)
@@ -229,6 +233,10 @@ atm_mem_scatter_selftest::
         call    atm_mem_scatter_alloc
         jp      c,atm_mem_scatter_test_fail
         ld      (atm_mem_scatter_test_handle),a
+        ; 0x4001 bytes must be represented by exactly two page extents.
+        ld      a,(atm_mem_scatter_done)
+        cp      2
+        jp      nz,atm_mem_scatter_test_fail
         ld      a,(atm_mem_scatter_test_handle)
         call    atm_mem_scatter_free
         ret
