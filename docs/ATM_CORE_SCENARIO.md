@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.6.2**  
-Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; physical bank switching not yet enabled**  
+Scenario revision: **0.7.0**  
+Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; software mapper model accepted after user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -25,7 +25,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | 1 — Physical page-state manager | **PASS (runtime accepted)** | 64-entry page-state table; video and active boot-map reservations; allocate/free/reallocate smoke test. |
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
-| 4 — Page mapper | PLANNED | Verified ATM hardware page-register backend; map/unmap API; no direct hardware writes from applications. |
+| 4 — Page mapper | **SOFTWARE MODEL IMPLEMENTED; RUNTIME TEST PENDING** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | PLANNED | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
@@ -40,7 +40,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | Module | Version | State |
 |---|---:|---|
 | `src/boot/p127_boot.asm` | 0.4.1 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
-| `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |
+| `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.1.0 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
@@ -155,3 +155,14 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - The acceptance covers software bookkeeping and reservation guards only. It does not prove physical page-register writes, actual physical bank identity, remapping, or program arena availability.
 - No module code changed in this acceptance update. Scenario revision advanced to 0.6.2.
 - Next: implement a pure ATM page-register encoding/state model and self-tests first. Keep hardware OUT writes disabled until the safe remap protocol can preserve the executing code, UI, and stack windows.
+
+
+### 2026-11-09 — Stage 2.4: pure ATM page-mapper model v0.1.0
+
+- Added `src/kernel/p127_map.asm` v0.1.0. The module encodes physical page IDs 0..63 as `#7F-page`, rejects page 64+, returns the four documented shadow-port addresses, and stores the current bootstrap map (W0=TR-DOS ROM, W1=P5, W2=P2, W3=P0) in a software shadow table.
+- Added a self-test for page encodings P0/P1/P3/P5/P7/P63, rejection of P64, window-port values #3FF7/#7FF7/#BFF7/#FFF7, invalid window 4, and all four bootstrap shadow entries.
+- Boot calls the mapper self-test after the accepted memory-page test and reports `[P127] MAP MODEL TEST PASS; OUT DISABLED` or `MAP MODEL TEST FAIL` through the existing console/#EF diagnostic path.
+- No hardware `OUT` instruction is present in the mapper module. No active window is changed. The allocator remains unavailable to application loading.
+- Module versions: `p127_map.asm` 0.1.0; `p127_boot.asm` advanced to 0.5.0; scenario revision 0.7.0.
+- Build and emulator runtime verification are **pending**. The test validates software constants/state only, not physical ATM bank-register behavior.
+- Next: user builds/runs and supplies the #EF log. After acceptance, implement a safe remap handoff that executes from a stable, non-remapped window and preserves the stack/UI before any physical page-register write is enabled.
