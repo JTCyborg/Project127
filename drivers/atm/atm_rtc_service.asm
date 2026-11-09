@@ -24,16 +24,37 @@ P127_RTC_VERSION EQU #0100
 P127_RTC_Init::
         xor a
         ld (p127_rtc_available),a
+        ld (p127_rtc_backend),a
+        ; Project126 order: native GLUK first, then SMUC fallback.
+        call P127_RTC_ProbeBackend
+        jr nc,p127_rtc_init_available
+        ld a,1
+        ld (p127_rtc_backend),a
+        call P127_RTC_ProbeBackend
+        jr nc,p127_rtc_init_available
+        xor a
+        ld (p127_rtc_available),a
+        scf
+        ret
+p127_rtc_init_available:
+        ld a,1
+        ld (p127_rtc_available),a
+        or a
+        ret
+
+; Probe the currently selected backend. Carry means no valid RTC response.
+; Status D must report VRT=1 and Status A must have divider bits #20.
+P127_RTC_ProbeBackend:
         call P127_RTC_Open
         ld a,#0D
         call P127_RTC_ReadReg
         cp #80
-        jr nz,p127_rtc_init_bad
+        jr nz,p127_rtc_probe_bad
         ld a,#0A
         call P127_RTC_ReadReg
         and #70
         cp #20
-        jr nz,p127_rtc_init_bad
+        jr nz,p127_rtc_probe_bad
         ld a,#0B
         call P127_RTC_ReadReg
         ld (p127_rtc_status_b),a
@@ -41,16 +62,9 @@ P127_RTC_Init::
         push af
         call P127_RTC_Close
         pop af
-        jr c,p127_rtc_init_bad_closed
-        ld a,1
-        ld (p127_rtc_available),a
-        or a
         ret
-p127_rtc_init_bad:
+p127_rtc_probe_bad:
         call P127_RTC_Close
-p127_rtc_init_bad_closed:
-        xor a
-        ld (p127_rtc_available),a
         scf
         ret
 
@@ -147,6 +161,16 @@ P127_RTC_Startup::
         call p127_host_debug_string
         call P127_RTC_Init
         jr c,p127_rtc_start_unavailable
+        ld a,(p127_rtc_backend)
+        or a
+        jr nz,p127_rtc_start_smuc
+        ld hl,p127_rtc_log_gluk
+        call p127_host_debug_string
+        jr p127_rtc_start_available_log
+p127_rtc_start_smuc:
+        ld hl,p127_rtc_log_smuc
+        call p127_host_debug_string
+p127_rtc_start_available_log:
         ld hl,p127_rtc_log_available
         call p127_host_debug_string
         ret
@@ -165,9 +189,20 @@ p127_host_ui_ready:
 P127_RTC_Open:
         push af
         push bc
+        ld a,(p127_rtc_backend)
+        or a
+        jr nz,p127_rtc_open_smuc
         ld bc,#EFF7
         ld a,#80
         out (c),a
+        jr p127_rtc_open_done
+p127_rtc_open_smuc:
+        ; Project126 SMUC address/read mode. Do not write zero to FFBA:
+        ; #71 preserves the multiplexed ISA/NVRAM control pattern.
+        ld bc,#FFBA
+        ld a,#71
+        out (c),a
+p127_rtc_open_done:
         pop bc
         pop af
         ret
@@ -176,6 +211,9 @@ P127_RTC_Open:
 P127_RTC_Close:
         push af
         push bc
+        ld a,(p127_rtc_backend)
+        or a
+        jr nz,p127_rtc_close_smuc
         ld bc,p127_rtc_close_done
         push bc
         ld bc,#2A53
@@ -184,9 +222,13 @@ P127_RTC_Close:
         ld a,#C6
         jp #3D2F
 p127_rtc_close_done:
-        ; The ROM trampoline may leave alternate CPU windows selected.
-        ; Restore the Project127 host/staging pages exactly as the console does.
+        ; Native GLUK gate closure uses the same ROM trampoline as Project126.
         call P127_Console_Restore
+        pop bc
+        pop af
+        ret
+p127_rtc_close_smuc:
+        ; Project126 leaves the SMUC RTC address/read selector in place.
         pop bc
         pop af
         ret
@@ -195,10 +237,20 @@ p127_rtc_close_done:
 P127_RTC_ReadReg:
         push bc
         ld c,a
+        ld a,(p127_rtc_backend)
+        or a
+        jr nz,p127_rtc_read_smuc
         ld a,c
         ld bc,#DFF7
         out (c),a
         ld bc,#BFF7
+        in a,(c)
+        pop bc
+        ret
+p127_rtc_read_smuc:
+        ld a,c
+        ld bc,#DFBA
+        out (c),a
         in a,(c)
         pop bc
         ret
@@ -281,6 +333,7 @@ P127_RTC_BCDToBinary:
         ret
 
 p127_rtc_available: db 0
+p127_rtc_backend: db 0       ; 0=GLUK DFF7/BFF7, 1=SMUC DFBA/FFBA
 p127_rtc_status_b: db 0
 p127_rtc_seconds: db 0
 p127_rtc_minutes: db 0
@@ -288,6 +341,10 @@ p127_rtc_hours: db 0
 p127_rtc_pm: db 0
 p127_rtc_hour_tmp: db 0
 
+p127_rtc_log_gluk:
+        db "[P127] RTC BACKEND GLUK",13,10,0
+p127_rtc_log_smuc:
+        db "[P127] RTC BACKEND SMUC",13,10,0
 p127_rtc_log_available:
         db "[P127] RTC DS12887 AVAILABLE",13,10,0
 p127_rtc_log_unavailable:
