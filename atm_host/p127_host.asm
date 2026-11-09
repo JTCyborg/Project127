@@ -1,7 +1,7 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.9.1
-; ATM allocator record-copy fix.
+; Version: P127_ATM_HOST v0.10.0
+; ATM handle pin/unpin reference counting.
 ; =========================================================================
 
         DEVICE ZXSPECTRUM128
@@ -42,10 +42,25 @@ p127_host_entry:
         jp      c,p127_host_handle_ops_fail
         ld      hl,p127_host_handle_ops_ok
         call    p127_host_debug_string
+        call    atm_mem_scatter_pin_selftest
+        jp      c,p127_host_pin_fail
+        ld      hl,p127_host_pin_ok
+        call    p127_host_debug_string
         jp      p127_host_idle
 p127_host_handle_ops_fail:
         ld      d,a
         ld      hl,p127_host_handle_ops_error
+        call    p127_host_debug_string
+        ld      a,d
+        call    p127_host_debug_hex_byte
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
+        jp      p127_host_idle
+p127_host_pin_fail:
+        ld      d,a
+        ld      hl,p127_host_pin_error
         call    p127_host_debug_string
         ld      a,d
         call    p127_host_debug_hex_byte
@@ -192,6 +207,10 @@ p127_host_scatter_ok:
         db "[P127] ATM SCATTER HANDLE SELFTEST PASS",13,10,0
 p127_host_handle_ops_ok:
         db "[P127] ATM HANDLE OPS SELFTEST PASS",13,10,0
+p127_host_pin_ok:
+        db "[P127] ATM HANDLE PIN/UNPIN SELFTEST PASS",13,10,0
+p127_host_pin_error:
+        db "[P127] ATM HANDLE PIN/UNPIN SELFTEST FAIL STEP=0x",0
 p127_host_handle_ops_error:
         db "[P127] ATM HANDLE OPS SELFTEST FAIL STEP=0x",0
 p127_host_scatter_error:
