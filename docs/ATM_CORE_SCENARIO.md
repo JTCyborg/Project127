@@ -40,10 +40,10 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | Module | Version | State |
 |---|---:|---|
 | `src/boot/p127_boot.asm` | 0.3.0 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
-| `src/kernel/p127_mem.asm` | 0.1.1 | Software page-state manager; no physical mapping |
+| `src/kernel/p127_mem.asm` | 0.1.2 | Software page-state manager; no physical mapping |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
-## Stage 1 — physical page-state manager 0.1.1
+## Stage 1 — physical page-state manager 0.1.2
 
 - Page IDs: 0..63; page size: 16 KiB.
 - Per-page states: FREE=0, RESERVED=1, ALLOCATED=2.
@@ -63,7 +63,7 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 
 ### 2026-11-09 — Stage 1 code added
 
-- Added `src/kernel/p127_mem.asm` v0.1.0; corrected zero-length reservation handling in v0.1.1.
+- Added `src/kernel/p127_mem.asm` v0.1.0; corrected zero-length reservation handling in v0.1.1 and first-page argument preservation in v0.1.2.
 - Updated `src/boot/p127_boot.asm` v0.3.0 to initialize the table and run the allocator smoke test after the four original BOOT0 diagnostics.
 - Added `tests/ATM_CORE_STAGE1.md`.
 - Source/build verification: **not run in this environment**. User must build with `tools/build_project127.ps1` and run the TR-DOS image in the target emulator.
