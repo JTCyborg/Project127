@@ -169,7 +169,7 @@ atm_mem_handle_validate_range:
         inc     hl
         ; Compare end against recorded UINT32 logical length, high byte first.
         ld      de,atm_mem_handle_temp_end+3
-        ld      a,#43
+        ld      a,#50
         ld      (atm_mem_handle_test_stage),a
         ld      b,4
 atm_mem_handle_range_compare:
@@ -179,13 +179,15 @@ atm_mem_handle_range_compare:
         jp      nz,atm_mem_handle_range_fail
         dec     de
         dec     hl
+        ld      a,(atm_mem_handle_test_stage)
+        inc     a
+        ld      (atm_mem_handle_test_stage),a
         djnz    atm_mem_handle_range_compare
 atm_mem_handle_range_ok:
         or      a
         ret
 atm_mem_handle_range_fail:
-        ld      a,#44
-        ld      (atm_mem_handle_test_stage),a
+        ; Preserve the comparison byte index (50..53) for the host log.
         scf
         ret
 atm_mem_handle_validate_find_fail:
