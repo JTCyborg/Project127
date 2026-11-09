@@ -20,7 +20,7 @@
 ; ============================================================================
 P127_AS_COPY_VERSION_MAJOR EQU 0
 P127_AS_COPY_VERSION_MINOR EQU 1
-P127_AS_COPY_VERSION_PATCH EQU 0
+P127_AS_COPY_VERSION_PATCH EQU 1
 P127_AS_COPY_BUFFER_SIZE EQU 64
 P127_AS_COPY_WINDOW_BASE EQU 0C000h
 
@@ -141,7 +141,7 @@ p127_as_copy_loop:
         ld      b,a
         ld      a,(p127_as_copy_remaining+3)
         or      b
-        jr      z,p127_as_copy_finish
+        jp      z,p127_as_copy_finish
 
         ; Translate the current source byte address.
         ld      hl,p127_as_copy_work_source

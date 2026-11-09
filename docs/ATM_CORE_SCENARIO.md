@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.67**  
+Scenario revision: **0.8.68**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -46,7 +46,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | `src/kernel/p127_layout.asm` | 0.1.0 | Runtime accepted: reports actual linked Stage2 size; validates #6000..#A000 and P5/P2 reservations |
 | `src/kernel/p127_as.asm` | 0.1.0 | 4 MiB logical page table; binds only allocator-owned pages; translates logical byte addresses to physical page + offset; software-only |
 | `src/kernel/p127_as_span.asm` | 0.1.0 | Runtime accepted: UINT32 logical-span preflight; validates end-exclusive 4 MiB bounds and every mapped page touched; no data transfer or mapping |
-| `src/kernel/p127_as_copy.asm` | 0.1.0 | Implements non-overlapping logical-span copy with full preflight, 64-byte resident bounce buffer, page-boundary chunking, guarded W3 lease and completed-byte reporting; runtime acceptance pending |
+| `src/kernel/p127_as_copy.asm` | 0.1.1 | Implements non-overlapping logical-span copy with full preflight, 64-byte resident bounce buffer, page-boundary chunking, guarded W3 lease and completed-byte reporting; runtime acceptance pending |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -873,4 +873,4 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - The runtime self-test allocates and binds three pages, checks the 4 MiB zero-length edge, overlap rejection, unmapped destination rejection, seeds a 32-byte source across a logical-page boundary, copies it across a separate destination-page boundary, verifies every destination byte, and releases all test pages.
 - Boot integration runs this test only after the physical sweep and guarded W3 lease API test have completed. New expected marker: `LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED`.
 - Failure semantics remain explicit: a preflight failure makes no destination writes; a runtime mapping failure after one or more completed chunks may leave a destination prefix changed, with `p127_as_copy_completed` reporting the exact count. A W3 restore failure leaves the existing lease state retryable via `p127_physmem_w3_end`.
-- SjASMPlus build and Unreal Speccy runtime verification of this new implementation are pending the user's rebuild. Stage 6.3 is implemented in source, not yet runtime-accepted.
+- A long conditional branch to the copy-loop completion path uses an absolute JP; module patch version is 0.1.1. SjASMPlus build and Unreal Speccy runtime verification of this implementation are pending the user's rebuild. Stage 6.3 is implemented in source, not yet runtime-accepted.
