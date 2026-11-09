@@ -130,16 +130,19 @@ p127_storage_validate_request:
         ld      a,(p127_storage_available)
         or      a
         jr      z,p127_storage_not_ready
-        ; LBA must be strictly below IDENTIFY capacity.
+        ; Unsigned 32-bit compare: high word first, then low word.
+        ld      hl,(p127_storage_lba+2)
+        ld      de,(p127_storage_capacity+2)
+        or      a
+        sbc     hl,de
+        jr      c,p127_storage_lba_valid
+        jr      nz,p127_storage_bad_lba
         ld      hl,(p127_storage_lba)
         ld      de,(p127_storage_capacity)
         or      a
         sbc     hl,de
         jr      nc,p127_storage_bad_lba
-        ld      hl,(p127_storage_lba+2)
-        ld      de,(p127_storage_capacity+2)
-        sbc     hl,de
-        jr      nc,p127_storage_bad_lba
+p127_storage_lba_valid:
         or      a
         ret
 
@@ -276,5 +279,9 @@ p127_storage_command:   db 0
 p127_storage_lba:       dd 0
 p127_storage_capacity:  dd 0
 p127_storage_identify:  defs 512,0
+p127_storage_log_ready:
+        db "[P127] HDD NEMO IDE LBA28 IDENTIFY PASS",13,10,0
+p127_storage_log_missing:
+        db "[P127] HDD NEMO IDE NOT AVAILABLE",13,10,0
 p127_storage_end:
         ASSERT p127_storage_end <= #C000

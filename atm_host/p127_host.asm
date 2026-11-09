@@ -64,11 +64,11 @@ p127_host_entry:
         call    P127_RTC_Startup
         call    P127_Storage_Startup
         jr      c,p127_host_storage_unavailable
-        ld      hl,p127_host_storage_ready
+        ld      hl,p127_storage_log_ready
         call    p127_host_debug_string
         jr      p127_host_storage_done
 p127_host_storage_unavailable:
-        ld      hl,p127_host_storage_missing
+        ld      hl,p127_storage_log_missing
         call    p127_host_debug_string
 p127_host_storage_done:
         ld      hl,p127_host_ui_ready
