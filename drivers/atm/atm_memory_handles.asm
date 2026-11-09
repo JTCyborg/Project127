@@ -274,9 +274,11 @@ atm_mem_scatter_selftest::
         inc     hl
         ld      a,(hl)
         or      b
+        ld      b,a
         inc     hl
         ld      a,(hl)
         or      b
+        ld      b,a
         inc     hl
         ld      a,(hl)
         or      b
