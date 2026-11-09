@@ -510,6 +510,7 @@ p127_physmem_screen_puts:
 
 ; A=page ID. Emit two hexadecimal digits through the visible UI console.
 p127_physmem_screen_hex8:
+        push    hl
         push    af
         and     0F0h
         rrca
@@ -519,7 +520,9 @@ p127_physmem_screen_hex8:
         call    p127_physmem_screen_nibble
         pop     af
         and     00Fh
-        jp      p127_physmem_screen_nibble
+        call    p127_physmem_screen_nibble
+        pop     hl
+        ret
 p127_physmem_screen_nibble:
         ld      e,a
         ld      d,0
