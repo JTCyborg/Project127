@@ -45,7 +45,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
 | `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract; 16-check exhaustive readiness-mask/prerequisite batch runtime accepted; P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
-| `src/kernel/p127_physmem.asm` | 0.3.4 | Full free-page allocation/uniqueness sweep; per-page address-pattern fill/reverse verification; allocator state/reservation/reuse checks; W3/P0 recovery |
+| `src/kernel/p127_physmem.asm` | 0.4.3 | Exhaustive free-page W3 sweep; guarded W3 lease API; visible W3 replay after ATM video-bank reinitialization; W3/P0 recovery |
 | `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership and software rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel modules |
 ## Stage 1 — physical page-state manager 0.2.0
