@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.7.6
+; Project127 — boot stage 0.7.7
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -86,6 +86,11 @@ p127_start:
         call    p127_arena_selftest
         jp      c,p127_arena_failed
         ld      hl,p127_msg_arena_pass
+        call    p127_puts
+        ; Stage 6.1: managed logical page table and address translation model.
+        call    p127_as_selftest
+        jp      c,p127_as_failed
+        ld      hl,p127_msg_as_pass
         call    p127_puts
 
         ; Stage 2.4: pure software mapper model; hardware OUT remains disabled.
@@ -241,6 +246,10 @@ p127_arena_failed:
         ld      hl,p127_msg_arena_fail
         call    p127_puts
         jp      p127_idle
+p127_as_failed:
+        ld      hl,p127_msg_as_fail
+        call    p127_puts
+        jp      p127_idle
 
 p127_idle:
         halt
@@ -341,6 +350,10 @@ p127_msg_arena_pass:
         db      "[P127] TOP-DOWN ARENA P8..P63 / 56P TEST PASS; NO MAP/OUT",13,10,0
 p127_msg_arena_fail:
         db      "[P127] TOP-DOWN ARENA TEST FAIL",13,10,0
+p127_msg_as_pass:
+        db      "[P127] LOGICAL PAGE TABLE/BOUNDARY TRANSLATION PASS; NO MAP/OUT",13,10,0
+p127_msg_as_fail:
+        db      "[P127] LOGICAL ADDRESS SPACE TEST FAIL",13,10,0
 p127_msg_map_txn_pass:
         db      "[P127] MAP TXN COMMIT/ROLLBACK PASS; OUT DISABLED",13,10,0
 p127_msg_map_txn_fail:
@@ -401,6 +414,7 @@ p127_msg_trampoline_preflight_fail:
         INCLUDE "src/kernel/p127_mem.asm"
         INCLUDE "src/kernel/p127_range.asm"
         INCLUDE "src/kernel/p127_arena.asm"
+        INCLUDE "src/kernel/p127_as.asm"
         INCLUDE "src/kernel/p127_map.asm"
         INCLUDE "src/kernel/p127_handoff.asm"
 
