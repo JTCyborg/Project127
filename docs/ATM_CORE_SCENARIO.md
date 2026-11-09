@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.7.2**  
+Scenario revision: **0.7.3**  
 Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; software mapper model accepted after user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -25,7 +25,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | 1 — Physical page-state manager | **PASS (runtime accepted)** | 64-entry page-state table; video and active boot-map reservations; allocate/free/reallocate smoke test. |
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
-| 4 — Page mapper | **SOFTWARE MODEL IMPLEMENTED; RUNTIME TEST PENDING** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
+| 4 — Page mapper | **SOFTWARE MODEL IMPLEMENTED; RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | PLANNED | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
@@ -184,3 +184,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Replaced `JR NC,p127_map_invalid` with absolute `JP NC,p127_map_invalid`. Validation semantics are unchanged.
 - Advanced `src/kernel/p127_map.asm` from v0.1.0 to v0.1.1; scenario revision 0.7.2.
 - This addresses the reported assembler error at source level. Fresh SjASMPlus build and emulator runtime test remain pending; no successful build is claimed.
+
+
+### 2026-11-09 — Runtime acceptance: software page-mapper model v0.1.1
+
+- User rebuilt Project127 and supplied the emulator #EF log ending with `[P127] MAP MODEL TEST PASS; OUT DISABLED`.
+- The complete reported boot sequence also confirms BASIC LOAD, Stage 2 entry at #6000, stack setup at #BFFF, debug output through #EF, UI startup, 1 MiB/64-page memory-state initialization, video reservations P1/P3/P5/P7, bootstrap reservations P0/P2 with P5 active, and the memory-page self-test.
+- Stage 2.4 software mapper model v0.1.1 is accepted at runtime: the model's encoding, window-port lookup, bootstrap shadow map, and self-test pass.
+- Acceptance is strictly software-only. Hardware page switching remains disabled; no physical OUT writes, safe remap handoff, or application-memory allocation have been validated.
+- RTC remains `NOT INITIALIZED`; this is unchanged and outside this stage.
+- Next stage: design and implement the remap handoff with explicit execution-window, stack, UI, interrupt and rollback protections. Keep hardware OUT disabled until the handoff can be tested without risking the active boot environment.
