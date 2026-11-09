@@ -164,8 +164,9 @@ atm_mem_scatter_find_handle: EQU 0x00007003
 atm_mem_scatter_free: EQU 0x000070F8
 atm_mem_scatter_free_loop: EQU 0x00007154
 atm_mem_scatter_free_record: EQU 0x0000710F
-atm_mem_scatter_free_record_ready: EQU 0x00007139
+atm_mem_scatter_free_record_ready: EQU 0x00007114
 atm_mem_scatter_free_record_reseek: EQU 0x00007134
+atm_mem_scatter_free_record_reseek_ready: EQU 0x00007139
 atm_mem_scatter_free_vector: EQU 0x0000714C
 atm_mem_scatter_free_vector_ready: EQU 0x00007151
 atm_mem_scatter_handle: EQU 0x00007355

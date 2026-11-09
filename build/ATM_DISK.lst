@@ -1,4 +1,3 @@
-atm_memory_handles.asm(205): error: Duplicate label: atm_mem_scatter_free_record_ready
 # file opened: project127_disk.generated.asm
   1   0000              ; =========================================================================
   2   0000              ; PROJECT127 ??? clean TR-DOS disk image
@@ -2103,12 +2102,11 @@ atm_memory_handles.asm(205): error: Duplicate label: atm_mem_scatter_free_record
 177+++7105 21 74 73             ld      hl,atm_mem_scatter_handles
 178+++7108 11 06 00             ld      de,6
 179+++710B B7                   or      a
-180+++710C CA 39 71             jp      z,atm_mem_scatter_free_record_ready
+180+++710C CA 14 71             jp      z,atm_mem_scatter_free_record_ready
 181+++710F              atm_mem_scatter_free_record:
 182+++710F 19                   add     hl,de
 183+++7110 3D                   dec     a
 184+++7111 C2 0F 71             jp      nz,atm_mem_scatter_free_record
-atm_memory_handles.asm(185): warning: Label has different value in pass 3: previous value 28985 not equal 28948
 185+++7114              atm_mem_scatter_free_record_ready:
 186+++7114 7E                   ld      a,(hl)
 187+++7115 B7                   or      a
@@ -2124,13 +2122,12 @@ atm_memory_handles.asm(185): warning: Label has different value in pass 3: previ
 197+++712A 21 74 73             ld      hl,atm_mem_scatter_handles
 198+++712D 11 06 00             ld      de,6
 199+++7130 B7                   or      a
-200+++7131 CA 14 71             jp      z,atm_mem_scatter_free_record_ready
+200+++7131 CA 39 71             jp      z,atm_mem_scatter_free_record_reseek_ready
 201+++7134              atm_mem_scatter_free_record_reseek:
 202+++7134 19                   add     hl,de
 203+++7135 3D                   dec     a
 204+++7136 C2 34 71             jp      nz,atm_mem_scatter_free_record_reseek
-atm_memory_handles.asm(205): warning: Label has different value in pass 3: previous value 28948 not equal 28985
-205+++7139              atm_mem_scatter_free_record_ready:
+205+++7139              atm_mem_scatter_free_record_reseek_ready:
 206+++7139 23                   inc     hl
 207+++713A 7E                   ld      a,(hl)
 208+++713B 32 56 73             ld      (atm_mem_scatter_rollback_count),a
@@ -3389,8 +3386,9 @@ Value    Label
 0x70F8   atm_mem_scatter_free
 0x7154   atm_mem_scatter_free_loop
 0x710F   atm_mem_scatter_free_record
-0x7139   atm_mem_scatter_free_record_ready
+0x7114   atm_mem_scatter_free_record_ready
 0x7134   atm_mem_scatter_free_record_reseek
+0x7139   atm_mem_scatter_free_record_reseek_ready
 0x714C   atm_mem_scatter_free_vector
 0x7151   atm_mem_scatter_free_vector_ready
 0x7355   atm_mem_scatter_handle
