@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.6.9
+; Project127 — boot stage 0.7.0
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -143,6 +143,14 @@ p127_start:
 p127_physmem_failed:
         ld      hl,p127_msg_physmem_fail
         call    p127_puts
+        ld      hl,p127_msg_physmem_error
+        call    p127_puts
+        ld      a,(p127_physmem_error)
+        call    p127_put_hex8
+        ld      a,13
+        call    p127_put_char
+        ld      a,10
+        call    p127_put_char
         jr      p127_idle
 p127_map_txn_failed:
         ld      hl,p127_msg_map_txn_fail
@@ -223,6 +231,36 @@ p127_puts_ef:
         pop     hl
         jr      p127_puts
 
+; Emit A as two hexadecimal digits to the existing #EF/UI console sink.
+p127_put_hex8:
+        push    af
+        rrca
+        rrca
+        rrca
+        rrca
+        call    p127_put_hex_nibble
+        pop     af
+        jp      p127_put_hex_nibble
+
+p127_put_hex_nibble:
+        and     00Fh
+        add     a,'0'
+        cp      '9'+1
+        jr      c,p127_put_char
+        add     a,7
+p127_put_char:
+        push    af
+        ld      a,(p127_ui_ready)
+        or      a
+        jr      z,p127_put_char_ef
+        pop     af
+        jp      BIOS_DebugConsole_PrintChar
+p127_put_char_ef:
+        pop     af
+        ld      bc,P127_DEBUG_PORT
+        out     (c),a
+        ret
+
 p127_ui_ready: db 0
 p127_msg_ui_ready: db "[P127] UI READY; ALL DEBUG OUTPUT MIRRORED TO EF",13,10,0
 p127_msg_entry:
@@ -262,7 +300,9 @@ p127_msg_map_pass:
 p127_msg_physmem_pass:
         db      "[P127] PHYS W3 FULL FREE-PAGE SWEEP/ALLOCATOR/RESERVES/P0 RESTORE PASS",13,10,0
 p127_msg_physmem_fail:
-        db      "[P127] PHYS W3 PAGE SWITCH/MEMORY TEST FAIL; CHECK ERROR CODE",13,10,0
+        db      "[P127] PHYS W3 PAGE SWITCH/MEMORY TEST FAIL",13,10,0
+p127_msg_physmem_error:
+        db      "[P127] PHYSMEM ERROR=",0
 p127_msg_map_fail:
         db      "[P127] MAP MODEL TEST FAIL", 13, 10, 0
 p127_msg_stack_probe_pass:
