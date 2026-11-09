@@ -483,12 +483,12 @@
 # file opened: p127_map.asm
   1++ 63FB              ; ============================================================================
   2++ 63FB              ; Project127 ATM Core — pure software page-mapper model
-  3++ 63FB              ; Module version: 0.2.0
+  3++ 63FB              ; Module version: 0.2.1
   4++ 63FB              ; No hardware OUT instructions are permitted in this stage.
   5++ 63FB              ; ============================================================================
   6++ 63FB              P127_MAP_VERSION_MAJOR EQU 0
   7++ 63FB              P127_MAP_VERSION_MINOR EQU 2
-  8++ 63FB              P127_MAP_VERSION_PATCH EQU 0
+  8++ 63FB              P127_MAP_VERSION_PATCH EQU 1
   9++ 63FB
  10++ 63FB              P127_MAP_WINDOW_COUNT  EQU 4
  11++ 63FB              P127_MAP_ROM            EQU 0FFh
@@ -498,13 +498,13 @@
  15++ 63FB              ; This table is descriptive state only; it does not program hardware.
  16++ 63FB              p127_map_init:
  17++ 63FB 3E FF                ld      a,P127_MAP_ROM
- 18++ 63FD 32 C9 65             ld      (p127_map_shadow),a
+ 18++ 63FD 32 CB 65             ld      (p127_map_shadow),a
  19++ 6400 3E 05                ld      a,5
- 20++ 6402 32 CA 65             ld      (p127_map_shadow+1),a
+ 20++ 6402 32 CC 65             ld      (p127_map_shadow+1),a
  21++ 6405 3E 02                ld      a,2
- 22++ 6407 32 CB 65             ld      (p127_map_shadow+2),a
+ 22++ 6407 32 CD 65             ld      (p127_map_shadow+2),a
  23++ 640A 3E 00                ld      a,0
- 24++ 640C 32 CC 65             ld      (p127_map_shadow+3),a
+ 24++ 640C 32 CE 65             ld      (p127_map_shadow+3),a
  25++ 640F B7                   or      a
  26++ 6410 C9                   ret
  27++ 6411
@@ -513,7 +513,7 @@
  30++ 6411              ; OUT: A=7Fh-page; carry=1 for invalid page.
  31++ 6411              p127_map_encode_page:
  32++ 6411 FE 40                cp      64
- 33++ 6413 D2 C5 65             jp      nc,p127_map_invalid
+ 33++ 6413 D2 C7 65             jp      nc,p127_map_invalid
  34++ 6416 47                   ld      b,a
  35++ 6417 3E 7F                ld      a,07Fh
  36++ 6419 90                   sub     b
@@ -555,10 +555,10 @@
  72++ 6441              ; IN: A=window 0..3. OUT: A=page ID or FFh (ROM); carry=1 if invalid.
  73++ 6441              p127_map_get_shadow:
  74++ 6441 FE 04                cp      P127_MAP_WINDOW_COUNT
- 75++ 6443 D2 C5 65             jp      nc,p127_map_invalid
+ 75++ 6443 D2 C7 65             jp      nc,p127_map_invalid
  76++ 6446 5F                   ld      e,a
  77++ 6447 16 00                ld      d,0
- 78++ 6449 21 C9 65             ld      hl,p127_map_shadow
+ 78++ 6449 21 CB 65             ld      hl,p127_map_shadow
  79++ 644C 19                   add     hl,de
  80++ 644D 7E                   ld      a,(hl)
  81++ 644E B7                   or      a
@@ -569,90 +569,90 @@
  86++ 6450              p127_map_selftest:
  87++ 6450 3E 00                ld      a,0
  88++ 6452 CD 11 64             call    p127_map_encode_page
- 89++ 6455 DA C7 65             jp      c,p127_map_test_fail
+ 89++ 6455 DA C9 65             jp      c,p127_map_test_fail
  90++ 6458 FE 7F                cp      07Fh
- 91++ 645A C2 C7 65             jp      nz,p127_map_test_fail
+ 91++ 645A C2 C9 65             jp      nz,p127_map_test_fail
  92++ 645D 3E 01                ld      a,1
  93++ 645F CD 11 64             call    p127_map_encode_page
- 94++ 6462 DA C7 65             jp      c,p127_map_test_fail
+ 94++ 6462 DA C9 65             jp      c,p127_map_test_fail
  95++ 6465 FE 7E                cp      07Eh
- 96++ 6467 C2 C7 65             jp      nz,p127_map_test_fail
+ 96++ 6467 C2 C9 65             jp      nz,p127_map_test_fail
  97++ 646A 3E 03                ld      a,3
  98++ 646C CD 11 64             call    p127_map_encode_page
- 99++ 646F DA C7 65             jp      c,p127_map_test_fail
+ 99++ 646F DA C9 65             jp      c,p127_map_test_fail
 100++ 6472 FE 7C                cp      07Ch
-101++ 6474 C2 C7 65             jp      nz,p127_map_test_fail
+101++ 6474 C2 C9 65             jp      nz,p127_map_test_fail
 102++ 6477 3E 05                ld      a,5
 103++ 6479 CD 11 64             call    p127_map_encode_page
-104++ 647C DA C7 65             jp      c,p127_map_test_fail
+104++ 647C DA C9 65             jp      c,p127_map_test_fail
 105++ 647F FE 7A                cp      07Ah
-106++ 6481 C2 C7 65             jp      nz,p127_map_test_fail
+106++ 6481 C2 C9 65             jp      nz,p127_map_test_fail
 107++ 6484 3E 07                ld      a,7
 108++ 6486 CD 11 64             call    p127_map_encode_page
-109++ 6489 DA C7 65             jp      c,p127_map_test_fail
+109++ 6489 DA C9 65             jp      c,p127_map_test_fail
 110++ 648C FE 78                cp      078h
-111++ 648E C2 C7 65             jp      nz,p127_map_test_fail
+111++ 648E C2 C9 65             jp      nz,p127_map_test_fail
 112++ 6491 3E 3F                ld      a,63
 113++ 6493 CD 11 64             call    p127_map_encode_page
-114++ 6496 DA C7 65             jp      c,p127_map_test_fail
+114++ 6496 DA C9 65             jp      c,p127_map_test_fail
 115++ 6499 FE 40                cp      040h
-116++ 649B C2 C7 65             jp      nz,p127_map_test_fail
+116++ 649B C2 C9 65             jp      nz,p127_map_test_fail
 117++ 649E 3E 40                ld      a,64
 118++ 64A0 CD 11 64             call    p127_map_encode_page
-119++ 64A3 D2 C7 65             jp      nc,p127_map_test_fail
+119++ 64A3 D2 C9 65             jp      nc,p127_map_test_fail
 120++ 64A6
 121++ 64A6 3E 00                ld      a,0
 122++ 64A8 CD 1C 64             call    p127_map_window_port
-123++ 64AB DA C7 65             jp      c,p127_map_test_fail
+123++ 64AB DA C9 65             jp      c,p127_map_test_fail
 124++ 64AE 11 F7 3F             ld      de,03FF7h
 125++ 64B1 B7                   or      a
 126++ 64B2 ED 52                sbc     hl,de
-127++ 64B4 C2 C7 65             jp      nz,p127_map_test_fail
+127++ 64B4 C2 C9 65             jp      nz,p127_map_test_fail
 128++ 64B7 3E 01                ld      a,1
 129++ 64B9 CD 1C 64             call    p127_map_window_port
-130++ 64BC DA C7 65             jp      c,p127_map_test_fail
+130++ 64BC DA C9 65             jp      c,p127_map_test_fail
 131++ 64BF 11 F7 7F             ld      de,07FF7h
 132++ 64C2 B7                   or      a
 133++ 64C3 ED 52                sbc     hl,de
-134++ 64C5 C2 C7 65             jp      nz,p127_map_test_fail
+134++ 64C5 C2 C9 65             jp      nz,p127_map_test_fail
 135++ 64C8 3E 02                ld      a,2
 136++ 64CA CD 1C 64             call    p127_map_window_port
-137++ 64CD DA C7 65             jp      c,p127_map_test_fail
+137++ 64CD DA C9 65             jp      c,p127_map_test_fail
 138++ 64D0 11 F7 BF             ld      de,0BFF7h
 139++ 64D3 B7                   or      a
 140++ 64D4 ED 52                sbc     hl,de
-141++ 64D6 C2 C7 65             jp      nz,p127_map_test_fail
+141++ 64D6 C2 C9 65             jp      nz,p127_map_test_fail
 142++ 64D9 3E 03                ld      a,3
 143++ 64DB CD 1C 64             call    p127_map_window_port
-144++ 64DE DA C7 65             jp      c,p127_map_test_fail
+144++ 64DE DA C9 65             jp      c,p127_map_test_fail
 145++ 64E1 11 F7 FF             ld      de,0FFF7h
 146++ 64E4 B7                   or      a
 147++ 64E5 ED 52                sbc     hl,de
-148++ 64E7 C2 C7 65             jp      nz,p127_map_test_fail
+148++ 64E7 C2 C9 65             jp      nz,p127_map_test_fail
 149++ 64EA 3E 04                ld      a,4
 150++ 64EC CD 1C 64             call    p127_map_window_port
-151++ 64EF D2 C7 65             jp      nc,p127_map_test_fail
+151++ 64EF D2 C9 65             jp      nc,p127_map_test_fail
 152++ 64F2
 153++ 64F2 CD FB 63             call    p127_map_init
 154++ 64F5 3E 00                ld      a,0
 155++ 64F7 CD 41 64             call    p127_map_get_shadow
 156++ 64FA FE FF                cp      P127_MAP_ROM
-157++ 64FC C2 C7 65             jp      nz,p127_map_test_fail
+157++ 64FC C2 C9 65             jp      nz,p127_map_test_fail
 158++ 64FF 3E 01                ld      a,1
 159++ 6501 CD 41 64             call    p127_map_get_shadow
 160++ 6504 FE 05                cp      5
-161++ 6506 C2 C7 65             jp      nz,p127_map_test_fail
+161++ 6506 C2 C9 65             jp      nz,p127_map_test_fail
 162++ 6509 3E 02                ld      a,2
 163++ 650B CD 41 64             call    p127_map_get_shadow
 164++ 650E FE 02                cp      2
-165++ 6510 C2 C7 65             jp      nz,p127_map_test_fail
+165++ 6510 C2 C9 65             jp      nz,p127_map_test_fail
 166++ 6513 3E 03                ld      a,3
 167++ 6515 CD 41 64             call    p127_map_get_shadow
 168++ 6518 FE 00                cp      0
-169++ 651A C2 C7 65             jp      nz,p127_map_test_fail
+169++ 651A C2 C9 65             jp      nz,p127_map_test_fail
 170++ 651D 3E 04                ld      a,4
 171++ 651F CD 41 64             call    p127_map_get_shadow
-172++ 6522 D2 C7 65             jp      nc,p127_map_test_fail
+172++ 6522 D2 C9 65             jp      nc,p127_map_test_fail
 173++ 6525 B7                   or      a
 174++ 6526 C9                   ret
 175++ 6527
@@ -669,19 +669,16 @@
 186++ 6527 57                   ld      d,a
 187++ 6528 78                   ld      a,b
 188++ 6529 FE 40                cp      64
-p127_map.asm(189): error: Label not found: p127_map_handoff_reject
-189++ 652B D2 00 00             jp      nc,p127_map_handoff_reject
+189++ 652B D2 C5 65             jp      nc,p127_map_handoff_reject
 190++ 652E 7A                   ld      a,d
 191++ 652F FE 04                cp      P127_MAP_WINDOW_COUNT
-p127_map.asm(192): error: Label not found: p127_map_handoff_reject
-192++ 6531 D2 00 00             jp      nc,p127_map_handoff_reject
+192++ 6531 D2 C5 65             jp      nc,p127_map_handoff_reject
 193++ 6534 5F                   ld      e,a
 194++ 6535 21 BE 65             ld      hl,p127_map_window_mask
 195++ 6538 19                   add     hl,de
 196++ 6539 7E                   ld      a,(hl)
 197++ 653A A1                   and     c
-p127_map.asm(198): error: Label not found: p127_map_handoff_reject
-198++ 653B C2 00 00             jp      nz,p127_map_handoff_reject
+198++ 653B C2 C5 65             jp      nz,p127_map_handoff_reject
 199++ 653E 7A                   ld      a,d
 200++ 653F 32 C3 65             ld      (p127_map_pending_window),a
 201++ 6542 78                   ld      a,b
@@ -705,47 +702,47 @@ p127_map.asm(198): error: Label not found: p127_map_handoff_reject
 219++ 6557 0E 0F                ld      c,0Fh
 220++ 6559 3E 00                ld      a,0
 221++ 655B CD 27 65             call    p127_map_handoff_prepare
-222++ 655E D2 C7 65             jp      nc,p127_map_test_fail
+222++ 655E D2 C9 65             jp      nc,p127_map_test_fail
 223++ 6561 3E 01                ld      a,1
 224++ 6563 CD 27 65             call    p127_map_handoff_prepare
-225++ 6566 D2 C7 65             jp      nc,p127_map_test_fail
+225++ 6566 D2 C9 65             jp      nc,p127_map_test_fail
 226++ 6569 3E 02                ld      a,2
 227++ 656B CD 27 65             call    p127_map_handoff_prepare
-228++ 656E D2 C7 65             jp      nc,p127_map_test_fail
+228++ 656E D2 C9 65             jp      nc,p127_map_test_fail
 229++ 6571 3E 03                ld      a,3
 230++ 6573 CD 27 65             call    p127_map_handoff_prepare
-231++ 6576 D2 C7 65             jp      nc,p127_map_test_fail
+231++ 6576 D2 C9 65             jp      nc,p127_map_test_fail
 232++ 6579
 233++ 6579                      ; Synthetic case: W0 is declared stable; W1-W3 remain protected.
 234++ 6579 06 0A                ld      b,10
 235++ 657B 0E 0E                ld      c,0Eh
 236++ 657D 3E 00                ld      a,0
 237++ 657F CD 27 65             call    p127_map_handoff_prepare
-238++ 6582 DA C7 65             jp      c,p127_map_test_fail
+238++ 6582 DA C9 65             jp      c,p127_map_test_fail
 239++ 6585 3A C2 65             ld      a,(p127_map_pending_valid)
 240++ 6588 FE 01                cp      1
-241++ 658A C2 C7 65             jp      nz,p127_map_test_fail
+241++ 658A C2 C9 65             jp      nz,p127_map_test_fail
 242++ 658D 3A C3 65             ld      a,(p127_map_pending_window)
 243++ 6590 B7                   or      a
-244++ 6591 C2 C7 65             jp      nz,p127_map_test_fail
+244++ 6591 C2 C9 65             jp      nz,p127_map_test_fail
 245++ 6594 3A C4 65             ld      a,(p127_map_pending_page)
 246++ 6597 FE 0A                cp      10
-247++ 6599 C2 C7 65             jp      nz,p127_map_test_fail
+247++ 6599 C2 C9 65             jp      nz,p127_map_test_fail
 248++ 659C CD 4D 65             call    p127_map_handoff_abort
 249++ 659F 3A C2 65             ld      a,(p127_map_pending_valid)
 250++ 65A2 B7                   or      a
-251++ 65A3 C2 C7 65             jp      nz,p127_map_test_fail
+251++ 65A3 C2 C9 65             jp      nz,p127_map_test_fail
 252++ 65A6
 253++ 65A6                      ; Reject invalid window and page even if no windows are protected.
 254++ 65A6 06 0A                ld      b,10
 255++ 65A8 0E 00                ld      c,0
 256++ 65AA 3E 04                ld      a,4
 257++ 65AC CD 27 65             call    p127_map_handoff_prepare
-258++ 65AF D2 C7 65             jp      nc,p127_map_test_fail
+258++ 65AF D2 C9 65             jp      nc,p127_map_test_fail
 259++ 65B2 06 40                ld      b,64
 260++ 65B4 3E 00                ld      a,0
 261++ 65B6 CD 27 65             call    p127_map_handoff_prepare
-262++ 65B9 D2 C7 65             jp      nc,p127_map_test_fail
+262++ 65B9 D2 C9 65             jp      nc,p127_map_test_fail
 263++ 65BC B7                   or      a
 264++ 65BD C9                   ret
 265++ 65BE
@@ -758,28 +755,33 @@ p127_map.asm(198): error: Label not found: p127_map_handoff_reject
 272++ 65C4              p127_map_pending_page:
 273++ 65C4 00                   db      0
 274++ 65C5
-275++ 65C5              p127_map_invalid:
-276++ 65C5 37                   scf
-277++ 65C6 C9                   ret
-278++ 65C7              p127_map_test_fail:
-279++ 65C7 37                   scf
-280++ 65C8 C9                   ret
-281++ 65C9
-282++ 65C9              p127_map_shadow:
-283++ 65C9 00 00 00 00          ds      P127_MAP_WINDOW_COUNT,0
-284++ 65CD              p127_map_end:
-285++ 65CD
+275++ 65C5              ; Shared rejection target for handoff preflight (carry=1).
+276++ 65C5              p127_map_handoff_reject:
+277++ 65C5 37                   scf
+278++ 65C6 C9                   ret
+279++ 65C7
+280++ 65C7              p127_map_invalid:
+281++ 65C7 37                   scf
+282++ 65C8 C9                   ret
+283++ 65C9              p127_map_test_fail:
+284++ 65C9 37                   scf
+285++ 65CA C9                   ret
+286++ 65CB
+287++ 65CB              p127_map_shadow:
+288++ 65CB 00 00 00 00          ds      P127_MAP_WINDOW_COUNT,0
+289++ 65CF              p127_map_end:
+290++ 65CF
 # file closed: p127_map.asm
-154+  65CD
-155+  65CD              p127_end:
-156+  65CD                      ASSERT  p127_entry = P127_LOAD_ADDRESS
-157+  65CD                      ASSERT  p127_end > p127_entry
-158+  65CD                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
-159+  65CD
+154+  65CF
+155+  65CF              p127_end:
+156+  65CF                      ASSERT  p127_entry = P127_LOAD_ADDRESS
+157+  65CF                      ASSERT  p127_end > p127_entry
+158+  65CF                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
+159+  65CF
 # file closed: p127_boot.asm
-  8   65CD
-  9   65CD              ; BASIC boot file is assembly data, not a Python-generated byte array.
- 10   65CD                      ORG     #B000
+  8   65CF
+  9   65CF              ; BASIC boot file is assembly data, not a Python-generated byte array.
+ 10   65CF                      ORG     #B000
  11   B000              CLEAR       EQU #FD
  12   B000              LOAD        EQU #EF
  13   B000              CODE        EQU #AF
