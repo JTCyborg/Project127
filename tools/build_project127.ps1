@@ -1,63 +1,34 @@
 [CmdletBinding()]
 param(
     [string]$SjAsmPlus = (Join-Path $PSScriptRoot "sjasmplus.exe"),
-    [string]$Python = "python",
     [string]$Output = ".\disk_A.trd"
 )
-
 $ErrorActionPreference = "Stop"
 $Root = Split-Path -Parent $PSScriptRoot
 Set-Location $Root
-
-if (Test-Path $SjAsmPlus) {
-    $AssemblerPath = (Resolve-Path $SjAsmPlus).Path
-} else {
+if (-not (Test-Path $SjAsmPlus)) {
     $AssemblerCommand = Get-Command $SjAsmPlus -ErrorAction SilentlyContinue
-    if (-not $AssemblerCommand) {
-        throw "SjASMPlus not found: $SjAsmPlus"
-    }
-    $AssemblerPath = $AssemblerCommand.Source
+    if (-not $AssemblerCommand) { throw "SjASMPlus not found: $SjAsmPlus" }
+    $SjAsmPlus = $AssemblerCommand.Source
 }
-
-$PythonCommand = Get-Command $Python -ErrorAction SilentlyContinue
-if (-not $PythonCommand) {
-    throw "Python 3 not found: $Python"
-}
-$PythonPath = $PythonCommand.Source
-
 $BuildDir = Join-Path $Root "build"
 New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
-$Bin = Join-Path $BuildDir "p127_boot.bin"
 $Out = [System.IO.Path]::GetFullPath($Output)
-
-Write-Host "[P127 BUILD] ASSEMBLER=$AssemblerPath"
-Write-Host "[P127 BUILD] SOURCE=src\boot\p127_boot.asm"
-& $AssemblerPath --cleanonerror "--raw=$Bin" ".\src\boot\p127_boot.asm"
-if ($LASTEXITCODE -ne 0) {
-    throw "SjASMPlus failed: $LASTEXITCODE"
+if ([System.IO.Path]::GetFileName($Out) -ne "disk_A.trd") {
+    throw "Project127 main.asm writes disk_A.trd; use -Output disk_A.trd"
 }
-if (-not (Test-Path $Bin) -or (Get-Item $Bin).Length -eq 0) {
-    throw "Assembler did not create a non-empty boot binary"
-}
-
-Write-Host "[P127 BUILD] BUILDING_TRD=$Out"
-& $PythonPath ".\tools\trd_image.py" --code $Bin --output $Out
-if ($LASTEXITCODE -ne 0) {
-    throw "TR-DOS image build failed: $LASTEXITCODE"
-}
-if (-not (Test-Path $Out)) {
-    throw "TR-DOS image was not created: $Out"
-}
+Remove-Item -Force -ErrorAction SilentlyContinue $Out
+Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $BuildDir "list.txt")
+Remove-Item -Force -ErrorAction SilentlyContinue (Join-Path $BuildDir "map.txt")
+Write-Host "[P127 BUILD] ASSEMBLER=$SjAsmPlus"
+Write-Host "[P127 BUILD] SOURCE=src/main.asm"
+& $SjAsmPlus --dirbol "--lst=build/list.txt" "--sym=build/map.txt" src/main.asm
+if ($LASTEXITCODE -ne 0) { throw "SjASMPlus failed: $LASTEXITCODE" }
+if (-not (Test-Path $Out)) { throw "SjASMPlus did not create $Out" }
 $ImageSize = (Get-Item $Out).Length
-if ($ImageSize -ne 655360) {
-    throw "TR-DOS image size is $ImageSize; expected 655360"
-}
-
-$BuildCopy = Join-Path $BuildDir "disk_A.trd"
-if ($Out -ne $BuildCopy) {
-    Copy-Item -Force $Out $BuildCopy
-}
-
-Write-Host "[P127 BUILD] BOOT_BIN=$Bin ($((Get-Item $Bin).Length) bytes)"
+if ($ImageSize -ne 655360) { throw "TR-DOS image is $ImageSize bytes; expected 655360" }
+Copy-Item -Force $Out (Join-Path $BuildDir "disk_A.trd")
+Write-Host "[P127 BUILD] BASIC=boot.B"
+Write-Host "[P127 BUILD] STAGE2=P127BOOT.C LOAD=#6000"
 Write-Host "[P127 BUILD] TRD_IMAGE=$Out ($ImageSize bytes)"
 Write-Host "[P127 BUILD] BUILD OK"
