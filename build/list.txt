@@ -1,3 +1,11 @@
+p127_console.asm(370): error: Duplicate label: BIOS_DebugConsole_PrintChar
+p127_console.asm(386): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_char_ok
+p127_console.asm(403): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_store_col
+p127_console.asm(405): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_sync_cursor
+p127_console.asm(412): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_cr
+p127_console.asm(417): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_lf
+p127_console.asm(420): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_bs
+p127_console.asm(434): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_done
 # file opened: main.asm
   1   0000              ; ============================================================================
   2   0000              ; Project127 — complete TR-DOS image, assembled in one SjASMPlus pass.
@@ -8,7 +16,7 @@
   7   0000                      INCLUDE "src/boot/p127_boot.asm"
 # file opened: p127_boot.asm
   1+  0000              ; ============================================================================
-  2+  0000              ; Project127 — boot stage 0.3
+  2+  0000              ; Project127 — boot stage 0.4
   3+  0000              ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
   4+  0000              ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
   5+  0000              ; ============================================================================
@@ -31,319 +39,350 @@
  22+  600A F3                   di
  23+  600B 31 FF BF             ld      sp, P127_STACK_TOP
  24+  600E
- 25+  600E 21 65 60             ld      hl, p127_msg_entry
- 26+  6011 CD 58 60             call    p127_puts
+ 25+  600E 21 B6 60             ld      hl, p127_msg_entry
+ 26+  6011 CD 66 60             call    p127_puts
  27+  6014
- 28+  6014 21 7D 60             ld      hl, p127_msg_stack
- 29+  6017 CD 58 60             call    p127_puts
+ 28+  6014 21 CE 60             ld      hl, p127_msg_stack
+ 29+  6017 CD 66 60             call    p127_puts
  30+  601A
- 31+  601A 21 95 60             ld      hl, p127_msg_exec
- 32+  601D CD 58 60             call    p127_puts
+ 31+  601A 21 E6 60             ld      hl, p127_msg_exec
+ 32+  601D CD 66 60             call    p127_puts
  33+  6020
- 34+  6020 21 AA 60             ld      hl, p127_msg_pass
- 35+  6023 CD 58 60             call    p127_puts
+ 34+  6020 21 FB 60             ld      hl, p127_msg_pass
+ 35+  6023 CD 66 60             call    p127_puts
  36+  6026
- 37+  6026                      ; Stage 1/2: software page accounting plus verified ATM video reserves.
- 38+  6026 CD 5E 61             call    p127_mem_init
- 39+  6029 21 C4 60             ld      hl,p127_msg_mem_init
- 40+  602C CD 58 60             call    p127_puts
- 41+  602F CD 9D 61             call    p127_mem_reserve_video
- 42+  6032 38 13                jr      c,p127_mem_map_failed
- 43+  6034 21 DE 60             ld      hl,p127_msg_video_reserved
- 44+  6037 CD 58 60             call    p127_puts
- 45+  603A CD EC 61             call    p127_mem_selftest
- 46+  603D 38 10                jr      c,p127_mem_failed
- 47+  603F 21 26 61             ld      hl,p127_msg_mem_pass
- 48+  6042 CD 58 60             call    p127_puts
- 49+  6045 18 0E                jr      p127_idle
- 50+  6047              p127_mem_map_failed:
- 51+  6047 21 06 61             ld      hl,p127_msg_mem_map_fail
- 52+  604A CD 58 60             call    p127_puts
- 53+  604D 18 06                jr      p127_idle
- 54+  604F              p127_mem_failed:
- 55+  604F 21 42 61             ld      hl,p127_msg_mem_fail
- 56+  6052 CD 58 60             call    p127_puts
- 57+  6055
- 58+  6055              p127_idle:
- 59+  6055 76                   halt
- 60+  6056 18 FD                jr      p127_idle
- 61+  6058
- 62+  6058              ; Input: HL -> zero-terminated string.
- 63+  6058              ; Clobbers AF, BC, HL. Preserves caller's stack frame.
- 64+  6058              p127_puts:
- 65+  6058 7E                   ld      a, (hl)
- 66+  6059 B7                   or      a
- 67+  605A C8                   ret     z
- 68+  605B 23                   inc     hl
- 69+  605C E5                   push    hl
- 70+  605D 01 EF 00             ld      bc, P127_DEBUG_PORT
- 71+  6060 ED 79                out     (c), a
- 72+  6062 E1                   pop     hl
- 73+  6063 18 F3                jr      p127_puts
- 74+  6065
- 75+  6065              p127_msg_entry:
- 76+  6065 5B 50 31 32          db      "[P127] S2 ENTRY @6000", 13, 10, 0
- 76+  6069 37 5D 20 53
- 76+  606D 32 20 45 4E
- 76+  6071 54 52 59 20
- 76+  6075 40 36 30 30
- 76+  6079 30 0D 0A 00
- 77+  607D              p127_msg_stack:
- 78+  607D 5B 50 31 32          db      "[P127] STACK SET BFFF", 13, 10, 0
- 78+  6081 37 5D 20 53
- 78+  6085 54 41 43 4B
- 78+  6089 20 53 45 54
- 78+  608D 20 42 46 46
- 78+  6091 46 0D 0A 00
- 79+  6095              p127_msg_exec:
- 80+  6095 5B 50 31 32          db      "[P127] DEBUG TX EF", 13, 10, 0
- 80+  6099 37 5D 20 44
- 80+  609D 45 42 55 47
- 80+  60A1 20 54 58 20
- 80+  60A5 45 46 0D 0A
- 80+  60A9 00
- 81+  60AA              p127_msg_pass:
- 82+  60AA 5B 50 31 32          db      "[P127] BOOT0 PASS; IDLE", 13, 10, 0
- 82+  60AE 37 5D 20 42
- 82+  60B2 4F 4F 54 30
- 82+  60B6 20 50 41 53
- 82+  60BA 53 3B 20 49
- 82+  60BE 44 4C 45 0D
- 82+  60C2 0A 00
- 83+  60C4              p127_msg_mem_init:
- 84+  60C4 5B 50 31 32          db      "[P127] MEM INIT 1MB/64P", 13, 10, 0
- 84+  60C8 37 5D 20 4D
- 84+  60CC 45 4D 20 49
- 84+  60D0 4E 49 54 20
- 84+  60D4 31 4D 42 2F
- 84+  60D8 36 34 50 0D
- 84+  60DC 0A 00
- 85+  60DE              p127_msg_video_reserved:
- 86+  60DE 5B 50 31 32          db      "[P127] VIDEO RAM RESERVED P1,P3,P5,P7", 13, 10, 0
- 86+  60E2 37 5D 20 56
- 86+  60E6 49 44 45 4F
- 86+  60EA 20 52 41 4D
- 86+  60EE 20 52 45 53
- 86+  60F2 45 52 56 45
- 86+  60F6 44 20 50 31
- 86+  60FA 2C 50 33 2C
- 86+  60FE 50 35 2C 50
- 86+  6102 37 0D 0A 00
- 87+  6106              p127_msg_mem_map_fail:
- 88+  6106 5B 50 31 32          db      "[P127] VIDEO RAM RESERVE FAIL", 13, 10, 0
- 88+  610A 37 5D 20 56
- 88+  610E 49 44 45 4F
- 88+  6112 20 52 41 4D
- 88+  6116 20 52 45 53
- 88+  611A 45 52 56 45
- 88+  611E 20 46 41 49
- 88+  6122 4C 0D 0A 00
- 89+  6126              p127_msg_mem_pass:
- 90+  6126 5B 50 31 32          db      "[P127] MEM PAGE TEST PASS", 13, 10, 0
- 90+  612A 37 5D 20 4D
- 90+  612E 45 4D 20 50
- 90+  6132 41 47 45 20
- 90+  6136 54 45 53 54
- 90+  613A 20 50 41 53
- 90+  613E 53 0D 0A 00
- 91+  6142              p127_msg_mem_fail:
- 92+  6142 5B 50 31 32          db      "[P127] MEM PAGE TEST FAIL", 13, 10, 0
- 92+  6146 37 5D 20 4D
- 92+  614A 45 4D 20 50
- 92+  614E 41 47 45 20
- 92+  6152 54 45 53 54
- 92+  6156 20 46 41 49
- 92+  615A 4C 0D 0A 00
- 93+  615E
- 94+  615E                      INCLUDE "src/kernel/p127_mem.asm"
+ 37+  6026                      ; Initialize Project126's ATM-native debug console after BOOT0.
+ 38+  6026 CD 81 A0             call    p127_ui_init
+ 39+  6029 3E 01                ld      a,1
+ 40+  602B 32 82 60             ld      (p127_ui_ready),a
+ 41+  602E 21 83 60             ld      hl,p127_msg_ui_ready
+ 42+  6031 CD 66 60             call    p127_puts
+ 43+  6034
+ 44+  6034                      ; Stage 1/2: software page accounting plus verified ATM video reserves.
+ 45+  6034 CD AF 61             call    p127_mem_init
+ 46+  6037 21 15 61             ld      hl,p127_msg_mem_init
+ 47+  603A CD 66 60             call    p127_puts
+ 48+  603D CD EE 61             call    p127_mem_reserve_video
+ 49+  6040 38 13                jr      c,p127_mem_map_failed
+ 50+  6042 21 2F 61             ld      hl,p127_msg_video_reserved
+ 51+  6045 CD 66 60             call    p127_puts
+ 52+  6048 CD 3D 62             call    p127_mem_selftest
+ 53+  604B 38 10                jr      c,p127_mem_failed
+ 54+  604D 21 77 61             ld      hl,p127_msg_mem_pass
+ 55+  6050 CD 66 60             call    p127_puts
+ 56+  6053 18 0E                jr      p127_idle
+ 57+  6055              p127_mem_map_failed:
+ 58+  6055 21 57 61             ld      hl,p127_msg_mem_map_fail
+ 59+  6058 CD 66 60             call    p127_puts
+ 60+  605B 18 06                jr      p127_idle
+ 61+  605D              p127_mem_failed:
+ 62+  605D 21 93 61             ld      hl,p127_msg_mem_fail
+ 63+  6060 CD 66 60             call    p127_puts
+ 64+  6063
+ 65+  6063              p127_idle:
+ 66+  6063 76                   halt
+ 67+  6064 18 FD                jr      p127_idle
+ 68+  6066
+ 69+  6066              ; Input: HL -> zero-terminated string.
+ 70+  6066              ; Clobbers AF, BC, HL. Preserves caller's stack frame.
+ 71+  6066              p127_puts:
+ 72+  6066 7E                   ld      a,(hl)
+ 73+  6067 B7                   or      a
+ 74+  6068 C8                   ret     z
+ 75+  6069 23                   inc     hl
+ 76+  606A E5                   push    hl
+ 77+  606B F5                   push    af
+ 78+  606C 3A 82 60             ld      a,(p127_ui_ready)
+ 79+  606F B7                   or      a
+ 80+  6070 28 07                jr      z,p127_puts_ef
+ 81+  6072 F1                   pop     af
+ 82+  6073 CD 2E A2             call    BIOS_DebugConsole_PrintChar
+ 83+  6076 E1                   pop     hl
+ 84+  6077 18 ED                jr      p127_puts
+ 85+  6079              p127_puts_ef:
+ 86+  6079 F1                   pop     af
+ 87+  607A 01 EF 00             ld      bc,P127_DEBUG_PORT
+ 88+  607D ED 79                out     (c),a
+ 89+  607F E1                   pop     hl
+ 90+  6080 18 E4                jr      p127_puts
+ 91+  6082
+ 92+  6082 00           p127_ui_ready: db 0
+ 93+  6083 5B 50 31 32  p127_msg_ui_ready: db "[P127] UI READY; ALL DEBUG OUTPUT MIRRORED TO EF",13,10,0
+ 93+  6087 37 5D 20 55
+ 93+  608B 49 20 52 45
+ 93+  608F 41 44 59 3B
+ 93+  6093 20 41 4C 4C
+ 93+  6097 20 44 45 42
+ 93+  609B 55 47 20 4F
+ 93+  609F 55 54 50 55
+ 93+  60A3 54 20 4D 49
+ 93+  60A7 52 52 4F 52
+ 93+  60AB 45 44 20 54
+ 93+  60AF 4F 20 45 46
+ 93+  60B3 0D 0A 00
+ 94+  60B6              p127_msg_entry:
+ 95+  60B6 5B 50 31 32          db      "[P127] S2 ENTRY @6000", 13, 10, 0
+ 95+  60BA 37 5D 20 53
+ 95+  60BE 32 20 45 4E
+ 95+  60C2 54 52 59 20
+ 95+  60C6 40 36 30 30
+ 95+  60CA 30 0D 0A 00
+ 96+  60CE              p127_msg_stack:
+ 97+  60CE 5B 50 31 32          db      "[P127] STACK SET BFFF", 13, 10, 0
+ 97+  60D2 37 5D 20 53
+ 97+  60D6 54 41 43 4B
+ 97+  60DA 20 53 45 54
+ 97+  60DE 20 42 46 46
+ 97+  60E2 46 0D 0A 00
+ 98+  60E6              p127_msg_exec:
+ 99+  60E6 5B 50 31 32          db      "[P127] DEBUG TX EF", 13, 10, 0
+ 99+  60EA 37 5D 20 44
+ 99+  60EE 45 42 55 47
+ 99+  60F2 20 54 58 20
+ 99+  60F6 45 46 0D 0A
+ 99+  60FA 00
+100+  60FB              p127_msg_pass:
+101+  60FB 5B 50 31 32          db      "[P127] BOOT0 PASS; IDLE", 13, 10, 0
+101+  60FF 37 5D 20 42
+101+  6103 4F 4F 54 30
+101+  6107 20 50 41 53
+101+  610B 53 3B 20 49
+101+  610F 44 4C 45 0D
+101+  6113 0A 00
+102+  6115              p127_msg_mem_init:
+103+  6115 5B 50 31 32          db      "[P127] MEM INIT 1MB/64P", 13, 10, 0
+103+  6119 37 5D 20 4D
+103+  611D 45 4D 20 49
+103+  6121 4E 49 54 20
+103+  6125 31 4D 42 2F
+103+  6129 36 34 50 0D
+103+  612D 0A 00
+104+  612F              p127_msg_video_reserved:
+105+  612F 5B 50 31 32          db      "[P127] VIDEO RAM RESERVED P1,P3,P5,P7", 13, 10, 0
+105+  6133 37 5D 20 56
+105+  6137 49 44 45 4F
+105+  613B 20 52 41 4D
+105+  613F 20 52 45 53
+105+  6143 45 52 56 45
+105+  6147 44 20 50 31
+105+  614B 2C 50 33 2C
+105+  614F 50 35 2C 50
+105+  6153 37 0D 0A 00
+106+  6157              p127_msg_mem_map_fail:
+107+  6157 5B 50 31 32          db      "[P127] VIDEO RAM RESERVE FAIL", 13, 10, 0
+107+  615B 37 5D 20 56
+107+  615F 49 44 45 4F
+107+  6163 20 52 41 4D
+107+  6167 20 52 45 53
+107+  616B 45 52 56 45
+107+  616F 20 46 41 49
+107+  6173 4C 0D 0A 00
+108+  6177              p127_msg_mem_pass:
+109+  6177 5B 50 31 32          db      "[P127] MEM PAGE TEST PASS", 13, 10, 0
+109+  617B 37 5D 20 4D
+109+  617F 45 4D 20 50
+109+  6183 41 47 45 20
+109+  6187 54 45 53 54
+109+  618B 20 50 41 53
+109+  618F 53 0D 0A 00
+110+  6193              p127_msg_mem_fail:
+111+  6193 5B 50 31 32          db      "[P127] MEM PAGE TEST FAIL", 13, 10, 0
+111+  6197 37 5D 20 4D
+111+  619B 45 4D 20 50
+111+  619F 41 47 45 20
+111+  61A3 54 45 53 54
+111+  61A7 20 46 41 49
+111+  61AB 4C 0D 0A 00
+112+  61AF
+113+  61AF                      INCLUDE "src/kernel/p127_mem.asm"
 # file opened: p127_mem.asm
-  1++ 615E              ; ============================================================================
-  2++ 615E              ; Project127 ATM Core — physical page-state manager
-  3++ 615E              ; Module version: 0.2.0
-  4++ 615E              ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
-  5++ 615E              ;      free A=page, C=invalid/not allocated.
-  6++ 615E              ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
-  7++ 615E              ; NOTE: IDs are accounting handles only. Hardware page-register encoding and
-  8++ 615E              ;       video/kernel reservations are deliberately supplied by later map code.
-  9++ 615E              ; ============================================================================
- 10++ 615E              P127_MEM_VERSION_MAJOR EQU 0
- 11++ 615E              P127_MEM_VERSION_MINOR EQU 2
- 12++ 615E              P127_MEM_VERSION_PATCH EQU 0
- 13++ 615E              P127_MEM_PAGE_COUNT    EQU 64
- 14++ 615E              P127_MEM_PAGE_SIZE     EQU 04000h
- 15++ 615E              P127_MEM_FREE          EQU 0
- 16++ 615E              P127_MEM_RESERVED      EQU 1
- 17++ 615E              P127_MEM_ALLOCATED     EQU 2
- 18++ 615E
- 19++ 615E              p127_mem_init:
- 20++ 615E 21 29 62             ld      hl,p127_mem_page_state
- 21++ 6161 11 2A 62             ld      de,p127_mem_page_state+1
- 22++ 6164 01 3F 00             ld      bc,P127_MEM_PAGE_COUNT-1
- 23++ 6167 36 00                ld      (hl),P127_MEM_FREE
- 24++ 6169 ED B0                ldir
- 25++ 616B C9                   ret
- 26++ 616C
- 27++ 616C              ; Reserve a contiguous physical-page range.
- 28++ 616C              ; IN: A=first page, B=count. OUT: carry=1 on invalid range/conflict.
- 29++ 616C              ; A zero-length reservation is accepted as a no-op.
- 30++ 616C              p127_mem_reserve:
- 31++ 616C 4F                   ld      c,a
- 32++ 616D 78                   ld      a,b
- 33++ 616E B7                   or      a
- 34++ 616F C8                   ret     z
- 35++ 6170 79                   ld      a,c
- 36++ 6171 FE 40                cp      P127_MEM_PAGE_COUNT
- 37++ 6173 30 75                jr      nc,p127_mem_error
- 38++ 6175 79                   ld      a,c
- 39++ 6176 80                   add     a,b
- 40++ 6177 38 71                jr      c,p127_mem_error
- 41++ 6179 FE 41                cp      P127_MEM_PAGE_COUNT+1
- 42++ 617B 30 6D                jr      nc,p127_mem_error
- 43++ 617D 21 29 62             ld      hl,p127_mem_page_state
- 44++ 6180 59                   ld      e,c
- 45++ 6181 16 00                ld      d,0
- 46++ 6183 19                   add     hl,de
- 47++ 6184 50                   ld      d,b
- 48++ 6185              p127_mem_reserve_check:
- 49++ 6185 7E                   ld      a,(hl)
- 50++ 6186 B7                   or      a
- 51++ 6187 20 61                jr      nz,p127_mem_error
- 52++ 6189 23                   inc     hl
- 53++ 618A 15                   dec     d
- 54++ 618B 20 F8                jr      nz,p127_mem_reserve_check
- 55++ 618D 21 29 62             ld      hl,p127_mem_page_state
- 56++ 6190 59                   ld      e,c
- 57++ 6191 16 00                ld      d,0
- 58++ 6193 19                   add     hl,de
- 59++ 6194 50                   ld      d,b
- 60++ 6195              p127_mem_reserve_set:
- 61++ 6195 36 01                ld      (hl),P127_MEM_RESERVED
- 62++ 6197 23                   inc     hl
- 63++ 6198 15                   dec     d
- 64++ 6199 20 FA                jr      nz,p127_mem_reserve_set
- 65++ 619B B7                   or      a
- 66++ 619C C9                   ret
- 67++ 619D
- 68++ 619D              ; Reserve ATM video RAM used by the complete Project112 mode set.
- 69++ 619D              ; Project112 ATM710: ZX uses page 5 or 7; ATM640/EGA/Text use page
- 70++ 619D              ; pairs 5+1 or 7+3. Reserve the union so any supported mode can be selected.
- 71++ 619D              ; OUT: carry=1 if a reservation conflicts or is out of range.
- 72++ 619D              p127_mem_reserve_video:
- 73++ 619D 3E 01                ld      a,1
- 74++ 619F 06 01                ld      b,1
- 75++ 61A1 CD 6C 61             call    p127_mem_reserve
- 76++ 61A4 D8                   ret     c
- 77++ 61A5 3E 03                ld      a,3
- 78++ 61A7 06 01                ld      b,1
- 79++ 61A9 CD 6C 61             call    p127_mem_reserve
- 80++ 61AC D8                   ret     c
- 81++ 61AD 3E 05                ld      a,5
- 82++ 61AF 06 01                ld      b,1
- 83++ 61B1 CD 6C 61             call    p127_mem_reserve
- 84++ 61B4 D8                   ret     c
- 85++ 61B5 3E 07                ld      a,7
- 86++ 61B7 06 01                ld      b,1
- 87++ 61B9 CD 6C 61             call    p127_mem_reserve
- 88++ 61BC D8                   ret     c
- 89++ 61BD B7                   or      a
- 90++ 61BE C9                   ret
- 91++ 61BF
- 92++ 61BF              ; Allocate the first free physical page.
- 93++ 61BF              ; OUT: A=page ID, carry=1 when exhausted.
- 94++ 61BF              p127_mem_alloc:
- 95++ 61BF 21 29 62             ld      hl,p127_mem_page_state
- 96++ 61C2 06 40                ld      b,P127_MEM_PAGE_COUNT
- 97++ 61C4 0E 00                ld      c,0
- 98++ 61C6              p127_mem_alloc_scan:
- 99++ 61C6 7E                   ld      a,(hl)
-100++ 61C7 B7                   or      a
-101++ 61C8 28 06                jr      z,p127_mem_alloc_found
-102++ 61CA 23                   inc     hl
-103++ 61CB 0C                   inc     c
-104++ 61CC 10 F8                djnz    p127_mem_alloc_scan
-105++ 61CE 37                   scf
-106++ 61CF C9                   ret
-107++ 61D0              p127_mem_alloc_found:
-108++ 61D0 36 02                ld      (hl),P127_MEM_ALLOCATED
-109++ 61D2 79                   ld      a,c
-110++ 61D3 B7                   or      a
-111++ 61D4 C9                   ret
-112++ 61D5
-113++ 61D5              ; Release only pages owned by the allocator. Reserved pages cannot be freed.
-114++ 61D5              ; IN: A=page ID. OUT: carry=1 for invalid ID or non-allocated page.
-115++ 61D5              p127_mem_free:
-116++ 61D5 FE 40                cp      P127_MEM_PAGE_COUNT
-117++ 61D7 30 11                jr      nc,p127_mem_error
-118++ 61D9 4F                   ld      c,a
-119++ 61DA 21 29 62             ld      hl,p127_mem_page_state
-120++ 61DD 59                   ld      e,c
-121++ 61DE 16 00                ld      d,0
-122++ 61E0 19                   add     hl,de
-123++ 61E1 7E                   ld      a,(hl)
-124++ 61E2 FE 02                cp      P127_MEM_ALLOCATED
-125++ 61E4 20 04                jr      nz,p127_mem_error
-126++ 61E6 36 00                ld      (hl),P127_MEM_FREE
-127++ 61E8 B7                   or      a
-128++ 61E9 C9                   ret
-129++ 61EA
-130++ 61EA              p127_mem_error:
-131++ 61EA 37                   scf
-132++ 61EB C9                   ret
-133++ 61EC
-134++ 61EC              ; Runtime smoke test: reserved video pages are immutable; allocation/free works.
-135++ 61EC              ; OUT: carry=1 on failure. Does not retain any allocated page.
-136++ 61EC              p127_mem_selftest:
-137++ 61EC 3E 01                ld      a,1
-138++ 61EE CD D5 61             call    p127_mem_free
-139++ 61F1 30 33                jr      nc,p127_mem_test_fail
-140++ 61F3 3E 03                ld      a,3
-141++ 61F5 CD D5 61             call    p127_mem_free
-142++ 61F8 30 2C                jr      nc,p127_mem_test_fail
-143++ 61FA 3E 05                ld      a,5
-144++ 61FC CD D5 61             call    p127_mem_free
-145++ 61FF 30 25                jr      nc,p127_mem_test_fail
-146++ 6201 3E 07                ld      a,7
-147++ 6203 CD D5 61             call    p127_mem_free
-148++ 6206 30 1E                jr      nc,p127_mem_test_fail
-149++ 6208 CD BF 61             call    p127_mem_alloc
-150++ 620B D8                   ret     c
-151++ 620C 32 28 62             ld      (p127_mem_test_page),a
-152++ 620F CD D5 61             call    p127_mem_free
-153++ 6212 D8                   ret     c
-154++ 6213 3A 28 62             ld      a,(p127_mem_test_page)
-155++ 6216 CD BF 61             call    p127_mem_alloc
-156++ 6219 D8                   ret     c
-157++ 621A 47                   ld      b,a
-158++ 621B 3A 28 62             ld      a,(p127_mem_test_page)
-159++ 621E B8                   cp      b
-160++ 621F 20 05                jr      nz,p127_mem_test_fail
-161++ 6221 78                   ld      a,b
-162++ 6222 CD D5 61             call    p127_mem_free
-163++ 6225 C9                   ret
-164++ 6226              p127_mem_test_fail:
-165++ 6226 37                   scf
-166++ 6227 C9                   ret
-167++ 6228
-168++ 6228              p127_mem_test_page:
-169++ 6228 00                   db      0
-170++ 6229              p127_mem_page_state:
-171++ 6229 00 00 00...          ds      P127_MEM_PAGE_COUNT,0
-172++ 6269              p127_mem_end:
-173++ 6269
-174++ 6269                      ASSERT  P127_MEM_PAGE_COUNT*P127_MEM_PAGE_SIZE = 100000h
-175++ 6269                      ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
-176++ 6269
+  1++ 61AF              ; ============================================================================
+  2++ 61AF              ; Project127 ATM Core — physical page-state manager
+  3++ 61AF              ; Module version: 0.2.0
+  4++ 61AF              ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
+  5++ 61AF              ;      free A=page, C=invalid/not allocated.
+  6++ 61AF              ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
+  7++ 61AF              ; NOTE: IDs are accounting handles only. Hardware page-register encoding and
+  8++ 61AF              ;       video/kernel reservations are deliberately supplied by later map code.
+  9++ 61AF              ; ============================================================================
+ 10++ 61AF              P127_MEM_VERSION_MAJOR EQU 0
+ 11++ 61AF              P127_MEM_VERSION_MINOR EQU 2
+ 12++ 61AF              P127_MEM_VERSION_PATCH EQU 0
+ 13++ 61AF              P127_MEM_PAGE_COUNT    EQU 64
+ 14++ 61AF              P127_MEM_PAGE_SIZE     EQU 04000h
+ 15++ 61AF              P127_MEM_FREE          EQU 0
+ 16++ 61AF              P127_MEM_RESERVED      EQU 1
+ 17++ 61AF              P127_MEM_ALLOCATED     EQU 2
+ 18++ 61AF
+ 19++ 61AF              p127_mem_init:
+ 20++ 61AF 21 7A 62             ld      hl,p127_mem_page_state
+ 21++ 61B2 11 7B 62             ld      de,p127_mem_page_state+1
+ 22++ 61B5 01 3F 00             ld      bc,P127_MEM_PAGE_COUNT-1
+ 23++ 61B8 36 00                ld      (hl),P127_MEM_FREE
+ 24++ 61BA ED B0                ldir
+ 25++ 61BC C9                   ret
+ 26++ 61BD
+ 27++ 61BD              ; Reserve a contiguous physical-page range.
+ 28++ 61BD              ; IN: A=first page, B=count. OUT: carry=1 on invalid range/conflict.
+ 29++ 61BD              ; A zero-length reservation is accepted as a no-op.
+ 30++ 61BD              p127_mem_reserve:
+ 31++ 61BD 4F                   ld      c,a
+ 32++ 61BE 78                   ld      a,b
+ 33++ 61BF B7                   or      a
+ 34++ 61C0 C8                   ret     z
+ 35++ 61C1 79                   ld      a,c
+ 36++ 61C2 FE 40                cp      P127_MEM_PAGE_COUNT
+ 37++ 61C4 30 75                jr      nc,p127_mem_error
+ 38++ 61C6 79                   ld      a,c
+ 39++ 61C7 80                   add     a,b
+ 40++ 61C8 38 71                jr      c,p127_mem_error
+ 41++ 61CA FE 41                cp      P127_MEM_PAGE_COUNT+1
+ 42++ 61CC 30 6D                jr      nc,p127_mem_error
+ 43++ 61CE 21 7A 62             ld      hl,p127_mem_page_state
+ 44++ 61D1 59                   ld      e,c
+ 45++ 61D2 16 00                ld      d,0
+ 46++ 61D4 19                   add     hl,de
+ 47++ 61D5 50                   ld      d,b
+ 48++ 61D6              p127_mem_reserve_check:
+ 49++ 61D6 7E                   ld      a,(hl)
+ 50++ 61D7 B7                   or      a
+ 51++ 61D8 20 61                jr      nz,p127_mem_error
+ 52++ 61DA 23                   inc     hl
+ 53++ 61DB 15                   dec     d
+ 54++ 61DC 20 F8                jr      nz,p127_mem_reserve_check
+ 55++ 61DE 21 7A 62             ld      hl,p127_mem_page_state
+ 56++ 61E1 59                   ld      e,c
+ 57++ 61E2 16 00                ld      d,0
+ 58++ 61E4 19                   add     hl,de
+ 59++ 61E5 50                   ld      d,b
+ 60++ 61E6              p127_mem_reserve_set:
+ 61++ 61E6 36 01                ld      (hl),P127_MEM_RESERVED
+ 62++ 61E8 23                   inc     hl
+ 63++ 61E9 15                   dec     d
+ 64++ 61EA 20 FA                jr      nz,p127_mem_reserve_set
+ 65++ 61EC B7                   or      a
+ 66++ 61ED C9                   ret
+ 67++ 61EE
+ 68++ 61EE              ; Reserve ATM video RAM used by the complete Project112 mode set.
+ 69++ 61EE              ; Project112 ATM710: ZX uses page 5 or 7; ATM640/EGA/Text use page
+ 70++ 61EE              ; pairs 5+1 or 7+3. Reserve the union so any supported mode can be selected.
+ 71++ 61EE              ; OUT: carry=1 if a reservation conflicts or is out of range.
+ 72++ 61EE              p127_mem_reserve_video:
+ 73++ 61EE 3E 01                ld      a,1
+ 74++ 61F0 06 01                ld      b,1
+ 75++ 61F2 CD BD 61             call    p127_mem_reserve
+ 76++ 61F5 D8                   ret     c
+ 77++ 61F6 3E 03                ld      a,3
+ 78++ 61F8 06 01                ld      b,1
+ 79++ 61FA CD BD 61             call    p127_mem_reserve
+ 80++ 61FD D8                   ret     c
+ 81++ 61FE 3E 05                ld      a,5
+ 82++ 6200 06 01                ld      b,1
+ 83++ 6202 CD BD 61             call    p127_mem_reserve
+ 84++ 6205 D8                   ret     c
+ 85++ 6206 3E 07                ld      a,7
+ 86++ 6208 06 01                ld      b,1
+ 87++ 620A CD BD 61             call    p127_mem_reserve
+ 88++ 620D D8                   ret     c
+ 89++ 620E B7                   or      a
+ 90++ 620F C9                   ret
+ 91++ 6210
+ 92++ 6210              ; Allocate the first free physical page.
+ 93++ 6210              ; OUT: A=page ID, carry=1 when exhausted.
+ 94++ 6210              p127_mem_alloc:
+ 95++ 6210 21 7A 62             ld      hl,p127_mem_page_state
+ 96++ 6213 06 40                ld      b,P127_MEM_PAGE_COUNT
+ 97++ 6215 0E 00                ld      c,0
+ 98++ 6217              p127_mem_alloc_scan:
+ 99++ 6217 7E                   ld      a,(hl)
+100++ 6218 B7                   or      a
+101++ 6219 28 06                jr      z,p127_mem_alloc_found
+102++ 621B 23                   inc     hl
+103++ 621C 0C                   inc     c
+104++ 621D 10 F8                djnz    p127_mem_alloc_scan
+105++ 621F 37                   scf
+106++ 6220 C9                   ret
+107++ 6221              p127_mem_alloc_found:
+108++ 6221 36 02                ld      (hl),P127_MEM_ALLOCATED
+109++ 6223 79                   ld      a,c
+110++ 6224 B7                   or      a
+111++ 6225 C9                   ret
+112++ 6226
+113++ 6226              ; Release only pages owned by the allocator. Reserved pages cannot be freed.
+114++ 6226              ; IN: A=page ID. OUT: carry=1 for invalid ID or non-allocated page.
+115++ 6226              p127_mem_free:
+116++ 6226 FE 40                cp      P127_MEM_PAGE_COUNT
+117++ 6228 30 11                jr      nc,p127_mem_error
+118++ 622A 4F                   ld      c,a
+119++ 622B 21 7A 62             ld      hl,p127_mem_page_state
+120++ 622E 59                   ld      e,c
+121++ 622F 16 00                ld      d,0
+122++ 6231 19                   add     hl,de
+123++ 6232 7E                   ld      a,(hl)
+124++ 6233 FE 02                cp      P127_MEM_ALLOCATED
+125++ 6235 20 04                jr      nz,p127_mem_error
+126++ 6237 36 00                ld      (hl),P127_MEM_FREE
+127++ 6239 B7                   or      a
+128++ 623A C9                   ret
+129++ 623B
+130++ 623B              p127_mem_error:
+131++ 623B 37                   scf
+132++ 623C C9                   ret
+133++ 623D
+134++ 623D              ; Runtime smoke test: reserved video pages are immutable; allocation/free works.
+135++ 623D              ; OUT: carry=1 on failure. Does not retain any allocated page.
+136++ 623D              p127_mem_selftest:
+137++ 623D 3E 01                ld      a,1
+138++ 623F CD 26 62             call    p127_mem_free
+139++ 6242 30 33                jr      nc,p127_mem_test_fail
+140++ 6244 3E 03                ld      a,3
+141++ 6246 CD 26 62             call    p127_mem_free
+142++ 6249 30 2C                jr      nc,p127_mem_test_fail
+143++ 624B 3E 05                ld      a,5
+144++ 624D CD 26 62             call    p127_mem_free
+145++ 6250 30 25                jr      nc,p127_mem_test_fail
+146++ 6252 3E 07                ld      a,7
+147++ 6254 CD 26 62             call    p127_mem_free
+148++ 6257 30 1E                jr      nc,p127_mem_test_fail
+149++ 6259 CD 10 62             call    p127_mem_alloc
+150++ 625C D8                   ret     c
+151++ 625D 32 79 62             ld      (p127_mem_test_page),a
+152++ 6260 CD 26 62             call    p127_mem_free
+153++ 6263 D8                   ret     c
+154++ 6264 3A 79 62             ld      a,(p127_mem_test_page)
+155++ 6267 CD 10 62             call    p127_mem_alloc
+156++ 626A D8                   ret     c
+157++ 626B 47                   ld      b,a
+158++ 626C 3A 79 62             ld      a,(p127_mem_test_page)
+159++ 626F B8                   cp      b
+160++ 6270 20 05                jr      nz,p127_mem_test_fail
+161++ 6272 78                   ld      a,b
+162++ 6273 CD 26 62             call    p127_mem_free
+163++ 6276 C9                   ret
+164++ 6277              p127_mem_test_fail:
+165++ 6277 37                   scf
+166++ 6278 C9                   ret
+167++ 6279
+168++ 6279              p127_mem_test_page:
+169++ 6279 00                   db      0
+170++ 627A              p127_mem_page_state:
+171++ 627A 00 00 00...          ds      P127_MEM_PAGE_COUNT,0
+172++ 62BA              p127_mem_end:
+173++ 62BA
+174++ 62BA                      ASSERT  P127_MEM_PAGE_COUNT*P127_MEM_PAGE_SIZE = 100000h
+175++ 62BA                      ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
+176++ 62BA
 # file closed: p127_mem.asm
- 95+  6269
- 96+  6269              p127_end:
- 97+  6269                      ASSERT  p127_entry = P127_LOAD_ADDRESS
- 98+  6269                      ASSERT  p127_end > p127_entry
- 99+  6269                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
-100+  6269
+114+  62BA
+115+  62BA              p127_end:
+116+  62BA                      ASSERT  p127_entry = P127_LOAD_ADDRESS
+117+  62BA                      ASSERT  p127_end > p127_entry
+118+  62BA                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
+119+  62BA
 # file closed: p127_boot.asm
-  8   6269
-  9   6269              ; BASIC boot file is assembly data, not a Python-generated byte array.
- 10   6269                      ORG     #B000
+  8   62BA
+  9   62BA              ; BASIC boot file is assembly data, not a Python-generated byte array.
+ 10   62BA                      ORG     #B000
  11   B000              CLEAR       EQU #FD
  12   B000              LOAD        EQU #EF
  13   B000              CODE        EQU #AF
@@ -490,11 +529,698 @@
  80   B17A              basic_loader_end:
  81   B17A
  82   B17A                      SAVETRD "disk_A.trd","boot.B",basic_loader,basic_loader_end-basic_loader,10
- 83   B17A                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_end-P127_LOAD_ADDRESS
- 84   B17A
- 85   B17A                      ASSERT  p127_entry = #6000
- 86   B17A                      ASSERT  p127_end > p127_entry
- 87   B17A                      ASSERT  p127_end <= #A000
- 88   B17A                      ASSERT  basic_loader_end > basic_loader
- 89   B17A
+ 83   B17A
+ 84   B17A                      ASSERT  p127_entry = #6000
+ 85   B17A                      ASSERT  p127_end > p127_entry
+ 86   B17A                      ASSERT  p127_end <= #A000
+ 87   B17A                      ASSERT  basic_loader_end > basic_loader
+ 88   B17A
+ 89   B17A              ; Project126 ATM console extension in the next resident memory window.
+ 90   B17A                      PAGE 0
+ 91   B17A                      ORG #A000
+ 92   A000                      INCLUDE "src/ui/p127_console.asm"
+# file opened: p127_console.asm
+  1+  A000              ; ============================================================================
+  2+  A000              ; Project127 ATM-native debug console, ported from Project126
+  3+  A000              ; Source: Project126/atm_host/p126_screen_console.asm
+  4+  A000              ; Module version: 0.1.0
+  5+  A000              ; ATM Turbo 2+ RG6 80x25; upper 12 rows status, lower 13 rows scrolling log.
+  6+  A000              ; Every displayed debug character and static UI label is mirrored to #EF.
+  7+  A000              ; Resident placement: #A000, in the Project126 host display window.
+  8+  A000              ; ============================================================================
+  9+  A000              P126_ATM_VIDEO_MODE_RG6_TEXT80X25 EQU 6
+ 10+  A000              BIOS_DEBUG_COLUMNS EQU 80
+ 11+  A000              BIOS_DEBUG_ROWS EQU 13
+ 12+  A000              BIOS_DEBUG_TOP EQU 12
+ 13+  A000              P126_VIDEO_PAGE7 EQU #78
+ 14+  A000              P126_VIDEO_PAGE3 EQU #7C
+ 15+  A000              P126_HOST_PAGE5 EQU #7A
+ 16+  A000              P126_HOST_PAGE0 EQU #7F
+ 17+  A000              P126_ATM_TEXT_WIDTH EQU 80
+ 18+  A000              P126_ATM_TEXT_HEIGHT EQU 25
+ 19+  A000              P126_ATM_TEXT_FRAME_SIZE EQU 4000
+ 20+  A000              P127_UI_DEBUG_PORT EQU #00EF
+ 21+  A000
+ 22+  A000 06           p126_atm_video_mode: db P126_ATM_VIDEO_MODE_RG6_TEXT80X25
+ 23+  A001 00           p126_atm_video_enabled: db 0
+ 24+  A002 00           Console_X: db 0
+ 25+  A003 0C           Console_Y: db BIOS_DEBUG_TOP
+ 26+  A004 00           bios_dbg_row: db 0
+ 27+  A005 00           bios_dbg_col: db 0
+ 28+  A006 00           bios_dbg_char: db 0
+ 29+  A007 00           bios_dbg_write_row: db 0
+ 30+  A008 00           bios_dbg_write_col: db 0
+ 31+  A009 00           bios_dbg_parity: db 0
+ 32+  A00A 00           bios_dbg_attr: db 0
+ 33+  A00B 00 00        bios_dbg_offset: dw 0
+ 34+  A00D 00 00        bios_dbg_text_ptr: dw 0
+ 35+  A00F 00           bios_dbg_print_row: db 0
+ 36+  A010 00           bios_dbg_print_col: db 0
+ 37+  A011
+ 38+  A011              p126_atm_video_init:
+ 38+  A011
+ 39+  A011 F5                   push    af
+ 40+  A012 C5                   push    bc
+ 41+  A013 D5                   push    de
+ 42+  A014 E5                   push    hl
+ 43+  A015
+ 44+  A015                      ; Reset the ATM paging/control latch BEFORE enabling permanent
+ 45+  A015                      ; DOSEN. On this board #EFF7 is part of the ATM paging control path;
+ 46+  A015                      ; resetting it after the #0177 shadow-port setup can undo the state
+ 47+  A015                      ; needed by the TR-DOS overlay.
+ 48+  A015 AF                   xor     a
+ 49+  A016 01 F7 EF             ld      bc, #EFF7
+ 50+  A019 ED 79                out     (c), a
+ 51+  A01B
+ 52+  A01B                      ; ROM2=1 (D4) is required for TR-DOS overlay; D3 selects alternate
+ 53+  A01B                      ; video pages 7/3. This is #18, matching the host display setup.
+ 54+  A01B 3E 18                ld      a, #18
+ 55+  A01D 01 FD 7F             ld      bc, #7FFD
+ 56+  A020 ED 79                out     (c), a
+ 57+  A022 32 3B 5C             ld      (#5C3B), a
+ 58+  A025
+ 59+  A025                      ; Open shadow ports and hold DOSEN permanently (A9=0) using the
+ 60+  A025                      ; documented TR-DOS ROM trampoline. Do this AFTER the paging reset.
+ 61+  A025 01 35 A0             ld      bc, p126_atm_ports_open_done
+ 62+  A028 C5                   push    bc
+ 63+  A029 01 53 2A             ld      bc, #2A53
+ 64+  A02C C5                   push    bc
+ 65+  A02D 01 77 01             ld      bc, #0177
+ 66+  A030 3E C3                ld      a, #C3
+ 67+  A032 C3 2F 3D             jp      #3D2F
+ 68+  A035
+ 69+  A035              p126_atm_ports_open_done:
+ 70+  A035                      ; Window 0 must use ROM with D7=1 so its ROM page selection is
+ 71+  A035                      ; coupled to ROM2/DOSEN. #BF selects the low ROM page with the
+ 72+  A035                      ; DOSEN-controlled low ROM select: BASIC-48 when DOSEN=0, TR-DOS
+ 73+  A035                      ; when DOSEN=1. This is the ATM2+ documented auto-TR-DOS mapping.
+ 74+  A035 3E BF                ld      a, #BF
+ 75+  A037 01 F7 3F             ld      bc, #3FF7
+ 76+  A03A ED 79                out     (c), a
+ 77+  A03C
+ 78+  A03C
+ 79+  A03C                      ; Map the alternate screen pages while the 32-byte mode trampoline
+ 80+  A03C                      ; is installed at #FFEC. Window 3 uses a fixed RAM page here; the
+ 81+  A03C                      ; TR-DOS auto-select mux is configured separately in window 0.
+ 82+  A03C 3E 78                ld      a, P126_VIDEO_PAGE7
+ 83+  A03E 01 F7 7F             ld      bc, #7FF7
+ 84+  A041 ED 79                out     (c), a
+ 85+  A043 3E 7C                ld      a, P126_VIDEO_PAGE3
+ 86+  A045 01 F7 FF             ld      bc, #FFF7
+ 87+  A048 ED 79                out     (c), a
+ 88+  A04A
+ 89+  A04A                      ; LD BC,#0177 / OUT (C),A / JP p126_atm_video_mode_ready
+ 90+  A04A 21 EC FF             ld      hl, #FFEC
+ 91+  A04D 36 01                ld      (hl), #01
+ 92+  A04F 23                   inc     hl
+ 93+  A050 36 77                ld      (hl), #77
+ 94+  A052 23                   inc     hl
+ 95+  A053 36 01                ld      (hl), #01
+ 96+  A055 23                   inc     hl
+ 97+  A056 36 ED                ld      (hl), #ED
+ 98+  A058 23                   inc     hl
+ 99+  A059 36 79                ld      (hl), #79
+100+  A05B 23                   inc     hl
+101+  A05C 36 C3                ld      (hl), #C3
+102+  A05E 23                   inc     hl
+103+  A05F 36 6E                ld      (hl), p126_atm_video_mode_ready & #FF
+104+  A061 23                   inc     hl
+105+  A062 36 A0                ld      (hl), p126_atm_video_mode_ready >> 8
+106+  A064
+107+  A064                      ; ATM Turbo 2+ RG=6: hardware text 80x25.
+108+  A064 3E 06                ld      a,P126_ATM_VIDEO_MODE_RG6_TEXT80X25
+109+  A066 32 00 A0             ld      (p126_atm_video_mode),a
+110+  A069 3E C6                ld      a, #C6
+111+  A06B C3 EC FF             jp      #FFEC
+112+  A06E
+113+  A06E              p126_atm_video_mode_ready:
+114+  A06E                      ; Restore CPU-visible host/staging pages. Keep D7 clear on #FFF7 so
+115+  A06E                      ; window 3 remains fixed to RAM page 0 for the TR-DOS staging buffer.
+116+  A06E 3E 7A                ld      a, P126_HOST_PAGE5
+117+  A070 01 F7 7F             ld      bc, #7FF7
+118+  A073 ED 79                out     (c), a
+119+  A075 3E 7F                ld      a, P126_HOST_PAGE0
+120+  A077 01 F7 FF             ld      bc, #FFF7
+121+  A07A ED 79                out     (c), a
+122+  A07C
+123+  A07C E1                   pop     hl
+124+  A07D D1                   pop     de
+125+  A07E C1                   pop     bc
+126+  A07F F1                   pop     af
+127+  A080 C9                   ret
+128+  A081
+129+  A081
+130+  A081              p127_ui_init:
+131+  A081 CD 11 A0             call p126_atm_video_init
+132+  A084 CD 8E A0             call BIOS_DebugConsole_Init
+133+  A087 CD 9E A0             call BIOS_DebugConsole_Clear
+134+  A08A CD 24 A1             call BIOS_DebugConsole_DrawInterface
+135+  A08D C9                   ret
+136+  A08E
+137+  A08E              BIOS_DebugConsole_Init:
+137+  A08E
+138+  A08E AF                   xor     a
+139+  A08F 32 04 A0             ld      (bios_dbg_row), a
+140+  A092 32 05 A0             ld      (bios_dbg_col), a
+141+  A095 32 02 A0             ld      (Console_X), a
+142+  A098 3E 0C                ld      a, BIOS_DEBUG_TOP
+143+  A09A 32 03 A0             ld      (Console_Y), a
+144+  A09D C9                   ret
+145+  A09E
+146+  A09E              BIOS_DebugConsole_Clear:
+146+  A09E
+147+  A09E F5                   push    af
+148+  A09F C5                   push    bc
+149+  A0A0 D5                   push    de
+150+  A0A1 E5                   push    hl
+151+  A0A2 CD 2E A3             call    p126_screen_map_video_pages
+152+  A0A5
+153+  A0A5                      ; Clear 25 rows x 64-byte stride in both character parity planes.
+154+  A0A5 21 C0 41             ld      hl, #41C0
+155+  A0A8 11 C1 41             ld      de, #41C1
+156+  A0AB 36 20                ld      (hl), 32
+157+  A0AD 01 3F 06             ld      bc, #063F
+158+  A0B0 ED B0                ldir
+159+  A0B2 21 C0 61             ld      hl, #61C0
+160+  A0B5 11 C1 61             ld      de, #61C1
+161+  A0B8 36 20                ld      (hl), 32
+162+  A0BA 01 3F 06             ld      bc, #063F
+163+  A0BD ED B0                ldir
+164+  A0BF
+165+  A0BF                      ; Default attributes, then color the status panel blue/white.
+166+  A0BF 21 C0 E1             ld      hl, #E1C0
+167+  A0C2 11 C1 E1             ld      de, #E1C1
+168+  A0C5 36 47                ld      (hl), #47
+169+  A0C7 01 3F 06             ld      bc, #063F
+170+  A0CA ED B0                ldir
+171+  A0CC 21 C1 C1             ld      hl, #C1C1
+172+  A0CF 11 C2 C1             ld      de, #C1C2
+173+  A0D2 36 47                ld      (hl), #47
+174+  A0D4 01 3F 06             ld      bc, #063F
+175+  A0D7 ED B0                ldir
+176+  A0D9
+177+  A0D9 21 C0 E1             ld      hl, #E1C0
+178+  A0DC 11 C1 E1             ld      de, #E1C1
+179+  A0DF 36 4F                ld      (hl), #4F
+180+  A0E1 01 FF 02             ld      bc, #02FF
+181+  A0E4 ED B0                ldir
+182+  A0E6 21 C1 C1             ld      hl, #C1C1
+183+  A0E9 11 C2 C1             ld      de, #C1C2
+184+  A0EC 36 4F                ld      (hl), #4F
+185+  A0EE 01 FF 02             ld      bc, #02FF
+186+  A0F1 ED B0                ldir
+187+  A0F3
+188+  A0F3                      ; Lower log area: black background, green foreground.
+189+  A0F3 21 C0 E4             ld      hl, #E4C0
+190+  A0F6 11 C1 E4             ld      de, #E4C1
+191+  A0F9 36 44                ld      (hl), #44
+192+  A0FB 01 3F 03             ld      bc, #033F
+193+  A0FE ED B0                ldir
+194+  A100 21 C1 C4             ld      hl, #C4C1
+195+  A103 11 C2 C4             ld      de, #C4C2
+196+  A106 36 44                ld      (hl), #44
+197+  A108 01 3F 03             ld      bc, #033F
+198+  A10B ED B0                ldir
+199+  A10D
+200+  A10D CD 3D A3             call    p126_screen_restore_host_pages
+201+  A110 AF                   xor     a
+202+  A111 32 04 A0             ld      (bios_dbg_row), a
+203+  A114 32 05 A0             ld      (bios_dbg_col), a
+204+  A117 32 02 A0             ld      (Console_X), a
+205+  A11A 3E 0C                ld      a, BIOS_DEBUG_TOP
+206+  A11C 32 03 A0             ld      (Console_Y), a
+207+  A11F E1                   pop     hl
+208+  A120 D1                   pop     de
+209+  A121 C1                   pop     bc
+210+  A122 F1                   pop     af
+211+  A123 C9                   ret
+212+  A124
+213+  A124              BIOS_DebugConsole_DrawInterface:
+213+  A124
+214+  A124 F5                   push    af
+215+  A125 C5                   push    bc
+216+  A126 E5                   push    hl
+217+  A127
+218+  A127 21 D0 A3             ld      hl, p126_ui_line0
+219+  A12A 3E 00                ld      a, 0
+220+  A12C 0E 01                ld      c, 1
+221+  A12E CD 49 A1             call    BIOS_DebugConsole_PrintAt
+222+  A131
+223+  A131 21 F8 A3             ld      hl, p126_ui_line1
+224+  A134 3E 01                ld      a, 1
+225+  A136 0E 01                ld      c, 1
+226+  A138 CD 49 A1             call    BIOS_DebugConsole_PrintAt
+227+  A13B
+228+  A13B 21 1E A4             ld      hl, p126_ui_line11
+229+  A13E              .p126_draw_rtc_line:
+230+  A13E 3E 0B                ld      a, 11
+231+  A140 0E 01                ld      c, 1
+232+  A142 CD 49 A1             call    BIOS_DebugConsole_PrintAt
+233+  A145
+234+  A145 E1                   pop     hl
+235+  A146 C1                   pop     bc
+236+  A147 F1                   pop     af
+237+  A148 C9                   ret
+238+  A149
+239+  A149              ; IN: HL=zero-terminated text, A=absolute row 0..24, C=column 0..79.
+240+  A149              ; Every static UI character is mirrored to port #EF.
+241+  A149              BIOS_DebugConsole_PrintAt:
+241+  A149
+242+  A149 F5                   push    af
+243+  A14A C5                   push    bc
+244+  A14B D5                   push    de
+245+  A14C E5                   push    hl
+246+  A14D 22 0D A0             ld      (bios_dbg_text_ptr), hl
+247+  A150 32 0F A0             ld      (bios_dbg_print_row), a
+248+  A153 79                   ld      a, c
+249+  A154 32 10 A0             ld      (bios_dbg_print_col), a
+250+  A157              .p126_print_at_loop:
+251+  A157 2A 0D A0             ld      hl, (bios_dbg_text_ptr)
+252+  A15A 7E                   ld      a, (hl)
+253+  A15B B7                   or      a
+254+  A15C 28 36                jr      z, .p126_print_at_done
+255+  A15E 32 06 A0             ld      (bios_dbg_char), a
+256+  A161 23                   inc     hl
+257+  A162 22 0D A0             ld      (bios_dbg_text_ptr), hl
+258+  A165 3A 0F A0             ld      a, (bios_dbg_print_row)
+259+  A168 57                   ld      d, a
+260+  A169 3A 10 A0             ld      a, (bios_dbg_print_col)
+261+  A16C 5F                   ld      e, a
+262+  A16D 3A 06 A0             ld      a, (bios_dbg_char)
+263+  A170 F5                   push    af
+264+  A171 01 EF 00             ld      bc,P127_UI_DEBUG_PORT
+265+  A174 ED 79                out     (c),a
+266+  A176 F1                   pop     af
+267+  A177 CD B1 A2             call    p126_screen_write_char
+268+  A17A 3A 10 A0             ld      a, (bios_dbg_print_col)
+269+  A17D 3C                   inc     a
+270+  A17E FE 50                cp      BIOS_DEBUG_COLUMNS
+271+  A180 38 0D                jr      c, .p126_print_at_col_ok
+272+  A182 AF                   xor     a
+273+  A183 32 10 A0             ld      (bios_dbg_print_col), a
+274+  A186 3A 0F A0             ld      a, (bios_dbg_print_row)
+275+  A189 3C                   inc     a
+276+  A18A 32 0F A0             ld      (bios_dbg_print_row), a
+277+  A18D 18 C8                jr      .p126_print_at_loop
+278+  A18F              .p126_print_at_col_ok:
+279+  A18F 32 10 A0             ld      (bios_dbg_print_col), a
+280+  A192 18 C3                jr      .p126_print_at_loop
+281+  A194              .p126_print_at_done:
+282+  A194 01 EF 00             ld      bc,P127_UI_DEBUG_PORT
+283+  A197 3E 0D                ld      a,13
+284+  A199 ED 79                out     (c),a
+285+  A19B 3E 0A                ld      a,10
+286+  A19D ED 79                out     (c),a
+287+  A19F E1                   pop     hl
+288+  A1A0 D1                   pop     de
+289+  A1A1 C1                   pop     bc
+290+  A1A2 F1                   pop     af
+291+  A1A3 C9                   ret
+292+  A1A4
+293+  A1A4              ; IN: A=character. CR/LF/BS are handled; printable ASCII is rendered.
+p127_console.asm(294): warning: Label has different value in pass 3: previous value 41518 not equal 41380
+294+  A1A4              BIOS_DebugConsole_PrintChar:
+294+  A1A4
+295+  A1A4 F5                   push    af
+296+  A1A5 C5                   push    bc
+297+  A1A6 01 EF 00             ld      bc,P127_UI_DEBUG_PORT
+298+  A1A9 ED 79                out     (c),a
+299+  A1AB C1                   pop     bc
+300+  A1AC C5                   push    bc
+301+  A1AD D5                   push    de
+302+  A1AE E5                   push    hl
+303+  A1AF FE 0D                cp      13
+304+  A1B1 CA 83 A2             jp      z, .p126_console_cr
+305+  A1B4 FE 0A                cp      10
+306+  A1B6 CA 8C A2             jp      z, .p126_console_lf
+307+  A1B9 FE 08                cp      8
+308+  A1BB CA 91 A2             jp      z, .p126_console_bs
+309+  A1BE FE 20                cp      32
+310+  A1C0 DA AC A2             jp      c, .p126_console_done
+311+  A1C3 FE 80                cp      128
+p127_console.asm(312): error: [JR] Target out of range (+133)
+312+  A1C5 38 00                jr      c, .p126_console_char_ok
+313+  A1C7 3E 3F                ld      a, '?'
+p127_console.asm(314): warning: Label has different value in pass 3: previous value 41548 not equal 41417
+314+  A1C9              .p126_console_char_ok:
+315+  A1C9 32 06 A0             ld      (bios_dbg_char), a
+316+  A1CC 3A 04 A0             ld      a, (bios_dbg_row)
+317+  A1CF C6 0C                add     a, BIOS_DEBUG_TOP
+318+  A1D1 57                   ld      d, a
+319+  A1D2 3A 05 A0             ld      a, (bios_dbg_col)
+320+  A1D5 5F                   ld      e, a
+321+  A1D6 3A 06 A0             ld      a, (bios_dbg_char)
+322+  A1D9 CD B1 A2             call    p126_screen_write_char
+323+  A1DC 3A 05 A0             ld      a, (bios_dbg_col)
+324+  A1DF 3C                   inc     a
+325+  A1E0 FE 50                cp      BIOS_DEBUG_COLUMNS
+p127_console.asm(326): error: [JR] Target out of range (+140)
+326+  A1E2 38 00                jr      c, .p126_console_store_col
+327+  A1E4 AF                   xor     a
+328+  A1E5 32 05 A0             ld      (bios_dbg_col), a
+329+  A1E8 CD 4C A3             call    bios_dbg_newline
+p127_console.asm(330): error: [JR] Target out of range (+134)
+330+  A1EB 18 00                jr      .p126_console_sync_cursor
+p127_console.asm(331): warning: Label has different value in pass 3: previous value 41584 not equal 41453
+331+  A1ED              .p126_console_store_col:
+332+  A1ED 32 05 A0             ld      (bios_dbg_col), a
+p127_console.asm(333): warning: Label has different value in pass 3: previous value 41587 not equal 41456
+333+  A1F0              .p126_console_sync_cursor:
+334+  A1F0 3A 05 A0             ld      a, (bios_dbg_col)
+335+  A1F3 32 02 A0             ld      (Console_X), a
+336+  A1F6 3A 04 A0             ld      a, (bios_dbg_row)
+337+  A1F9 C6 0C                add     a, BIOS_DEBUG_TOP
+338+  A1FB 32 03 A0             ld      (Console_Y), a
+p127_console.asm(339): error: [JR] Target out of range (+172)
+339+  A1FE 18 00                jr      .p126_console_done
+p127_console.asm(340): warning: Label has different value in pass 3: previous value 41603 not equal 41472
+340+  A200              .p126_console_cr:
+341+  A200 AF                   xor     a
+342+  A201 32 05 A0             ld      (bios_dbg_col), a
+343+  A204 32 02 A0             ld      (Console_X), a
+p127_console.asm(344): error: [JR] Target out of range (+163)
+344+  A207 18 00                jr      .p126_console_done
+p127_console.asm(345): warning: Label has different value in pass 3: previous value 41612 not equal 41481
+345+  A209              .p126_console_lf:
+346+  A209 CD 4C A3             call    bios_dbg_newline
+347+  A20C 18 E2                jr      .p126_console_sync_cursor
+p127_console.asm(348): warning: Label has different value in pass 3: previous value 41617 not equal 41486
+348+  A20E              .p126_console_bs:
+349+  A20E 3A 05 A0             ld      a, (bios_dbg_col)
+350+  A211 B7                   or      a
+p127_console.asm(351): error: [JR] Target out of range (+152)
+351+  A212 28 00                jr      z, .p126_console_done
+352+  A214 3D                   dec     a
+353+  A215 32 05 A0             ld      (bios_dbg_col), a
+354+  A218 3A 04 A0             ld      a, (bios_dbg_row)
+355+  A21B C6 0C                add     a, BIOS_DEBUG_TOP
+356+  A21D 57                   ld      d, a
+357+  A21E 3A 05 A0             ld      a, (bios_dbg_col)
+358+  A221 5F                   ld      e, a
+359+  A222 3E 20                ld      a, 32
+360+  A224 CD B1 A2             call    p126_screen_write_char
+361+  A227 18 C7                jr      .p126_console_sync_cursor
+p127_console.asm(362): warning: Label has different value in pass 3: previous value 41644 not equal 41513
+362+  A229              .p126_console_done:
+363+  A229 E1                   pop     hl
+364+  A22A D1                   pop     de
+365+  A22B C1                   pop     bc
+366+  A22C F1                   pop     af
+367+  A22D C9                   ret
+368+  A22E
+369+  A22E
+p127_console.asm(370): warning: Label has different value in pass 3: previous value 41380 not equal 41518
+370+  A22E              BIOS_DebugConsole_PrintChar:
+370+  A22E
+371+  A22E F5                   push    af
+372+  A22F C5                   push    bc
+373+  A230 D5                   push    de
+374+  A231 E5                   push    hl
+375+  A232 FE 0D                cp      13
+376+  A234 CA 00 A2             jp      z, .p126_console_cr
+377+  A237 FE 0A                cp      10
+378+  A239 CA 09 A2             jp      z, .p126_console_lf
+379+  A23C FE 08                cp      8
+380+  A23E CA 0E A2             jp      z, .p126_console_bs
+381+  A241 FE 20                cp      32
+382+  A243 DA 29 A2             jp      c, .p126_console_done
+383+  A246 FE 80                cp      128
+p127_console.asm(384): error: [JR] Target out of range (-129)
+384+  A248 38 00                jr      c, .p126_console_char_ok
+385+  A24A 3E 3F                ld      a, '?'
+p127_console.asm(386): warning: Label has different value in pass 3: previous value 41417 not equal 41548
+386+  A24C              .p126_console_char_ok:
+387+  A24C 32 06 A0             ld      (bios_dbg_char), a
+388+  A24F 3A 04 A0             ld      a, (bios_dbg_row)
+389+  A252 C6 0C                add     a, BIOS_DEBUG_TOP
+390+  A254 57                   ld      d, a
+391+  A255 3A 05 A0             ld      a, (bios_dbg_col)
+392+  A258 5F                   ld      e, a
+393+  A259 3A 06 A0             ld      a, (bios_dbg_char)
+394+  A25C CD B1 A2             call    p126_screen_write_char
+395+  A25F 3A 05 A0             ld      a, (bios_dbg_col)
+396+  A262 3C                   inc     a
+397+  A263 FE 50                cp      BIOS_DEBUG_COLUMNS
+398+  A265 38 86                jr      c, .p126_console_store_col
+399+  A267 AF                   xor     a
+400+  A268 32 05 A0             ld      (bios_dbg_col), a
+401+  A26B CD 4C A3             call    bios_dbg_newline
+402+  A26E 18 80                jr      .p126_console_sync_cursor
+p127_console.asm(403): warning: Label has different value in pass 3: previous value 41453 not equal 41584
+403+  A270              .p126_console_store_col:
+404+  A270 32 05 A0             ld      (bios_dbg_col), a
+p127_console.asm(405): warning: Label has different value in pass 3: previous value 41456 not equal 41587
+405+  A273              .p126_console_sync_cursor:
+406+  A273 3A 05 A0             ld      a, (bios_dbg_col)
+407+  A276 32 02 A0             ld      (Console_X), a
+408+  A279 3A 04 A0             ld      a, (bios_dbg_row)
+409+  A27C C6 0C                add     a, BIOS_DEBUG_TOP
+410+  A27E 32 03 A0             ld      (Console_Y), a
+411+  A281 18 A6                jr      .p126_console_done
+p127_console.asm(412): warning: Label has different value in pass 3: previous value 41472 not equal 41603
+412+  A283              .p126_console_cr:
+413+  A283 AF                   xor     a
+414+  A284 32 05 A0             ld      (bios_dbg_col), a
+415+  A287 32 02 A0             ld      (Console_X), a
+416+  A28A 18 9D                jr      .p126_console_done
+p127_console.asm(417): warning: Label has different value in pass 3: previous value 41481 not equal 41612
+417+  A28C              .p126_console_lf:
+418+  A28C CD 4C A3             call    bios_dbg_newline
+419+  A28F 18 E2                jr      .p126_console_sync_cursor
+p127_console.asm(420): warning: Label has different value in pass 3: previous value 41486 not equal 41617
+420+  A291              .p126_console_bs:
+421+  A291 3A 05 A0             ld      a, (bios_dbg_col)
+422+  A294 B7                   or      a
+423+  A295 28 92                jr      z, .p126_console_done
+424+  A297 3D                   dec     a
+425+  A298 32 05 A0             ld      (bios_dbg_col), a
+426+  A29B 3A 04 A0             ld      a, (bios_dbg_row)
+427+  A29E C6 0C                add     a, BIOS_DEBUG_TOP
+428+  A2A0 57                   ld      d, a
+429+  A2A1 3A 05 A0             ld      a, (bios_dbg_col)
+430+  A2A4 5F                   ld      e, a
+431+  A2A5 3E 20                ld      a, 32
+432+  A2A7 CD B1 A2             call    p126_screen_write_char
+433+  A2AA 18 C7                jr      .p126_console_sync_cursor
+p127_console.asm(434): warning: Label has different value in pass 3: previous value 41513 not equal 41644
+434+  A2AC              .p126_console_done:
+435+  A2AC E1                   pop     hl
+436+  A2AD D1                   pop     de
+437+  A2AE C1                   pop     bc
+438+  A2AF F1                   pop     af
+439+  A2B0 C9                   ret
+440+  A2B1
+441+  A2B1
+442+  A2B1              p126_screen_write_char:
+443+  A2B1 F5                   push    af
+444+  A2B2 C5                   push    bc
+445+  A2B3 D5                   push    de
+446+  A2B4 E5                   push    hl
+447+  A2B5 32 06 A0             ld      (bios_dbg_char), a
+448+  A2B8 7A                   ld      a, d
+449+  A2B9 32 07 A0             ld      (bios_dbg_write_row), a
+450+  A2BC 7B                   ld      a, e
+451+  A2BD 32 08 A0             ld      (bios_dbg_write_col), a
+452+  A2C0
+453+  A2C0 CD 2E A3             call    p126_screen_map_video_pages
+454+  A2C3
+455+  A2C3                      ; Offset = #01C0 + row*64 + column/2.
+456+  A2C3 3A 07 A0             ld      a, (bios_dbg_write_row)
+457+  A2C6 6F                   ld      l, a
+458+  A2C7 26 00                ld      h, 0
+459+  A2C9 29                   add     hl, hl
+460+  A2CA 29                   add     hl, hl
+461+  A2CB 29                   add     hl, hl
+462+  A2CC 29                   add     hl, hl
+463+  A2CD 29                   add     hl, hl
+464+  A2CE 29                   add     hl, hl
+465+  A2CF 11 C0 01             ld      de, #01C0
+466+  A2D2 19                   add     hl, de
+467+  A2D3 3A 08 A0             ld      a, (bios_dbg_write_col)
+468+  A2D6 4F                   ld      c, a
+469+  A2D7 E6 01                and     1
+470+  A2D9 32 09 A0             ld      (bios_dbg_parity), a
+471+  A2DC 79                   ld      a, c
+472+  A2DD CB 3F                srl     a
+473+  A2DF 5F                   ld      e, a
+474+  A2E0 16 00                ld      d, 0
+475+  A2E2 19                   add     hl, de
+476+  A2E3 22 0B A0             ld      (bios_dbg_offset), hl
+477+  A2E6
+478+  A2E6                      ; Header rows use blue/white; the lower log uses green/black.
+479+  A2E6 3A 07 A0             ld      a, (bios_dbg_write_row)
+480+  A2E9 FE 0C                cp      BIOS_DEBUG_TOP
+481+  A2EB 3E 44                ld      a, #44
+482+  A2ED 30 02                jr      nc, .p126_attr_ready
+483+  A2EF 3E 4F                ld      a, #4F
+484+  A2F1              .p126_attr_ready:
+485+  A2F1 32 0A A0             ld      (bios_dbg_attr), a
+486+  A2F4
+487+  A2F4 2A 0B A0             ld      hl, (bios_dbg_offset)
+488+  A2F7 3A 09 A0             ld      a, (bios_dbg_parity)
+489+  A2FA B7                   or      a
+490+  A2FB 20 15                jr      nz, .p126_write_odd
+491+  A2FD
+492+  A2FD 11 00 40             ld      de, #4000
+493+  A300 19                   add     hl, de
+494+  A301 3A 06 A0             ld      a, (bios_dbg_char)
+495+  A304 77                   ld      (hl), a
+496+  A305 2A 0B A0             ld      hl, (bios_dbg_offset)
+497+  A308 11 00 E0             ld      de, #E000
+498+  A30B 19                   add     hl, de
+499+  A30C 3A 0A A0             ld      a, (bios_dbg_attr)
+500+  A30F 77                   ld      (hl), a
+501+  A310 18 14                jr      .p126_write_done
+502+  A312
+503+  A312              .p126_write_odd:
+504+  A312 11 00 60             ld      de, #6000
+505+  A315 19                   add     hl, de
+506+  A316 3A 06 A0             ld      a, (bios_dbg_char)
+507+  A319 77                   ld      (hl), a
+508+  A31A 2A 0B A0             ld      hl, (bios_dbg_offset)
+509+  A31D 11 00 C0             ld      de, #C000
+510+  A320 19                   add     hl, de
+511+  A321 23                   inc     hl
+512+  A322 3A 0A A0             ld      a, (bios_dbg_attr)
+513+  A325 77                   ld      (hl), a
+514+  A326
+515+  A326              .p126_write_done:
+516+  A326 CD 3D A3             call    p126_screen_restore_host_pages
+517+  A329 E1                   pop     hl
+518+  A32A D1                   pop     de
+519+  A32B C1                   pop     bc
+520+  A32C F1                   pop     af
+521+  A32D C9                   ret
+522+  A32E
+523+  A32E              ; IN: A=character, B=ATM-native attribute, D=row, E=column.
+524+  A32E
+525+  A32E              p126_screen_map_video_pages:
+526+  A32E 3E 78                ld      a, P126_VIDEO_PAGE7
+527+  A330 01 F7 7F             ld      bc, #7FF7
+528+  A333 ED 79                out     (c), a
+529+  A335 3E 7C                ld      a, P126_VIDEO_PAGE3
+530+  A337 01 F7 FF             ld      bc, #FFF7
+531+  A33A ED 79                out     (c), a
+532+  A33C C9                   ret
+533+  A33D
+534+  A33D              p126_screen_restore_host_pages:
+535+  A33D 3E 7A                ld      a, P126_HOST_PAGE5
+536+  A33F 01 F7 7F             ld      bc, #7FF7
+537+  A342 ED 79                out     (c), a
+538+  A344 3E 7F                ld      a, P126_HOST_PAGE0
+539+  A346 01 F7 FF             ld      bc, #FFF7
+540+  A349 ED 79                out     (c), a
+541+  A34B C9                   ret
+542+  A34C
+543+  A34C
+544+  A34C              ; Advance one row in the 13-row log; scroll rows 13..24 at the bottom.
+545+  A34C              bios_dbg_newline:
+546+  A34C 3A 04 A0             ld      a, (bios_dbg_row)
+547+  A34F 3C                   inc     a
+548+  A350 FE 0D                cp      BIOS_DEBUG_ROWS
+549+  A352 38 05                jr      c, .p126_newline_store
+550+  A354 CD 61 A3             call    P126_ScrollConsoleUp
+551+  A357 3E 0C                ld      a, BIOS_DEBUG_ROWS - 1
+552+  A359              .p126_newline_store:
+553+  A359 32 04 A0             ld      (bios_dbg_row), a
+554+  A35C AF                   xor     a
+555+  A35D 32 05 A0             ld      (bios_dbg_col), a
+556+  A360 C9                   ret
+557+  A361
+558+  A361              ; Move log rows 13..24 up by one. Each hardware text row has a 64-byte
+559+  A361              ; stride; the 40 visible bytes are copied together with the row padding.
+560+  A361              P126_ScrollConsoleUp:
+560+  A361
+561+  A361 F5                   push    af
+562+  A362 C5                   push    bc
+563+  A363 D5                   push    de
+564+  A364 E5                   push    hl
+565+  A365 CD 2E A3             call    p126_screen_map_video_pages
+566+  A368
+567+  A368                      ; Even character plane: page 7, window #4000.
+568+  A368 21 00 45             ld      hl, #4500
+569+  A36B 11 C0 44             ld      de, #44C0
+570+  A36E 01 00 03             ld      bc, #0300
+571+  A371 ED B0                ldir
+572+  A373                      ; Odd character plane: page 7, window #6000.
+573+  A373 21 00 65             ld      hl, #6500
+574+  A376 11 C0 64             ld      de, #64C0
+575+  A379 01 00 03             ld      bc, #0300
+576+  A37C ED B0                ldir
+577+  A37E                      ; Even attributes: page 3, window #E000.
+578+  A37E 21 00 E5             ld      hl, #E500
+579+  A381 11 C0 E4             ld      de, #E4C0
+580+  A384 01 00 03             ld      bc, #0300
+581+  A387 ED B0                ldir
+582+  A389                      ; Odd attributes: page 3, window #C000, odd-byte skew +1.
+583+  A389 21 01 C5             ld      hl, #C501
+584+  A38C 11 C1 C4             ld      de, #C4C1
+585+  A38F 01 00 03             ld      bc, #0300
+586+  A392 ED B0                ldir
+587+  A394
+588+  A394                      ; Clear the new bottom row.
+589+  A394 21 C0 47             ld      hl, #47C0
+590+  A397 11 C1 47             ld      de, #47C1
+591+  A39A 36 20                ld      (hl), 32
+592+  A39C 01 3F 00             ld      bc, #003F
+593+  A39F ED B0                ldir
+594+  A3A1 21 C0 67             ld      hl, #67C0
+595+  A3A4 11 C1 67             ld      de, #67C1
+596+  A3A7 36 20                ld      (hl), 32
+597+  A3A9 01 3F 00             ld      bc, #003F
+598+  A3AC ED B0                ldir
+599+  A3AE 21 C0 E7             ld      hl, #E7C0
+600+  A3B1 11 C1 E7             ld      de, #E7C1
+601+  A3B4 36 44                ld      (hl), #44
+602+  A3B6 01 3F 00             ld      bc, #003F
+603+  A3B9 ED B0                ldir
+604+  A3BB 21 C1 C7             ld      hl, #C7C1
+605+  A3BE 11 C2 C7             ld      de, #C7C2
+606+  A3C1 36 44                ld      (hl), #44
+607+  A3C3 01 3F 00             ld      bc, #003F
+608+  A3C6 ED B0                ldir
+609+  A3C8
+610+  A3C8 CD 3D A3             call    p126_screen_restore_host_pages
+611+  A3CB E1                   pop     hl
+612+  A3CC D1                   pop     de
+613+  A3CD C1                   pop     bc
+614+  A3CE F1                   pop     af
+615+  A3CF C9                   ret
+616+  A3D0
+617+  A3D0
+618+  A3D0 50 52 4F 4A  p126_ui_line0: db "PROJECT127 | ATM TURBO 2+ | SYSTEM CORE",0
+618+  A3D4 45 43 54 31
+618+  A3D8 32 37 20 7C
+618+  A3DC 20 41 54 4D
+618+  A3E0 20 54 55 52
+618+  A3E4 42 4F 20 32
+618+  A3E8 2B 20 7C 20
+618+  A3EC 53 59 53 54
+618+  A3F0 45 4D 20 43
+618+  A3F4 4F 52 45 00
+619+  A3F8 53 59 53 54  p126_ui_line1: db "SYSTEM STARTUP / HARDWARE DIAGNOSTICS",0
+619+  A3FC 45 4D 20 53
+619+  A400 54 41 52 54
+619+  A404 55 50 20 2F
+619+  A408 20 48 41 52
+619+  A40C 44 57 41 52
+619+  A410 45 20 44 49
+619+  A414 41 47 4E 4F
+619+  A418 53 54 49 43
+619+  A41C 53 00
+620+  A41E 52 54 43 3A  p126_ui_line11: db "RTC: NOT INITIALIZED | SYSTEM READY",0
+620+  A422 20 4E 4F 54
+620+  A426 20 49 4E 49
+620+  A42A 54 49 41 4C
+620+  A42E 49 5A 45 44
+620+  A432 20 7C 20 53
+620+  A436 59 53 54 45
+620+  A43A 4D 20 52 45
+620+  A43E 41 44 59 00
+621+  A442
+# file closed: p127_console.asm
+ 93   A442              p127_image_end:
+ 94   A442                      ASSERT p127_image_end <= #B000
+ 95   A442                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_image_end-P127_LOAD_ADDRESS
+ 96   A442
 # file closed: main.asm
