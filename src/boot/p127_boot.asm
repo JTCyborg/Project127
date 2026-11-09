@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.7.10
+; Project127 — boot stage 0.7.11
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -30,6 +30,15 @@ p127_start:
         di
         ld      sp, P127_STACK_TOP
 
+        ; Match Project126's proven pre-video TR-DOS host mapping.
+        ld      a,010h
+        ld      bc,07FFDh
+        out     (c),a
+        ld      (05C3Bh),a
+        xor     a
+        ld      bc,0EFF7h
+        out     (c),a
+
         ld      hl, p127_msg_entry
         call    p127_puts
 
@@ -41,6 +50,10 @@ p127_start:
 
         ld      hl, p127_msg_pass
         call    p127_puts
+
+        ; Project126 reads the catalogue before ATM video/shadow-port setup.
+        ; Preload it now while the legacy TR-DOS ROM mapping is still active.
+        call    p127_trdos_preload
 
         ; Initialize software W3 ownership before bringing up the UI.
         call    p127_w3_init
@@ -175,7 +188,7 @@ p127_start:
         jp      c,p127_as_copy_failed
         ld      hl,p127_msg_as_copy_pass
         call    p127_puts
-        ; Stage 7.1: read and dump the live TR-DOS directory via ROM #3D13.
+        ; Stage 7.1: report the directory preloaded before ATM video initialization.
         call    p127_trdos_directory
         jp      c,p127_trdos_failed
         jp      p127_idle
@@ -361,7 +374,7 @@ p127_msg_ui_ready: db "[P127] UI READY; ALL DEBUG OUTPUT MIRRORED TO EF",13,10,0
 p127_msg_entry:
         db      "[P127] S2 ENTRY @6000", 13, 10, 0
 p127_msg_stack:
-        db      "[P127] STACK SET BFFF", 13, 10, 0
+        db      "[P127] STACK SET BFFF; TR-DOS SCRATCH B7F0", 13, 10, 0
 p127_msg_exec:
         db      "[P127] DEBUG TX EF", 13, 10, 0
 p127_msg_pass:

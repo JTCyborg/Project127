@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.74**  
+Scenario revision: **0.8.75**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -28,7 +28,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | **SOFTWARE PREFLIGHT + MAP TRANSACTION RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0, P4 table-slot preflight v0.3.0, map transaction v0.3.0 | Implement resident interrupt-entry/return and controlled physical W3 mapping. Physical remap remains blocked; independent physical stack backing and IFF/IM/vector handling are not proven. |
 | 6 — Managed program address space | **STAGE 6.1/6.2/6.3 PASS (user runtime log)** | 4 MiB logical page table; complete source/destination preflight; non-overlapping copy; 64-byte resident bounce buffer; page-boundary chunking through guarded W3 lease; exact completed-byte count and explicit partial-write semantics. Cross-page copy and W3 restoration runtime-accepted. |
-| 7 — TR-DOS and filesystem services | **STAGE 7.1 IMPLEMENTED; RUNTIME TEST PENDING** | Read track 0 directory sectors 1–8 through TR-DOS ROM #3D13 into the reserved P0 snapshot at #C800; enumerate live B/C/D/# entries and mirror names/type/sector metadata to the ATM debug console and #EF. Read-only; no file-data reads or writes. |
+| 7 — TR-DOS and filesystem services | **STAGE 7.1 IMPLEMENTED; RUNTIME TEST PENDING** | Use the Project126 legacy pre-video mapping and read track 0 sectors 1–8 before UI/shadow-port setup; isolate the ROM scratch stack from the live bootstrap stack; report the P0 #C800 snapshot after UI initialization. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
 | 9 — RTC and input | PLANNED | DS12887/SMUC and keyboard/input host services. |
 | 10 — Physical storage | PLANNED | Nemo IDE/SMUC IDENTIFY, READ, WRITE, FLUSH with LBA and RAM bounds checks. |
@@ -39,7 +39,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.7.9 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/boot/p127_boot.asm` | 0.7.11 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.3 | Software page-state manager; allocator negative-path tests use absolute JP failure branches to remain in range under SjASMPlus |
 | `src/kernel/p127_range.asm` | 0.1.2 | UINT32 end-exclusive physical range validator; 1 MiB bounds/overflow self-test; arithmetic only, no mapping or memory access |
 | `src/kernel/p127_arena.asm` | 0.1.2 | Map-derived highest contiguous FREE run; bounded allocation and LIFO release; accounting only, no mapping |
@@ -937,3 +937,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Diagnostic interpretation: a final `Rn` without matching `rn` localizes the stop inside that sector's `#3D13` call; a matching lowercase marker proves the ROM returned and lets the next log stage localize the failure. This instrumentation does not claim a fix to the underlying disk/controller path.
 - Stage 7.1 remains runtime-unaccepted. Do not mark the directory read or parser as passing until the next complete log contains the matching return markers and directory completion (or a reported error).
 - No change to BASIC/BOOT0, page mapping, disk write behavior, DMA, IRQ, IM/EI or controller-port implementation. SjASMPlus and Unreal Speccy were not run in this environment.
+
+
+### 2026-11-10 — Port Project126 TR-DOS startup/read sequence v0.1.2
+
+- Compared the complete Project126 host startup path and `p126_catalog_read_disk` with Project127. Project126 explicitly establishes the legacy host mapping (`7FFD=#10`, `EFF7=0`) and reads the directory after other DOS file transfers but **before** `p126_atm_video_init` opens shadow ports and changes the ROM/video mapping.
+- Project127 previously invoked `#3D13` only after `p127_ui_init`. The read is now preloaded immediately after Stage2 entry and the legacy mapping setup; only the report/parser runs later, after the UI is ready. The BASIC loader and BOOT0 handoff are unchanged.
+- Found a second concrete divergence: Project126's live host stack is `#AFFF` while the ROM routine uses `#BFFF`; Project127's live stack was already `#BFFF`, and its copied reader also switched to `#BFFF`. Thus the ROM scratch stack could overwrite the saved caller frame and return address. Project127 keeps its live stack at `#BFFF` for the already accepted handoff contract, but moves the TR-DOS ROM scratch stack to the dedicated `#B7F0` top, with usable downward space `#B700..#B7EF`. This does not overlap the handoff probe's `#B800..#B87F` stack or `#B7FE/#B7FF` canaries.
+- The reader retains Project126's exact register convention and error-byte handling: `D=0`, `E=0..7`, `HL=#C800 + sector*256`, `B=1`, `C=5`, `#5D0F/#5D10`. Per-sector #EF entry/return markers remain temporarily enabled for diagnosis.
+- Updated module versions: boot 0.7.11; TR-DOS reader 0.1.2. Scenario revision 0.8.75.
+- Stage 7.1 remains runtime-pending until a new log confirms the ROM returns, all eight sectors are read, and the directory dump completes. SjASMPlus and Unreal Speccy were not run here.
