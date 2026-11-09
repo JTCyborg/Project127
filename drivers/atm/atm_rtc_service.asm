@@ -273,6 +273,10 @@ p127_rtc_start_available_log:
         call P127_RTC_Format2
         ld hl,p127_rtc_time_buffer
         call p127_host_debug_string
+        ld a,13
+        call p127_host_debug_char
+        ld a,10
+        call p127_host_debug_char
         ret
 p127_rtc_start_runtime_fail:
         ld hl,p127_rtc_log_runtime_fail
@@ -287,7 +291,7 @@ p127_rtc_start_format_fail:
         jp p127_host_debug_string
 
 p127_host_ui_ready:
-        db "[P127] PROJECT126-STYLE HOST CONSOLE READY",13,10,0
+        db "[P127] PROJECT127 HOST CONSOLE READY",13,10,0
 
 ; Open native ATM DS12887 register gate.
 P127_RTC_Open:
@@ -301,7 +305,7 @@ P127_RTC_Open:
         out (c),a
         jr p127_rtc_open_done
 p127_rtc_open_smuc:
-        ; Project126 SMUC address/read mode. Do not write zero to FFBA:
+        ; Verified SMUC RTC address/read mode. Do not write zero to FFBA:
         ; #71 preserves the multiplexed ISA/NVRAM control pattern.
         ld bc,#FFBA
         ld a,#71
@@ -326,13 +330,13 @@ P127_RTC_Close:
         ld a,#C6
         jp #3D2F
 p127_rtc_close_done:
-        ; Native GLUK gate closure uses the same ROM trampoline as Project126.
+        ; Native GLUK gate closure uses the established ROM trampoline.
         call P127_Console_Restore
         pop bc
         pop af
         ret
 p127_rtc_close_smuc:
-        ; Project126 leaves the SMUC RTC address/read selector in place.
+        ; Keep the SMUC RTC address/read selector in place.
         pop bc
         pop af
         ret
