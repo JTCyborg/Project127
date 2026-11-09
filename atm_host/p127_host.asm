@@ -1,6 +1,6 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.3.0
+; Version: P127_ATM_HOST v0.3.1
 ; First ATM memory-core milestone: capability/range validation only.
 ; =========================================================================
 
@@ -26,11 +26,24 @@ p127_host_entry:
         call    p127_host_debug_string
         jr      p127_host_idle
 p127_host_range_fail:
+        ld      d,a
         ld      hl,p127_host_range_error
         call    p127_host_debug_string
+        ld      a,d
+        add     a,'0'
+        call    p127_host_debug_char
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
 p127_host_idle:
         halt
         jr      p127_host_idle
+
+p127_host_debug_char:
+        ld      bc,#00EF
+        out     (c),a
+        ret
 
 p127_host_debug_string:
         ld      a,(hl)
@@ -42,13 +55,13 @@ p127_host_debug_string:
         jr      p127_host_debug_string
 
 p127_host_banner:
-        db "[P127] ATM HOST ENTRY v0.3.0",13,10
+        db "[P127] ATM HOST ENTRY v0.3.1",13,10
         db "[P127] TR-DOS BOOT OK",13,10
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
 p127_host_range_ok:
         db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
 p127_host_range_error:
-        db "[P127] UINT32 RANGE SELFTEST FAIL",13,10,0
+        db "[P127] UINT32 RANGE SELFTEST FAIL TEST ",0
 
         INCLUDE "drivers/atm/atm_memory_backend.asm"
 
