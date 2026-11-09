@@ -21,7 +21,7 @@
   8+  0000
   9+  0000              P127_HOST_LOAD_ADDRESS EQU 24576
  10+  0000              P127_HOST_ENTRY_POINT  EQU P127_HOST_LOAD_ADDRESS+9
- 11+  0000              P127_HOST_STACK_TOP    EQU #AFFF
+ 11+  0000              P127_HOST_STACK_TOP    EQU #9FFF
  12+  0000
  13+  0000                      ORG P127_HOST_LOAD_ADDRESS
  14+  6000              p127_host_program_start:
@@ -30,7 +30,7 @@
  17+  6009
  18+  6009              p127_host_entry:
  19+  6009 F3                   di
- 20+  600A 31 FF AF             ld      sp,P127_HOST_STACK_TOP
+ 20+  600A 31 FF 9F             ld      sp,P127_HOST_STACK_TOP
  21+  600D 21 CD 61             ld      hl,p127_host_banner
  22+  6010 CD 87 61             call    p127_host_debug_string
  23+  6013 CD 2E 66             call    atm_mem_init
@@ -3055,448 +3055,451 @@
 161++ 7F71
 # file closed: atm_memory_backend.asm
 258+  7F71
-259+  7F71                      PAGE 0
-260+  7F71                      ORG #A000
-261+  A000                      INCLUDE "atm_host/p127_screen_console.asm"
-# file opened: p127_screen_console.asm
-  1++ A000              ; =========================================================================
-  2++ A000              ; PROJECT127 - ATM native 80x25 status console
-  3++ A000              ; Project126-compatible two-zone layout: status panel + scrolling log.
-  4++ A000              ; Lives at #A000 in window 2; host code remains at #6000.
-  5++ A000              ; =========================================================================
-  6++ A000              P127_VIDEO_PAGE7 EQU #78
-  7++ A000              P127_VIDEO_PAGE3 EQU #7C
-  8++ A000              P127_HOST_PAGE5  EQU #7A
-  9++ A000              P127_HOST_PAGE0  EQU #7F
- 10++ A000              P127_CONSOLE_TOP EQU 12
- 11++ A000              P127_CONSOLE_ROWS EQU 13
- 12++ A000
- 13++ A000              P127_DebugConsole_Init:
- 13++ A000
- 14++ A000 F5                   push af
- 15++ A001 C5                   push bc
- 16++ A002 D5                   push de
- 17++ A003 E5                   push hl
- 18++ A004 AF                   xor a
- 19++ A005 32 9C A3             ld (p127_console_row),a
- 20++ A008 32 9D A3             ld (p127_console_col),a
- 21++ A00B                      ; Project126 ATM2+ shadow-port and RG6 text setup.
- 22++ A00B AF                   xor a
- 23++ A00C 01 F7 EF             ld bc,#EFF7
- 24++ A00F ED 79                out (c),a
- 25++ A011 3E 18                ld a,#18
- 26++ A013 01 FD 7F             ld bc,#7FFD
- 27++ A016 ED 79                out (c),a
- 28++ A018 32 3B 5C             ld (#5C3B),a
- 29++ A01B 01 2B A0             ld bc,p127_console_ports_open
- 30++ A01E C5                   push bc
- 31++ A01F 01 53 2A             ld bc,#2A53
- 32++ A022 C5                   push bc
- 33++ A023 01 77 01             ld bc,#0177
- 34++ A026 3E C3                ld a,#C3
- 35++ A028 C3 2F 3D             jp #3D2F
- 36++ A02B              p127_console_ports_open:
- 37++ A02B 3E BF                ld a,#BF
- 38++ A02D 01 F7 3F             ld bc,#3FF7
- 39++ A030 ED 79                out (c),a
- 40++ A032 3E 78                ld a,P127_VIDEO_PAGE7
- 41++ A034 01 F7 7F             ld bc,#7FF7
- 42++ A037 ED 79                out (c),a
- 43++ A039 3E 7C                ld a,P127_VIDEO_PAGE3
- 44++ A03B 01 F7 FF             ld bc,#FFF7
- 45++ A03E ED 79                out (c),a
- 46++ A040                      ; RG6 80x25 through the documented #FFEC trampoline.
- 47++ A040 21 EC FF             ld hl,#FFEC
- 48++ A043 36 01                ld (hl),#01
- 49++ A045 23                   inc hl
- 50++ A046 36 77                ld (hl),#77
- 51++ A048 23                   inc hl
- 52++ A049 36 01                ld (hl),#01
- 53++ A04B 23                   inc hl
- 54++ A04C 36 ED                ld (hl),#ED
- 55++ A04E 23                   inc hl
- 56++ A04F 36 79                ld (hl),#79
- 57++ A051 23                   inc hl
- 58++ A052 36 C3                ld (hl),#C3
- 59++ A054 23                   inc hl
- 60++ A055 36 5F                ld (hl),p127_console_video_ready & #FF
- 61++ A057 23                   inc hl
- 62++ A058 36 A0                ld (hl),p127_console_video_ready >> 8
- 63++ A05A 3E C6                ld a,#C6
- 64++ A05C C3 EC FF             jp #FFEC
- 65++ A05F              p127_console_video_ready:
- 66++ A05F CD AF A0             call P127_Console_Clear
- 67++ A062 21 60 A2             ld hl,p127_ui0
- 68++ A065 AF                   xor a
- 69++ A066 0E 01                ld c,1
- 70++ A068 CD 03 A1             call P127_Console_PrintAt
- 71++ A06B 21 8B A2             ld hl,p127_ui1
- 72++ A06E 3E 01                ld a,1
- 73++ A070 0E 01                ld c,1
- 74++ A072 CD 03 A1             call P127_Console_PrintAt
- 75++ A075 21 B0 A2             ld hl,p127_ui2
- 76++ A078 3E 03                ld a,3
- 77++ A07A 0E 01                ld c,1
- 78++ A07C CD 03 A1             call P127_Console_PrintAt
- 79++ A07F 21 E6 A2             ld hl,p127_ui3
- 80++ A082 3E 05                ld a,5
- 81++ A084 0E 01                ld c,1
- 82++ A086 CD 03 A1             call P127_Console_PrintAt
- 83++ A089 21 12 A3             ld hl,p127_ui4
- 84++ A08C 3E 07                ld a,7
- 85++ A08E 0E 01                ld c,1
- 86++ A090 CD 03 A1             call P127_Console_PrintAt
- 87++ A093 21 40 A3             ld hl,p127_ui5
- 88++ A096 3E 09                ld a,9
- 89++ A098 0E 01                ld c,1
- 90++ A09A CD 03 A1             call P127_Console_PrintAt
- 91++ A09D 21 76 A3             ld hl,p127_ui6
- 92++ A0A0 3E 0B                ld a,11
- 93++ A0A2 0E 01                ld c,1
- 94++ A0A4 CD 03 A1             call P127_Console_PrintAt
- 95++ A0A7 CD 51 A2             call P127_Console_Restore
- 96++ A0AA E1                   pop hl
- 97++ A0AB D1                   pop de
- 98++ A0AC C1                   pop bc
- 99++ A0AD F1                   pop af
-100++ A0AE C9                   ret
-101++ A0AF
-102++ A0AF              P127_Console_Clear:
-103++ A0AF CD 42 A2             call P127_Console_Map
-104++ A0B2 21 C0 41             ld hl,#41C0
-105++ A0B5 11 C1 41             ld de,#41C1
-106++ A0B8 36 20                ld (hl),32
-107++ A0BA 01 3F 06             ld bc,#063F
-108++ A0BD ED B0                ldir
-109++ A0BF 21 C0 61             ld hl,#61C0
-110++ A0C2 11 C1 61             ld de,#61C1
-111++ A0C5 36 20                ld (hl),32
-112++ A0C7 01 3F 06             ld bc,#063F
-113++ A0CA ED B0                ldir
-114++ A0CC 21 C0 E1             ld hl,#E1C0
-115++ A0CF 11 C1 E1             ld de,#E1C1
-116++ A0D2 36 4F                ld (hl),#4F
-117++ A0D4 01 3F 06             ld bc,#063F
-118++ A0D7 ED B0                ldir
-119++ A0D9 21 C1 C1             ld hl,#C1C1
-120++ A0DC 11 C2 C1             ld de,#C1C2
-121++ A0DF 36 4F                ld (hl),#4F
-122++ A0E1 01 3F 06             ld bc,#063F
-123++ A0E4 ED B0                ldir
-124++ A0E6 21 C0 E4             ld hl,#E4C0
-125++ A0E9 11 C1 E4             ld de,#E4C1
-126++ A0EC 36 44                ld (hl),#44
-127++ A0EE 01 3F 03             ld bc,#033F
-128++ A0F1 ED B0                ldir
-129++ A0F3 21 C1 C4             ld hl,#C4C1
-130++ A0F6 11 C2 C4             ld de,#C4C2
-131++ A0F9 36 44                ld (hl),#44
-132++ A0FB 01 3F 03             ld bc,#033F
-133++ A0FE ED B0                ldir
-134++ A100 C3 51 A2             jp P127_Console_Restore
-135++ A103
-136++ A103              P127_Console_PrintAt:
-137++ A103 22 A3 A3             ld (p127_console_text),hl
-138++ A106 32 A5 A3             ld (p127_console_row_abs),a
-139++ A109 79                   ld a,c
-140++ A10A 32 A6 A3             ld (p127_console_col_abs),a
-141++ A10D              .print_at:
-142++ A10D 2A A3 A3             ld hl,(p127_console_text)
-143++ A110 7E                   ld a,(hl)
-144++ A111 B7                   or a
-145++ A112 C8                   ret z
-146++ A113 23                   inc hl
-147++ A114 22 A3 A3             ld (p127_console_text),hl
-148++ A117 32 9E A3             ld (p127_console_char),a
-149++ A11A 3A A5 A3             ld a,(p127_console_row_abs)
-150++ A11D 57                   ld d,a
-151++ A11E 3A A6 A3             ld a,(p127_console_col_abs)
-152++ A121 5F                   ld e,a
-153++ A122 3A 9E A3             ld a,(p127_console_char)
-154++ A125 CD DA A1             call P127_Console_WriteChar
-155++ A128 3A A6 A3             ld a,(p127_console_col_abs)
-156++ A12B 3C                   inc a
-157++ A12C FE 50                cp 80
-158++ A12E 38 0D                jr c,.col_ok
-159++ A130 AF                   xor a
-160++ A131 32 A6 A3             ld (p127_console_col_abs),a
-161++ A134 3A A5 A3             ld a,(p127_console_row_abs)
-162++ A137 3C                   inc a
-163++ A138 32 A5 A3             ld (p127_console_row_abs),a
-164++ A13B 18 D0                jr .print_at
-165++ A13D              .col_ok:
-166++ A13D 32 A6 A3             ld (p127_console_col_abs),a
-167++ A140 18 CB                jr .print_at
-168++ A142
-169++ A142              P127_DebugConsole_String:
-170++ A142 7E                   ld a,(hl)
-171++ A143 B7                   or a
-172++ A144 C8                   ret z
-173++ A145 CD 4B A1             call P127_DebugConsole_Char
-174++ A148 23                   inc hl
-175++ A149 18 F7                jr P127_DebugConsole_String
-176++ A14B
-177++ A14B              P127_DebugConsole_Char:
-178++ A14B F5                   push af
-179++ A14C C5                   push bc
-180++ A14D D5                   push de
-181++ A14E E5                   push hl
-182++ A14F FE 0D                cp 13
-183++ A151 28 31                jr z,.cr
-184++ A153 FE 0A                cp 10
-185++ A155 28 33                jr z,.lf
-186++ A157 FE 20                cp 32
-187++ A159 38 32                jr c,.done
-188++ A15B 32 9E A3             ld (p127_console_char),a
-189++ A15E 3A 9C A3             ld a,(p127_console_row)
-190++ A161 C6 0C                add a,P127_CONSOLE_TOP
-191++ A163 57                   ld d,a
-192++ A164 3A 9D A3             ld a,(p127_console_col)
-193++ A167 5F                   ld e,a
-194++ A168 3A 9E A3             ld a,(p127_console_char)
-195++ A16B CD DA A1             call P127_Console_WriteChar
-196++ A16E 3A 9D A3             ld a,(p127_console_col)
-197++ A171 3C                   inc a
-198++ A172 FE 50                cp 80
-199++ A174 38 09                jr c,.store
-200++ A176 AF                   xor a
-201++ A177 32 9D A3             ld (p127_console_col),a
-202++ A17A CD 92 A1             call P127_Console_Newline
-203++ A17D 18 0E                jr .done
-204++ A17F              .store:
-205++ A17F 32 9D A3             ld (p127_console_col),a
-206++ A182 18 09                jr .done
-207++ A184              .cr:
-208++ A184 AF                   xor a
-209++ A185 32 9D A3             ld (p127_console_col),a
-210++ A188 18 03                jr .done
-211++ A18A              .lf:
-212++ A18A CD 92 A1             call P127_Console_Newline
-213++ A18D              .done:
-214++ A18D E1                   pop hl
-215++ A18E D1                   pop de
-216++ A18F C1                   pop bc
-217++ A190 F1                   pop af
-218++ A191 C9                   ret
-219++ A192
-220++ A192              P127_Console_Newline:
-221++ A192 3A 9C A3             ld a,(p127_console_row)
-222++ A195 3C                   inc a
-223++ A196 FE 0D                cp P127_CONSOLE_ROWS
-224++ A198 38 05                jr c,.store
-225++ A19A CD A7 A1             call P127_Console_Scroll
-226++ A19D 3E 0C                ld a,P127_CONSOLE_ROWS-1
-227++ A19F              .store:
-228++ A19F 32 9C A3             ld (p127_console_row),a
-229++ A1A2 AF                   xor a
-230++ A1A3 32 9D A3             ld (p127_console_col),a
-231++ A1A6 C9                   ret
-232++ A1A7
-233++ A1A7              P127_Console_Scroll:
-234++ A1A7 CD 42 A2             call P127_Console_Map
-235++ A1AA 21 00 45             ld hl,#4500
-236++ A1AD 11 C0 44             ld de,#44C0
-237++ A1B0 01 00 03             ld bc,#0300
-238++ A1B3 ED B0                ldir
-239++ A1B5 21 00 65             ld hl,#6500
-240++ A1B8 11 C0 64             ld de,#64C0
-241++ A1BB 01 00 03             ld bc,#0300
-242++ A1BE ED B0                ldir
-243++ A1C0 21 00 E5             ld hl,#E500
-244++ A1C3 11 C0 E4             ld de,#E4C0
-245++ A1C6 01 00 03             ld bc,#0300
-246++ A1C9 ED B0                ldir
-247++ A1CB 21 01 C5             ld hl,#C501
-248++ A1CE 11 C1 C4             ld de,#C4C1
-249++ A1D1 01 00 03             ld bc,#0300
-250++ A1D4 ED B0                ldir
-251++ A1D6 CD 51 A2             call P127_Console_Restore
-252++ A1D9 C9                   ret
-253++ A1DA
-254++ A1DA              P127_Console_WriteChar:
-255++ A1DA F5                   push af
-256++ A1DB C5                   push bc
-257++ A1DC D5                   push de
-258++ A1DD E5                   push hl
-259++ A1DE 32 9E A3             ld (p127_console_char),a
-260++ A1E1 7A                   ld a,d
-261++ A1E2 32 9F A3             ld (p127_console_row_tmp),a
-262++ A1E5 7B                   ld a,e
-263++ A1E6 32 A0 A3             ld (p127_console_col_tmp),a
-264++ A1E9                      ; offset = #01C0 + row*64 + column/2
-265++ A1E9 3A 9F A3             ld a,(p127_console_row_tmp)
-266++ A1EC 6F                   ld l,a
-267++ A1ED 26 00                ld h,0
-268++ A1EF 29                   add hl,hl
-269++ A1F0 29                   add hl,hl
-270++ A1F1 29                   add hl,hl
-271++ A1F2 29                   add hl,hl
-272++ A1F3 29                   add hl,hl
-273++ A1F4 29                   add hl,hl
-274++ A1F5 11 C0 01             ld de,#01C0
-275++ A1F8 19                   add hl,de
-276++ A1F9 3A A0 A3             ld a,(p127_console_col_tmp)
-277++ A1FC CB 3F                srl a
-278++ A1FE 5F                   ld e,a
-279++ A1FF 16 00                ld d,0
-280++ A201 19                   add hl,de
-281++ A202 22 A1 A3             ld (p127_console_offset),hl
-282++ A205 CD 42 A2             call P127_Console_Map
-283++ A208 3A A0 A3             ld a,(p127_console_col_tmp)
-284++ A20B E6 01                and 1
-285++ A20D 20 16                jr nz,.odd
-286++ A20F 2A A1 A3             ld hl,(p127_console_offset)
-287++ A212 11 00 40             ld de,#4000
-288++ A215 19                   add hl,de
-289++ A216 3A 9E A3             ld a,(p127_console_char)
-290++ A219 77                   ld (hl),a
-291++ A21A 2A A1 A3             ld hl,(p127_console_offset)
-292++ A21D 11 00 E0             ld de,#E000
-293++ A220 19                   add hl,de
-294++ A221 36 44                ld (hl),#44
-295++ A223 18 15                jr .restore
-296++ A225              .odd:
-297++ A225 2A A1 A3             ld hl,(p127_console_offset)
-298++ A228 11 00 60             ld de,#6000
-299++ A22B 19                   add hl,de
-300++ A22C 3A 9E A3             ld a,(p127_console_char)
-301++ A22F 77                   ld (hl),a
-302++ A230 2A A1 A3             ld hl,(p127_console_offset)
-303++ A233 11 00 C0             ld de,#C000
-304++ A236 19                   add hl,de
-305++ A237 23                   inc hl
-306++ A238 36 44                ld (hl),#44
-307++ A23A              .restore:
-308++ A23A CD 51 A2             call P127_Console_Restore
-309++ A23D E1                   pop hl
-310++ A23E D1                   pop de
-311++ A23F C1                   pop bc
-312++ A240 F1                   pop af
-313++ A241 C9                   ret
-314++ A242              P127_Console_Map:
-315++ A242 3E 78                ld a,P127_VIDEO_PAGE7
-316++ A244 01 F7 7F             ld bc,#7FF7
-317++ A247 ED 79                out (c),a
-318++ A249 3E 7C                ld a,P127_VIDEO_PAGE3
-319++ A24B 01 F7 FF             ld bc,#FFF7
-320++ A24E ED 79                out (c),a
-321++ A250 C9                   ret
-322++ A251              P127_Console_Restore:
-323++ A251 3E 7A                ld a,P127_HOST_PAGE5
-324++ A253 01 F7 7F             ld bc,#7FF7
-325++ A256 ED 79                out (c),a
-326++ A258 3E 7F                ld a,P127_HOST_PAGE0
-327++ A25A 01 F7 FF             ld bc,#FFF7
-328++ A25D ED 79                out (c),a
-329++ A25F C9                   ret
-330++ A260
-331++ A260 50 52 4F 4A  p127_ui0: db "PROJECT127 | ATM TURBO 2+ | SYSTEM MONITOR",0
-331++ A264 45 43 54 31
-331++ A268 32 37 20 7C
-331++ A26C 20 41 54 4D
-331++ A270 20 54 55 52
-331++ A274 42 4F 20 32
-331++ A278 2B 20 7C 20
-331++ A27C 53 59 53 54
-331++ A280 45 4D 20 4D
-331++ A284 4F 4E 49 54
-331++ A288 4F 52 00
-332++ A28B 4C 4F 57 2D  p127_ui1: db "LOW-LEVEL FOUNDATION  |  TR-DOS HOST",0
-332++ A28F 4C 45 56 45
-332++ A293 4C 20 46 4F
-332++ A297 55 4E 44 41
-332++ A29B 54 49 4F 4E
-332++ A29F 20 20 7C 20
-332++ A2A3 20 54 52 2D
-332++ A2A7 44 4F 53 20
-332++ A2AB 48 4F 53 54
-332++ A2AF 00
-333++ A2B0 41 54 4D 20  p127_ui2: db "ATM MEMORY : 1 MiB  |  UINT32 API  |  SCATTER HANDLES",0
-333++ A2B4 4D 45 4D 4F
-333++ A2B8 52 59 20 3A
-333++ A2BC 20 31 20 4D
-333++ A2C0 69 42 20 20
-333++ A2C4 7C 20 20 55
-333++ A2C8 49 4E 54 33
-333++ A2CC 32 20 41 50
-333++ A2D0 49 20 20 7C
-333++ A2D4 20 20 53 43
-333++ A2D8 41 54 54 45
-333++ A2DC 52 20 48 41
-333++ A2E0 4E 44 4C 45
-333++ A2E4 53 00
-334++ A2E6 50 49 4E 2F  p127_ui3: db "PIN/UNPIN  : IMPLEMENTED - RUNTIME SELFTEST",0
-334++ A2EA 55 4E 50 49
-334++ A2EE 4E 20 20 3A
-334++ A2F2 20 49 4D 50
-334++ A2F6 4C 45 4D 45
-334++ A2FA 4E 54 45 44
-334++ A2FE 20 2D 20 52
-334++ A302 55 4E 54 49
-334++ A306 4D 45 20 53
-334++ A30A 45 4C 46 54
-334++ A30E 45 53 54 00
-335++ A312 4E 45 4F 47  p127_ui4: db "NEOGS RAM  : 4 MiB  |  HOST-MEDIATED DMA ONLY",0
-335++ A316 53 20 52 41
-335++ A31A 4D 20 20 3A
-335++ A31E 20 34 20 4D
-335++ A322 69 42 20 20
-335++ A326 7C 20 20 48
-335++ A32A 4F 53 54 2D
-335++ A32E 4D 45 44 49
-335++ A332 41 54 45 44
-335++ A336 20 44 4D 41
-335++ A33A 20 4F 4E 4C
-335++ A33E 59 00
-336++ A340 56 49 44 45  p127_ui5: db "VIDEO: PENDING   RTC: PENDING   DISK: NEMO IDE / SMUC",0
-336++ A344 4F 3A 20 50
-336++ A348 45 4E 44 49
-336++ A34C 4E 47 20 20
-336++ A350 20 52 54 43
-336++ A354 3A 20 50 45
-336++ A358 4E 44 49 4E
-336++ A35C 47 20 20 20
-336++ A360 44 49 53 4B
-336++ A364 3A 20 4E 45
-336++ A368 4D 4F 20 49
-336++ A36C 44 45 20 2F
-336++ A370 20 53 4D 55
-336++ A374 43 00
-337++ A376 53 50 45 41  p127_ui6: db "SPEAKER: PENDING  |  LOG OUTPUT BELOW",0
-337++ A37A 4B 45 52 3A
-337++ A37E 20 50 45 4E
-337++ A382 44 49 4E 47
-337++ A386 20 20 7C 20
-337++ A38A 20 4C 4F 47
-337++ A38E 20 4F 55 54
-337++ A392 50 55 54 20
-337++ A396 42 45 4C 4F
-337++ A39A 57 00
-338++ A39C
-339++ A39C 00           p127_console_row: db 0
-340++ A39D 00           p127_console_col: db 0
-341++ A39E 00           p127_console_char: db 0
-342++ A39F 00           p127_console_row_tmp: db 0
-343++ A3A0 00           p127_console_col_tmp: db 0
-344++ A3A1 00 00        p127_console_offset: dw 0
-345++ A3A3 00 00        p127_console_text: dw 0
-346++ A3A5 00           p127_console_row_abs: db 0
-347++ A3A6 00           p127_console_col_abs: db 0
-348++ A3A7
-# file closed: p127_screen_console.asm
-262+  A3A7
-263+  A3A7              p127_host_program_end:
-264+  A3A7                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
-265+  A3A7                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
-p127_host.asm(266): error: [ASSERT] Assertion failed:  p127_host_program_end <= #8000
-266+  A3A7                      ASSERT p127_host_program_end <= #8000
-267+  A3A7
+259+  7F71
+260+  7F71              p127_host_program_end:
+261+  7F71                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
+262+  7F71                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
+263+  7F71                      ASSERT p127_host_program_end <= #8000
+264+  7F71
 # file closed: p127_host.asm
- 12   A3A7                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
- 13   A3A7
- 14   A3A7                      PAGE 0
- 15   A3A7                      ORG #E000
- 16   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
+ 12   7F71                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
+ 13   7F71
+ 14   7F71                      PAGE 0
+ 15   7F71                      ORG #A000
+ 16   A000                      INCLUDE "atm_host/p127_screen_console.asm"
+# file opened: p127_screen_console.asm
+  1+  A000              ; =========================================================================
+  2+  A000              ; PROJECT127 - ATM native 80x25 status console
+  3+  A000              ; Project126-compatible two-zone layout: status panel + scrolling log.
+  4+  A000              ; Lives at #A000 in window 2; host code remains at #6000.
+  5+  A000              ; =========================================================================
+  6+  A000              P127_VIDEO_PAGE7 EQU #78
+  7+  A000              P127_VIDEO_PAGE3 EQU #7C
+  8+  A000              P127_HOST_PAGE5  EQU #7A
+  9+  A000              P127_HOST_PAGE0  EQU #7F
+ 10+  A000              P127_CONSOLE_TOP EQU 12
+ 11+  A000              P127_CONSOLE_ROWS EQU 13
+ 12+  A000
+ 13+  A000              P127_DebugConsole_Init:
+ 13+  A000
+ 14+  A000 F5                   push af
+ 15+  A001 C5                   push bc
+ 16+  A002 D5                   push de
+ 17+  A003 E5                   push hl
+ 18+  A004 AF                   xor a
+ 19+  A005 32 9C A3             ld (p127_console_row),a
+ 20+  A008 32 9D A3             ld (p127_console_col),a
+ 21+  A00B                      ; Project126 ATM2+ shadow-port and RG6 text setup.
+ 22+  A00B AF                   xor a
+ 23+  A00C 01 F7 EF             ld bc,#EFF7
+ 24+  A00F ED 79                out (c),a
+ 25+  A011 3E 18                ld a,#18
+ 26+  A013 01 FD 7F             ld bc,#7FFD
+ 27+  A016 ED 79                out (c),a
+ 28+  A018 32 3B 5C             ld (#5C3B),a
+ 29+  A01B 01 2B A0             ld bc,p127_console_ports_open
+ 30+  A01E C5                   push bc
+ 31+  A01F 01 53 2A             ld bc,#2A53
+ 32+  A022 C5                   push bc
+ 33+  A023 01 77 01             ld bc,#0177
+ 34+  A026 3E C3                ld a,#C3
+ 35+  A028 C3 2F 3D             jp #3D2F
+ 36+  A02B              p127_console_ports_open:
+ 37+  A02B 3E BF                ld a,#BF
+ 38+  A02D 01 F7 3F             ld bc,#3FF7
+ 39+  A030 ED 79                out (c),a
+ 40+  A032 3E 78                ld a,P127_VIDEO_PAGE7
+ 41+  A034 01 F7 7F             ld bc,#7FF7
+ 42+  A037 ED 79                out (c),a
+ 43+  A039 3E 7C                ld a,P127_VIDEO_PAGE3
+ 44+  A03B 01 F7 FF             ld bc,#FFF7
+ 45+  A03E ED 79                out (c),a
+ 46+  A040                      ; RG6 80x25 through the documented #FFEC trampoline.
+ 47+  A040 21 EC FF             ld hl,#FFEC
+ 48+  A043 36 01                ld (hl),#01
+ 49+  A045 23                   inc hl
+ 50+  A046 36 77                ld (hl),#77
+ 51+  A048 23                   inc hl
+ 52+  A049 36 01                ld (hl),#01
+ 53+  A04B 23                   inc hl
+ 54+  A04C 36 ED                ld (hl),#ED
+ 55+  A04E 23                   inc hl
+ 56+  A04F 36 79                ld (hl),#79
+ 57+  A051 23                   inc hl
+ 58+  A052 36 C3                ld (hl),#C3
+ 59+  A054 23                   inc hl
+ 60+  A055 36 5F                ld (hl),p127_console_video_ready & #FF
+ 61+  A057 23                   inc hl
+ 62+  A058 36 A0                ld (hl),p127_console_video_ready >> 8
+ 63+  A05A 3E C6                ld a,#C6
+ 64+  A05C C3 EC FF             jp #FFEC
+ 65+  A05F              p127_console_video_ready:
+ 66+  A05F CD AF A0             call P127_Console_Clear
+ 67+  A062 21 60 A2             ld hl,p127_ui0
+ 68+  A065 AF                   xor a
+ 69+  A066 0E 01                ld c,1
+ 70+  A068 CD 03 A1             call P127_Console_PrintAt
+ 71+  A06B 21 8B A2             ld hl,p127_ui1
+ 72+  A06E 3E 01                ld a,1
+ 73+  A070 0E 01                ld c,1
+ 74+  A072 CD 03 A1             call P127_Console_PrintAt
+ 75+  A075 21 B0 A2             ld hl,p127_ui2
+ 76+  A078 3E 03                ld a,3
+ 77+  A07A 0E 01                ld c,1
+ 78+  A07C CD 03 A1             call P127_Console_PrintAt
+ 79+  A07F 21 E6 A2             ld hl,p127_ui3
+ 80+  A082 3E 05                ld a,5
+ 81+  A084 0E 01                ld c,1
+ 82+  A086 CD 03 A1             call P127_Console_PrintAt
+ 83+  A089 21 12 A3             ld hl,p127_ui4
+ 84+  A08C 3E 07                ld a,7
+ 85+  A08E 0E 01                ld c,1
+ 86+  A090 CD 03 A1             call P127_Console_PrintAt
+ 87+  A093 21 40 A3             ld hl,p127_ui5
+ 88+  A096 3E 09                ld a,9
+ 89+  A098 0E 01                ld c,1
+ 90+  A09A CD 03 A1             call P127_Console_PrintAt
+ 91+  A09D 21 76 A3             ld hl,p127_ui6
+ 92+  A0A0 3E 0B                ld a,11
+ 93+  A0A2 0E 01                ld c,1
+ 94+  A0A4 CD 03 A1             call P127_Console_PrintAt
+ 95+  A0A7 CD 51 A2             call P127_Console_Restore
+ 96+  A0AA E1                   pop hl
+ 97+  A0AB D1                   pop de
+ 98+  A0AC C1                   pop bc
+ 99+  A0AD F1                   pop af
+100+  A0AE C9                   ret
+101+  A0AF
+102+  A0AF              P127_Console_Clear:
+103+  A0AF CD 42 A2             call P127_Console_Map
+104+  A0B2 21 C0 41             ld hl,#41C0
+105+  A0B5 11 C1 41             ld de,#41C1
+106+  A0B8 36 20                ld (hl),32
+107+  A0BA 01 3F 06             ld bc,#063F
+108+  A0BD ED B0                ldir
+109+  A0BF 21 C0 61             ld hl,#61C0
+110+  A0C2 11 C1 61             ld de,#61C1
+111+  A0C5 36 20                ld (hl),32
+112+  A0C7 01 3F 06             ld bc,#063F
+113+  A0CA ED B0                ldir
+114+  A0CC 21 C0 E1             ld hl,#E1C0
+115+  A0CF 11 C1 E1             ld de,#E1C1
+116+  A0D2 36 4F                ld (hl),#4F
+117+  A0D4 01 3F 06             ld bc,#063F
+118+  A0D7 ED B0                ldir
+119+  A0D9 21 C1 C1             ld hl,#C1C1
+120+  A0DC 11 C2 C1             ld de,#C1C2
+121+  A0DF 36 4F                ld (hl),#4F
+122+  A0E1 01 3F 06             ld bc,#063F
+123+  A0E4 ED B0                ldir
+124+  A0E6 21 C0 E4             ld hl,#E4C0
+125+  A0E9 11 C1 E4             ld de,#E4C1
+126+  A0EC 36 44                ld (hl),#44
+127+  A0EE 01 3F 03             ld bc,#033F
+128+  A0F1 ED B0                ldir
+129+  A0F3 21 C1 C4             ld hl,#C4C1
+130+  A0F6 11 C2 C4             ld de,#C4C2
+131+  A0F9 36 44                ld (hl),#44
+132+  A0FB 01 3F 03             ld bc,#033F
+133+  A0FE ED B0                ldir
+134+  A100 C3 51 A2             jp P127_Console_Restore
+135+  A103
+136+  A103              P127_Console_PrintAt:
+137+  A103 22 A3 A3             ld (p127_console_text),hl
+138+  A106 32 A5 A3             ld (p127_console_row_abs),a
+139+  A109 79                   ld a,c
+140+  A10A 32 A6 A3             ld (p127_console_col_abs),a
+141+  A10D              .print_at:
+142+  A10D 2A A3 A3             ld hl,(p127_console_text)
+143+  A110 7E                   ld a,(hl)
+144+  A111 B7                   or a
+145+  A112 C8                   ret z
+146+  A113 23                   inc hl
+147+  A114 22 A3 A3             ld (p127_console_text),hl
+148+  A117 32 9E A3             ld (p127_console_char),a
+149+  A11A 3A A5 A3             ld a,(p127_console_row_abs)
+150+  A11D 57                   ld d,a
+151+  A11E 3A A6 A3             ld a,(p127_console_col_abs)
+152+  A121 5F                   ld e,a
+153+  A122 3A 9E A3             ld a,(p127_console_char)
+154+  A125 CD DA A1             call P127_Console_WriteChar
+155+  A128 3A A6 A3             ld a,(p127_console_col_abs)
+156+  A12B 3C                   inc a
+157+  A12C FE 50                cp 80
+158+  A12E 38 0D                jr c,.col_ok
+159+  A130 AF                   xor a
+160+  A131 32 A6 A3             ld (p127_console_col_abs),a
+161+  A134 3A A5 A3             ld a,(p127_console_row_abs)
+162+  A137 3C                   inc a
+163+  A138 32 A5 A3             ld (p127_console_row_abs),a
+164+  A13B 18 D0                jr .print_at
+165+  A13D              .col_ok:
+166+  A13D 32 A6 A3             ld (p127_console_col_abs),a
+167+  A140 18 CB                jr .print_at
+168+  A142
+169+  A142              P127_DebugConsole_String:
+170+  A142 7E                   ld a,(hl)
+171+  A143 B7                   or a
+172+  A144 C8                   ret z
+173+  A145 CD 4B A1             call P127_DebugConsole_Char
+174+  A148 23                   inc hl
+175+  A149 18 F7                jr P127_DebugConsole_String
+176+  A14B
+177+  A14B              P127_DebugConsole_Char:
+178+  A14B F5                   push af
+179+  A14C C5                   push bc
+180+  A14D D5                   push de
+181+  A14E E5                   push hl
+182+  A14F FE 0D                cp 13
+183+  A151 28 31                jr z,.cr
+184+  A153 FE 0A                cp 10
+185+  A155 28 33                jr z,.lf
+186+  A157 FE 20                cp 32
+187+  A159 38 32                jr c,.done
+188+  A15B 32 9E A3             ld (p127_console_char),a
+189+  A15E 3A 9C A3             ld a,(p127_console_row)
+190+  A161 C6 0C                add a,P127_CONSOLE_TOP
+191+  A163 57                   ld d,a
+192+  A164 3A 9D A3             ld a,(p127_console_col)
+193+  A167 5F                   ld e,a
+194+  A168 3A 9E A3             ld a,(p127_console_char)
+195+  A16B CD DA A1             call P127_Console_WriteChar
+196+  A16E 3A 9D A3             ld a,(p127_console_col)
+197+  A171 3C                   inc a
+198+  A172 FE 50                cp 80
+199+  A174 38 09                jr c,.store
+200+  A176 AF                   xor a
+201+  A177 32 9D A3             ld (p127_console_col),a
+202+  A17A CD 92 A1             call P127_Console_Newline
+203+  A17D 18 0E                jr .done
+204+  A17F              .store:
+205+  A17F 32 9D A3             ld (p127_console_col),a
+206+  A182 18 09                jr .done
+207+  A184              .cr:
+208+  A184 AF                   xor a
+209+  A185 32 9D A3             ld (p127_console_col),a
+210+  A188 18 03                jr .done
+211+  A18A              .lf:
+212+  A18A CD 92 A1             call P127_Console_Newline
+213+  A18D              .done:
+214+  A18D E1                   pop hl
+215+  A18E D1                   pop de
+216+  A18F C1                   pop bc
+217+  A190 F1                   pop af
+218+  A191 C9                   ret
+219+  A192
+220+  A192              P127_Console_Newline:
+221+  A192 3A 9C A3             ld a,(p127_console_row)
+222+  A195 3C                   inc a
+223+  A196 FE 0D                cp P127_CONSOLE_ROWS
+224+  A198 38 05                jr c,.store
+225+  A19A CD A7 A1             call P127_Console_Scroll
+226+  A19D 3E 0C                ld a,P127_CONSOLE_ROWS-1
+227+  A19F              .store:
+228+  A19F 32 9C A3             ld (p127_console_row),a
+229+  A1A2 AF                   xor a
+230+  A1A3 32 9D A3             ld (p127_console_col),a
+231+  A1A6 C9                   ret
+232+  A1A7
+233+  A1A7              P127_Console_Scroll:
+234+  A1A7 CD 42 A2             call P127_Console_Map
+235+  A1AA 21 00 45             ld hl,#4500
+236+  A1AD 11 C0 44             ld de,#44C0
+237+  A1B0 01 00 03             ld bc,#0300
+238+  A1B3 ED B0                ldir
+239+  A1B5 21 00 65             ld hl,#6500
+240+  A1B8 11 C0 64             ld de,#64C0
+241+  A1BB 01 00 03             ld bc,#0300
+242+  A1BE ED B0                ldir
+243+  A1C0 21 00 E5             ld hl,#E500
+244+  A1C3 11 C0 E4             ld de,#E4C0
+245+  A1C6 01 00 03             ld bc,#0300
+246+  A1C9 ED B0                ldir
+247+  A1CB 21 01 C5             ld hl,#C501
+248+  A1CE 11 C1 C4             ld de,#C4C1
+249+  A1D1 01 00 03             ld bc,#0300
+250+  A1D4 ED B0                ldir
+251+  A1D6 CD 51 A2             call P127_Console_Restore
+252+  A1D9 C9                   ret
+253+  A1DA
+254+  A1DA              P127_Console_WriteChar:
+255+  A1DA F5                   push af
+256+  A1DB C5                   push bc
+257+  A1DC D5                   push de
+258+  A1DD E5                   push hl
+259+  A1DE 32 9E A3             ld (p127_console_char),a
+260+  A1E1 7A                   ld a,d
+261+  A1E2 32 9F A3             ld (p127_console_row_tmp),a
+262+  A1E5 7B                   ld a,e
+263+  A1E6 32 A0 A3             ld (p127_console_col_tmp),a
+264+  A1E9                      ; offset = #01C0 + row*64 + column/2
+265+  A1E9 3A 9F A3             ld a,(p127_console_row_tmp)
+266+  A1EC 6F                   ld l,a
+267+  A1ED 26 00                ld h,0
+268+  A1EF 29                   add hl,hl
+269+  A1F0 29                   add hl,hl
+270+  A1F1 29                   add hl,hl
+271+  A1F2 29                   add hl,hl
+272+  A1F3 29                   add hl,hl
+273+  A1F4 29                   add hl,hl
+274+  A1F5 11 C0 01             ld de,#01C0
+275+  A1F8 19                   add hl,de
+276+  A1F9 3A A0 A3             ld a,(p127_console_col_tmp)
+277+  A1FC CB 3F                srl a
+278+  A1FE 5F                   ld e,a
+279+  A1FF 16 00                ld d,0
+280+  A201 19                   add hl,de
+281+  A202 22 A1 A3             ld (p127_console_offset),hl
+282+  A205 CD 42 A2             call P127_Console_Map
+283+  A208 3A A0 A3             ld a,(p127_console_col_tmp)
+284+  A20B E6 01                and 1
+285+  A20D 20 16                jr nz,.odd
+286+  A20F 2A A1 A3             ld hl,(p127_console_offset)
+287+  A212 11 00 40             ld de,#4000
+288+  A215 19                   add hl,de
+289+  A216 3A 9E A3             ld a,(p127_console_char)
+290+  A219 77                   ld (hl),a
+291+  A21A 2A A1 A3             ld hl,(p127_console_offset)
+292+  A21D 11 00 E0             ld de,#E000
+293+  A220 19                   add hl,de
+294+  A221 36 44                ld (hl),#44
+295+  A223 18 15                jr .restore
+296+  A225              .odd:
+297+  A225 2A A1 A3             ld hl,(p127_console_offset)
+298+  A228 11 00 60             ld de,#6000
+299+  A22B 19                   add hl,de
+300+  A22C 3A 9E A3             ld a,(p127_console_char)
+301+  A22F 77                   ld (hl),a
+302+  A230 2A A1 A3             ld hl,(p127_console_offset)
+303+  A233 11 00 C0             ld de,#C000
+304+  A236 19                   add hl,de
+305+  A237 23                   inc hl
+306+  A238 36 44                ld (hl),#44
+307+  A23A              .restore:
+308+  A23A CD 51 A2             call P127_Console_Restore
+309+  A23D E1                   pop hl
+310+  A23E D1                   pop de
+311+  A23F C1                   pop bc
+312+  A240 F1                   pop af
+313+  A241 C9                   ret
+314+  A242              P127_Console_Map:
+315+  A242 3E 78                ld a,P127_VIDEO_PAGE7
+316+  A244 01 F7 7F             ld bc,#7FF7
+317+  A247 ED 79                out (c),a
+318+  A249 3E 7C                ld a,P127_VIDEO_PAGE3
+319+  A24B 01 F7 FF             ld bc,#FFF7
+320+  A24E ED 79                out (c),a
+321+  A250 C9                   ret
+322+  A251              P127_Console_Restore:
+323+  A251 3E 7A                ld a,P127_HOST_PAGE5
+324+  A253 01 F7 7F             ld bc,#7FF7
+325+  A256 ED 79                out (c),a
+326+  A258 3E 7F                ld a,P127_HOST_PAGE0
+327+  A25A 01 F7 FF             ld bc,#FFF7
+328+  A25D ED 79                out (c),a
+329+  A25F C9                   ret
+330+  A260
+331+  A260 50 52 4F 4A  p127_ui0: db "PROJECT127 | ATM TURBO 2+ | SYSTEM MONITOR",0
+331+  A264 45 43 54 31
+331+  A268 32 37 20 7C
+331+  A26C 20 41 54 4D
+331+  A270 20 54 55 52
+331+  A274 42 4F 20 32
+331+  A278 2B 20 7C 20
+331+  A27C 53 59 53 54
+331+  A280 45 4D 20 4D
+331+  A284 4F 4E 49 54
+331+  A288 4F 52 00
+332+  A28B 4C 4F 57 2D  p127_ui1: db "LOW-LEVEL FOUNDATION  |  TR-DOS HOST",0
+332+  A28F 4C 45 56 45
+332+  A293 4C 20 46 4F
+332+  A297 55 4E 44 41
+332+  A29B 54 49 4F 4E
+332+  A29F 20 20 7C 20
+332+  A2A3 20 54 52 2D
+332+  A2A7 44 4F 53 20
+332+  A2AB 48 4F 53 54
+332+  A2AF 00
+333+  A2B0 41 54 4D 20  p127_ui2: db "ATM MEMORY : 1 MiB  |  UINT32 API  |  SCATTER HANDLES",0
+333+  A2B4 4D 45 4D 4F
+333+  A2B8 52 59 20 3A
+333+  A2BC 20 31 20 4D
+333+  A2C0 69 42 20 20
+333+  A2C4 7C 20 20 55
+333+  A2C8 49 4E 54 33
+333+  A2CC 32 20 41 50
+333+  A2D0 49 20 20 7C
+333+  A2D4 20 20 53 43
+333+  A2D8 41 54 54 45
+333+  A2DC 52 20 48 41
+333+  A2E0 4E 44 4C 45
+333+  A2E4 53 00
+334+  A2E6 50 49 4E 2F  p127_ui3: db "PIN/UNPIN  : IMPLEMENTED - RUNTIME SELFTEST",0
+334+  A2EA 55 4E 50 49
+334+  A2EE 4E 20 20 3A
+334+  A2F2 20 49 4D 50
+334+  A2F6 4C 45 4D 45
+334+  A2FA 4E 54 45 44
+334+  A2FE 20 2D 20 52
+334+  A302 55 4E 54 49
+334+  A306 4D 45 20 53
+334+  A30A 45 4C 46 54
+334+  A30E 45 53 54 00
+335+  A312 4E 45 4F 47  p127_ui4: db "NEOGS RAM  : 4 MiB  |  HOST-MEDIATED DMA ONLY",0
+335+  A316 53 20 52 41
+335+  A31A 4D 20 20 3A
+335+  A31E 20 34 20 4D
+335+  A322 69 42 20 20
+335+  A326 7C 20 20 48
+335+  A32A 4F 53 54 2D
+335+  A32E 4D 45 44 49
+335+  A332 41 54 45 44
+335+  A336 20 44 4D 41
+335+  A33A 20 4F 4E 4C
+335+  A33E 59 00
+336+  A340 56 49 44 45  p127_ui5: db "VIDEO: PENDING   RTC: PENDING   DISK: NEMO IDE / SMUC",0
+336+  A344 4F 3A 20 50
+336+  A348 45 4E 44 49
+336+  A34C 4E 47 20 20
+336+  A350 20 52 54 43
+336+  A354 3A 20 50 45
+336+  A358 4E 44 49 4E
+336+  A35C 47 20 20 20
+336+  A360 44 49 53 4B
+336+  A364 3A 20 4E 45
+336+  A368 4D 4F 20 49
+336+  A36C 44 45 20 2F
+336+  A370 20 53 4D 55
+336+  A374 43 00
+337+  A376 53 50 45 41  p127_ui6: db "SPEAKER: PENDING  |  LOG OUTPUT BELOW",0
+337+  A37A 4B 45 52 3A
+337+  A37E 20 50 45 4E
+337+  A382 44 49 4E 47
+337+  A386 20 20 7C 20
+337+  A38A 20 4C 4F 47
+337+  A38E 20 4F 55 54
+337+  A392 50 55 54 20
+337+  A396 42 45 4C 4F
+337+  A39A 57 00
+338+  A39C
+339+  A39C 00           p127_console_row: db 0
+340+  A39D 00           p127_console_col: db 0
+341+  A39E 00           p127_console_char: db 0
+342+  A39F 00           p127_console_row_tmp: db 0
+343+  A3A0 00           p127_console_col_tmp: db 0
+344+  A3A1 00 00        p127_console_offset: dw 0
+345+  A3A3 00 00        p127_console_text: dw 0
+346+  A3A5 00           p127_console_row_abs: db 0
+347+  A3A6 00           p127_console_col_abs: db 0
+348+  A3A7              p127_console_end:
+349+  A3A7                      ASSERT p127_console_end <= #C000
+350+  A3A7
+# file closed: p127_screen_console.asm
+ 17   A3A7                      SAVETRD "disk_A.trd", "p127ui.C", #A000, p127_console_end-#A000
+ 18   A3A7
+ 19   A3A7                      PAGE 0
+ 20   A3A7                      ORG #E000
+ 21   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
 # file opened: boot_loader.generated.asm
   1+  E000              ; =========================================================================
   2+  E000              ; PROJECT127 ??? TR-DOS BASIC BOOT.B loader
@@ -3589,7 +3592,7 @@ p127_host.asm(266): error: [ASSERT] Assertion failed:  p127_host_program_end <= 
  48+  E0D0
  49+  E0D0                      ; The same Project126 ROM trampoline and CODE load address.
  50+  E0D0 00 14                DB      0, 20
- 51+  E0D2 2B 00                DW      LINE20_END-LINE20
+ 51+  E0D2 44 00                DW      LINE20_END-LINE20
  52+  E0D4              LINE20:
  53+  E0D4 F9                   DB      RANDOMIZE
  54+  E0D5 C0 31 35 36          DB      USR, "15619", $0E, 0, 0
@@ -3598,84 +3601,115 @@ p127_host.asm(266): error: [ASSERT] Assertion failed:  p127_host_program_end <= 
  55+  E0DE 03 3D                DW      15619
  56+  E0E0 00                   DB      0
  57+  E0E1 3A EA 3A             DB      $3A, REM, $3A
- 58+  E0E4 4C 4F 41 44          DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D
+ 58+  E0E4 4C 4F 41 44          DB      "LOAD ", 34, "p127ui", 34, " CODE 40960", $3A
  58+  E0E8 20 22 70 31
- 58+  E0EC 32 37 68 6F
- 58+  E0F0 73 74 22 20
- 58+  E0F4 43 4F 44 45
- 58+  E0F8 20 32 34 35
- 58+  E0FC 37 36 0D
- 59+  E0FF              LINE20_END:
- 60+  E0FF
- 61+  E0FF                      ; Announce that the host image has been loaded.
- 62+  E0FF 00 15                DB      0, 21
- 63+  E101 70 00                DW      LINE21_END-LINE21
- 64+  E103              LINE21:
- 65+  E103 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "76", 34, ":"
- 65+  E107 33 39 22 2C
- 65+  E10B B0 22 37 36
- 65+  E10F 22 3A
- 66+  E111 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "79", 34, ":"
- 66+  E115 33 39 22 2C
- 66+  E119 B0 22 37 39
- 66+  E11D 22 3A
- 67+  E11F DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "65", 34, ":"
- 67+  E123 33 39 22 2C
- 67+  E127 B0 22 36 35
- 67+  E12B 22 3A
- 68+  E12D DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
- 68+  E131 33 39 22 2C
- 68+  E135 B0 22 36 38
- 68+  E139 22 3A
- 69+  E13B DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "69", 34, ":"
- 69+  E13F 33 39 22 2C
- 69+  E143 B0 22 36 39
- 69+  E147 22 3A
- 70+  E149 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
- 70+  E14D 33 39 22 2C
- 70+  E151 B0 22 36 38
- 70+  E155 22 3A
- 71+  E157 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "13", 34, ":"
- 71+  E15B 33 39 22 2C
- 71+  E15F B0 22 31 33
- 71+  E163 22 3A
- 72+  E165 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "10", 34
- 72+  E169 33 39 22 2C
- 72+  E16D B0 22 31 30
- 72+  E171 22
- 73+  E172 0D                   DB      $0D
- 74+  E173              LINE21_END:
- 75+  E173
- 76+  E173                      ; Enter the host program at 6009h, exactly as Project126 does.
- 77+  E173 00 1E                DB      0, 30
- 78+  E175 1E 00                DW      LINE30_END-LINE30
- 79+  E177              LINE30:
- 80+  E177 DF                   DB      OUT_CMD
- 81+  E178 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
- 81+  E17C 00 00 EF 00
- 81+  E180 00
- 82+  E181 2C                   DB      ","
- 83+  E182 32 0E 00 00          DB      "2", $0E, $00, $00, $02, $00, $00
- 83+  E186 02 00 00
- 84+  E189 3A                   DB      ":"
- 85+  E18A F9                   DB      RANDOMIZE
- 86+  E18B C0                   DB      USR
- 87+  E18C B0                   DB      VAL
- 88+  E18D 22                   DB      34
- 89+  E18E 32 34 35 38          DEFM    "24585"
- 89+  E192 35
- 90+  E193 22                   DB      34
- 91+  E194 0D                   DB      $0D
- 92+  E195              LINE30_END:
- 93+  E195
- 94+  E195 80                   DB      $80
- 95+  E196              BASIC_END:
- 96+  E196
+ 58+  E0EC 32 37 75 69
+ 58+  E0F0 22 20 43 4F
+ 58+  E0F4 44 45 20 34
+ 58+  E0F8 30 39 36 30
+ 58+  E0FC 3A
+ 59+  E0FD 4C 4F 41 44          DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D
+ 59+  E101 20 22 70 31
+ 59+  E105 32 37 68 6F
+ 59+  E109 73 74 22 20
+ 59+  E10D 43 4F 44 45
+ 59+  E111 20 32 34 35
+ 59+  E115 37 36 0D
+ 60+  E118              LINE20_END:
+ 61+  E118
+ 62+  E118 00 13                DB      0, 19
+ 63+  E11A 1B 00                DW      LINE19_END-LINE19
+ 64+  E11C              LINE19:
+ 65+  E11C 4C 4F 41 44          DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D
+ 65+  E120 20 22 70 31
+ 65+  E124 32 37 68 6F
+ 65+  E128 73 74 22 20
+ 65+  E12C 43 4F 44 45
+ 65+  E130 20 32 34 35
+ 65+  E134 37 36 0D
+ 66+  E137              LINE19_END:
+ 67+  E137
+ 68+  E137 00 12                DB      0, 18
+ 69+  E139 12 00                DW      LINE18_END-LINE18
+ 70+  E13B              LINE18:
+ 71+  E13B EA 20 48 4F          DB      REM, " HOST IMAGE LOAD", $0D
+ 71+  E13F 53 54 20 49
+ 71+  E143 4D 41 47 45
+ 71+  E147 20 4C 4F 41
+ 71+  E14B 44 0D
+ 72+  E14D              LINE18_END:
+ 73+  E14D
+ 74+  E14D                      ; Host image is loaded after the independent UI image.
+ 75+  E14D
+ 76+  E14D                      ; Announce that both host and UI images have been loaded.
+ 77+  E14D 00 15                DB      0, 21
+ 78+  E14F 70 00                DW      LINE21_END-LINE21
+ 79+  E151              LINE21:
+ 80+  E151 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "76", 34, ":"
+ 80+  E155 33 39 22 2C
+ 80+  E159 B0 22 37 36
+ 80+  E15D 22 3A
+ 81+  E15F DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "79", 34, ":"
+ 81+  E163 33 39 22 2C
+ 81+  E167 B0 22 37 39
+ 81+  E16B 22 3A
+ 82+  E16D DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "65", 34, ":"
+ 82+  E171 33 39 22 2C
+ 82+  E175 B0 22 36 35
+ 82+  E179 22 3A
+ 83+  E17B DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
+ 83+  E17F 33 39 22 2C
+ 83+  E183 B0 22 36 38
+ 83+  E187 22 3A
+ 84+  E189 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "69", 34, ":"
+ 84+  E18D 33 39 22 2C
+ 84+  E191 B0 22 36 39
+ 84+  E195 22 3A
+ 85+  E197 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
+ 85+  E19B 33 39 22 2C
+ 85+  E19F B0 22 36 38
+ 85+  E1A3 22 3A
+ 86+  E1A5 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "13", 34, ":"
+ 86+  E1A9 33 39 22 2C
+ 86+  E1AD B0 22 31 33
+ 86+  E1B1 22 3A
+ 87+  E1B3 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "10", 34
+ 87+  E1B7 33 39 22 2C
+ 87+  E1BB B0 22 31 30
+ 87+  E1BF 22
+ 88+  E1C0 0D                   DB      $0D
+ 89+  E1C1              LINE21_END:
+ 90+  E1C1
+ 91+  E1C1                      ; Enter the host program at 6009h, exactly as Project126 does.
+ 92+  E1C1 00 1E                DB      0, 30
+ 93+  E1C3 1E 00                DW      LINE30_END-LINE30
+ 94+  E1C5              LINE30:
+ 95+  E1C5 DF                   DB      OUT_CMD
+ 96+  E1C6 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
+ 96+  E1CA 00 00 EF 00
+ 96+  E1CE 00
+ 97+  E1CF 2C                   DB      ","
+ 98+  E1D0 32 0E 00 00          DB      "2", $0E, $00, $00, $02, $00, $00
+ 98+  E1D4 02 00 00
+ 99+  E1D7 3A                   DB      ":"
+100+  E1D8 F9                   DB      RANDOMIZE
+101+  E1D9 C0                   DB      USR
+102+  E1DA B0                   DB      VAL
+103+  E1DB 22                   DB      34
+104+  E1DC 32 34 35 38          DEFM    "24585"
+104+  E1E0 35
+105+  E1E1 22                   DB      34
+106+  E1E2 0D                   DB      $0D
+107+  E1E3              LINE30_END:
+108+  E1E3
+109+  E1E3 80                   DB      $80
+110+  E1E4              BASIC_END:
+111+  E1E4
 # file closed: boot_loader.generated.asm
- 17   E196                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
- 18   E196
- 19   E196                      PAGE 0
- 20   E196
+ 22   E1E4                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
+ 23   E1E4
+ 24   E1E4                      PAGE 0
+ 25   E1E4
 # file closed: project127_disk.generated.asm
 
 Value    Label
@@ -3922,7 +3956,7 @@ Value    Label
 0x00E8   ATM_SCATTER_EXTENT_BYTES
 0x0008   ATM_SCATTER_HANDLE_COUNT
 0x003A   ATM_SCATTER_MAX_EXTENTS
-0xE196 X BASIC_END
+0xE1E4 X BASIC_END
 0xE000 X basic_loader
 0xE000 X BASIC_START
 0x00FD   CLEAR
@@ -3930,12 +3964,16 @@ Value    Label
 0xE024   LINE10_END
 0xE028   LINE11
 0xE0D0   LINE11_END
+0xE13B   LINE18
+0xE14D   LINE18_END
+0xE11C   LINE19
+0xE137   LINE19_END
 0xE0D4   LINE20
-0xE0FF   LINE20_END
-0xE103   LINE21
-0xE173   LINE21_END
-0xE177   LINE30
-0xE195   LINE30_END
+0xE118   LINE20_END
+0xE151   LINE21
+0xE1C1   LINE21_END
+0xE1C5   LINE30
+0xE1E3   LINE30_END
 0x00DF   OUT_CMD
 0x0001   P127_ABI_MAJOR
 0x0000   P127_ABI_MINOR
@@ -3944,6 +3982,7 @@ Value    Label
 0xA39D   p127_console_col
 0xA3A6   p127_console_col_abs
 0xA3A0   p127_console_col_tmp
+0xA3A7   p127_console_end
 0xA242   P127_Console_Map
 0xA192   P127_Console_Newline
 0xA19F   P127_Console_Newline.store
@@ -4007,7 +4046,7 @@ Value    Label
 0x6315   p127_host_pin_error
 0x608A   p127_host_pin_fail
 0x62E9   p127_host_pin_ok
-0xA3A7   p127_host_program_end
+0x7F71   p127_host_program_end
 0x6000   p127_host_program_start
 0x6421   p127_host_range_error
 0x60F9   p127_host_range_fail
@@ -4015,7 +4054,7 @@ Value    Label
 0x6373   p127_host_scatter_error
 0x60A2   p127_host_scatter_fail
 0x6299   p127_host_scatter_ok
-0xAFFF   P127_HOST_STACK_TOP
+0x9FFF   P127_HOST_STACK_TOP
 0x61A0   p127_host_ui_ready
 0x0012   P127_MEM_CAPS_SIZE
 0x650E   p127_range_capacity
