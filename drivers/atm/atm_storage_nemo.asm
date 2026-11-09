@@ -39,7 +39,19 @@ P127_Storage_Startup:
         ld      bc,P127_NEMO_DRIVE_HEAD
         out     (c),a
         call    p127_storage_wait_ready
-        ret     c
+        jr      nc,p127_storage_start_ready
+        push    af
+        ld      hl,p127_storage_log_status
+        call    p127_host_debug_string
+        ld      a,(p127_storage_last_status)
+        call    p127_host_debug_hex_byte
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
+        pop     af
+        ret
+p127_storage_start_ready:
         ld      hl,p127_storage_log_ready_status
         call    p127_host_debug_string
         ld      a,#EC                 ; IDENTIFY DEVICE
@@ -185,6 +197,7 @@ p127_storage_wait_ready:
 .ready:
         ld      bc,P127_NEMO_STATUS_CMD
         in      a,(c)
+        ld      (p127_storage_last_status),a
         bit     7,a
         jr      nz,.tick
         bit     0,a
@@ -287,6 +300,7 @@ p127_storage_timeout:
         ret
 
 p127_storage_available: db 0
+p127_storage_last_status: db 0
 p127_storage_command:   db 0
 p127_storage_lba:       dd 0
 p127_storage_capacity:  dd 0
@@ -295,6 +309,8 @@ p127_storage_log_select:
         db "[P127] HDD PROBE SELECT MASTER",13,10,0
 p127_storage_log_wait_ready:
         db "[P127] HDD PROBE WAIT READY",13,10,0
+p127_storage_log_status:
+        db "[P127] HDD ATA STATUS=0x",0
 p127_storage_log_ready_status:
         db "[P127] HDD PROBE DEVICE READY",13,10,0
 p127_storage_log_identify:
