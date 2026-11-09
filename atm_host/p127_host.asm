@@ -2,9 +2,9 @@
 ; PROJECT127 — ATM Turbo 2+ host entry
 ; Version: P127_ATM_HOST v0.1.0
 ;
-; This is deliberately only the bootable host entry point. The memory
-; backend, allocator, streaming loader and DMA transport are implemented
-; as separate foundation modules; no Project126 overlay runtime is linked.
+; This bootable host entry links the first ATM memory-core milestone.
+; Allocator, physical page mapping, streaming and DMA are still gated work;
+; no Project126 overlay runtime is linked.
 ; =========================================================================
 
         DEVICE ZXSPECTRUM128
