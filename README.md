@@ -16,14 +16,20 @@ consulted as references only.
 
 ## Build boot disk
 
-Requirements: Python 3 and SjASMPlus on PATH.
+Requirements: Python 3 and the included SjASMPlus executable.
+
+Run `build_project127.bat` or:
 
 ~~~powershell
-.\tools\build_project127.ps1
+.\tools\build_project127.ps1 -SjAsmPlus .\tools\sjasmplus.exe
 ~~~
 
-Creates build\Project127.trd, a standard 640 KiB TR-DOS image with BOOT
-(BASIC loader) and P127BOOT (Z80 host entry). At the TR-DOS prompt run:
+Creates `disk_A.trd` in the repository root and a copy at
+`build\disk_A.trd`. The image is a standard 640 KiB TR-DOS disk containing
+`BOOT` (tokenized BASIC loader) and `P127BOOT` (Z80 host entry at #6000).
+A prebuilt boot image is also committed as `disk_A.trd`.
+
+At the TR-DOS prompt run:
 
 ~~~text
 RUN "BOOT"
