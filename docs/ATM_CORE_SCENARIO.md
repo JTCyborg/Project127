@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.13**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 accepted by user runtime test; physical bank switching not yet enabled**  
+Scenario revision: **0.8.14**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -26,7 +26,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
-| 5 — Process/context manager | PLANNED — stack probe v0.1.0 and resident-window contract v0.1.0 prerequisites added | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
+| 5 — Process/context manager | **SOFTWARE PREREQUISITES ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0 and rollback/recovery v0.3.0 | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
@@ -43,7 +43,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
-| `src/kernel/p127_resident.asm` | 0.3.0 | Fixed W1/P5 code + W2/P2 stack contract; W3 target only after UI quiescence; software-only |
+| `src/kernel/p127_resident.asm` | 0.3.0 | Fixed W1/P5 code + W2/P2 stack contract; W3 ownership, UI leases and software snapshot/rollback; software-only |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
 ## Stage 1 — physical page-state manager 0.2.0
@@ -342,3 +342,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Boot module advanced to v0.5.8; scenario revision advanced to 0.8.13.
 - No memory-manager logic, test semantics, page mapping, or physical `OUT` behavior changed. Hardware page-port writes remain disabled.
 - This is a source correction for the exact reported assembler error. A fresh full SjASMPlus build and emulator runtime test are still required; no successful build is claimed.
+
+
+### 2026-11-09 — Runtime acceptance: W3 rollback/recovery v0.3.0 and boot branch correction
+
+- User supplied the fresh emulator #EF log after the v0.5.8 boot correction. The run reaches the complete diagnostic sequence through `MAP MODEL TEST PASS; OUT DISABLED`.
+- The log explicitly confirms `W3 ROLLBACK/RECOVERY PASS; OUT DISABLED`, following the existing resident stack probe and UI quiesce/W3 ownership pass. Stage 2.9 software rollback/recovery model v0.3.0 is therefore accepted at runtime.
+- The same run confirms the boot module's absolute-branch correction did not prevent the memory-page self-test or later boot diagnostics from executing.
+- Acceptance remains limited to software state/lease and RAM-backed snapshot/rollback tests. It does not prove actual UI shutdown across a physical remap, independent physical stack backing, asynchronous interrupt exclusion, IFF/IM preservation, rollback after a physical page-register write, or hardware page switching.
+- Physical page-port `OUT` remains disabled. No source module changed in this acceptance update; scenario revision advanced to 0.8.14.
+- Next: before enabling any physical remap, implement and test a fully resident remap trampoline with independently mapped code/data/stack, interrupt-entry/return discipline, and a rollback path that can execute after the target window changes. Keep physical `OUT` disabled until those prerequisites are demonstrated.
