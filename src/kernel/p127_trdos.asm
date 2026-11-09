@@ -152,7 +152,7 @@ p127_trdos_dump_next:
         ld      ix,(p127_trdos_entry_ptr)
         ld      a,(ix+0)
         or      a
-        jr      z,p127_trdos_dump_skip
+        jp      z,p127_trdos_dump_skip
         cp      1
         jr      z,p127_trdos_dump_skip
         ld      a,(ix+8)
@@ -163,7 +163,7 @@ p127_trdos_dump_next:
         cp      'D'
         jr      z,p127_trdos_dump_valid
         cp      '#'
-        jr      nz,p127_trdos_dump_skip
+        jp      nz,p127_trdos_dump_skip
 
 p127_trdos_dump_valid:
         ld      a,(p127_trdos_file_count)
@@ -209,7 +209,7 @@ p127_trdos_dump_skip:
         ld      a,(p127_trdos_slots_left)
         dec     a
         ld      (p127_trdos_slots_left),a
-        jr      nz,p127_trdos_dump_next
+        jp      nz,p127_trdos_dump_next
 
         ld      hl,p127_trdos_msg_count
         call    p127_puts
