@@ -5,7 +5,7 @@ from pathlib import Path
 SECTOR, SPT, TRACKS = 256, 16, 160
 IMAGE_SIZE = SECTOR * SPT * TRACKS
 LOAD_ADDRESS = 0x6000
-TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR, TOK_VAL = 0xEF, 0xAF, 0xF9, 0xC0, 0xB0
+TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR, TOK_VAL, TOK_OUT = 0xEF, 0xAF, 0xF9, 0xC0, 0xB0
 
 def le16(n):
     if not 0 <= n <= 0xFFFF:
@@ -115,7 +115,7 @@ def verify_trd(image, expected_code=None):
     basic = image[pos:pos + n + 3]
     if not basic.endswith(b"\x80\xaa\x0a\x00"):
         raise ValueError("Invalid BASIC/TR-DOS run-line terminator")
-    for token in (TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR, TOK_VAL):
+    for token in (TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR, TOK_VAL, TOK_OUT):
         if token not in basic:
             raise ValueError("BASIC loader token missing")
     if 0xFD in basic:
@@ -136,6 +136,7 @@ def main():
     print(f"[P127 TRD] FILES=2 CODE_BYTES={len(code)} IMAGE_BYTES={len(image)}")
     print("[P127 TRD] BOOT_FILENAME=boot TYPE=B")
     print("[P127 TRD] BASIC_AUTOSTART_LINE=10")
+    print("[P127 TRD] BASIC_DEBUG=OUT_239_PROGRESS_MARKERS")
     print("[P127 TRD] BASIC_ADDRESS=VAL_STRING_24576")
     print(f"[P127 TRD] OUTPUT={args.output}")
     print("[P127 TRD] VERIFY OK")
