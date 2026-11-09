@@ -1855,13 +1855,13 @@
  29+++6EBB CA BD 6F             jp      z,atm_mem_scatter_fail
  30+++6EBE FE 3B                cp      ATM_SCATTER_MAX_EXTENTS+1
  31+++6EC0 D2 BD 6F             jp      nc,atm_mem_scatter_fail
- 32+++6EC3 32 AE 70             ld      (atm_mem_scatter_needed),a
+ 32+++6EC3 32 AA 70             ld      (atm_mem_scatter_needed),a
  33+++6EC6 21 6B 68             ld      hl,atm_mem_request_length
- 34+++6EC9 11 BD 70             ld      de,atm_mem_scatter_length
+ 34+++6EC9 11 B9 70             ld      de,atm_mem_scatter_length
  35+++6ECC 01 04 00             ld      bc,4
  36+++6ECF ED B0                ldir
  37+++6ED1
- 38+++6ED1 21 C1 70             ld      hl,atm_mem_scatter_handles
+ 38+++6ED1 21 BD 70             ld      hl,atm_mem_scatter_handles
  39+++6ED4 06 08                ld      b,ATM_SCATTER_HANDLE_COUNT
  40+++6ED6 0E 01                ld      c,1
  41+++6ED8              atm_mem_scatter_find_handle:
@@ -1876,11 +1876,11 @@
  50+++6EE4 10 F2                djnz    atm_mem_scatter_find_handle
  51+++6EE6 C3 BD 6F             jp      atm_mem_scatter_fail
  52+++6EE9              atm_mem_scatter_handle_found:
- 53+++6EE9 22 B9 70             ld      (atm_mem_scatter_record),hl
+ 53+++6EE9 22 B5 70             ld      (atm_mem_scatter_record),hl
  54+++6EEC 79                   ld      a,c
- 55+++6EED 32 B0 70             ld      (atm_mem_scatter_handle),a
+ 55+++6EED 32 AC 70             ld      (atm_mem_scatter_handle),a
  56+++6EF0 0D                   dec     c
- 57+++6EF1 21 F1 70             ld      hl,atm_mem_scatter_extents
+ 57+++6EF1 21 ED 70             ld      hl,atm_mem_scatter_extents
  58+++6EF4 11 E8 00             ld      de,ATM_SCATTER_EXTENT_BYTES
  59+++6EF7 79                   ld      a,c
  60+++6EF8 B7                   or      a
@@ -1890,9 +1890,9 @@
  64+++6EFD 3D                   dec     a
  65+++6EFE C2 FC 6E             jp      nz,atm_mem_scatter_vector_offset
  66+++6F01              atm_mem_scatter_vector_ready:
- 67+++6F01 22 BB 70             ld      (atm_mem_scatter_vector),hl
+ 67+++6F01 22 B7 70             ld      (atm_mem_scatter_vector),hl
  68+++6F04 AF                   xor     a
- 69+++6F05 32 AF 70             ld      (atm_mem_scatter_done),a
+ 69+++6F05 32 AB 70             ld      (atm_mem_scatter_done),a
  70+++6F08
  71+++6F08              atm_mem_scatter_alloc_loop:
  72+++6F08 21 01 00             ld      hl,1
@@ -1904,47 +1904,47 @@
  78+++6F1A                      ; Store the allocator's physical byte offset in this extent slot.
  79+++6F1A                      ; LDIR copies HL -> DE; do not reverse these endpoints.
  80+++6F1A 21 6F 68             ld      hl,atm_mem_result_offset
- 81+++6F1D ED 5B BB 70          ld      de,(atm_mem_scatter_vector)
+ 81+++6F1D ED 5B B7 70          ld      de,(atm_mem_scatter_vector)
  82+++6F21 01 04 00             ld      bc,4
  83+++6F24 ED B0                ldir
- 84+++6F26 2A BB 70             ld      hl,(atm_mem_scatter_vector)
+ 84+++6F26 2A B7 70             ld      hl,(atm_mem_scatter_vector)
  85+++6F29 11 04 00             ld      de,4
  86+++6F2C 19                   add     hl,de
- 87+++6F2D 22 BB 70             ld      (atm_mem_scatter_vector),hl
- 88+++6F30 3A AF 70             ld      a,(atm_mem_scatter_done)
+ 87+++6F2D 22 B7 70             ld      (atm_mem_scatter_vector),hl
+ 88+++6F30 3A AB 70             ld      a,(atm_mem_scatter_done)
  89+++6F33 3C                   inc     a
- 90+++6F34 32 AF 70             ld      (atm_mem_scatter_done),a
+ 90+++6F34 32 AB 70             ld      (atm_mem_scatter_done),a
  91+++6F37 47                   ld      b,a
- 92+++6F38 3A AE 70             ld      a,(atm_mem_scatter_needed)
+ 92+++6F38 3A AA 70             ld      a,(atm_mem_scatter_needed)
  93+++6F3B B8                   cp      b
  94+++6F3C C2 08 6F             jp      nz,atm_mem_scatter_alloc_loop
  95+++6F3F
- 96+++6F3F 2A B9 70             ld      hl,(atm_mem_scatter_record)
- 97+++6F42 3A B0 70             ld      a,(atm_mem_scatter_handle)
+ 96+++6F3F 2A B5 70             ld      hl,(atm_mem_scatter_record)
+ 97+++6F42 3A AC 70             ld      a,(atm_mem_scatter_handle)
  98+++6F45 77                   ld      (hl),a
  99+++6F46 23                   inc     hl
-100+++6F47 3A AF 70             ld      a,(atm_mem_scatter_done)
+100+++6F47 3A AB 70             ld      a,(atm_mem_scatter_done)
 101+++6F4A 77                   ld      (hl),a
 102+++6F4B 23                   inc     hl
-103+++6F4C 11 BD 70             ld      de,atm_mem_scatter_length
+103+++6F4C 11 B9 70             ld      de,atm_mem_scatter_length
 104+++6F4F 01 04 00             ld      bc,4
 105+++6F52 ED B0                ldir
-106+++6F54 21 BD 70             ld      hl,atm_mem_scatter_length
+106+++6F54 21 B9 70             ld      hl,atm_mem_scatter_length
 107+++6F57 11 6B 68             ld      de,atm_mem_request_length
 108+++6F5A 01 04 00             ld      bc,4
 109+++6F5D ED B0                ldir
-110+++6F5F 3A B0 70             ld      a,(atm_mem_scatter_handle)
+110+++6F5F 3A AC 70             ld      a,(atm_mem_scatter_handle)
 111+++6F62 B7                   or      a
 112+++6F63 C9                   ret
 113+++6F64
 114+++6F64              atm_mem_scatter_rollback:
-115+++6F64 3A AF 70             ld      a,(atm_mem_scatter_done)
+115+++6F64 3A AB 70             ld      a,(atm_mem_scatter_done)
 116+++6F67 B7                   or      a
 117+++6F68 CA B2 6F             jp      z,atm_mem_scatter_restore_fail
-118+++6F6B 32 B1 70             ld      (atm_mem_scatter_rollback_count),a
-119+++6F6E 3A B0 70             ld      a,(atm_mem_scatter_handle)
+118+++6F6B 32 AD 70             ld      (atm_mem_scatter_rollback_count),a
+119+++6F6E 3A AC 70             ld      a,(atm_mem_scatter_handle)
 120+++6F71 3D                   dec     a
-121+++6F72 21 F1 70             ld      hl,atm_mem_scatter_extents
+121+++6F72 21 ED 70             ld      hl,atm_mem_scatter_extents
 122+++6F75 11 E8 00             ld      de,ATM_SCATTER_EXTENT_BYTES
 123+++6F78 B7                   or      a
 124+++6F79 CA 81 6F             jp      z,atm_mem_scatter_rollback_vector_ready
@@ -1953,9 +1953,9 @@
 127+++6F7D 3D                   dec     a
 128+++6F7E C2 7C 6F             jp      nz,atm_mem_scatter_rollback_vector
 129+++6F81              atm_mem_scatter_rollback_vector_ready:
-130+++6F81 22 BB 70             ld      (atm_mem_scatter_vector),hl
+130+++6F81 22 B7 70             ld      (atm_mem_scatter_vector),hl
 131+++6F84              atm_mem_scatter_rollback_loop:
-132+++6F84 2A BB 70             ld      hl,(atm_mem_scatter_vector)
+132+++6F84 2A B7 70             ld      hl,(atm_mem_scatter_vector)
 133+++6F87 11 67 68             ld      de,atm_mem_request_offset
 134+++6F8A 01 04 00             ld      bc,4
 135+++6F8D ED B0                ldir
@@ -1964,16 +1964,16 @@
 138+++6F95 21 00 00             ld      hl,0
 139+++6F98 22 6D 68             ld      (atm_mem_request_length+2),hl
 140+++6F9B CD 16 66             call    atm_mem_free
-141+++6F9E 2A BB 70             ld      hl,(atm_mem_scatter_vector)
+141+++6F9E 2A B7 70             ld      hl,(atm_mem_scatter_vector)
 142+++6FA1 11 04 00             ld      de,4
 143+++6FA4 19                   add     hl,de
-144+++6FA5 22 BB 70             ld      (atm_mem_scatter_vector),hl
-145+++6FA8 3A B1 70             ld      a,(atm_mem_scatter_rollback_count)
+144+++6FA5 22 B7 70             ld      (atm_mem_scatter_vector),hl
+145+++6FA8 3A AD 70             ld      a,(atm_mem_scatter_rollback_count)
 146+++6FAB 3D                   dec     a
-147+++6FAC 32 B1 70             ld      (atm_mem_scatter_rollback_count),a
+147+++6FAC 32 AD 70             ld      (atm_mem_scatter_rollback_count),a
 148+++6FAF C2 84 6F             jp      nz,atm_mem_scatter_rollback_loop
 149+++6FB2              atm_mem_scatter_restore_fail:
-150+++6FB2 21 BD 70             ld      hl,atm_mem_scatter_length
+150+++6FB2 21 B9 70             ld      hl,atm_mem_scatter_length
 151+++6FB5 11 6B 68             ld      de,atm_mem_request_length
 152+++6FB8 01 04 00             ld      bc,4
 153+++6FBB ED B0                ldir
@@ -1987,9 +1987,9 @@
 160+++6FC0 CA BD 6F             jp      z,atm_mem_scatter_fail
 161+++6FC3 FE 09                cp      ATM_SCATTER_HANDLE_COUNT+1
 162+++6FC5 D2 BD 6F             jp      nc,atm_mem_scatter_fail
-163+++6FC8 32 B0 70             ld      (atm_mem_scatter_handle),a
+163+++6FC8 32 AC 70             ld      (atm_mem_scatter_handle),a
 164+++6FCB 3D                   dec     a
-165+++6FCC 21 C1 70             ld      hl,atm_mem_scatter_handles
+165+++6FCC 21 BD 70             ld      hl,atm_mem_scatter_handles
 166+++6FCF 11 06 00             ld      de,6
 167+++6FD2 B7                   or      a
 168+++6FD3 CA DB 6F             jp      z,atm_mem_scatter_free_record_ready
@@ -2003,10 +2003,10 @@
 176+++6FDD CA BD 6F             jp      z,atm_mem_scatter_fail
 177+++6FE0 23                   inc     hl
 178+++6FE1 7E                   ld      a,(hl)
-179+++6FE2 32 B1 70             ld      (atm_mem_scatter_rollback_count),a
-180+++6FE5 3A B0 70             ld      a,(atm_mem_scatter_handle)
+179+++6FE2 32 AD 70             ld      (atm_mem_scatter_rollback_count),a
+180+++6FE5 3A AC 70             ld      a,(atm_mem_scatter_handle)
 181+++6FE8 3D                   dec     a
-182+++6FE9 21 F1 70             ld      hl,atm_mem_scatter_extents
+182+++6FE9 21 ED 70             ld      hl,atm_mem_scatter_extents
 183+++6FEC 11 E8 00             ld      de,ATM_SCATTER_EXTENT_BYTES
 184+++6FEF B7                   or      a
 185+++6FF0 CA F8 6F             jp      z,atm_mem_scatter_free_vector_ready
@@ -2015,9 +2015,9 @@
 188+++6FF4 3D                   dec     a
 189+++6FF5 C2 F3 6F             jp      nz,atm_mem_scatter_free_vector
 190+++6FF8              atm_mem_scatter_free_vector_ready:
-191+++6FF8 22 BB 70             ld      (atm_mem_scatter_vector),hl
+191+++6FF8 22 B7 70             ld      (atm_mem_scatter_vector),hl
 192+++6FFB              atm_mem_scatter_free_loop:
-193+++6FFB 2A BB 70             ld      hl,(atm_mem_scatter_vector)
+193+++6FFB 2A B7 70             ld      hl,(atm_mem_scatter_vector)
 194+++6FFE 11 67 68             ld      de,atm_mem_request_offset
 195+++7001 01 04 00             ld      bc,4
 196+++7004 ED B0                ldir
@@ -2027,18 +2027,18 @@
 200+++700F 22 6D 68             ld      (atm_mem_request_length+2),hl
 201+++7012 CD 16 66             call    atm_mem_free
 202+++7015 DA BD 6F             jp      c,atm_mem_scatter_fail
-203+++7018 2A BB 70             ld      hl,(atm_mem_scatter_vector)
+203+++7018 2A B7 70             ld      hl,(atm_mem_scatter_vector)
 204+++701B 11 04 00             ld      de,4
 205+++701E 19                   add     hl,de
-206+++701F 22 BB 70             ld      (atm_mem_scatter_vector),hl
-207+++7022 3A B1 70             ld      a,(atm_mem_scatter_rollback_count)
+206+++701F 22 B7 70             ld      (atm_mem_scatter_vector),hl
+207+++7022 3A AD 70             ld      a,(atm_mem_scatter_rollback_count)
 208+++7025 3D                   dec     a
-209+++7026 32 B1 70             ld      (atm_mem_scatter_rollback_count),a
+209+++7026 32 AD 70             ld      (atm_mem_scatter_rollback_count),a
 210+++7029 C2 FB 6F             jp      nz,atm_mem_scatter_free_loop
 211+++702C
-212+++702C 3A B0 70             ld      a,(atm_mem_scatter_handle)
+212+++702C 3A AC 70             ld      a,(atm_mem_scatter_handle)
 213+++702F 3D                   dec     a
-214+++7030 21 C1 70             ld      hl,atm_mem_scatter_handles
+214+++7030 21 BD 70             ld      hl,atm_mem_scatter_handles
 215+++7033 11 06 00             ld      de,6
 216+++7036 B7                   or      a
 217+++7037 CA 3F 70             jp      z,atm_mem_scatter_clear_ready
@@ -2060,88 +2060,84 @@
 232+++7049 21 00 00             ld      hl,0
 233+++704C 22 6D 68             ld      (atm_mem_request_length+2),hl
 234+++704F CD 93 6E             call    atm_mem_scatter_alloc
-235+++7052 DA AC 70             jp      c,atm_mem_scatter_test_fail
-236+++7055 32 B2 70             ld      (atm_mem_scatter_test_handle),a
+235+++7052 DA A8 70             jp      c,atm_mem_scatter_test_fail
+236+++7055 32 AE 70             ld      (atm_mem_scatter_test_handle),a
 237+++7058                      ; 0x4001 bytes must be represented by exactly two distinct
 238+++7058                      ; physical page offsets, both stored in the private extent vector.
-239+++7058 3A AF 70             ld      a,(atm_mem_scatter_done)
+239+++7058 3A AB 70             ld      a,(atm_mem_scatter_done)
 240+++705B FE 02                cp      2
-241+++705D C2 AC 70             jp      nz,atm_mem_scatter_test_fail
-242+++7060 2A BB 70             ld      hl,(atm_mem_scatter_vector)
+241+++705D C2 A8 70             jp      nz,atm_mem_scatter_test_fail
+242+++7060 2A B7 70             ld      hl,(atm_mem_scatter_vector)
 243+++7063 11 08 00             ld      de,8
 244+++7066 B7                   or      a
 245+++7067 ED 52                sbc     hl,de
-246+++7069 22 B3 70             ld      (atm_mem_scatter_test_vector),hl
-247+++706C 2A B3 70             ld      hl,(atm_mem_scatter_test_vector)
+246+++7069 22 AF 70             ld      (atm_mem_scatter_test_vector),hl
+247+++706C 2A AF 70             ld      hl,(atm_mem_scatter_test_vector)
 248+++706F 7E                   ld      a,(hl)
-249+++7070 47                   ld      b,a
-250+++7071 23                   inc     hl
-251+++7072 7E                   ld      a,(hl)
-252+++7073 B0                   or      b
+249+++7070 23                   inc     hl
+250+++7071 B6                   or      (hl)
+251+++7072 23                   inc     hl
+252+++7073 B6                   or      (hl)
 253+++7074 23                   inc     hl
-254+++7075 7E                   ld      a,(hl)
-255+++7076 B0                   or      b
-256+++7077 23                   inc     hl
-257+++7078 7E                   ld      a,(hl)
-258+++7079 B0                   or      b
-259+++707A CA AC 70             jp      z,atm_mem_scatter_test_fail
-260+++707D 2A B3 70             ld      hl,(atm_mem_scatter_test_vector)
-261+++7080 11 04 00             ld      de,4
-262+++7083 19                   add     hl,de
-263+++7084 11 B5 70             ld      de,atm_mem_scatter_test_first
-264+++7087 01 04 00             ld      bc,4
-265+++708A ED B0                ldir
-266+++708C 2A B3 70             ld      hl,(atm_mem_scatter_test_vector)
-267+++708F 11 04 00             ld      de,4
-268+++7092 19                   add     hl,de
-269+++7093 11 04 00             ld      de,4
-270+++7096 19                   add     hl,de
-271+++7097 7E                   ld      a,(hl)
-272+++7098 47                   ld      b,a
-273+++7099 23                   inc     hl
-274+++709A 7E                   ld      a,(hl)
-275+++709B B0                   or      b
-276+++709C 23                   inc     hl
-277+++709D 7E                   ld      a,(hl)
-278+++709E B0                   or      b
-279+++709F 23                   inc     hl
-280+++70A0 7E                   ld      a,(hl)
-281+++70A1 B0                   or      b
-282+++70A2 CA AC 70             jp      z,atm_mem_scatter_test_fail
-283+++70A5 3A B2 70             ld      a,(atm_mem_scatter_test_handle)
-284+++70A8 CD BF 6F             call    atm_mem_scatter_free
-285+++70AB C9                   ret
-286+++70AC              atm_mem_scatter_test_fail:
-287+++70AC 37                   scf
-288+++70AD C9                   ret
-289+++70AE
-290+++70AE 00           atm_mem_scatter_needed:          db 0
-291+++70AF 00           atm_mem_scatter_done:            db 0
-292+++70B0 00           atm_mem_scatter_handle:          db 0
-293+++70B1 00           atm_mem_scatter_rollback_count:  db 0
-294+++70B2 00           atm_mem_scatter_test_handle:     db 0
-295+++70B3 00 00        atm_mem_scatter_test_vector:     dw 0
-296+++70B5 00 00 00 00  atm_mem_scatter_test_first:      defs 4,0
-297+++70B9 00 00        atm_mem_scatter_record:          dw 0
-298+++70BB 00 00        atm_mem_scatter_vector:          dw 0
-299+++70BD 00 00 00 00  atm_mem_scatter_length:          defs 4,0
-300+++70C1 00 00 00...  atm_mem_scatter_handles:         defs ATM_SCATTER_HANDLE_COUNT*6,0
-301+++70F1 00 00 00...  atm_mem_scatter_extents:         defs ATM_SCATTER_HANDLE_COUNT*ATM_SCATTER_MAX_EXTENTS*4,0
-302+++7831
+254+++7075 B6                   or      (hl)
+255+++7076 CA A8 70             jp      z,atm_mem_scatter_test_fail
+256+++7079 2A AF 70             ld      hl,(atm_mem_scatter_test_vector)
+257+++707C 11 04 00             ld      de,4
+258+++707F 19                   add     hl,de
+259+++7080 11 B1 70             ld      de,atm_mem_scatter_test_first
+260+++7083 01 04 00             ld      bc,4
+261+++7086 ED B0                ldir
+262+++7088 2A AF 70             ld      hl,(atm_mem_scatter_test_vector)
+263+++708B 11 04 00             ld      de,4
+264+++708E 19                   add     hl,de
+265+++708F 11 04 00             ld      de,4
+266+++7092 19                   add     hl,de
+267+++7093 7E                   ld      a,(hl)
+268+++7094 47                   ld      b,a
+269+++7095 23                   inc     hl
+270+++7096 7E                   ld      a,(hl)
+271+++7097 B0                   or      b
+272+++7098 23                   inc     hl
+273+++7099 7E                   ld      a,(hl)
+274+++709A B0                   or      b
+275+++709B 23                   inc     hl
+276+++709C 7E                   ld      a,(hl)
+277+++709D B0                   or      b
+278+++709E CA A8 70             jp      z,atm_mem_scatter_test_fail
+279+++70A1 3A AE 70             ld      a,(atm_mem_scatter_test_handle)
+280+++70A4 CD BF 6F             call    atm_mem_scatter_free
+281+++70A7 C9                   ret
+282+++70A8              atm_mem_scatter_test_fail:
+283+++70A8 37                   scf
+284+++70A9 C9                   ret
+285+++70AA
+286+++70AA 00           atm_mem_scatter_needed:          db 0
+287+++70AB 00           atm_mem_scatter_done:            db 0
+288+++70AC 00           atm_mem_scatter_handle:          db 0
+289+++70AD 00           atm_mem_scatter_rollback_count:  db 0
+290+++70AE 00           atm_mem_scatter_test_handle:     db 0
+291+++70AF 00 00        atm_mem_scatter_test_vector:     dw 0
+292+++70B1 00 00 00 00  atm_mem_scatter_test_first:      defs 4,0
+293+++70B5 00 00        atm_mem_scatter_record:          dw 0
+294+++70B7 00 00        atm_mem_scatter_vector:          dw 0
+295+++70B9 00 00 00 00  atm_mem_scatter_length:          defs 4,0
+296+++70BD 00 00 00...  atm_mem_scatter_handles:         defs ATM_SCATTER_HANDLE_COUNT*6,0
+297+++70ED 00 00 00...  atm_mem_scatter_extents:         defs ATM_SCATTER_HANDLE_COUNT*ATM_SCATTER_MAX_EXTENTS*4,0
+298+++782D
 # file closed: atm_memory_handles.asm
-160++ 7831
+160++ 782D
 # file closed: atm_memory_backend.asm
-195+  7831
-196+  7831              p127_host_program_end:
-197+  7831                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
-198+  7831                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
-199+  7831                      ASSERT p127_host_program_end <= #8000
-200+  7831
+195+  782D
+196+  782D              p127_host_program_end:
+197+  782D                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
+198+  782D                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
+199+  782D                      ASSERT p127_host_program_end <= #8000
+200+  782D
 # file closed: p127_host.asm
- 12   7831                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
- 13   7831
- 14   7831                      PAGE 0
- 15   7831                      ORG #E000
+ 12   782D                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
+ 13   782D
+ 14   782D                      PAGE 0
+ 15   782D                      ORG #E000
  16   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
 # file opened: boot_loader.generated.asm
   1+  E000              ; =========================================================================
@@ -2439,8 +2435,8 @@ Value    Label
 0x6F08   atm_mem_scatter_alloc_loop
 0x703F   atm_mem_scatter_clear_ready
 0x703A   atm_mem_scatter_clear_record
-0x70AF   atm_mem_scatter_done
-0x70F1   atm_mem_scatter_extents
+0x70AB   atm_mem_scatter_done
+0x70ED   atm_mem_scatter_extents
 0x6FBD   atm_mem_scatter_fail
 0x6ED8   atm_mem_scatter_find_handle
 0x6FBF   atm_mem_scatter_free
@@ -2449,24 +2445,24 @@ Value    Label
 0x6FDB   atm_mem_scatter_free_record_ready
 0x6FF3   atm_mem_scatter_free_vector
 0x6FF8   atm_mem_scatter_free_vector_ready
-0x70B0   atm_mem_scatter_handle
+0x70AC   atm_mem_scatter_handle
 0x6EE9   atm_mem_scatter_handle_found
-0x70C1   atm_mem_scatter_handles
-0x70BD   atm_mem_scatter_length
-0x70AE   atm_mem_scatter_needed
-0x70B9   atm_mem_scatter_record
+0x70BD   atm_mem_scatter_handles
+0x70B9   atm_mem_scatter_length
+0x70AA   atm_mem_scatter_needed
+0x70B5   atm_mem_scatter_record
 0x6FB2   atm_mem_scatter_restore_fail
 0x6F64   atm_mem_scatter_rollback
-0x70B1   atm_mem_scatter_rollback_count
+0x70AD   atm_mem_scatter_rollback_count
 0x6F84   atm_mem_scatter_rollback_loop
 0x6F7C   atm_mem_scatter_rollback_vector
 0x6F81   atm_mem_scatter_rollback_vector_ready
 0x7043   atm_mem_scatter_selftest
-0x70AC   atm_mem_scatter_test_fail
-0x70B5   atm_mem_scatter_test_first
-0x70B2   atm_mem_scatter_test_handle
-0x70B3   atm_mem_scatter_test_vector
-0x70BB   atm_mem_scatter_vector
+0x70A8   atm_mem_scatter_test_fail
+0x70B1   atm_mem_scatter_test_first
+0x70AE   atm_mem_scatter_test_handle
+0x70AF   atm_mem_scatter_test_vector
+0x70B7   atm_mem_scatter_vector
 0x6EFC   atm_mem_scatter_vector_offset
 0x6F01   atm_mem_scatter_vector_ready
 0x64BD   atm_mem_selftest_fail
@@ -2543,7 +2539,7 @@ Value    Label
 0x6246   p127_host_ops_error
 0x6050   p127_host_ops_fail
 0x61CC   p127_host_ops_ok
-0x7831   p127_host_program_end
+0x782D   p127_host_program_end
 0x6000   p127_host_program_start
 0x62C4   p127_host_range_error
 0x608F   p127_host_range_fail
