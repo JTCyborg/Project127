@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.7.5
+; Project127 — boot stage 0.7.6
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -67,6 +67,10 @@ p127_start:
         jp      c,p127_mem_irq_reserve_failed
         ld      hl,p127_msg_irq_page_reserved
         call    p127_puts
+        ; Stage 3.4: measure the linked kernel span and validate its live pages.
+        call    p127_layout_selftest
+        jp      c,p127_layout_failed
+        call    p127_layout_report
         call    p127_mem_selftest
         jp      c,p127_mem_failed
         ld      hl,p127_msg_mem_pass
@@ -229,6 +233,10 @@ p127_range_failed:
         ld      hl,p127_msg_range_fail
         call    p127_puts
         jp      p127_idle
+p127_layout_failed:
+        ld      hl,p127_msg_layout_fail
+        call    p127_puts
+        jp      p127_idle
 p127_arena_failed:
         ld      hl,p127_msg_arena_fail
         call    p127_puts
@@ -301,6 +309,8 @@ p127_msg_exec:
         db      "[P127] DEBUG TX EF", 13, 10, 0
 p127_msg_pass:
         db      "[P127] BOOT0 PASS; IDLE", 13, 10, 0
+p127_msg_layout_fail:
+        db      "[P127] KERNEL IMAGE LAYOUT FAIL",13,10,0
 p127_msg_mem_init:
         db      "[P127] MEM INIT 1MB/64P", 13, 10, 0
 p127_msg_video_reserved:
@@ -381,6 +391,8 @@ p127_msg_trampoline_preflight_pass:
         db      "[P127] RESIDENT TRAMPOLINE PREFLIGHT PASS; OUT DISABLED",13,10,0
 p127_msg_trampoline_preflight_fail:
         db      "[P127] RESIDENT TRAMPOLINE PREFLIGHT FAIL",13,10,0
+
+        INCLUDE "src/kernel/p127_layout.asm"
 
 ; Keep the remap-critical code/data at the start of the Stage2 image so it
 ; remains inside W1/P5. The preflight below verifies the actual linked bounds.
