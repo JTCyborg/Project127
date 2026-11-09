@@ -1,40 +1,48 @@
 ; ============================================================================
 ; Project127 ATM Core — UINT32 physical range validator
-; Module version: 0.1.1
+; Module version: 0.1.2
 ; ABI:
 ;   p127_range_start  = 4-byte little-endian physical start address
 ;   p127_range_length = 4-byte little-endian byte length
-;   call p127_range_validate; carry=1 if invalid, clear if valid
+;   call p127_range_validate; carry=1 if invalid, clear if valid; clobbers AF, B, DE, HL
 ; Semantics: half-open [start, start+length), bounded by 1 MiB.
 ; Zero-length ranges are valid when start <= 1 MiB.
 ; This is arithmetic/accounting only; it does not map or access RAM.
 ; ============================================================================
 P127_RANGE_VERSION_MAJOR EQU 0
 P127_RANGE_VERSION_MINOR EQU 1
-P127_RANGE_VERSION_PATCH EQU 1
+P127_RANGE_VERSION_PATCH EQU 2
 P127_RANGE_LIMIT         EQU 0100000h
 
 p127_range_validate:
         ; Add the unsigned 32-bit length to the unsigned start.
         ld      hl,p127_range_start
         ld      de,p127_range_length
+        ld      a,(de)
+        ld      b,a
         ld      a,(hl)
-        add     a,(de)
+        add     a,b
         ld      (p127_range_end),a
         inc     hl
         inc     de
+        ld      a,(de)
+        ld      b,a
         ld      a,(hl)
-        adc     a,(de)
+        adc     a,b
         ld      (p127_range_end+1),a
         inc     hl
         inc     de
+        ld      a,(de)
+        ld      b,a
         ld      a,(hl)
-        adc     a,(de)
+        adc     a,b
         ld      (p127_range_end+2),a
         inc     hl
         inc     de
+        ld      a,(de)
+        ld      b,a
         ld      a,(hl)
-        adc     a,(de)
+        adc     a,b
         ld      (p127_range_end+3),a
         ret     c                       ; unsigned 32-bit addition overflow
 

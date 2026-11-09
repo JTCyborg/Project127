@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.53**  
+Scenario revision: **0.8.54**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -723,3 +723,11 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - During final source review, corrected the full-address-space regression vector: the 32-bit length must be `0x00100000` (byte 2 = `0x10`), not `0x00010000`. The validator itself was unchanged.
 - Advanced `src/kernel/p127_range.asm` to v0.1.1 and scenario revision to 0.8.53.
 - Build/runtime verification remains pending. The full-span test now exercises the exact 1 MiB physical limit.
+
+
+### 2026-11-09 — Stage 3.1 SjASMPlus Z80 addressing correction v0.1.2
+
+- User build reported four `Label not found: de` errors on the `ADD A,(DE)` / `ADC A,(DE)` instructions in `p127_range.asm`. Z80 supports `(DE)` only for `LD A,(DE)` / `LD (DE),A`; arithmetic instructions require `(HL)` or a register operand.
+- Reworked each byte of the 32-bit addition to load the length byte through DE into B, load the start byte through HL, then use `ADD A,B` / `ADC A,B`. The carry flag remains live across the pointer increments, so the four-byte addition and overflow detection retain their intended semantics.
+- Documented the validator's clobbers as AF, B, DE and HL. API inputs, output carry convention, range semantics, boundary tests and memory-map restrictions are unchanged.
+- Advanced `src/kernel/p127_range.asm` from v0.1.1 to v0.1.2; scenario revision 0.8.54. This is a source-level assembler correction only. Build and emulator runtime verification remain pending the user's rebuild.
