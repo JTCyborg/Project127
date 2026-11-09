@@ -251,7 +251,7 @@ BIOS_DebugConsole_PrintAt::
         ld      hl, (bios_dbg_text_ptr)
         ld      a, (hl)
         or      a
-        jr      z, .p126_print_at_done
+        jp      z, .p126_print_at_done
         ld      (bios_dbg_char), a
         inc     hl
         ld      (bios_dbg_text_ptr), hl
@@ -268,16 +268,16 @@ BIOS_DebugConsole_PrintAt::
         ld      a, (bios_dbg_print_col)
         inc     a
         cp      BIOS_DEBUG_COLUMNS
-        jr      c, .p126_print_at_col_ok
+        jp      c, .p126_print_at_col_ok
         xor     a
         ld      (bios_dbg_print_col), a
         ld      a, (bios_dbg_print_row)
         inc     a
         ld      (bios_dbg_print_row), a
-        jr      .p126_print_at_loop
+        jp      .p126_print_at_loop
 .p126_print_at_col_ok:
         ld      (bios_dbg_print_col), a
-        jr      .p126_print_at_loop
+        jp      .p126_print_at_loop
 .p126_print_at_done:
         ld      bc,P127_UI_DEBUG_PORT
         ld      a,13
@@ -309,7 +309,7 @@ BIOS_DebugConsole_PrintChar::
         cp      32
         jp      c, .p126_console_done
         cp      128
-        jr      c, .p126_console_char_ok
+        jp      c, .p126_console_char_ok
         ld      a, '?'
 .p126_console_char_ok:
         ld      (bios_dbg_char), a
@@ -323,11 +323,11 @@ BIOS_DebugConsole_PrintChar::
         ld      a, (bios_dbg_col)
         inc     a
         cp      BIOS_DEBUG_COLUMNS
-        jr      c, .p126_console_store_col
+        jp      c, .p126_console_store_col
         xor     a
         ld      (bios_dbg_col), a
         call    bios_dbg_newline
-        jr      .p126_console_sync_cursor
+        jp      .p126_console_sync_cursor
 .p126_console_store_col:
         ld      (bios_dbg_col), a
 .p126_console_sync_cursor:
@@ -336,19 +336,19 @@ BIOS_DebugConsole_PrintChar::
         ld      a, (bios_dbg_row)
         add     a, BIOS_DEBUG_TOP
         ld      (Console_Y), a
-        jr      .p126_console_done
+        jp      .p126_console_done
 .p126_console_cr:
         xor     a
         ld      (bios_dbg_col), a
         ld      (Console_X), a
-        jr      .p126_console_done
+        jp      .p126_console_done
 .p126_console_lf:
         call    bios_dbg_newline
-        jr      .p126_console_sync_cursor
+        jp      .p126_console_sync_cursor
 .p126_console_bs:
         ld      a, (bios_dbg_col)
         or      a
-        jr      z, .p126_console_done
+        jp      z, .p126_console_done
         dec     a
         ld      (bios_dbg_col), a
         ld      a, (bios_dbg_row)
@@ -358,79 +358,7 @@ BIOS_DebugConsole_PrintChar::
         ld      e, a
         ld      a, 32
         call    p126_screen_write_char
-        jr      .p126_console_sync_cursor
-.p126_console_done:
-        pop     hl
-        pop     de
-        pop     bc
-        pop     af
-        ret
-
-
-BIOS_DebugConsole_PrintChar::
-        push    af
-        push    bc
-        push    de
-        push    hl
-        cp      13
-        jp      z, .p126_console_cr
-        cp      10
-        jp      z, .p126_console_lf
-        cp      8
-        jp      z, .p126_console_bs
-        cp      32
-        jp      c, .p126_console_done
-        cp      128
-        jr      c, .p126_console_char_ok
-        ld      a, '?'
-.p126_console_char_ok:
-        ld      (bios_dbg_char), a
-        ld      a, (bios_dbg_row)
-        add     a, BIOS_DEBUG_TOP
-        ld      d, a
-        ld      a, (bios_dbg_col)
-        ld      e, a
-        ld      a, (bios_dbg_char)
-        call    p126_screen_write_char
-        ld      a, (bios_dbg_col)
-        inc     a
-        cp      BIOS_DEBUG_COLUMNS
-        jr      c, .p126_console_store_col
-        xor     a
-        ld      (bios_dbg_col), a
-        call    bios_dbg_newline
-        jr      .p126_console_sync_cursor
-.p126_console_store_col:
-        ld      (bios_dbg_col), a
-.p126_console_sync_cursor:
-        ld      a, (bios_dbg_col)
-        ld      (Console_X), a
-        ld      a, (bios_dbg_row)
-        add     a, BIOS_DEBUG_TOP
-        ld      (Console_Y), a
-        jr      .p126_console_done
-.p126_console_cr:
-        xor     a
-        ld      (bios_dbg_col), a
-        ld      (Console_X), a
-        jr      .p126_console_done
-.p126_console_lf:
-        call    bios_dbg_newline
-        jr      .p126_console_sync_cursor
-.p126_console_bs:
-        ld      a, (bios_dbg_col)
-        or      a
-        jr      z, .p126_console_done
-        dec     a
-        ld      (bios_dbg_col), a
-        ld      a, (bios_dbg_row)
-        add     a, BIOS_DEBUG_TOP
-        ld      d, a
-        ld      a, (bios_dbg_col)
-        ld      e, a
-        ld      a, 32
-        call    p126_screen_write_char
-        jr      .p126_console_sync_cursor
+        jp      .p126_console_sync_cursor
 .p126_console_done:
         pop     hl
         pop     de
@@ -479,7 +407,7 @@ p126_screen_write_char:
         ld      a, (bios_dbg_write_row)
         cp      BIOS_DEBUG_TOP
         ld      a, #44
-        jr      nc, .p126_attr_ready
+        jp      nc, .p126_attr_ready
         ld      a, #4F
 .p126_attr_ready:
         ld      (bios_dbg_attr), a
@@ -487,7 +415,7 @@ p126_screen_write_char:
         ld      hl, (bios_dbg_offset)
         ld      a, (bios_dbg_parity)
         or      a
-        jr      nz, .p126_write_odd
+        jp      nz, .p126_write_odd
 
         ld      de, #4000
         add     hl, de
@@ -498,7 +426,7 @@ p126_screen_write_char:
         add     hl, de
         ld      a, (bios_dbg_attr)
         ld      (hl), a
-        jr      .p126_write_done
+        jp      .p126_write_done
 
 .p126_write_odd:
         ld      de, #6000
@@ -546,7 +474,7 @@ bios_dbg_newline:
         ld      a, (bios_dbg_row)
         inc     a
         cp      BIOS_DEBUG_ROWS
-        jr      c, .p126_newline_store
+        jp      c, .p126_newline_store
         call    P126_ScrollConsoleUp
         ld      a, BIOS_DEBUG_ROWS - 1
 .p126_newline_store:
