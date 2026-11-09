@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.70**  
+Scenario revision: **0.8.71**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -27,7 +27,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 3 — UINT32 memory/range API and program arena | **STAGE 3.1/3.2/3.3/3.4 PASS (user runtime log)** | UINT32 half-open range validation plus a map-derived top-down arena. Current reservations yield P8..P63 (56 pages); LIFO release; no physical mapping or byte-granular ABI. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | **SOFTWARE PREFLIGHT + MAP TRANSACTION RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0, P4 table-slot preflight v0.3.0, map transaction v0.3.0 | Implement resident interrupt-entry/return and controlled physical W3 mapping. Physical remap remains blocked; independent physical stack backing and IFF/IM/vector handling are not proven. |
-| 6 — Managed program address space | **STAGE 6.1/6.2 PASS; STAGE 6.3 IMPLEMENTED (runtime test pending)** | 4 MiB logical page table; complete source/destination preflight; non-overlapping copy; 64-byte resident bounce buffer; page-boundary chunking through guarded W3 lease; exact completed-byte count and explicit partial-write semantics. |
+| 6 — Managed program address space | **STAGE 6.1/6.2/6.3 PASS (user runtime log)** | 4 MiB logical page table; complete source/destination preflight; non-overlapping copy; 64-byte resident bounce buffer; page-boundary chunking through guarded W3 lease; exact completed-byte count and explicit partial-write semantics. Cross-page copy and W3 restoration runtime-accepted. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
 | 9 — RTC and input | PLANNED | DS12887/SMUC and keyboard/input host services. |
@@ -46,7 +46,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | `src/kernel/p127_layout.asm` | 0.1.0 | Runtime accepted: reports actual linked Stage2 size; validates #6000..#A000 and P5/P2 reservations |
 | `src/kernel/p127_as.asm` | 0.1.0 | 4 MiB logical page table; binds only allocator-owned pages; translates logical byte addresses to physical page + offset; software-only |
 | `src/kernel/p127_as_span.asm` | 0.1.0 | Runtime accepted: UINT32 logical-span preflight; validates end-exclusive 4 MiB bounds and every mapped page touched; no data transfer or mapping |
-| `src/kernel/p127_as_copy.asm` | 0.1.1 | Implements non-overlapping logical-span copy with full preflight, 64-byte resident bounce buffer, page-boundary chunking, guarded W3 lease and completed-byte reporting; runtime acceptance pending |
+| `src/kernel/p127_as_copy.asm` | 0.1.3 | Runtime accepted: non-overlapping logical-span copy with full preflight, 64-byte resident bounce buffer, source/destination page-tail chunking, guarded W3 lease and exact completed-byte reporting |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -891,3 +891,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Corrected the remaining-length initialization to use the requested length.
 - Corrected chunk limiting: the remaining byte count is now applied as a true minimum against the chunk already limited by source and destination page tails. It can no longer enlarge a chunk after a page-boundary limit has been applied.
 - Module version: `p127_as_copy.asm` v0.1.3. Expected test outcome is `LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED`; build and runtime confirmation remain pending user rebuild.
+
+
+### 2026-11-09 — Stage 6.3 runtime acceptance: logical cross-page copy v0.1.3
+
+- User supplied the rebuilt Project127 startup #EF log after the copy-loop arithmetic correction. It reports `LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED`; Stage 6.3 is accepted on this user-provided runtime evidence.
+- The preceding diagnostics in the same run also pass: 4 MiB logical page table/boundary translation, complete logical-span preflight, physical free-page W3 sweep (57/57), W3=P0 restoration with UI active, and the guarded allocator/W3 lease API.
+- The acceptance marker confirms the Stage 6.3 regression completed its cross-page copy and W3 restoration checks. It does not independently prove arbitrary application workloads, memmove semantics, atomic rollback after a post-write mapping fault, or live interrupt handling.
+- The prior failure was localized to the copy loop. Version 0.1.3 copies the requested length into the remaining counter and applies remaining bytes as a true minimum after both page-tail limits. The user's PASS marker confirms the integrated regression now completes.
+- Stage 6.3 is runtime-accepted based on the supplied log. No independent SjASMPlus build or Unreal Speccy run is claimed here. IRQ remains DI-only; IM/EI and physical page-port writes remain disabled outside the guarded W3 API.
+- Scenario revision: 0.8.71. No implementation source changed in this acceptance update.
