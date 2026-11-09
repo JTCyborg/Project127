@@ -1,13 +1,13 @@
 ; ============================================================================
 ; Project127 physical ATM RAM page test — Stage 2.19
-; Module version: 0.3.0
+; Module version: 0.3.1
 ; Runs from W2 (#A000..), with stack in W2. W1 resident/kernel remains fixed.
 ; W3 is exclusively leased from the UI and restored to physical page 0.
 ; This is the first general-purpose physical W3 remap test.
 ; ============================================================================
 P127_PHYSMEM_VERSION_MAJOR EQU 0
 P127_PHYSMEM_VERSION_MINOR EQU 3
-P127_PHYSMEM_VERSION_PATCH EQU 0
+P127_PHYSMEM_VERSION_PATCH EQU 1
 P127_PHYSMEM_PAGE_SIZE     EQU 04000h
 P127_PHYSMEM_WINDOW_BASE   EQU 0C000h
 P127_PHYSMEM_PAGE_PORT     EQU 0FFF7h
@@ -384,7 +384,9 @@ p127_physmem_cleanup_free_loop:
         jr      z,p127_physmem_cleanup_done
         dec     hl
         ld      a,(hl)
+        push    hl
         call    p127_mem_free
+        pop     hl
         jp      c,p127_physmem_cleanup_error
         ld      a,(p127_physmem_scan_remaining)
         dec     a
@@ -405,6 +407,8 @@ p127_physmem_cleanup_done:
         call    p127_mem_free
         jp      c,p127_physmem_cleanup_error
         call    p127_physmem_check_reserved
+        jp      c,p127_physmem_cleanup_error
+        call    p127_physmem_check_free_state
         jp      c,p127_physmem_cleanup_error
 p127_physmem_cleanup_return:
         ld      a,(p127_physmem_error)
@@ -488,6 +492,46 @@ p127_physmem_alloc_state_loop:
         or      a
         ret
 p127_physmem_alloc_state_fail:
+        scf
+        ret
+
+; After release, every non-reserved page must be FREE; reserved pages
+; are checked separately by p127_physmem_check_reserved.
+p127_physmem_check_free_state:
+        ld      hl,p127_mem_page_state
+        ld      b,64
+        ld      c,0
+p127_physmem_free_state_loop:
+        ld      a,c
+        cp      0
+        jr      z,p127_physmem_free_state_reserved
+        cp      1
+        jr      z,p127_physmem_free_state_reserved
+        cp      2
+        jr      z,p127_physmem_free_state_reserved
+        cp      3
+        jr      z,p127_physmem_free_state_reserved
+        cp      4
+        jr      z,p127_physmem_free_state_reserved
+        cp      5
+        jr      z,p127_physmem_free_state_reserved
+        cp      7
+        jr      z,p127_physmem_free_state_reserved
+        ld      a,(hl)
+        or      a
+        jr      nz,p127_physmem_free_state_fail
+        jr      p127_physmem_free_state_next
+p127_physmem_free_state_reserved:
+        ld      a,(hl)
+        cp      P127_MEM_RESERVED
+        jr      nz,p127_physmem_free_state_fail
+p127_physmem_free_state_next:
+        inc     hl
+        inc     c
+        djnz    p127_physmem_free_state_loop
+        or      a
+        ret
+p127_physmem_free_state_fail:
         scf
         ret
 
