@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.39**  
+Scenario revision: **0.8.40**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -39,7 +39,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.7.0 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/boot/p127_boot.asm` | 0.7.1 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; Stage 2.19 validates full allocator exhaustion/reuse and reserved-page invariants through physical-memory batch |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
@@ -591,3 +591,11 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Boot source advanced to v0.7.0 and now prints the physical-memory error byte in hexadecimal after the failure line, enabling precise diagnosis if another check fails.
 - Physical-memory module advanced to v0.3.2; scenario revision 0.8.39.
 - This corrects the identified control-flow defect but is not yet runtime accepted. Rebuild and rerun; expected success marker remains `PHYS W3 FULL FREE-PAGE SWEEP/ALLOCATOR/RESERVES/P0 RESTORE PASS`. On failure, the new `PHYSMEM ERROR=XX` line identifies the failure class.
+
+
+### 2026-11-09 — Stage 2.19 build correction: boot idle-branch range v0.7.1
+
+- User's SjASMPlus v1.24.0 build reported `src/boot/p127_boot.asm(142): [JR] Target out of range (+132)`. The new physical-memory failure-reporting path had lengthened the distance from its failure branch to the common idle loop beyond the signed 8-bit JR range.
+- Replaced every boot error-handler branch to `p127_idle` with absolute `JP`. This avoids future range regressions as diagnostics grow and does not alter the failure destinations or runtime test sequence.
+- Boot module advanced from v0.7.0 to v0.7.1; scenario revision advanced to 0.8.40. No memory-test or allocator behavior changed.
+- This is a source-level correction only. SjASMPlus build and emulator runtime verification remain pending the user's rebuild.

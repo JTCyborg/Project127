@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.7.0
+; Project127 — boot stage 0.7.1
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -139,7 +139,7 @@ p127_start:
         jp      c,p127_physmem_failed
         ld      hl,p127_msg_physmem_pass
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_physmem_failed:
         ld      hl,p127_msg_physmem_fail
         call    p127_puts
@@ -151,62 +151,62 @@ p127_physmem_failed:
         call    p127_put_char
         ld      a,10
         call    p127_put_char
-        jr      p127_idle
+        jp      p127_idle
 p127_map_txn_failed:
         ld      hl,p127_msg_map_txn_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_stack_probe_failed:
         ld      hl,p127_msg_stack_probe_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_w3_failed:
         ld      hl,p127_msg_w3_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_w3_recovery_failed:
         ld      hl,p127_msg_w3_recovery_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_irq_failed:
         ld      hl,p127_msg_irq_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_trampoline_preflight_failed:
         ld      hl,p127_msg_trampoline_preflight_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_resident_failed:
         ld      hl,p127_msg_resident_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_handoff_failed:
         ld      hl,p127_msg_handoff_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_map_failed:
         ld      hl,p127_msg_map_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_mem_map_failed:
         ld      hl,p127_msg_mem_map_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_mem_irq_reserve_failed:
         ld      hl,p127_msg_irq_page_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_mem_boot_failed:
         ld      hl,p127_msg_boot_reserve_fail
         call    p127_puts
-        jr      p127_idle
+        jp      p127_idle
 p127_mem_failed:
         ld      hl,p127_msg_mem_fail
         call    p127_puts
 
 p127_idle:
         halt
-        jr      p127_idle
+        jp      p127_idle
 
 ; Input: HL -> zero-terminated string.
 ; Clobbers AF, BC, HL. Preserves caller's stack frame.
