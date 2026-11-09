@@ -71,17 +71,7 @@ p127_host_handle_ops_fail:
         ld      a,10
         call    p127_host_debug_char
         jp      p127_host_idle
-p127_host_video_fail:
-        ld      d,a
-        ld      hl,p127_host_video_error
-        call    p127_host_debug_string
-        ld      a,d
-        call    p127_host_debug_hex_byte
-        ld      a,13
-        call    p127_host_debug_char
-        ld      a,10
-        call    p127_host_debug_char
-        jp      p127_host_idle
+        jp      p127_video_host_fail_handler
 p127_host_trdos_fail:
         ld      d,a
         ld      hl,p127_host_trdos_error
@@ -257,10 +247,6 @@ p127_host_handle_ops_ok:
         db "[P127] ATM HANDLE OPS SELFTEST PASS",13,10,0
 p127_host_trdos_ok:
         db "[P127] TR-DOS CATALOG CORE SELFTEST PASS",13,10,0
-p127_host_video_ok:
-        db "[P127] ATM NATIVE VIDEO CORE v0.1.0 SELFTEST PASS",13,10,0
-p127_host_video_error:
-        db "[P127] ATM NATIVE VIDEO CORE SELFTEST FAIL STEP=0x",0
 p127_host_trdos_error:
         db "[P127] TR-DOS CATALOG CORE SELFTEST FAIL STEP=0x",0
 p127_host_pin_ok:

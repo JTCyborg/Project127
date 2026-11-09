@@ -189,5 +189,23 @@ p127_video_row:       db 0
 p127_video_column:    db 0
 p127_video_character: db 0
 p127_video_offset:    dw 0
+p127_host_video_ok:
+        db "[P127] ATM NATIVE VIDEO CORE v0.1.0 SELFTEST PASS",13,10,0
+p127_host_video_error:
+        db "[P127] ATM NATIVE VIDEO CORE SELFTEST FAIL STEP=0x",0
+
+; Failure path lives with the video module to keep the host image below 8 KiB.
+p127_video_host_fail_handler:
+        ld d,a
+        ld hl,p127_host_video_error
+        call p127_host_debug_string
+        ld a,d
+        call p127_host_debug_hex_byte
+        ld a,13
+        call p127_host_debug_char
+        ld a,10
+        call p127_host_debug_char
+        jp p127_host_idle
+
 p127_atm_video_service_end:
         ASSERT p127_atm_video_service_end<=#A000
