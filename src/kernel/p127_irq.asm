@@ -1,6 +1,6 @@
 ; ============================================================================
 ; Project127 — interrupt safety contract / preflight
-; Module version: 0.4.0
+; Module version: 0.4.1
 ; This is deliberately a DI-only bootstrap contract, not an IRQ dispatcher.
 ; No EI, IM instruction, vector write, or hardware page OUT is permitted.
 ; ============================================================================
@@ -284,7 +284,7 @@ p127_irq_context_selftest:
         ld      (p127_irq_test_clobber),a
 
         ld      hl,(p127_irq_test_af)
-        ld      de,05A08h
+        ld      de,05A0Ch
         or      a
         sbc     hl,de
         jp      nz,p127_irq_context_restore
@@ -314,7 +314,7 @@ p127_irq_context_selftest:
         sbc     hl,de
         jp      nz,p127_irq_context_restore
         ld      hl,(p127_irq_test_af_alt)
-        ld      de,0A520h
+        ld      de,0A5A4h
         or      a
         sbc     hl,de
         jp      nz,p127_irq_context_restore
