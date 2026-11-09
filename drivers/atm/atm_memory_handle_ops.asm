@@ -486,6 +486,7 @@ atm_mem_handle_ops_selftest::
 
 ; A=handle, HL=cursor pointer, DE=16-bit test offset.
 atm_mem_handle_test_set_cursor:
+        push    af
         ld      (hl),e
         inc     hl
         ld      (hl),d
@@ -494,10 +495,12 @@ atm_mem_handle_test_set_cursor:
         ld      (hl),a
         inc     hl
         ld      (hl),a
+        pop     af
         ret
 
 ; A=handle, HL=cursor pointer; set logical offset zero.
 atm_mem_handle_test_set_zero_cursor:
+        push    af
         xor     a
         ld      (hl),a
         inc     hl
@@ -507,6 +510,7 @@ atm_mem_handle_test_set_zero_cursor:
         inc     hl
         ld      (hl),a
         ld      hl,atm_mem_handle_test_cursor
+        pop     af
         ret
 
 ; A=handle, HL=cursor pointer. Verify resolved byte equals #A5.
