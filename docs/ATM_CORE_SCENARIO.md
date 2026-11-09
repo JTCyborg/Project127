@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.23**  
+Scenario revision: **0.8.24**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; future IM2 table page P4 reserved in software v0.3.0, runtime pending; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -40,7 +40,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | Module | Version | State |
 |---|---:|---|
 | `src/boot/p127_boot.asm` | 0.6.2 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
-| `src/kernel/p127_mem.asm` | 0.4.0 | Software page-state manager; reserves video P1/P3/P5/P7, bootstrap P0/P2 and future IRQ table P4 |
+| `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; reserves video P1/P3/P5/P7, bootstrap P0/P2 and future IRQ table P4 |
 | `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model; inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT |
 | `src/ui/p127_console.asm` | 0.1.1 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -435,3 +435,10 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 
 - Normalized the versioned module register after the Stage 2.13 update. The previous table contained literal escaped newline text and stale duplicate IRQ descriptions; the table now records the actual boot, memory-manager and IRQ module versions and their current acceptance boundaries.
 - No source behavior changed. Scenario revision advanced to 0.8.23.
+
+
+### 2026-11-09 — Memory manager branch-range correction
+
+- Fixed the SjASMPlus build failure reported at `p127_mem.asm(43)`: conditional branches to the shared `p127_mem_error` handler now use absolute `JP` rather than relative `JR`, avoiding the Z80 relative-branch displacement limit. All remaining conditional `JR` branches targeting `p127_mem_error` were converted as well.
+- Memory manager version advanced to 0.4.1; scenario revision 0.8.24. No allocator or reservation semantics changed.
+- Awaiting a fresh user build; assembler/emulator verification has not yet been run here.

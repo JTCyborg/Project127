@@ -1,6 +1,6 @@
 ; ============================================================================
 ; Project127 ATM Core — physical page-state manager
-; Module version: 0.4.0
+; Module version: 0.4.1
 ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
 ;      free A=page, C=invalid/not allocated.
 ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
@@ -40,7 +40,7 @@ p127_mem_reserve:
         add     a,b
         jp      c,p127_mem_error
         cp      P127_MEM_PAGE_COUNT+1
-        jr      nc,p127_mem_error
+        jp      nc,p127_mem_error
         ld      hl,p127_mem_page_state
         ld      e,c
         ld      d,0
@@ -49,7 +49,7 @@ p127_mem_reserve:
 p127_mem_reserve_check:
         ld      a,(hl)
         or      a
-        jr      nz,p127_mem_error
+        jp      nz,p127_mem_error
         inc     hl
         dec     d
         jr      nz,p127_mem_reserve_check
@@ -138,7 +138,7 @@ p127_mem_alloc_found:
 ; IN: A=page ID. OUT: carry=1 for invalid ID or non-allocated page.
 p127_mem_free:
         cp      P127_MEM_PAGE_COUNT
-        jr      nc,p127_mem_error
+        jp      nc,p127_mem_error
         ld      c,a
         ld      hl,p127_mem_page_state
         ld      e,c
@@ -146,7 +146,7 @@ p127_mem_free:
         add     hl,de
         ld      a,(hl)
         cp      P127_MEM_ALLOCATED
-        jr      nz,p127_mem_error
+        jp      nz,p127_mem_error
         ld      (hl),P127_MEM_FREE
         or      a
         ret
