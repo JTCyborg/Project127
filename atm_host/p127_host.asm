@@ -64,7 +64,8 @@ p127_host_entry:
         ld      hl,p127_host_trdos_deferred
         call    p127_host_debug_string
         call    P127_RTC_Startup
-        call    P127_StorageAndFAT16_Startup
+        ld      hl,p127_host_hdd_deferred
+        call    p127_host_debug_string
         ld      hl,p127_host_ui_ready
         call    p127_host_debug_string
         jp      p127_host_idle
@@ -242,6 +243,8 @@ p127_host_banner:
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
 p127_host_trdos_deferred:
         db "[P127] TR-DOS LIVE CATALOG DEFERRED",13,10,0
+p127_host_hdd_deferred:
+        db "[P127] HDD PROBE DEFERRED - PORT MAP NOT VALIDATED",13,10,0
 p127_host_range_ok:
         db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
 p127_host_allocator_ok:
