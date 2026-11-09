@@ -1,13 +1,13 @@
 ; ============================================================================
 ; Project127 physical ATM RAM page test — Stage 2.19
-; Module version: 0.3.2
+; Module version: 0.3.3
 ; Runs from W2 (#A000..), with stack in W2. W1 resident/kernel remains fixed.
 ; W3 is exclusively leased from the UI and restored to physical page 0.
 ; This is the first general-purpose physical W3 remap test.
 ; ============================================================================
 P127_PHYSMEM_VERSION_MAJOR EQU 0
 P127_PHYSMEM_VERSION_MINOR EQU 3
-P127_PHYSMEM_VERSION_PATCH EQU 2
+P127_PHYSMEM_VERSION_PATCH EQU 3
 P127_PHYSMEM_PAGE_SIZE     EQU 04000h
 P127_PHYSMEM_WINDOW_BASE   EQU 0C000h
 P127_PHYSMEM_PAGE_PORT     EQU 0FFF7h
@@ -19,6 +19,8 @@ P127_PHYSMEM_PAGE_PORT     EQU 0FFF7h
 ; touched and it is restored before returning. Full-page writes start only
 ; after the physical switch has been proven.
 p127_physmem_batch_selftest:
+        ld      a,'S'
+        call    p127_physmem_trace
         xor     a
         ld      (p127_physmem_error),a
         ld      (p127_physmem_alloc_count),a
@@ -216,6 +218,9 @@ p127_physmem_batch_selftest:
         call    p127_physmem_verify_pattern
         jp      c,p127_physmem_fail_data
 
+        ld      a,'2'
+        call    p127_physmem_trace
+
         ; Stage 2.19: exhaust the allocator into a private page-ID list.
         ; The first two pages are already listed. Each new allocation is
         ; checked against all prior IDs before it is appended.
@@ -248,6 +253,8 @@ p127_physmem_duplicate_scan:
         jr      p127_physmem_alloc_more
 
 p127_physmem_alloc_complete:
+        ld      a,'A'
+        call    p127_physmem_trace
         ; Current map has exactly seven protected pages and 57 allocatable.
         ld      a,(p127_physmem_alloc_count)
         cp      57
@@ -276,6 +283,9 @@ p127_physmem_full_fill_loop:
         dec     a
         ld      (p127_physmem_scan_remaining),a
         jr      nz,p127_physmem_full_fill_loop
+
+        ld      a,'F'
+        call    p127_physmem_trace
 
         ; Reverse sweep verifies every page after all other pages have
         ; already been written. This catches aliases and lost page contents.
@@ -306,6 +316,9 @@ p127_physmem_reverse_count_ready:
         dec     a
         ld      (p127_physmem_scan_remaining),a
         jr      nz,p127_physmem_full_verify_loop
+
+        ld      a,'V'
+        call    p127_physmem_trace
 
         ; Verify the allocator still marks every listed page ALLOCATED.
         call    p127_physmem_check_allocated
@@ -347,6 +360,8 @@ p127_physmem_set_error:
         ld      (p127_physmem_error),a
 
 p127_physmem_cleanup:
+        ld      a,'C'
+        call    p127_physmem_trace
         ; Always return W3 to P0 before releasing UI ownership.
         ld      a,(p127_physmem_mapped)
         or      a
@@ -537,6 +552,13 @@ p127_physmem_free_state_next:
         ret
 p127_physmem_free_state_fail:
         scf
+        ret
+
+; Emit one printable phase marker directly on the established #EF debug port.
+; This remains available while the UI is quiesced and W3 is leased.
+p127_physmem_trace:
+        ld      bc,00EFh
+        out     (c),a
         ret
 
 ; IN A=physical RAM page ID. Program only W3 (#FFF7), never W0/W1/W2.
