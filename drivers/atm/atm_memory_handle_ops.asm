@@ -298,3 +298,241 @@ atm_mem_handle_temp_offset_ptr:    dw 0
 atm_mem_handle_temp_vector:        dw 0
 atm_mem_handle_cursor_ptr:         dw 0
 atm_mem_handle_temp_end:            defs 4,0
+
+
+; =========================================================================
+; Runtime acceptance test for logical scatter-handle data operations.
+; Allocates two 0x4001-byte objects, fills/copies across an extent boundary,
+; verifies both sides of the boundary, then checks overlapping COPY.
+; =========================================================================
+atm_mem_handle_ops_selftest::
+        ld      a,1
+        ld      (atm_mem_handle_test_stage),a
+        ld      hl,#4001
+        ld      (atm_mem_request_length),hl
+        ld      hl,0
+        ld      (atm_mem_request_length+2),hl
+        call    atm_mem_scatter_alloc
+        jp      c,atm_mem_handle_test_fail
+        ld      (atm_mem_handle_test_source),a
+
+        ld      a,2
+        ld      (atm_mem_handle_test_stage),a
+        ld      hl,#4001
+        ld      (atm_mem_request_length),hl
+        ld      hl,0
+        ld      (atm_mem_request_length+2),hl
+        call    atm_mem_scatter_alloc
+        jp      c,atm_mem_handle_test_fail
+        ld      (atm_mem_handle_test_destination),a
+
+        ; FILL source with a known byte over the full logical 0x4001 range.
+        ld      a,3
+        ld      (atm_mem_handle_test_stage),a
+        ld      a,(atm_mem_handle_test_source)
+        ld      (atm_mem_handle_destination),a
+        ld      hl,0
+        ld      (atm_mem_handle_destination_offset),hl
+        ld      (atm_mem_handle_destination_offset+2),hl
+        ld      hl,#4001
+        ld      (atm_mem_handle_op_length),hl
+        ld      hl,0
+        ld      (atm_mem_handle_op_length+2),hl
+        ld      a,#A5
+        ld      (atm_mem_handle_fill_value),a
+        call    atm_mem_handle_fill
+        jp      c,atm_mem_handle_test_fail
+
+        ; READ object -> transfer object. Both descriptors are opaque handles.
+        ld      a,4
+        ld      (atm_mem_handle_test_stage),a
+        ld      a,(atm_mem_handle_test_source)
+        ld      (atm_mem_handle_source),a
+        ld      a,(atm_mem_handle_test_destination)
+        ld      (atm_mem_handle_destination),a
+        ld      hl,0
+        ld      (atm_mem_handle_source_offset),hl
+        ld      (atm_mem_handle_source_offset+2),hl
+        ld      (atm_mem_handle_destination_offset),hl
+        ld      (atm_mem_handle_destination_offset+2),hl
+        ld      hl,#4001
+        ld      (atm_mem_handle_op_length),hl
+        ld      hl,0
+        ld      (atm_mem_handle_op_length+2),hl
+        call    atm_mem_handle_read
+        jp      c,atm_mem_handle_test_fail
+
+        ; Verify first byte, last byte of extent 0, and first byte of extent 1.
+        ld      a,5
+        ld      (atm_mem_handle_test_stage),a
+        ld      a,(atm_mem_handle_test_destination)
+        ld      hl,atm_mem_handle_test_cursor
+        ld      de,0
+        call    atm_mem_handle_test_set_cursor
+        call    atm_mem_handle_test_verify_a5
+        jp      c,atm_mem_handle_test_fail
+
+        ld      a,(atm_mem_handle_test_destination)
+        ld      hl,atm_mem_handle_test_cursor
+        ld      de,#3FFF
+        call    atm_mem_handle_test_set_cursor
+        call    atm_mem_handle_test_verify_a5
+        jp      c,atm_mem_handle_test_fail
+
+        ld      a,(atm_mem_handle_test_destination)
+        ld      hl,atm_mem_handle_test_cursor
+        ld      de,#4000
+        call    atm_mem_handle_test_set_cursor
+        call    atm_mem_handle_test_verify_a5
+        jp      c,atm_mem_handle_test_fail
+
+        ; Seed 11 22 33 44 55 at logical offset zero.
+        ld      a,6
+        ld      (atm_mem_handle_test_stage),a
+        ld      a,(atm_mem_handle_test_destination)
+        ld      hl,atm_mem_handle_test_cursor
+        call    atm_mem_handle_test_set_zero_cursor
+        call    atm_mem_handle_resolve
+        jp      c,atm_mem_handle_test_fail
+        call    atm_mem_map_work_offset
+        jp      c,atm_mem_handle_test_fail
+        ld      (hl),#11
+        inc     hl
+        ld      (hl),#22
+        inc     hl
+        ld      (hl),#33
+        inc     hl
+        ld      (hl),#44
+        inc     hl
+        ld      (hl),#55
+
+        ; Same-handle overlap: [0..3] -> [1..4], memmove semantics required.
+        ld      a,7
+        ld      (atm_mem_handle_test_stage),a
+        ld      a,(atm_mem_handle_test_destination)
+        ld      (atm_mem_handle_source),a
+        ld      (atm_mem_handle_destination),a
+        ld      hl,0
+        ld      (atm_mem_handle_source_offset),hl
+        ld      (atm_mem_handle_source_offset+2),hl
+        ld      hl,1
+        ld      (atm_mem_handle_destination_offset),hl
+        ld      hl,0
+        ld      (atm_mem_handle_destination_offset+2),hl
+        ld      hl,4
+        ld      (atm_mem_handle_op_length),hl
+        ld      hl,0
+        ld      (atm_mem_handle_op_length+2),hl
+        call    atm_mem_handle_copy
+        jp      c,atm_mem_handle_test_fail
+
+        ; Check resulting bytes: 11 11 22 33 44.
+        ld      a,8
+        ld      (atm_mem_handle_test_stage),a
+        ld      a,(atm_mem_handle_test_destination)
+        ld      hl,atm_mem_handle_test_cursor
+        call    atm_mem_handle_test_set_zero_cursor
+        call    atm_mem_handle_resolve
+        jp      c,atm_mem_handle_test_fail
+        call    atm_mem_map_work_offset
+        jp      c,atm_mem_handle_test_fail
+        ld      a,(hl)
+        cp      #11
+        jp      nz,atm_mem_handle_test_fail
+        inc     hl
+        ld      a,(hl)
+        cp      #11
+        jp      nz,atm_mem_handle_test_fail
+        inc     hl
+        ld      a,(hl)
+        cp      #22
+        jp      nz,atm_mem_handle_test_fail
+        inc     hl
+        ld      a,(hl)
+        cp      #33
+        jp      nz,atm_mem_handle_test_fail
+        inc     hl
+        ld      a,(hl)
+        cp      #44
+        jp      nz,atm_mem_handle_test_fail
+
+        ; Reject a one-byte range beginning exactly at logical end.
+        ld      a,9
+        ld      (atm_mem_handle_test_stage),a
+        ld      a,(atm_mem_handle_test_destination)
+        ld      (atm_mem_handle_destination),a
+        ld      hl,#4001
+        ld      (atm_mem_handle_destination_offset),hl
+        ld      hl,0
+        ld      (atm_mem_handle_destination_offset+2),hl
+        ld      hl,1
+        ld      (atm_mem_handle_op_length),hl
+        ld      hl,0
+        ld      (atm_mem_handle_op_length+2),hl
+        call    atm_mem_handle_fill
+        jp      nc,atm_mem_handle_test_fail
+
+        ; Release both handles after all checks pass.
+        ld      a,10
+        ld      (atm_mem_handle_test_stage),a
+        ld      a,(atm_mem_handle_test_destination)
+        call    atm_mem_scatter_free
+        jp      c,atm_mem_handle_test_fail
+        ld      a,(atm_mem_handle_test_source)
+        call    atm_mem_scatter_free
+        jp      c,atm_mem_handle_test_fail
+        xor     a
+        ret
+
+; A=handle, HL=cursor pointer, DE=16-bit test offset.
+atm_mem_handle_test_set_cursor:
+        push    af
+        ld      (hl),e
+        inc     hl
+        ld      (hl),d
+        inc     hl
+        xor     a
+        ld      (hl),a
+        inc     hl
+        ld      (hl),a
+        pop     af
+        ret
+
+; A=handle, HL=cursor pointer; set logical offset zero.
+atm_mem_handle_test_set_zero_cursor:
+        push    af
+        xor     a
+        ld      (hl),a
+        inc     hl
+        ld      (hl),a
+        inc     hl
+        ld      (hl),a
+        inc     hl
+        ld      (hl),a
+        ld      hl,atm_mem_handle_test_cursor
+        pop     af
+        ret
+
+; A=handle, HL=cursor pointer. Verify resolved byte equals #A5.
+atm_mem_handle_test_verify_a5:
+        ld      (atm_mem_handle_test_expected_handle),a
+        call    atm_mem_handle_resolve
+        ret     c
+        call    atm_mem_map_work_offset
+        ret     c
+        ld      a,(hl)
+        cp      #A5
+        ret     z
+        scf
+        ret
+
+atm_mem_handle_test_fail:
+        ld      a,(atm_mem_handle_test_stage)
+        scf
+        ret
+
+atm_mem_handle_test_source:       db 0
+atm_mem_handle_test_destination:  db 0
+atm_mem_handle_test_stage:         db 0
+atm_mem_handle_test_expected_handle: db 0
+atm_mem_handle_test_cursor:        defs 4,0

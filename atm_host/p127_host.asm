@@ -1,6 +1,6 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.8.1
+; Version: P127_ATM_HOST v0.9.0
 ; ATM allocator record-copy fix.
 ; =========================================================================
 
@@ -38,6 +38,21 @@ p127_host_entry:
         jp      c,p127_host_scatter_fail
         ld      hl,p127_host_scatter_ok
         call    p127_host_debug_string
+        call    atm_mem_handle_ops_selftest
+        jp      c,p127_host_handle_ops_fail
+        ld      hl,p127_host_handle_ops_ok
+        call    p127_host_debug_string
+        jp      p127_host_idle
+p127_host_handle_ops_fail:
+        ld      d,a
+        ld      hl,p127_host_handle_ops_error
+        call    p127_host_debug_string
+        ld      a,d
+        call    p127_host_debug_hex_byte
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
         jp      p127_host_idle
 p127_host_scatter_fail:
         ld      d,a
@@ -164,7 +179,7 @@ p127_host_debug_string:
         jr      p127_host_debug_string
 
 p127_host_banner:
-        db "[P127] ATM HOST ENTRY v0.8.1",13,10
+        db "[P127] ATM HOST ENTRY v0.9.0",13,10
         db "[P127] TR-DOS BOOT OK",13,10
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
 p127_host_range_ok:
@@ -175,6 +190,10 @@ p127_host_ops_ok:
         db "[P127] ATM MEMORY OPS SELFTEST PASS",13,10,0
 p127_host_scatter_ok:
         db "[P127] ATM SCATTER HANDLE SELFTEST PASS",13,10,0
+p127_host_handle_ops_ok:
+        db "[P127] ATM HANDLE OPS SELFTEST PASS",13,10,0
+p127_host_handle_ops_error:
+        db "[P127] ATM HANDLE OPS SELFTEST FAIL STEP=0x",0
 p127_host_scatter_error:
         db "[P127] ATM SCATTER HANDLE SELFTEST FAIL STEP=0x",0
 p127_host_ops_error:

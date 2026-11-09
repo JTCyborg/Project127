@@ -217,10 +217,15 @@ write; FILL validates its complete destination first. COPY uses backward
 traversal whenever destination > source, which is safe for both overlapping
 and non-overlapping ranges. The request descriptors remain unchanged; private
 32-bit cursors are used during execution. The current implementation is a
-bytewise physical-range primitive. The first scatter-handle milestone adds
-opaque handles backed by private one-page extents and transactional allocation
-rollback; its runtime smoke test allocates and frees a 0x4001-byte object.
-Handle-based data access remains subsequent work.
+bytewise physical-range primitive. The scatter-handle backend adds opaque handles backed by private one-page
+extents and transactional allocation rollback. Its allocator smoke test
+allocates and frees a 0x4001-byte object. The handle data-operation layer now
+provides handle-relative READ/WRITE/FILL/COPY using UINT32 offsets and lengths.
+A host runtime self-test exercises a 0x4001-byte fill and read across the
+logical extent boundary, checks offsets 0, 0x3FFF and 0x4000, verifies
+same-handle overlapping COPY, and rejects an out-of-range request. This test
+is an acceptance gate; implementation correctness is not considered proven
+until its PASS line is observed on the ATM runtime.
 
 ## 11. Implementation order
 
