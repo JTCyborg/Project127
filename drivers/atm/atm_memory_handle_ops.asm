@@ -147,32 +147,19 @@ atm_mem_handle_validate_range:
         inc     hl
         inc     hl
         inc     hl
-        ; Compare end against recorded UINT32 logical length, high word first.
-        ld      de,atm_mem_handle_temp_end+2
-        ld      a,(de)
-        cp      (hl)
-        jp      c,atm_mem_handle_range_ok
-        jp      nz,atm_mem_handle_range_fail
-        inc     de
         inc     hl
+        inc     hl
+        ; Compare end against recorded UINT32 logical length, high byte first.
+        ld      de,atm_mem_handle_temp_end+3
+        ld      b,4
+atm_mem_handle_range_compare:
         ld      a,(de)
         cp      (hl)
         jp      c,atm_mem_handle_range_ok
         jp      nz,atm_mem_handle_range_fail
         dec     de
-        dec     de
         dec     hl
-        dec     hl
-        ld      a,(de)
-        cp      (hl)
-        jp      c,atm_mem_handle_range_ok
-        jp      nz,atm_mem_handle_range_fail
-        inc     de
-        inc     hl
-        ld      a,(de)
-        cp      (hl)
-        jp      c,atm_mem_handle_range_ok
-        jp      nz,atm_mem_handle_range_fail
+        djnz    atm_mem_handle_range_compare
 atm_mem_handle_range_ok:
         or      a
         ret
@@ -210,6 +197,7 @@ atm_mem_handle_lookup_fail:
 ; A=handle id, HL=pointer to UINT32 logical cursor.
 atm_mem_handle_resolve:
         ld      (atm_mem_handle_temp_id),a
+        ld      (atm_mem_handle_cursor_ptr),hl
         call    atm_mem_handle_find_record
         ret     c
         ld      (atm_mem_handle_temp_record),hl
@@ -227,15 +215,14 @@ atm_mem_handle_vector_base_loop:
 atm_mem_handle_vector_base_ready:
         ld      (atm_mem_handle_temp_vector),hl
         ; Page index = (cursor >> 14), with cursor guaranteed in range.
-        ld      a,(hl) ; discard: keep vector pointer in temp
-        ld      a,(atm_mem_handle_temp_id)
-        ; Re-read cursor pointer saved by caller.
         ld      hl,(atm_mem_handle_cursor_ptr)
-        ld      a,(hl+2)
+        inc     hl
+        inc     hl
+        ld      a,(hl)
         add     a,a
         add     a,a
         ld      b,a
-        inc     hl
+        dec     hl
         ld      a,(hl)
         srl     a
         srl     a
