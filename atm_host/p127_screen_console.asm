@@ -258,61 +258,10 @@ P127_Console_WriteChar:
         push hl
         ld (p127_console_char),a
         ld a,d
-        ld l,a
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld de,#01C0
-        add hl,de
-        ld a,e
-        ; E currently contains column, preserve via scratch.
-        ld a,(p127_console_col_tmp)
-        pop hl
-        push hl
-        ; Recompute using saved row/column values.
-        ld a,d
         ld (p127_console_row_tmp),a
         ld a,e
         ld (p127_console_col_tmp),a
-        ld a,d
-        ld l,a
-        ld h,0
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        add hl,hl
-        ld de,#01C0
-        add hl,de
-        ld a,(p127_console_col_tmp)
-        srl a
-        ld e,a
-        ld d,0
-        add hl,de
-        ld a,(p127_console_col_tmp)
-        and 1
-        jr nz,.odd
-        ld de,#4000
-        add hl,de
-        ld a,(p127_console_char)
-        ld (hl),a
-        ld hl,(p127_console_offset)
-        ld de,#E000
-        add hl,de
-        ld (hl),#44
-        jr .restore
-.odd:
-        ld de,#6000
-        add hl,de
-        ld a,(p127_console_char)
-        ld (hl),a
-        ; Odd attributes are in page 3, window C000, skew +1.
-        ; Recompute row/column offset.
+        ; offset = #01C0 + row*64 + column/2
         ld a,(p127_console_row_tmp)
         ld l,a
         ld h,0
@@ -330,6 +279,27 @@ P127_Console_WriteChar:
         ld d,0
         add hl,de
         ld (p127_console_offset),hl
+        call P127_Console_Map
+        ld a,(p127_console_col_tmp)
+        and 1
+        jr nz,.odd
+        ld hl,(p127_console_offset)
+        ld de,#4000
+        add hl,de
+        ld a,(p127_console_char)
+        ld (hl),a
+        ld hl,(p127_console_offset)
+        ld de,#E000
+        add hl,de
+        ld (hl),#44
+        jr .restore
+.odd:
+        ld hl,(p127_console_offset)
+        ld de,#6000
+        add hl,de
+        ld a,(p127_console_char)
+        ld (hl),a
+        ld hl,(p127_console_offset)
         ld de,#C000
         add hl,de
         inc hl
@@ -341,7 +311,6 @@ P127_Console_WriteChar:
         pop bc
         pop af
         ret
-
 P127_Console_Map:
         ld a,P127_VIDEO_PAGE7
         ld bc,#7FF7
