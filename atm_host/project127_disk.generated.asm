@@ -24,29 +24,31 @@
         ORG #9800
         INCLUDE "drivers/atm/atm_rtc_service.asm"
 
-        ; Keep the proven single-file TR-DOS boot path.
+        ; Memory backend must execute outside the remapped C000-FFFF aperture.
+        ; Keep it in A000-BFFF; the host stack ends at 9FFF and is not overwritten
+        ; when physical RAM pages are selected through #FFF7.
         PAGE 0
         ORG #A000
-        INCLUDE "atm_host/p127_screen_console.asm"
-        ORG #A400
-        INCLUDE "drivers/atm/atm_storage_nemo.asm"
-        ASSERT p127_storage_end <= #B000
-
-        ; FAT16 code and its 512-byte sector buffer must be included in the
-        ; TR-DOS host file. Keep it after the complete Nemo IDE module.
-        ORG #B000
-        INCLUDE "drivers/atm/atm_fat16.asm"
-
-        ; The host entry must stay inside its 8 KiB CODE load window.
-        ; Memory backend is resident support code, loaded in the free C000-DFFF
-        ; region instead of being appended to the host entry at 6000h.
-        ORG #C000
         INCLUDE "drivers/atm/atm_memory_backend.asm"
 p127_memory_backend_end:
-        ASSERT p127_memory_backend_end <= #E000
+        ASSERT p127_memory_backend_end <= #C000
 
-        ; One contiguous TR-DOS CODE file loads the host and all resident modules.
-        SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_memory_backend_end-P127_HOST_LOAD_ADDRESS
+        ; Resident services live in the default window-3 page. Memory operations
+        ; temporarily replace this window and restore physical page 1 on return.
+        ORG #C000
+        INCLUDE "atm_host/p127_screen_console.asm"
+        ASSERT p127_console_end <= #C400
+
+        ORG #C400
+        INCLUDE "drivers/atm/atm_storage_nemo.asm"
+        ASSERT p127_storage_end <= #D000
+
+        ORG #D000
+        INCLUDE "drivers/atm/atm_fat16.asm"
+        ASSERT p127_fat16_end <= #E000
+
+        ; One contiguous TR-DOS CODE file loads host and every resident module.
+        SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_fat16_end-P127_HOST_LOAD_ADDRESS
 
         PAGE 0
         ORG #E000
