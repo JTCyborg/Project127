@@ -156,3 +156,4 @@ atm_mem_capabilities:
 
         INCLUDE "drivers/atm/atm_memory_manager.asm"
         INCLUDE "drivers/atm/atm_memory_ops.asm"
+        INCLUDE "drivers/atm/atm_memory_handles.asm"

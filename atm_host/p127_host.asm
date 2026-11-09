@@ -1,6 +1,6 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.7.0
+; Version: P127_ATM_HOST v0.8.0
 ; ATM allocator record-copy fix.
 ; =========================================================================
 
@@ -34,7 +34,15 @@ p127_host_entry:
         jr      c,p127_host_ops_fail
         ld      hl,p127_host_ops_ok
         call    p127_host_debug_string
+        call    atm_mem_scatter_selftest
+        jr      c,p127_host_scatter_fail
+        ld      hl,p127_host_scatter_ok
+        call    p127_host_debug_string
         jp      p127_host_idle
+p127_host_scatter_fail:
+        ld      hl,p127_host_scatter_error
+        call    p127_host_debug_string
+        jr      p127_host_idle
 p127_host_ops_fail:
         ld      d,a
         ld      hl,p127_host_ops_error
@@ -149,7 +157,7 @@ p127_host_debug_string:
         jr      p127_host_debug_string
 
 p127_host_banner:
-        db "[P127] ATM HOST ENTRY v0.7.0",13,10
+        db "[P127] ATM HOST ENTRY v0.8.0",13,10
         db "[P127] TR-DOS BOOT OK",13,10
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
 p127_host_range_ok:
@@ -158,6 +166,10 @@ p127_host_allocator_ok:
         db "[P127] ATM PAGE ALLOCATOR SELFTEST PASS",13,10,0
 p127_host_ops_ok:
         db "[P127] ATM MEMORY OPS SELFTEST PASS",13,10,0
+p127_host_scatter_ok:
+        db "[P127] ATM SCATTER HANDLE SELFTEST PASS",13,10,0
+p127_host_scatter_error:
+        db "[P127] ATM SCATTER HANDLE SELFTEST FAIL",13,10,0
 p127_host_ops_error:
         db "[P127] ATM MEMORY OPS SELFTEST FAIL STEP=0x",0
 p127_host_allocator_error:
