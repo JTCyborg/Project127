@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.78**  
+Scenario revision: **0.8.81**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -993,3 +993,15 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 
 
 - Stage 10.1 source review correction: restored the pre-existing p127_msg_irq_fail diagnostic string in boot stage 0.7.13. This preserves the IRQ failure path link target; no HDD behavior changed. Scenario revision: 0.8.80.
+
+
+### 2026-11-10 — Stage 10.1 Nemo IDE status-poll correction v0.1.1
+
+- User supplied the live startup log: all memory, allocator, W3, logical-copy, RTC and TR-DOS directory checks pass; the HDD probe stops at `[HDD] ERROR=01`, before the LBA 63 read.
+- Audited the user's Project126 reference at `125/zx_main/nemo_ide_bridge.asm`. Its active ATM-side Nemo IDE bridge waits for `BSY=0`, `ERR=0`, and `DRDY=1` before issuing a command; its DRQ and completion polls likewise test `BSY`, `ERR`, and `DRQ`. It does **not** reject status bit 5 (DF) as a separate gate.
+- Project127 v0.1.0 incorrectly treated DF as an unconditional failure in all three polling routines. This is a behavioral divergence from the Project126 bridge and can reject a controller/device status that the established implementation accepts. Removed that extra DF rejection; retained the bounded loops, absent-status check, ERR handling, DRDY requirement, and DRQ/completion checks.
+- Added `p127_hdd_last_status` capture and appended `STATUS=XX` to the error report, so a remaining failure exposes the last ATA status byte.
+- Module version: `p127_hdd.asm` v0.1.1. The ATA interface remains read-only: only command `20h` is issued; no write command, DMA, IRQ, IM/EI, or page-map OUT is added.
+- Stage 10.1 remains runtime-pending. Rebuild and report the next `[HDD]` lines. A successful probe should continue to `MASTER READY`, then `LBA 63 READ OK; 512B / BPB / 55AA`; if it fails, include the new `STATUS=XX` value.
+- No SjASMPlus or Unreal Speccy execution is claimed.
+- Scenario revision: 0.8.81.

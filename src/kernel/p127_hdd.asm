@@ -7,7 +7,7 @@
 ; ============================================================================
 P127_HDD_VERSION_MAJOR EQU 0
 P127_HDD_VERSION_MINOR EQU 1
-P127_HDD_VERSION_PATCH EQU 0
+P127_HDD_VERSION_PATCH EQU 1
 
 P127_HDD_PORT_DATA_LO   EQU 00010h
 P127_HDD_PORT_DATA_HI   EQU 00011h
@@ -92,6 +92,10 @@ p127_hdd_probe_report_error:
         ld      hl,p127_hdd_msg_error
         call    p127_puts
         ld      a,(p127_hdd_error)
+        call    p127_put_hex8
+        ld      hl,p127_hdd_msg_status
+        call    p127_puts
+        ld      a,(p127_hdd_last_status)
         call    p127_put_hex8
         ld      a,13
         call    p127_put_char
@@ -201,6 +205,7 @@ p127_hdd_wait_ready:
 p127_hdd_ready_loop:
         ld      bc,P127_HDD_PORT_STATUS
         in      a,(c)
+        ld      (p127_hdd_last_status),a
         cp      0FFh
         jp      z,p127_hdd_ready_fail
         or      a
@@ -209,8 +214,7 @@ p127_hdd_ready_loop:
         jr      nz,p127_hdd_ready_tick
         bit     0,a
         jp      nz,p127_hdd_ready_fail
-        bit     5,a
-        jp      nz,p127_hdd_ready_fail
+        ; Match Project126 ATM bridge: DF is not a READY/DRQ gate.
         bit     6,a
         jr      nz,p127_hdd_ready_ok
 p127_hdd_ready_tick:
@@ -233,6 +237,7 @@ p127_hdd_wait_drq:
 p127_hdd_drq_loop:
         ld      bc,P127_HDD_PORT_STATUS
         in      a,(c)
+        ld      (p127_hdd_last_status),a
         cp      0FFh
         jp      z,p127_hdd_drq_fail
         or      a
@@ -241,8 +246,7 @@ p127_hdd_drq_loop:
         jr      nz,p127_hdd_drq_tick
         bit     0,a
         jp      nz,p127_hdd_drq_fail
-        bit     5,a
-        jp      nz,p127_hdd_drq_fail
+        ; Match Project126 ATM bridge: DF is not a READY/DRQ gate.
         bit     3,a
         jr      nz,p127_hdd_drq_ok
 p127_hdd_drq_tick:
@@ -265,6 +269,7 @@ p127_hdd_wait_complete:
 p127_hdd_complete_loop:
         ld      bc,P127_HDD_PORT_STATUS
         in      a,(c)
+        ld      (p127_hdd_last_status),a
         cp      0FFh
         jp      z,p127_hdd_complete_fail
         or      a
@@ -273,8 +278,7 @@ p127_hdd_complete_loop:
         jr      nz,p127_hdd_complete_tick
         bit     0,a
         jp      nz,p127_hdd_complete_fail
-        bit     5,a
-        jp      nz,p127_hdd_complete_fail
+        ; Match Project126 ATM bridge: DF is not a READY/DRQ gate.
         bit     3,a
         jr      z,p127_hdd_complete_ok
 p127_hdd_complete_tick:
@@ -295,6 +299,8 @@ p127_hdd_msg_probe:   db "[HDD] NEMO IDE LBA28 PROBE",13,10,0
 p127_hdd_msg_ready:   db "[HDD] MASTER READY",13,10,0
 p127_hdd_msg_read_ok: db "[HDD] LBA 63 READ OK; 512B / BPB / 55AA",13,10,0
 p127_hdd_msg_error:   db "[HDD] ERROR=",0
+p127_hdd_msg_status:  db " STATUS=",0
 
 p127_hdd_error: db 0
+p127_hdd_last_status: db 0
 p127_hdd_lba:   db 0,0,0,0
