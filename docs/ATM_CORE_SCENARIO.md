@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.73**  
+Scenario revision: **0.8.74**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -927,3 +927,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - The prior failure was localized to the copy loop. Version 0.1.3 copies the requested length into the remaining counter and applies remaining bytes as a true minimum after both page-tail limits. The user's PASS marker confirms the integrated regression now completes.
 - Stage 6.3 is runtime-accepted based on the supplied log. No independent SjASMPlus build or Unreal Speccy run is claimed here. IRQ remains DI-only; IM/EI and physical page-port writes remain disabled outside the guarded W3 API.
 - Scenario revision: 0.8.71. No implementation source changed in this acceptance update.
+
+
+### 2026-11-10 — Stage 7.1 ROM-call hang localization v0.1.1
+
+- User's first rebuilt runtime log ends immediately after `[TRDOS] DIRECTORY READ BEGIN`. No success marker, error marker or subsequent boot-idle marker appears. The call path therefore does not return to the directory service; the parser has not started.
+- The existing code already prepares the documented service-5 register tuple (`B=1`, `C=5`, `D=0`, `E=sector index`, `HL=buffer`) and invokes the ROM entry `#3D13`. The available log cannot distinguish a ROM overlay/dispatch problem from a controller wait or a DOS error path.
+- Updated `p127_trdos.asm` to v0.1.1 with raw port-`#EF` markers immediately before and after each ROM call: `R0` means entering the call for sector index 0; `r0` means it returned. The same pair is emitted for each subsequent sector. These markers bypass the UI and W3 lease and do not alter the service registers at call time.
+- Diagnostic interpretation: a final `Rn` without matching `rn` localizes the stop inside that sector's `#3D13` call; a matching lowercase marker proves the ROM returned and lets the next log stage localize the failure. This instrumentation does not claim a fix to the underlying disk/controller path.
+- Stage 7.1 remains runtime-unaccepted. Do not mark the directory read or parser as passing until the next complete log contains the matching return markers and directory completion (or a reported error).
+- No change to BASIC/BOOT0, page mapping, disk write behavior, DMA, IRQ, IM/EI or controller-port implementation. SjASMPlus and Unreal Speccy were not run in this environment.

@@ -1,13 +1,13 @@
 ; ============================================================================
 ; Project127 TR-DOS directory reader
-; Module version: 0.1.0
+; Module version: 0.1.1
 ; Reads track 0 sectors 1..8 via the documented TR-DOS ROM entry #3D13.
 ; Directory snapshot: 128 * 16 bytes at #C800 (reserved host/staging page P0).
 ; Read-only: no file-data reads, writes, DMA, IM/EI or raw paging OUT.
 ; ============================================================================
 P127_TRDOS_VERSION_MAJOR EQU 0
 P127_TRDOS_VERSION_MINOR EQU 1
-P127_TRDOS_VERSION_PATCH EQU 0
+P127_TRDOS_VERSION_PATCH EQU 1
 P127_TRDOS_DIRECTORY_BUFFER EQU 0C800h
 P127_TRDOS_DIRECTORY_BYTES EQU 0800h
 P127_TRDOS_ENTRY_COUNT EQU 128
@@ -86,7 +86,29 @@ p127_trdos_read_sector:
         xor     a
         ld      (05D0Fh),a
         ld      (05D10h),a
+
+        ; Raw #EF markers bracket the ROM call. They deliberately bypass the
+        ; ATM UI/W3 lease so a non-returning DOS/controller path is observable.
+        ld      bc,00EFh
+        ld      a,'R'
+        out     (c),a
+        ld      a,(p127_trdos_sector_index)
+        add     a,'0'
+        out     (c),a
+        ld      b,1
+        ld      c,5
         call    03D13h
+
+        ld      bc,00EFh
+        ld      a,'r'
+        out     (c),a
+        ld      a,(p127_trdos_sector_index)
+        add     a,'0'
+        out     (c),a
+        ld      a,13
+        out     (c),a
+        ld      a,10
+        out     (c),a
 
         ld      a,(05D0Fh)
         ld      (p127_trdos_io_error),a
