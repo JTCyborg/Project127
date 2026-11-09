@@ -345,3 +345,5 @@ p127_console_offset: dw 0
 p127_console_text: dw 0
 p127_console_row_abs: db 0
 p127_console_col_abs: db 0
+p127_console_end:
+        ASSERT p127_console_end <= #C000

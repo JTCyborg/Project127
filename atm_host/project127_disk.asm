@@ -12,6 +12,11 @@
         SAVETRD "disk_A.trd", "@@HOST_NAME@@.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
 
         PAGE 0
+        ORG #A000
+        INCLUDE "atm_host/p127_screen_console.asm"
+        SAVETRD "disk_A.trd", "p127ui.C", #A000, p127_console_end-#A000
+
+        PAGE 0
         ORG #E000
         INCLUDE "atm_host/boot_loader.generated.asm"
         SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
