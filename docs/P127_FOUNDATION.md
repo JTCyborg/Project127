@@ -1,6 +1,6 @@
 # Project127 — low-level foundation
 
-**Revision:** 0.4  
+**Revision:** 0.5  
 **Status:** architecture baseline; ATM range core, contiguous allocator and byte-range operations pass runtime self-tests.  
 **Scope:** ATM Turbo 2+ Z80 firmware, NeoGS Z80 firmware, their shared memory/transport ABI, and the later 8086 emulator.
 
@@ -158,8 +158,8 @@ seven zero bytes. The remaining 58 pages (0x000E8000 bytes) are eligible for
 allocation. The first allocator implementation returns contiguous runs of
 physical pages and returns a 32-bit byte offset; it does not expose page
 numbers to callers. A 16 KiB+1 allocation is covered by the runtime allocator
-self-test. Multi-extent handles and byte READ/WRITE/FILL/COPY are not yet
-advertised as implemented.
+self-test. The first scatter-handle allocator milestone is implemented, but handle-based
+data access is not yet available.
 
 ## 10. ATM memory-operation ABI decision
 
@@ -217,13 +217,15 @@ write; FILL validates its complete destination first. COPY uses backward
 traversal whenever destination > source, which is safe for both overlapping
 and non-overlapping ranges. The request descriptors remain unchanged; private
 32-bit cursors are used during execution. The current implementation is a
-bytewise physical-range primitive, not yet an ownership-checked handle API.
+bytewise physical-range primitive. The first scatter-handle milestone adds
+opaque handles backed by private one-page extents and transactional allocation
+rollback; its runtime smoke test allocates and frees a 0x4001-byte object.
+Handle-based data access remains subsequent work.
 
 ## 11. Implementation order
 
-1. Extend the ATM contiguous allocator to multi-extent handles and replace
-   the current bytewise READ/WRITE/FILL/COPY engine with page-bounded block
-   transfers while preserving the UINT32 public ABI.
+1. Add handle-based logical READ/WRITE/FILL/COPY over the private scatter
+   extent vectors, then replace bytewise transfers with page-bounded blocks.
 2. Implement the NeoGS memory backend and reserve its firmware/stack/IRQ/DMA
    regions before advertising allocatable capacity.
 3. Implement shared DMA streaming and capability negotiation.
