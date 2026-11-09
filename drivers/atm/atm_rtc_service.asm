@@ -124,6 +124,87 @@ p127_rtc_read_unavailable:
         scf
         ret
 
+; Runtime test: read valid time, then poll until the seconds field changes.
+; Four bounded ~0.2-0.4s polling intervals prevent a hung RTC from stalling boot.
+; The final sampled time is retained for the startup diagnostic.
+P127_RTC_RuntimeSelfTest::
+        call P127_RTC_ReadTime
+        ret c
+        call P127_RTC_ValidateTime
+        ret c
+        ld a,c
+        ld (p127_rtc_previous_second),a
+        ld a,4
+        ld (p127_rtc_tick_attempts),a
+p127_rtc_tick_wait:
+        ld bc,#FFFF
+p127_rtc_tick_delay:
+        dec bc
+        ld a,b
+        or c
+        jr nz,p127_rtc_tick_delay
+        call P127_RTC_ReadTime
+        ret c
+        call P127_RTC_ValidateTime
+        ret c
+        ld (p127_rtc_last_hour),a
+        ld a,b
+        ld (p127_rtc_last_minute),a
+        ld a,c
+        ld (p127_rtc_last_second),a
+        ld d,a
+        ld a,(p127_rtc_previous_second)
+        cp d
+        jr nz,p127_rtc_tick_pass
+        ld a,(p127_rtc_tick_attempts)
+        dec a
+        ld (p127_rtc_tick_attempts),a
+        jr nz,p127_rtc_tick_wait
+        scf
+        ret
+p127_rtc_tick_pass:
+        or a
+        ret
+
+; A=hour, B=minute, C=second. Carry if any field is out of range.
+P127_RTC_ValidateTime:
+        push af
+        cp 24
+        jr nc,p127_rtc_time_invalid
+        ld a,b
+        cp 60
+        jr nc,p127_rtc_time_invalid
+        ld a,c
+        cp 60
+        jr nc,p127_rtc_time_invalid
+        pop af
+        or a
+        ret
+p127_rtc_time_invalid:
+        pop af
+        scf
+        ret
+
+; A=0..99, HL=two-character ASCII destination.
+P127_RTC_Format2:
+        ld b,0
+p127_rtc_format_tens:
+        cp 10
+        jr c,p127_rtc_format_ones
+        sub 10
+        inc b
+        jr p127_rtc_format_tens
+p127_rtc_format_ones:
+        ld d,a
+        ld a,b
+        add a,'0'
+        ld (hl),a
+        inc hl
+        ld a,d
+        add a,'0'
+        ld (hl),a
+        ret
+
 ; Hardware-free format conversion self-test.
 P127_RTC_SelfTest::
         ld a,#42
@@ -172,6 +253,29 @@ p127_rtc_start_smuc:
         call p127_host_debug_string
 p127_rtc_start_available_log:
         ld hl,p127_rtc_log_available
+        call p127_host_debug_string
+        call P127_RTC_RuntimeSelfTest
+        jr c,p127_rtc_start_runtime_fail
+        ld hl,p127_rtc_log_runtime_pass
+        call p127_host_debug_string
+        ld hl,p127_rtc_log_time
+        call p127_host_debug_string
+        ld a,(p127_rtc_last_hour)
+        ld hl,p127_rtc_time_buffer
+        call P127_RTC_Format2
+        ld a,(p127_rtc_last_minute)
+        inc hl
+        inc hl
+        call P127_RTC_Format2
+        ld a,(p127_rtc_last_second)
+        inc hl
+        inc hl
+        call P127_RTC_Format2
+        ld hl,p127_rtc_time_buffer
+        call p127_host_debug_string
+        ret
+p127_rtc_start_runtime_fail:
+        ld hl,p127_rtc_log_runtime_fail
         call p127_host_debug_string
         ret
 p127_rtc_start_unavailable:
@@ -340,6 +444,12 @@ p127_rtc_minutes: db 0
 p127_rtc_hours: db 0
 p127_rtc_pm: db 0
 p127_rtc_hour_tmp: db 0
+p127_rtc_previous_second: db 0
+p127_rtc_tick_attempts: db 0
+p127_rtc_last_hour: db 0
+p127_rtc_last_minute: db 0
+p127_rtc_last_second: db 0
+p127_rtc_time_buffer: db "00:00:00",0
 
 p127_rtc_log_gluk:
         db "[P127] RTC BACKEND GLUK",13,10,0
@@ -347,6 +457,12 @@ p127_rtc_log_smuc:
         db "[P127] RTC BACKEND SMUC",13,10,0
 p127_rtc_log_available:
         db "[P127] RTC DS12887 AVAILABLE",13,10,0
+p127_rtc_log_runtime_pass:
+        db "[P127] RTC READ/TICK SELFTEST PASS",13,10,0
+p127_rtc_log_runtime_fail:
+        db "[P127] RTC READ/TICK SELFTEST FAIL",13,10,0
+p127_rtc_log_time:
+        db "[P127] RTC TIME ",0
 p127_rtc_log_unavailable:
         db "[P127] RTC DS12887 NOT DETECTED",13,10,0
 p127_rtc_log_selftest:
