@@ -129,10 +129,10 @@ p127_irq_table_preflight:
         cp      P127_IRQ_TABLE_I
         jp      nz,p127_irq_reject
         ld      hl,P127_IRQ_TABLE_END
-        ld      de,10000h
+        ld      de,0C101h
         or      a
         sbc     hl,de
-        jp      nc,p127_irq_reject
+        jp      nz,p127_irq_reject
         or      a
         ret
 
