@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.2**  
-Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; software mapper model accepted after user runtime test; physical bank switching not yet enabled**  
+Scenario revision: **0.8.4**  
+Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; software mapper model and handoff guard v0.2.2 accepted by user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -25,8 +25,8 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | 1 — Physical page-state manager | **PASS (runtime accepted)** | 64-entry page-state table; video and active boot-map reservations; allocate/free/reallocate smoke test. |
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
-| 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD IMPLEMENTED; RUNTIME ACCEPTED / NEW GUARD TEST PENDING** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
-| 5 — Process/context manager | PLANNED | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
+| 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
+| 5 — Process/context manager | PLANNED — stack probe v0.1.0 added as a prerequisite | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
@@ -39,9 +39,10 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.5.2 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
+| `src/boot/p127_boot.asm` | 0.5.3 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
 | `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
+| `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
 ## Stage 1 — physical page-state manager 0.2.0
@@ -225,3 +226,25 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Extended the self-test: after a successful synthetic staging, a protected-window rejection must clear pending_valid; invalid window and invalid page rejections must also leave it clear.
 - Mapper module advanced to v0.2.2; scenario revision 0.8.2. No physical OUT or bank switching was added.
 - Build and emulator verification of this correction remain pending user confirmation.
+
+
+### 2026-11-09 — Runtime acceptance: handoff guard v0.2.2
+
+- User rebuilt and ran the current Project127 image after mapper correction commit `ce4bb5c`.
+- The supplied #EF log reached all three final diagnostics: `HANDOFF GUARD TEST PASS; OUT DISABLED` and `MAP MODEL TEST PASS; OUT DISABLED`, following `MEM PAGE TEST PASS`.
+- Stage 2.5 software-only handoff guard v0.2.2 is accepted in the emulator. This confirms protected-window rejection, synthetic safe-window staging, pending-state validation, abort, and rejection cleanup as exercised by the current self-test.
+- This acceptance does not validate a real stable execution window, stack migration, interrupt-vector ownership, IFF/IM state restoration, rollback after a physical bank write, or any actual hardware bank switch. No physical `OUT` has been enabled.
+- Scenario revision advanced to 0.8.3. No source module changed in this acceptance update.
+- Next implementation stage is a separately tested resident handoff/trampoline model. First map the exact live code/data/stack/interrupt/vector dependencies and prove a scratch stack transition without touching a bank port. Only after that test passes may the design specify a hardware commit sequence and rollback. The current bootstrap has no unprotected window (`C=#0F`), so it is not eligible for physical remapping.
+
+
+### 2026-11-09 — Stage 2.6: resident stack handoff probe v0.1.0
+
+- Added `src/kernel/p127_handoff.asm` v0.1.0, resident in the Stage2 image/W1/P5 alongside the kernel code.
+- Audited the current linked layout: Stage2 and mapper code execute from W1/P5; the console image is placed at `#A000` and bounded by `#B000`; the active bootstrap stack is in W2/P2 with initial SP `#BFFF`. The interval `#B000..#BFFF` is therefore available for explicit stack budgeting, subject to the runtime low-water guard.
+- The probe saves the caller's register frame and exact SP in resident W1 data, refuses to run if the saved live SP is below `#B900`, places guard bytes at `#B7FE/#B7FF`, switches SP to `#B880`, exercises nested CALL/PUSH/POP and sentinel integrity, checks the guard bytes, and restores the exact original SP/register frame.
+- The scratch stack occupies the bounded interval `#B800..#B87F`; a 128-byte gap separates it from the declared live-stack low-water boundary. This is an isolated software stack test, not a mapping transition: W2/P2 remains mapped for the entire routine.
+- Interrupts are disabled defensively and remain disabled on return. IM and interrupt vectors are not modified. The routine does not claim to save/restore an enabled IFF state; callers must enter from the boot's DI-protected phase.
+- Boot module advanced to v0.5.3 and now reports `RESIDENT STACK PROBE PASS; OUT DISABLED` or `RESIDENT STACK PROBE FAIL`.
+- No physical `OUT`, remap, or stack-in-another-physical-page operation is introduced. A future remap trampoline still requires a separately reserved resident code page and a stack page that is independent of whichever window is targeted; the current all-protected bootstrap map is not eligible for remapping.
+- Build and emulator runtime verification are pending user confirmation.
