@@ -1,6 +1,6 @@
 ; ============================================================================
 ; Project127 ATM Core — physical page-state manager
-; Module version: 0.3.1
+; Module version: 0.4.0
 ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
 ;      free A=page, C=invalid/not allocated.
 ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
@@ -9,7 +9,7 @@
 ; page 0 (window 3). Page 5 is already covered by the video-page union.
 ; ============================================================================
 P127_MEM_VERSION_MAJOR EQU 0
-P127_MEM_VERSION_MINOR EQU 3
+P127_MEM_VERSION_MINOR EQU 4
 P127_MEM_VERSION_PATCH EQU 1
 P127_MEM_PAGE_COUNT    EQU 64
 P127_MEM_PAGE_SIZE     EQU 04000h
@@ -105,6 +105,14 @@ p127_mem_reserve_boot:
         call    p127_mem_reserve
         ret
 
+; Reserve the currently unused physical page dedicated to the future IM2
+; vector table. This is accounting only: page 4 is NOT mapped into W3 here.
+p127_mem_reserve_irq_table:
+        ld      a,P127_IRQ_TABLE_PAGE
+        ld      b,1
+        call    p127_mem_reserve
+        ret
+
 ; Allocate the first free physical page.
 ; OUT: A=page ID, carry=1 when exhausted.
 p127_mem_alloc:
@@ -163,6 +171,9 @@ p127_mem_selftest:
         call    p127_mem_free
         jr      nc,p127_mem_test_fail
         ld      a,5
+        call    p127_mem_free
+        jr      nc,p127_mem_test_fail
+        ld      a,P127_IRQ_TABLE_PAGE
         call    p127_mem_free
         jr      nc,p127_mem_test_fail
         ld      a,7
