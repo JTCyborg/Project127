@@ -24,6 +24,8 @@ P127_FAT16_ERR_BPB       EQU 22
 
 ; Combined storage + filesystem startup is kept outside the 8 KiB host image.
 P127_StorageAndFAT16_Startup:
+        ld      hl,p127_fat16_log_probe_start
+        call    p127_host_debug_string
         call    P127_Storage_Startup
         jr      c,p127_fat16_storage_missing
         ld      hl,p127_storage_log_ready
@@ -242,6 +244,8 @@ p127_fat16_fat_lba:        dd 0
 p127_fat16_root_lba:       dd 0
 p127_fat16_data_lba:       dd 0
 p127_fat16_sector_buffer:  defs 512,0
+p127_fat16_log_probe_start:
+        db "[P127] HDD STORAGE PROBE ENTER",13,10,0
 p127_fat16_log_mounted:
         db "[P127] FAT16 READ-ONLY MOUNT PASS",13,10,0
 p127_fat16_log_failed:

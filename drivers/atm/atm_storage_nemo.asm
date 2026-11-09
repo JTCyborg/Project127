@@ -29,16 +29,26 @@ P127_STORAGE_VERSION    EQU #0100
 P127_Storage_Startup:
         xor     a
         ld      (p127_storage_available),a
+        ld      hl,p127_storage_log_select
+        call    p127_host_debug_string
         ld      a,#E0                 ; master, LBA mode
         ld      bc,P127_NEMO_DRIVE_HEAD
         out     (c),a
+        ld      hl,p127_storage_log_wait_ready
+        call    p127_host_debug_string
         call    p127_storage_wait_ready
         ret     c
+        ld      hl,p127_storage_log_ready_status
+        call    p127_host_debug_string
         ld      a,#EC                 ; IDENTIFY DEVICE
         ld      bc,P127_NEMO_STATUS_CMD
         out     (c),a
+        ld      hl,p127_storage_log_identify
+        call    p127_host_debug_string
         call    p127_storage_wait_drq
         ret     c
+        ld      hl,p127_storage_log_drq
+        call    p127_host_debug_string
         ld      ix,p127_storage_identify
         call    p127_storage_read_256_words
         ret     c
@@ -279,6 +289,16 @@ p127_storage_command:   db 0
 p127_storage_lba:       dd 0
 p127_storage_capacity:  dd 0
 p127_storage_identify:  defs 512,0
+p127_storage_log_select:
+        db "[P127] HDD PROBE SELECT MASTER",13,10,0
+p127_storage_log_wait_ready:
+        db "[P127] HDD PROBE WAIT READY",13,10,0
+p127_storage_log_ready_status:
+        db "[P127] HDD PROBE DEVICE READY",13,10,0
+p127_storage_log_identify:
+        db "[P127] HDD PROBE IDENTIFY SENT",13,10,0
+p127_storage_log_drq:
+        db "[P127] HDD PROBE DRQ RECEIVED",13,10,0
 p127_storage_log_ready:
         db "[P127] HDD NEMO IDE LBA28 IDENTIFY PASS",13,10,0
 p127_storage_log_missing:
