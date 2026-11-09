@@ -304,3 +304,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Corrected a related parameter-preservation issue in `BIOS_DebugConsole_PrintAt`: the W3 lease routine changes A, so the caller's AF/BC/DE/HL frame is restored and re-stacked after successful lease acquisition before row/column parameters are consumed.
 - Boot module remains v0.5.5; resident module remains v0.2.0; console module advanced to v0.1.2. Scenario revision 0.8.9.
 - This addresses the exact reported assembler errors and the adjacent PrintAt parameter-clobber defect. A fresh SjASMPlus build and emulator run are still required; no successful build is claimed. Physical page-port `OUT` remains disabled.
+
+
+### 2026-11-09 — Build correction: W3 diagnostic labels restored v0.5.6
+
+- The user's fresh SjASMPlus v1.24.0 build still reported unresolved `p127_msg_w3_pass` and `p127_msg_w3_fail` in `p127_boot.asm`.
+- Re-inspection of the actual merged `main` HEAD showed that the previous correction's documentation claimed the two strings had been added, but the committed boot source did not contain either definition. The calls were present after `p127_w3_selftest`, and the failure path referenced the missing fail label.
+- Added both exact global labels and their diagnostic strings immediately after the existing handoff diagnostics, before the kernel INCLUDE directives. This matches the source's actual label-based layout and ensures both definitions are in the same assembly unit.
+- Advanced boot module to 0.5.6; scenario revision 0.8.10. No resident ownership logic or physical mapping behavior changed.
+- Fresh SjASMPlus build and emulator runtime verification remain pending. No successful build is claimed; physical page-port OUT remains disabled.
