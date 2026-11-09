@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.45**  
+Scenario revision: **0.8.46**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -642,3 +642,11 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Added a post-cleanup replay after W3=P0 restoration, handoff release, UI resume, allocator release and state validation. The existing page-ID list is replayed to the visible console as compact `W3 FILL:` and `W3 VERIFY:` sequences; no extra page-list buffer is allocated.
 - The live #EF trace remains unchanged. Screen output is deferred until the physical test has released W3, so the console never touches video memory while the physical-page test owns the window.
 - Physical-memory module advanced to v0.4.1; scenario revision 0.8.45. Build and emulator verification are pending. Expected visible console lines begin `W3 FILL:` and `W3 VERIFY:`.
+
+### 2026-11-09 — Stage 2.22: fixed status-panel result for physical page sweep v0.4.2
+
+- User runtime log confirms the exhaustive physical W3 sweep and guarded allocator API pass, but the expected W3 FILL / W3 VERIFY replay is not visible on the ATM screen.
+- Retained the post-cleanup page-ID replay in the scrolling console and added two explicit BIOS_DebugConsole_PrintAt writes to fixed status-panel rows 2 and 3: PHYSICAL RAM: 57/57 FREE PAGES VERIFIED and W3: P0 RESTORED | UI ACTIVE | IM/EI DISABLED.
+- The fixed-row writes occur only after W3=P0 restoration, HANDOFF release, UI resume, page frees, reservation/free-state audit and allocator reuse validation. They do not run while W3 is leased.
+- Physical-memory module advanced to v0.4.2. The allocator, page-map API, memory patterns, W3 ownership protocol and interrupt policy are unchanged. No W0/W1/W2 remapping or IM/EI enablement is introduced.
+- Scenario revision 0.8.46. Build and emulator verification are pending the user's rebuild/run; this commit does not claim that screen output is already runtime-confirmed.
