@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.49**  
+Scenario revision: **0.8.50**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -40,7 +40,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | Module | Version | State |
 |---|---:|---|
 | `src/boot/p127_boot.asm` | 0.7.3 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
-| `src/kernel/p127_mem.asm` | 0.4.2 | Software page-state manager; full allocator sweep plus negative-path checks for double-free, invalid page ID, overlapping reserve and out-of-range reserve |
+| `src/kernel/p127_mem.asm` | 0.4.3 | Software page-state manager; allocator negative-path tests use absolute JP failure branches to remain in range under SjASMPlus |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -683,3 +683,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Added a separate #EF/UI marker: `MEM NEGATIVE-PATH TEST PASS; DOUBLE-FREE/RANGE/RESERVE GUARDED`.
 - Scope is software page-state accounting only. No hardware page-port writes, W0/W1/W2 mapping, DMA, IRQ activation, IM or EI are added. Existing Stage 2.23 video reinitialization and screen replay remain unchanged.
 - Acceptance criteria: user build must pass; startup log must contain both `MEM PAGE TEST PASS` and the new negative-path marker. Build and emulator runtime verification have not been run in this environment.
+
+
+### 2026-11-09 — Stage 2.24a: SjASMPlus branch-range correction
+
+- User build exposed `p127_mem.asm(163): [JR] Target out of range (+128)` in the expanded negative-path self-test.
+- Replaced every conditional short `JR` targeting the distant `p127_mem_test_fail` label with conditional absolute `JP`. The checks and pass/fail semantics are unchanged.
+- Advanced `src/kernel/p127_mem.asm` to v0.4.3; scenario revision 0.8.50. No boot flow, page-state logic, hardware mapping, DMA, IRQ, IM or EI behavior changed.
+- Acceptance: rerun SjASMPlus; expected result is all three passes complete with zero errors. Runtime marker still required after a successful build.
+- Assistant has not run the assembler or emulator in this environment.
