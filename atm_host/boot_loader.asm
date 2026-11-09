@@ -59,7 +59,7 @@ LINE20:
         DW      15619                   
         DB      0
         DB      $3A, REM, $3A           
-        DB      "LOAD ", 34, "proj125", 34, " CODE 24576", $0D 
+        DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D 
 LINE20_END:
 
         ; --- Строка 21: Вывод метки "LOADED" в порт отладки #EF после чтения файла ---
@@ -90,7 +90,7 @@ LINE30:
         DB      USR                     ; USR ($C0)
         DB      VAL                     ; VAL ($B0)
         DB      34                      
-        DEFM    "24585"                 ; Переход на Init_Z80_System
+        DEFM    "24576"                 ; Запуск с начала CODE-файла: JP ведёт на entry
         DB      34                      
         DB      $0D                     
 LINE30_END:
