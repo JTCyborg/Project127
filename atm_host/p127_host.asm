@@ -1,7 +1,7 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.3.4
-; First ATM memory-core milestone: capability/range validation only.
+; Version: P127_ATM_HOST v0.4.0
+; ATM page-map and contiguous allocator milestone.
 ; =========================================================================
 
         DEVICE ZXSPECTRUM128
@@ -20,9 +20,23 @@ p127_host_entry:
         ld      sp,P127_HOST_STACK_TOP
         ld      hl,p127_host_banner
         call    p127_host_debug_string
+        call    atm_mem_init
+        jr      c,p127_host_memory_init_fail
         call    atm_mem_range_selftest
         jr      c,p127_host_range_fail
         ld      hl,p127_host_range_ok
+        call    p127_host_debug_string
+        call    atm_mem_allocator_selftest
+        jr      c,p127_host_allocator_fail
+        ld      hl,p127_host_allocator_ok
+        call    p127_host_debug_string
+        jr      p127_host_idle
+p127_host_memory_init_fail:
+        ld      hl,p127_host_memory_init_error
+        call    p127_host_debug_string
+        jr      p127_host_idle
+p127_host_allocator_fail:
+        ld      hl,p127_host_allocator_error
         call    p127_host_debug_string
         jr      p127_host_idle
 p127_host_range_fail:
@@ -111,11 +125,17 @@ p127_host_debug_string:
         jr      p127_host_debug_string
 
 p127_host_banner:
-        db "[P127] ATM HOST ENTRY v0.3.4",13,10
+        db "[P127] ATM HOST ENTRY v0.4.0",13,10
         db "[P127] TR-DOS BOOT OK",13,10
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
 p127_host_range_ok:
         db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
+p127_host_allocator_ok:
+        db "[P127] ATM PAGE ALLOCATOR SELFTEST PASS",13,10,0
+p127_host_allocator_error:
+        db "[P127] ATM PAGE ALLOCATOR SELFTEST FAIL",13,10,0
+p127_host_memory_init_error:
+        db "[P127] ATM MEMORY INIT FAIL",13,10,0
 p127_host_range_error:
         db "[P127] UINT32 RANGE SELFTEST FAIL TEST ",0
 p127_host_diag_offset:

@@ -1,15 +1,14 @@
-; Project127 ATM Turbo 2+ memory backend — capability and range core.
-; Physical capacity is the agreed 1 MiB ATM RAM configuration.
-; Active video backing and system reservations are NOT allocatable.
-; Project112 proves video mappings (physical page 5/page 1), but does not
-; define a complete general-purpose physical-page selector for all ATM RAM.
+; Project127 ATM Turbo 2+ memory backend.
+; Physical capacity: 1 MiB (64 x 16 KiB pages).
+; ATM page selection is private to atm_memory_manager.asm.
+; Reserved pages: 0,1,2,3,5,7; allocator owns the remaining 58 pages.
 ;
 ; atm_mem_query_caps: HL -> 18-byte capability record
 ; atm_mem_validate_range: carry clear iff offset+length is in 1 MiB
 ; atm_mem_range_selftest: carry clear iff all arithmetic boundary tests pass
 ;
-; READ/WRITE/ALLOC/FREE are not advertised until page selection and the
-; reservation map are implemented and tested on target.
+; ALLOC/FREE and fixed-window page mapping are implemented.
+; Byte READ/WRITE/FILL/COPY and multi-extent handles remain future work.
 
         INCLUDE "drivers/shared/p127_memory_core.inc"
 
@@ -149,8 +148,10 @@ atm_mem_selftest_fail:
 atm_mem_capabilities:
         db      "P127"
         db      P127_ABI_MAJOR,P127_ABI_MINOR
-        db      0
+        db      #07                 ; range + page-map + alloc/free
         db      0
         db      #00,#00,#10,#00
-        db      #00,#00,#00,#00
+        db      #00,#80,#0E,#00     ; 58 pages = 0x000E8000 bytes allocatable
         db      P127_MEM_CAPS_SIZE,0
+
+        INCLUDE "drivers/atm/atm_memory_manager.asm"
