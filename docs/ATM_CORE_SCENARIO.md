@@ -39,7 +39,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.6.7 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/boot/p127_boot.asm` | 0.6.8 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; reserves video P1/P3/P5/P7, bootstrap P0/P2 and future IRQ table P4 |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
@@ -551,6 +551,6 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Extended the existing single startup batch after the non-destructive physical-page probe and two-page isolation stage. Each of the two allocator-owned pages is filled and checked using an address-derived byte pattern (`ROL(address_low) XOR address_high XOR seed`), rather than a single constant byte.
 - Four pattern rounds use distinct seeds on both pages. Each round repeatedly switches W3 between A and B and re-verifies the previously written page after returning from the other page. This combines address-sensitive data checks, page isolation, repeated mapping, and data retention in one boot run.
 - The original safety contract is retained: code and stack remain in W2; W1/W2 are not remapped; UI is quiesced and W3 ownership is acquired; the probe byte on P0 is saved/restored; cleanup returns W3 to P0, releases ownership, resumes UI, and frees allocated pages.
-- Success marker: `PHYS W3 ADDR PATTERN/8X SWITCH/2PAGE VERIFY/P0 RESTORE PASS`.
+- Success marker: `PHYS W3 ADDR PATTERN/4ROUND/20MAP/2PAGE VERIFY/P0 RESTORE PASS`.
 - The batch still covers two allocator-selected physical pages, not all 64 pages. It does not authorize unrestricted application mapping or IM/EI.
 - Scenario revision 0.8.35. Build and emulator runtime verification for Stage 2.18 are pending the user's next single run; no successful build is claimed.
