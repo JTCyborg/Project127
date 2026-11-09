@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.6.6
+; Project127 — boot stage 0.6.7
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -133,6 +133,16 @@ p127_start:
         call    p127_puts
         ld      hl,p127_msg_map_pass
         call    p127_puts
+        ; Stage 2.17: exercise real W3 physical page selection and RAM data.
+        ; Test code executes from W2; stack remains in W2; UI is quiesced.
+        call    p127_physmem_batch_selftest
+        jp      c,p127_physmem_failed
+        ld      hl,p127_msg_physmem_pass
+        call    p127_puts
+        jr      p127_idle
+p127_physmem_failed:
+        ld      hl,p127_msg_physmem_fail
+        call    p127_puts
         jr      p127_idle
 p127_map_txn_failed:
         ld      hl,p127_msg_map_txn_fail
@@ -248,7 +258,11 @@ p127_msg_map_txn_pass:
 p127_msg_map_txn_fail:
         db      "[P127] MAP TXN COMMIT/ROLLBACK FAIL",13,10,0
 p127_msg_map_pass:
-        db      "[P127] MAP MODEL TEST PASS; OUT DISABLED", 13, 10, 0
+        db      "[P127] MAP MODEL TEST PASS; SOFTWARE SHADOW", 13, 10, 0
+p127_msg_physmem_pass:
+        db      "[P127] PHYS W3 SWITCH/2X16K ISOLATION/VERIFY/P0 RESTORE PASS",13,10,0
+p127_msg_physmem_fail:
+        db      "[P127] PHYS W3 PAGE SWITCH/MEMORY TEST FAIL; CHECK ERROR CODE",13,10,0
 p127_msg_map_fail:
         db      "[P127] MAP MODEL TEST FAIL", 13, 10, 0
 p127_msg_stack_probe_pass:
