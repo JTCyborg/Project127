@@ -40,7 +40,7 @@ try {
     [byte[]]$disk = [System.IO.File]::ReadAllBytes($diskImage)
     $required = @(
         @{ Name = ($HostName.PadRight(8) + "C"); Label = "$HostName.C" },
-        @{ Name = "BOOT    B"; Label = "BOOT.B" }
+        @{ Name = "boot    B"; Label = "boot.B" }
     )
     foreach ($entry in $required) {
         [byte[]]$name = [System.Text.Encoding]::ASCII.GetBytes($entry.Name)
