@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.7.11
+; Project127 — boot stage 0.7.12
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -63,6 +63,10 @@ p127_start:
         ld      (p127_ui_ready),a
         ld      hl,p127_msg_ui_ready
         call    p127_puts
+
+        ; Stage 9.1: probe/read the Project126 DS12887 RTC backend.
+        ; GLUK is preferred; SMUC is a read-only fallback.
+        call    p127_rtc_probe
 
         ; Stage 1/2: software page accounting plus video and active boot-map reserves.
         call    p127_mem_init
@@ -497,6 +501,7 @@ p127_msg_trampoline_preflight_fail:
         INCLUDE "src/kernel/p127_map.asm"
         INCLUDE "src/kernel/p127_handoff.asm"
         INCLUDE "src/kernel/p127_trdos.asm"
+        INCLUDE "src/kernel/p127_rtc.asm"
 
 p127_end:
         ASSERT  p127_entry = P127_LOAD_ADDRESS

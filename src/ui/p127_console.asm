@@ -1,7 +1,7 @@
 ; ============================================================================
 ; Project127 ATM-native debug console, ported from Project126
 ; Source: Project126/atm_host/p126_screen_console.asm
-; Module version: 0.1.3
+; Module version: 0.1.4
 ; ATM Turbo 2+ RG6 80x25; upper 12 rows status, lower 13 rows scrolling log.
 ; Every displayed debug character and static UI label is mirrored to #EF.
 ; Resident placement: #A000, in the Project126 host display window.
@@ -122,6 +122,28 @@ p126_atm_video_mode_ready:
 
         pop     hl
         pop     de
+        pop     bc
+        pop     af
+        ret
+
+
+; Reopen the permanent ATM shadow-port/DOSEN state after DS12887 access.
+; #EFF7 bit 7 is the RTC gate; closing it also closes the permanent DOSEN
+; path. Re-enter the TR-DOS #0177 service and restore RG6 text mode exactly
+; as in Project126's atm_host implementation.
+p126_atm_restore_dosen::
+        push    af
+        push    bc
+        ld      bc,p126_atm_restore_dosen_done
+        push    bc
+        ld      bc,#2A53
+        push    bc
+        ld      bc,#0177
+        ld      a,P126_ATM_VIDEO_MODE_RG6_TEXT80X25
+        ld      (p126_atm_video_mode),a
+        ld      a,#C6
+        jp      #3D2F
+p126_atm_restore_dosen_done:
         pop     bc
         pop     af
         ret
