@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.7.0**  
+Scenario revision: **0.7.1**  
 Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; software mapper model accepted after user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -166,3 +166,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Module versions: `p127_map.asm` 0.1.0; `p127_boot.asm` advanced to 0.5.0; scenario revision 0.7.0.
 - Build and emulator runtime verification are **pending**. The test validates software constants/state only, not physical ATM bank-register behavior.
 - Next: user builds/runs and supplies the #EF log. After acceptance, implement a safe remap handoff that executes from a stable, non-remapped window and preserves the stack/UI before any physical page-register write is enabled.
+
+
+### 2026-11-09 — Build correction: mapper include and diagnostics v0.5.1
+
+- User build exposed unresolved labels `p127_map_init`, `p127_map_selftest`, `p127_msg_map_pass`, `p127_msg_map_fail`.
+- Root cause: the two mapper/memory INCLUDE directives had been written on one line with literal backslash-n characters, so SjASMPlus did not process them as separate directives. The two mapper diagnostic string labels were also missing.
+- Corrected `src/boot/p127_boot.asm` to contain separate physical INCLUDE lines and added both diagnostic strings.
+- Boot module version: 0.5.1. Scenario revision: 0.7.1.
+- Rebuild/runtime verification pending user confirmation.
