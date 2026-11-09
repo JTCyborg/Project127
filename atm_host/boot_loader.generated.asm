@@ -50,13 +50,24 @@ LINE11_END:
         DB      0, 20
         DW      LINE20_END-LINE20
 LINE20:
+<<<<<<< HEAD
         ; Emit the load marker, then execute LOAD as a tokenized BASIC command.
+=======
+        ; OUT marker, followed by fully tokenized Spectrum BASIC LOAD syntax.
+>>>>>>> 3edfaba5a33f0976f6dc5ae56a1f221837c65bcc
         DB      OUT_CMD
         DB      "239", $0E, $00, $00, $EF, $00, $00
         DB      ","
         DB      "3", $0E, $00, $00, $03, $00, $00
         DB      ":"
+<<<<<<< HEAD
         DB      $EF, 34, "p127host", 34, " CODE 24576", $0D
+=======
+        DB      $EF, 34, "p127host", 34
+        DB      $AF
+        DB      "24576", $0E, $00, $00, $60, $00, $00
+        DB      $0D
+>>>>>>> 3edfaba5a33f0976f6dc5ae56a1f221837c65bcc
 LINE20_END:
 
         ; This marker is reached only after TR-DOS LOAD has returned.
