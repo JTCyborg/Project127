@@ -8,7 +8,7 @@
   7   0000                      INCLUDE "src/boot/p127_boot.asm"
 # file opened: p127_boot.asm
   1+  0000              ; ============================================================================
-  2+  0000              ; Project127 — boot stage 0.5.0
+  2+  0000              ; Project127 — boot stage 0.5.1
   3+  0000              ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
   4+  0000              ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
   5+  0000              ; ============================================================================
@@ -51,35 +51,31 @@
  42+  6031 CD 90 60             call    p127_puts
  43+  6034
  44+  6034                      ; Stage 1/2: software page accounting plus video and active boot-map reserves.
- 45+  6034 CD 24 62             call    p127_mem_init
+ 45+  6034 CD 6C 62             call    p127_mem_init
  46+  6037 21 3F 61             ld      hl,p127_msg_mem_init
  47+  603A CD 90 60             call    p127_puts
- 48+  603D CD 65 62             call    p127_mem_reserve_video
+ 48+  603D CD AD 62             call    p127_mem_reserve_video
  49+  6040 38 35                jr      c,p127_mem_map_failed
  50+  6042 21 59 61             ld      hl,p127_msg_video_reserved
  51+  6045 CD 90 60             call    p127_puts
- 52+  6048 CD 87 62             call    p127_mem_reserve_boot
+ 52+  6048 CD CF 62             call    p127_mem_reserve_boot
  53+  604B 38 32                jr      c,p127_mem_boot_failed
  54+  604D 21 81 61             ld      hl,p127_msg_boot_reserved
  55+  6050 CD 90 60             call    p127_puts
- 56+  6053 CD C4 62             call    p127_mem_selftest
+ 56+  6053 CD 0C 63             call    p127_mem_selftest
  57+  6056 38 2F                jr      c,p127_mem_failed
  58+  6058 21 EC 61             ld      hl,p127_msg_mem_pass
  59+  605B CD 90 60             call    p127_puts
  60+  605E
  61+  605E                      ; Stage 2.4: pure software mapper model; hardware OUT remains disabled.
-p127_boot.asm(62): error: Label not found: p127_map_init
- 62+  605E CD 00 00             call    p127_map_init
-p127_boot.asm(63): error: Label not found: p127_map_selftest
- 63+  6061 CD 00 00             call    p127_map_selftest
+ 62+  605E CD 97 63             call    p127_map_init
+ 63+  6061 CD EB 63             call    p127_map_selftest
  64+  6064 DA 6F 60             jp      c,p127_map_failed
-p127_boot.asm(65): error: Label not found: p127_msg_map_pass
- 65+  6067 21 00 00             ld      hl,p127_msg_map_pass
+ 65+  6067 21 24 62             ld      hl,p127_msg_map_pass
  66+  606A CD 90 60             call    p127_puts
  67+  606D 18 1E                jr      p127_idle
  68+  606F              p127_map_failed:
-p127_boot.asm(69): error: Label not found: p127_msg_map_fail
- 69+  606F 21 00 00             ld      hl,p127_msg_map_fail
+ 69+  606F 21 4F 62             ld      hl,p127_msg_map_fail
  70+  6072 CD 90 60             call    p127_puts
  71+  6075 18 16                jr      p127_idle
  72+  6077              p127_mem_map_failed:
@@ -229,218 +225,429 @@ p127_boot.asm(69): error: Label not found: p127_msg_map_fail
 134+  6218 54 45 53 54
 134+  621C 20 46 41 49
 134+  6220 4C 0D 0A 00
-135+  6224
-136+  6224                      INCLUDE "src/kernel/p127_mem.asm"\n        INCLUDE "src/kernel/p127_map.asm"
+135+  6224              p127_msg_map_pass:
+136+  6224 5B 50 31 32          db      "[P127] MAP MODEL TEST PASS; OUT DISABLED", 13, 10, 0
+136+  6228 37 5D 20 4D
+136+  622C 41 50 20 4D
+136+  6230 4F 44 45 4C
+136+  6234 20 54 45 53
+136+  6238 54 20 50 41
+136+  623C 53 53 3B 20
+136+  6240 4F 55 54 20
+136+  6244 44 49 53 41
+136+  6248 42 4C 45 44
+136+  624C 0D 0A 00
+137+  624F              p127_msg_map_fail:
+138+  624F 5B 50 31 32          db      "[P127] MAP MODEL TEST FAIL", 13, 10, 0
+138+  6253 37 5D 20 4D
+138+  6257 41 50 20 4D
+138+  625B 4F 44 45 4C
+138+  625F 20 54 45 53
+138+  6263 54 20 46 41
+138+  6267 49 4C 0D 0A
+138+  626B 00
+139+  626C
+140+  626C                      INCLUDE "src/kernel/p127_mem.asm"
 # file opened: p127_mem.asm
-  1++ 6224              ; ============================================================================
-  2++ 6224              ; Project127 ATM Core — physical page-state manager
-  3++ 6224              ; Module version: 0.3.1
-  4++ 6224              ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
-  5++ 6224              ;      free A=page, C=invalid/not allocated.
-  6++ 6224              ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
-  7++ 6224              ; ATM Turbo 2+ page IDs are physical 16 KiB RAM pages. Bootstrap reservations
-  8++ 6224              ; reflect the active ZX-128 map: page 5 (window 1), page 2 (window 2), and
-  9++ 6224              ; page 0 (window 3). Page 5 is already covered by the video-page union.
- 10++ 6224              ; ============================================================================
- 11++ 6224              P127_MEM_VERSION_MAJOR EQU 0
- 12++ 6224              P127_MEM_VERSION_MINOR EQU 3
- 13++ 6224              P127_MEM_VERSION_PATCH EQU 1
- 14++ 6224              P127_MEM_PAGE_COUNT    EQU 64
- 15++ 6224              P127_MEM_PAGE_SIZE     EQU 04000h
- 16++ 6224              P127_MEM_FREE          EQU 0
- 17++ 6224              P127_MEM_RESERVED      EQU 1
- 18++ 6224              P127_MEM_ALLOCATED     EQU 2
- 19++ 6224
- 20++ 6224              p127_mem_init:
- 21++ 6224 21 0F 63             ld      hl,p127_mem_page_state
- 22++ 6227 11 10 63             ld      de,p127_mem_page_state+1
- 23++ 622A 01 3F 00             ld      bc,P127_MEM_PAGE_COUNT-1
- 24++ 622D 36 00                ld      (hl),P127_MEM_FREE
- 25++ 622F ED B0                ldir
- 26++ 6231 C9                   ret
- 27++ 6232
- 28++ 6232              ; Reserve a contiguous physical-page range.
- 29++ 6232              ; IN: A=first page, B=count. OUT: carry=1 on invalid range/conflict.
- 30++ 6232              ; A zero-length reservation is accepted as a no-op.
- 31++ 6232              p127_mem_reserve:
- 32++ 6232 4F                   ld      c,a
- 33++ 6233 78                   ld      a,b
- 34++ 6234 B7                   or      a
- 35++ 6235 C8                   ret     z
- 36++ 6236 79                   ld      a,c
- 37++ 6237 FE 40                cp      P127_MEM_PAGE_COUNT
- 38++ 6239 D2 C2 62             jp      nc,p127_mem_error
- 39++ 623C 79                   ld      a,c
- 40++ 623D 80                   add     a,b
- 41++ 623E DA C2 62             jp      c,p127_mem_error
- 42++ 6241 FE 41                cp      P127_MEM_PAGE_COUNT+1
- 43++ 6243 30 7D                jr      nc,p127_mem_error
- 44++ 6245 21 0F 63             ld      hl,p127_mem_page_state
- 45++ 6248 59                   ld      e,c
- 46++ 6249 16 00                ld      d,0
- 47++ 624B 19                   add     hl,de
- 48++ 624C 50                   ld      d,b
- 49++ 624D              p127_mem_reserve_check:
- 50++ 624D 7E                   ld      a,(hl)
- 51++ 624E B7                   or      a
- 52++ 624F 20 71                jr      nz,p127_mem_error
- 53++ 6251 23                   inc     hl
- 54++ 6252 15                   dec     d
- 55++ 6253 20 F8                jr      nz,p127_mem_reserve_check
- 56++ 6255 21 0F 63             ld      hl,p127_mem_page_state
- 57++ 6258 59                   ld      e,c
- 58++ 6259 16 00                ld      d,0
- 59++ 625B 19                   add     hl,de
- 60++ 625C 50                   ld      d,b
- 61++ 625D              p127_mem_reserve_set:
- 62++ 625D 36 01                ld      (hl),P127_MEM_RESERVED
- 63++ 625F 23                   inc     hl
- 64++ 6260 15                   dec     d
- 65++ 6261 20 FA                jr      nz,p127_mem_reserve_set
- 66++ 6263 B7                   or      a
- 67++ 6264 C9                   ret
- 68++ 6265
- 69++ 6265              ; Reserve ATM video RAM used by the complete Project112 mode set.
- 70++ 6265              ; Project112 ATM710: ZX uses page 5 or 7; ATM640/EGA/Text use page
- 71++ 6265              ; pairs 5+1 or 7+3. Reserve the union so any supported mode can be selected.
- 72++ 6265              ; OUT: carry=1 if a reservation conflicts or is out of range.
- 73++ 6265              p127_mem_reserve_video:
- 74++ 6265 3E 01                ld      a,1
- 75++ 6267 06 01                ld      b,1
- 76++ 6269 CD 32 62             call    p127_mem_reserve
- 77++ 626C D8                   ret     c
- 78++ 626D 3E 03                ld      a,3
- 79++ 626F 06 01                ld      b,1
- 80++ 6271 CD 32 62             call    p127_mem_reserve
- 81++ 6274 D8                   ret     c
- 82++ 6275 3E 05                ld      a,5
- 83++ 6277 06 01                ld      b,1
- 84++ 6279 CD 32 62             call    p127_mem_reserve
- 85++ 627C D8                   ret     c
- 86++ 627D 3E 07                ld      a,7
- 87++ 627F 06 01                ld      b,1
- 88++ 6281 CD 32 62             call    p127_mem_reserve
- 89++ 6284 D8                   ret     c
- 90++ 6285 B7                   or      a
- 91++ 6286 C9                   ret
- 92++ 6287
- 93++ 6287              ; Reserve bootstrap pages that are live in the current ZX-128 host map.
- 94++ 6287              ; Window 1/page 5 contains P127BOOT.C; window 2/page 2 contains the resident
- 95++ 6287              ; UI and stack; window 3/page 0 is retained as the host/staging page.
- 96++ 6287              ; Page 5 is already RESERVED by p127_mem_reserve_video.
- 97++ 6287              ; OUT: carry=1 if either reservation conflicts.
- 98++ 6287              p127_mem_reserve_boot:
- 99++ 6287 3E 00                ld      a,0
-100++ 6289 06 01                ld      b,1
-101++ 628B CD 32 62             call    p127_mem_reserve
-102++ 628E D8                   ret     c
-103++ 628F 3E 02                ld      a,2
-104++ 6291 06 01                ld      b,1
-105++ 6293 CD 32 62             call    p127_mem_reserve
-106++ 6296 C9                   ret
-107++ 6297
-108++ 6297              ; Allocate the first free physical page.
-109++ 6297              ; OUT: A=page ID, carry=1 when exhausted.
-110++ 6297              p127_mem_alloc:
-111++ 6297 21 0F 63             ld      hl,p127_mem_page_state
-112++ 629A 06 40                ld      b,P127_MEM_PAGE_COUNT
-113++ 629C 0E 00                ld      c,0
-114++ 629E              p127_mem_alloc_scan:
-115++ 629E 7E                   ld      a,(hl)
-116++ 629F B7                   or      a
-117++ 62A0 28 06                jr      z,p127_mem_alloc_found
-118++ 62A2 23                   inc     hl
-119++ 62A3 0C                   inc     c
-120++ 62A4 10 F8                djnz    p127_mem_alloc_scan
-121++ 62A6 37                   scf
-122++ 62A7 C9                   ret
-123++ 62A8              p127_mem_alloc_found:
-124++ 62A8 36 02                ld      (hl),P127_MEM_ALLOCATED
-125++ 62AA 79                   ld      a,c
-126++ 62AB B7                   or      a
-127++ 62AC C9                   ret
-128++ 62AD
-129++ 62AD              ; Release only pages owned by the allocator. Reserved pages cannot be freed.
-130++ 62AD              ; IN: A=page ID. OUT: carry=1 for invalid ID or non-allocated page.
-131++ 62AD              p127_mem_free:
-132++ 62AD FE 40                cp      P127_MEM_PAGE_COUNT
-133++ 62AF 30 11                jr      nc,p127_mem_error
-134++ 62B1 4F                   ld      c,a
-135++ 62B2 21 0F 63             ld      hl,p127_mem_page_state
-136++ 62B5 59                   ld      e,c
-137++ 62B6 16 00                ld      d,0
-138++ 62B8 19                   add     hl,de
-139++ 62B9 7E                   ld      a,(hl)
-140++ 62BA FE 02                cp      P127_MEM_ALLOCATED
-141++ 62BC 20 04                jr      nz,p127_mem_error
-142++ 62BE 36 00                ld      (hl),P127_MEM_FREE
-143++ 62C0 B7                   or      a
-144++ 62C1 C9                   ret
-145++ 62C2
-146++ 62C2              p127_mem_error:
-147++ 62C2 37                   scf
-148++ 62C3 C9                   ret
-149++ 62C4
-150++ 62C4              ; Runtime smoke test: video and bootstrap pages are immutable; allocation/free works.
-151++ 62C4              ; OUT: carry=1 on failure. Does not retain any allocated page.
-152++ 62C4              p127_mem_selftest:
-153++ 62C4 3E 00                ld      a,0
-154++ 62C6 CD AD 62             call    p127_mem_free
-155++ 62C9 30 41                jr      nc,p127_mem_test_fail
-156++ 62CB 3E 01                ld      a,1
-157++ 62CD CD AD 62             call    p127_mem_free
-158++ 62D0 30 3A                jr      nc,p127_mem_test_fail
-159++ 62D2 3E 02                ld      a,2
-160++ 62D4 CD AD 62             call    p127_mem_free
-161++ 62D7 30 33                jr      nc,p127_mem_test_fail
-162++ 62D9 3E 03                ld      a,3
-163++ 62DB CD AD 62             call    p127_mem_free
-164++ 62DE 30 2C                jr      nc,p127_mem_test_fail
-165++ 62E0 3E 05                ld      a,5
-166++ 62E2 CD AD 62             call    p127_mem_free
-167++ 62E5 30 25                jr      nc,p127_mem_test_fail
-168++ 62E7 3E 07                ld      a,7
-169++ 62E9 CD AD 62             call    p127_mem_free
-170++ 62EC 30 1E                jr      nc,p127_mem_test_fail
-171++ 62EE CD 97 62             call    p127_mem_alloc
-172++ 62F1 D8                   ret     c
-173++ 62F2 32 0E 63             ld      (p127_mem_test_page),a
-174++ 62F5 CD AD 62             call    p127_mem_free
-175++ 62F8 D8                   ret     c
-176++ 62F9 3A 0E 63             ld      a,(p127_mem_test_page)
-177++ 62FC CD 97 62             call    p127_mem_alloc
-178++ 62FF D8                   ret     c
-179++ 6300 47                   ld      b,a
-180++ 6301 3A 0E 63             ld      a,(p127_mem_test_page)
-181++ 6304 B8                   cp      b
-182++ 6305 20 05                jr      nz,p127_mem_test_fail
-183++ 6307 78                   ld      a,b
-184++ 6308 CD AD 62             call    p127_mem_free
-185++ 630B C9                   ret
-186++ 630C              p127_mem_test_fail:
-187++ 630C 37                   scf
-188++ 630D C9                   ret
-189++ 630E
-190++ 630E              p127_mem_test_page:
-191++ 630E 00                   db      0
-192++ 630F              p127_mem_page_state:
-193++ 630F 00 00 00...          ds      P127_MEM_PAGE_COUNT,0
-194++ 634F              p127_mem_end:
-195++ 634F
-196++ 634F                      ASSERT  P127_MEM_PAGE_COUNT*P127_MEM_PAGE_SIZE = 100000h
-197++ 634F                      ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
-198++ 634F
+  1++ 626C              ; ============================================================================
+  2++ 626C              ; Project127 ATM Core — physical page-state manager
+  3++ 626C              ; Module version: 0.3.1
+  4++ 626C              ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
+  5++ 626C              ;      free A=page, C=invalid/not allocated.
+  6++ 626C              ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
+  7++ 626C              ; ATM Turbo 2+ page IDs are physical 16 KiB RAM pages. Bootstrap reservations
+  8++ 626C              ; reflect the active ZX-128 map: page 5 (window 1), page 2 (window 2), and
+  9++ 626C              ; page 0 (window 3). Page 5 is already covered by the video-page union.
+ 10++ 626C              ; ============================================================================
+ 11++ 626C              P127_MEM_VERSION_MAJOR EQU 0
+ 12++ 626C              P127_MEM_VERSION_MINOR EQU 3
+ 13++ 626C              P127_MEM_VERSION_PATCH EQU 1
+ 14++ 626C              P127_MEM_PAGE_COUNT    EQU 64
+ 15++ 626C              P127_MEM_PAGE_SIZE     EQU 04000h
+ 16++ 626C              P127_MEM_FREE          EQU 0
+ 17++ 626C              P127_MEM_RESERVED      EQU 1
+ 18++ 626C              P127_MEM_ALLOCATED     EQU 2
+ 19++ 626C
+ 20++ 626C              p127_mem_init:
+ 21++ 626C 21 57 63             ld      hl,p127_mem_page_state
+ 22++ 626F 11 58 63             ld      de,p127_mem_page_state+1
+ 23++ 6272 01 3F 00             ld      bc,P127_MEM_PAGE_COUNT-1
+ 24++ 6275 36 00                ld      (hl),P127_MEM_FREE
+ 25++ 6277 ED B0                ldir
+ 26++ 6279 C9                   ret
+ 27++ 627A
+ 28++ 627A              ; Reserve a contiguous physical-page range.
+ 29++ 627A              ; IN: A=first page, B=count. OUT: carry=1 on invalid range/conflict.
+ 30++ 627A              ; A zero-length reservation is accepted as a no-op.
+ 31++ 627A              p127_mem_reserve:
+ 32++ 627A 4F                   ld      c,a
+ 33++ 627B 78                   ld      a,b
+ 34++ 627C B7                   or      a
+ 35++ 627D C8                   ret     z
+ 36++ 627E 79                   ld      a,c
+ 37++ 627F FE 40                cp      P127_MEM_PAGE_COUNT
+ 38++ 6281 D2 0A 63             jp      nc,p127_mem_error
+ 39++ 6284 79                   ld      a,c
+ 40++ 6285 80                   add     a,b
+ 41++ 6286 DA 0A 63             jp      c,p127_mem_error
+ 42++ 6289 FE 41                cp      P127_MEM_PAGE_COUNT+1
+ 43++ 628B 30 7D                jr      nc,p127_mem_error
+ 44++ 628D 21 57 63             ld      hl,p127_mem_page_state
+ 45++ 6290 59                   ld      e,c
+ 46++ 6291 16 00                ld      d,0
+ 47++ 6293 19                   add     hl,de
+ 48++ 6294 50                   ld      d,b
+ 49++ 6295              p127_mem_reserve_check:
+ 50++ 6295 7E                   ld      a,(hl)
+ 51++ 6296 B7                   or      a
+ 52++ 6297 20 71                jr      nz,p127_mem_error
+ 53++ 6299 23                   inc     hl
+ 54++ 629A 15                   dec     d
+ 55++ 629B 20 F8                jr      nz,p127_mem_reserve_check
+ 56++ 629D 21 57 63             ld      hl,p127_mem_page_state
+ 57++ 62A0 59                   ld      e,c
+ 58++ 62A1 16 00                ld      d,0
+ 59++ 62A3 19                   add     hl,de
+ 60++ 62A4 50                   ld      d,b
+ 61++ 62A5              p127_mem_reserve_set:
+ 62++ 62A5 36 01                ld      (hl),P127_MEM_RESERVED
+ 63++ 62A7 23                   inc     hl
+ 64++ 62A8 15                   dec     d
+ 65++ 62A9 20 FA                jr      nz,p127_mem_reserve_set
+ 66++ 62AB B7                   or      a
+ 67++ 62AC C9                   ret
+ 68++ 62AD
+ 69++ 62AD              ; Reserve ATM video RAM used by the complete Project112 mode set.
+ 70++ 62AD              ; Project112 ATM710: ZX uses page 5 or 7; ATM640/EGA/Text use page
+ 71++ 62AD              ; pairs 5+1 or 7+3. Reserve the union so any supported mode can be selected.
+ 72++ 62AD              ; OUT: carry=1 if a reservation conflicts or is out of range.
+ 73++ 62AD              p127_mem_reserve_video:
+ 74++ 62AD 3E 01                ld      a,1
+ 75++ 62AF 06 01                ld      b,1
+ 76++ 62B1 CD 7A 62             call    p127_mem_reserve
+ 77++ 62B4 D8                   ret     c
+ 78++ 62B5 3E 03                ld      a,3
+ 79++ 62B7 06 01                ld      b,1
+ 80++ 62B9 CD 7A 62             call    p127_mem_reserve
+ 81++ 62BC D8                   ret     c
+ 82++ 62BD 3E 05                ld      a,5
+ 83++ 62BF 06 01                ld      b,1
+ 84++ 62C1 CD 7A 62             call    p127_mem_reserve
+ 85++ 62C4 D8                   ret     c
+ 86++ 62C5 3E 07                ld      a,7
+ 87++ 62C7 06 01                ld      b,1
+ 88++ 62C9 CD 7A 62             call    p127_mem_reserve
+ 89++ 62CC D8                   ret     c
+ 90++ 62CD B7                   or      a
+ 91++ 62CE C9                   ret
+ 92++ 62CF
+ 93++ 62CF              ; Reserve bootstrap pages that are live in the current ZX-128 host map.
+ 94++ 62CF              ; Window 1/page 5 contains P127BOOT.C; window 2/page 2 contains the resident
+ 95++ 62CF              ; UI and stack; window 3/page 0 is retained as the host/staging page.
+ 96++ 62CF              ; Page 5 is already RESERVED by p127_mem_reserve_video.
+ 97++ 62CF              ; OUT: carry=1 if either reservation conflicts.
+ 98++ 62CF              p127_mem_reserve_boot:
+ 99++ 62CF 3E 00                ld      a,0
+100++ 62D1 06 01                ld      b,1
+101++ 62D3 CD 7A 62             call    p127_mem_reserve
+102++ 62D6 D8                   ret     c
+103++ 62D7 3E 02                ld      a,2
+104++ 62D9 06 01                ld      b,1
+105++ 62DB CD 7A 62             call    p127_mem_reserve
+106++ 62DE C9                   ret
+107++ 62DF
+108++ 62DF              ; Allocate the first free physical page.
+109++ 62DF              ; OUT: A=page ID, carry=1 when exhausted.
+110++ 62DF              p127_mem_alloc:
+111++ 62DF 21 57 63             ld      hl,p127_mem_page_state
+112++ 62E2 06 40                ld      b,P127_MEM_PAGE_COUNT
+113++ 62E4 0E 00                ld      c,0
+114++ 62E6              p127_mem_alloc_scan:
+115++ 62E6 7E                   ld      a,(hl)
+116++ 62E7 B7                   or      a
+117++ 62E8 28 06                jr      z,p127_mem_alloc_found
+118++ 62EA 23                   inc     hl
+119++ 62EB 0C                   inc     c
+120++ 62EC 10 F8                djnz    p127_mem_alloc_scan
+121++ 62EE 37                   scf
+122++ 62EF C9                   ret
+123++ 62F0              p127_mem_alloc_found:
+124++ 62F0 36 02                ld      (hl),P127_MEM_ALLOCATED
+125++ 62F2 79                   ld      a,c
+126++ 62F3 B7                   or      a
+127++ 62F4 C9                   ret
+128++ 62F5
+129++ 62F5              ; Release only pages owned by the allocator. Reserved pages cannot be freed.
+130++ 62F5              ; IN: A=page ID. OUT: carry=1 for invalid ID or non-allocated page.
+131++ 62F5              p127_mem_free:
+132++ 62F5 FE 40                cp      P127_MEM_PAGE_COUNT
+133++ 62F7 30 11                jr      nc,p127_mem_error
+134++ 62F9 4F                   ld      c,a
+135++ 62FA 21 57 63             ld      hl,p127_mem_page_state
+136++ 62FD 59                   ld      e,c
+137++ 62FE 16 00                ld      d,0
+138++ 6300 19                   add     hl,de
+139++ 6301 7E                   ld      a,(hl)
+140++ 6302 FE 02                cp      P127_MEM_ALLOCATED
+141++ 6304 20 04                jr      nz,p127_mem_error
+142++ 6306 36 00                ld      (hl),P127_MEM_FREE
+143++ 6308 B7                   or      a
+144++ 6309 C9                   ret
+145++ 630A
+146++ 630A              p127_mem_error:
+147++ 630A 37                   scf
+148++ 630B C9                   ret
+149++ 630C
+150++ 630C              ; Runtime smoke test: video and bootstrap pages are immutable; allocation/free works.
+151++ 630C              ; OUT: carry=1 on failure. Does not retain any allocated page.
+152++ 630C              p127_mem_selftest:
+153++ 630C 3E 00                ld      a,0
+154++ 630E CD F5 62             call    p127_mem_free
+155++ 6311 30 41                jr      nc,p127_mem_test_fail
+156++ 6313 3E 01                ld      a,1
+157++ 6315 CD F5 62             call    p127_mem_free
+158++ 6318 30 3A                jr      nc,p127_mem_test_fail
+159++ 631A 3E 02                ld      a,2
+160++ 631C CD F5 62             call    p127_mem_free
+161++ 631F 30 33                jr      nc,p127_mem_test_fail
+162++ 6321 3E 03                ld      a,3
+163++ 6323 CD F5 62             call    p127_mem_free
+164++ 6326 30 2C                jr      nc,p127_mem_test_fail
+165++ 6328 3E 05                ld      a,5
+166++ 632A CD F5 62             call    p127_mem_free
+167++ 632D 30 25                jr      nc,p127_mem_test_fail
+168++ 632F 3E 07                ld      a,7
+169++ 6331 CD F5 62             call    p127_mem_free
+170++ 6334 30 1E                jr      nc,p127_mem_test_fail
+171++ 6336 CD DF 62             call    p127_mem_alloc
+172++ 6339 D8                   ret     c
+173++ 633A 32 56 63             ld      (p127_mem_test_page),a
+174++ 633D CD F5 62             call    p127_mem_free
+175++ 6340 D8                   ret     c
+176++ 6341 3A 56 63             ld      a,(p127_mem_test_page)
+177++ 6344 CD DF 62             call    p127_mem_alloc
+178++ 6347 D8                   ret     c
+179++ 6348 47                   ld      b,a
+180++ 6349 3A 56 63             ld      a,(p127_mem_test_page)
+181++ 634C B8                   cp      b
+182++ 634D 20 05                jr      nz,p127_mem_test_fail
+183++ 634F 78                   ld      a,b
+184++ 6350 CD F5 62             call    p127_mem_free
+185++ 6353 C9                   ret
+186++ 6354              p127_mem_test_fail:
+187++ 6354 37                   scf
+188++ 6355 C9                   ret
+189++ 6356
+190++ 6356              p127_mem_test_page:
+191++ 6356 00                   db      0
+192++ 6357              p127_mem_page_state:
+193++ 6357 00 00 00...          ds      P127_MEM_PAGE_COUNT,0
+194++ 6397              p127_mem_end:
+195++ 6397
+196++ 6397                      ASSERT  P127_MEM_PAGE_COUNT*P127_MEM_PAGE_SIZE = 100000h
+197++ 6397                      ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
+198++ 6397
 # file closed: p127_mem.asm
-137+  634F
-138+  634F              p127_end:
-139+  634F                      ASSERT  p127_entry = P127_LOAD_ADDRESS
-140+  634F                      ASSERT  p127_end > p127_entry
-141+  634F                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
-142+  634F
+141+  6397                      INCLUDE "src/kernel/p127_map.asm"
+# file opened: p127_map.asm
+  1++ 6397              ; ============================================================================
+  2++ 6397              ; Project127 ATM Core — pure software page-mapper model
+  3++ 6397              ; Module version: 0.1.0
+  4++ 6397              ; No hardware OUT instructions are permitted in this stage.
+  5++ 6397              ; ============================================================================
+  6++ 6397              P127_MAP_VERSION_MAJOR EQU 0
+  7++ 6397              P127_MAP_VERSION_MINOR EQU 1
+  8++ 6397              P127_MAP_VERSION_PATCH EQU 0
+  9++ 6397
+ 10++ 6397              P127_MAP_WINDOW_COUNT  EQU 4
+ 11++ 6397              P127_MAP_ROM            EQU 0FFh
+ 12++ 6397
+ 13++ 6397              ; Shadow map reflects the verified bootstrap layout:
+ 14++ 6397              ; W0=TR-DOS ROM, W1=RAM P5, W2=RAM P2, W3=RAM P0.
+ 15++ 6397              ; This table is descriptive state only; it does not program hardware.
+ 16++ 6397              p127_map_init:
+ 17++ 6397 3E FF                ld      a,P127_MAP_ROM
+ 18++ 6399 32 C6 64             ld      (p127_map_shadow),a
+ 19++ 639C 3E 05                ld      a,5
+ 20++ 639E 32 C7 64             ld      (p127_map_shadow+1),a
+ 21++ 63A1 3E 02                ld      a,2
+ 22++ 63A3 32 C8 64             ld      (p127_map_shadow+2),a
+ 23++ 63A6 3E 00                ld      a,0
+ 24++ 63A8 32 C9 64             ld      (p127_map_shadow+3),a
+ 25++ 63AB B7                   or      a
+ 26++ 63AC C9                   ret
+ 27++ 63AD
+ 28++ 63AD              ; Encode physical RAM page ID as the ATM dispatcher byte.
+ 29++ 63AD              ; IN: A=physical page 0..63.
+ 30++ 63AD              ; OUT: A=7Fh-page; carry=1 for invalid page.
+ 31++ 63AD              p127_map_encode_page:
+ 32++ 63AD FE 40                cp      64
+ 33++ 63AF D2 C2 64             jp      nc,p127_map_invalid
+ 34++ 63B2 47                   ld      b,a
+ 35++ 63B3 3E 7F                ld      a,07Fh
+ 36++ 63B5 90                   sub     b
+ 37++ 63B6 B7                   or      a
+ 38++ 63B7 C9                   ret
+ 39++ 63B8
+ 40++ 63B8              ; Return the hardware shadow-port address for a CPU window.
+ 41++ 63B8              ; IN: A=window 0..3. OUT: HL=port; carry=1 for invalid window.
+ 42++ 63B8              ; This routine returns an address only; it never performs I/O.
+ 43++ 63B8              p127_map_window_port:
+ 44++ 63B8 B7                   or      a
+ 45++ 63B9 28 0E                jr      z,p127_map_port_w0
+ 46++ 63BB FE 01                cp      1
+ 47++ 63BD 28 0F                jr      z,p127_map_port_w1
+ 48++ 63BF FE 02                cp      2
+ 49++ 63C1 28 10                jr      z,p127_map_port_w2
+ 50++ 63C3 FE 03                cp      3
+ 51++ 63C5 28 11                jr      z,p127_map_port_w3
+ 52++ 63C7 37                   scf
+ 53++ 63C8 C9                   ret
+ 54++ 63C9              p127_map_port_w0:
+ 55++ 63C9 21 F7 3F             ld      hl,03FF7h
+ 56++ 63CC B7                   or      a
+ 57++ 63CD C9                   ret
+ 58++ 63CE              p127_map_port_w1:
+ 59++ 63CE 21 F7 7F             ld      hl,07FF7h
+ 60++ 63D1 B7                   or      a
+ 61++ 63D2 C9                   ret
+ 62++ 63D3              p127_map_port_w2:
+ 63++ 63D3 21 F7 BF             ld      hl,0BFF7h
+ 64++ 63D6 B7                   or      a
+ 65++ 63D7 C9                   ret
+ 66++ 63D8              p127_map_port_w3:
+ 67++ 63D8 21 F7 FF             ld      hl,0FFF7h
+ 68++ 63DB B7                   or      a
+ 69++ 63DC C9                   ret
+ 70++ 63DD
+ 71++ 63DD              ; Read the software shadow entry.
+ 72++ 63DD              ; IN: A=window 0..3. OUT: A=page ID or FFh (ROM); carry=1 if invalid.
+ 73++ 63DD              p127_map_get_shadow:
+ 74++ 63DD FE 04                cp      P127_MAP_WINDOW_COUNT
+p127_map.asm(75): error: [JR] Target out of range (+225)
+ 75++ 63DF 30 00                jr      nc,p127_map_invalid
+ 76++ 63E1 5F                   ld      e,a
+ 77++ 63E2 16 00                ld      d,0
+ 78++ 63E4 21 C6 64             ld      hl,p127_map_shadow
+ 79++ 63E7 19                   add     hl,de
+ 80++ 63E8 7E                   ld      a,(hl)
+ 81++ 63E9 B7                   or      a
+ 82++ 63EA C9                   ret
+ 83++ 63EB
+ 84++ 63EB              ; Stage 0.1 self-test: encoding, invalid page, all window ports and shadow map.
+ 85++ 63EB              ; OUT: carry=1 on any mismatch. No hardware registers are touched.
+ 86++ 63EB              p127_map_selftest:
+ 87++ 63EB 3E 00                ld      a,0
+ 88++ 63ED CD AD 63             call    p127_map_encode_page
+ 89++ 63F0 DA C4 64             jp      c,p127_map_test_fail
+ 90++ 63F3 FE 7F                cp      07Fh
+ 91++ 63F5 C2 C4 64             jp      nz,p127_map_test_fail
+ 92++ 63F8 3E 01                ld      a,1
+ 93++ 63FA CD AD 63             call    p127_map_encode_page
+ 94++ 63FD DA C4 64             jp      c,p127_map_test_fail
+ 95++ 6400 FE 7E                cp      07Eh
+ 96++ 6402 C2 C4 64             jp      nz,p127_map_test_fail
+ 97++ 6405 3E 03                ld      a,3
+ 98++ 6407 CD AD 63             call    p127_map_encode_page
+ 99++ 640A DA C4 64             jp      c,p127_map_test_fail
+100++ 640D FE 7C                cp      07Ch
+101++ 640F C2 C4 64             jp      nz,p127_map_test_fail
+102++ 6412 3E 05                ld      a,5
+103++ 6414 CD AD 63             call    p127_map_encode_page
+104++ 6417 DA C4 64             jp      c,p127_map_test_fail
+105++ 641A FE 7A                cp      07Ah
+106++ 641C C2 C4 64             jp      nz,p127_map_test_fail
+107++ 641F 3E 07                ld      a,7
+108++ 6421 CD AD 63             call    p127_map_encode_page
+109++ 6424 DA C4 64             jp      c,p127_map_test_fail
+110++ 6427 FE 78                cp      078h
+111++ 6429 C2 C4 64             jp      nz,p127_map_test_fail
+112++ 642C 3E 3F                ld      a,63
+113++ 642E CD AD 63             call    p127_map_encode_page
+114++ 6431 DA C4 64             jp      c,p127_map_test_fail
+115++ 6434 FE 40                cp      040h
+116++ 6436 C2 C4 64             jp      nz,p127_map_test_fail
+117++ 6439 3E 40                ld      a,64
+118++ 643B CD AD 63             call    p127_map_encode_page
+119++ 643E D2 C4 64             jp      nc,p127_map_test_fail
+120++ 6441
+121++ 6441 3E 00                ld      a,0
+122++ 6443 CD B8 63             call    p127_map_window_port
+123++ 6446 DA C4 64             jp      c,p127_map_test_fail
+124++ 6449 11 F7 3F             ld      de,03FF7h
+125++ 644C B7                   or      a
+126++ 644D ED 52                sbc     hl,de
+127++ 644F C2 C4 64             jp      nz,p127_map_test_fail
+128++ 6452 3E 01                ld      a,1
+129++ 6454 CD B8 63             call    p127_map_window_port
+130++ 6457 DA C4 64             jp      c,p127_map_test_fail
+131++ 645A 11 F7 7F             ld      de,07FF7h
+132++ 645D B7                   or      a
+133++ 645E ED 52                sbc     hl,de
+134++ 6460 C2 C4 64             jp      nz,p127_map_test_fail
+135++ 6463 3E 02                ld      a,2
+136++ 6465 CD B8 63             call    p127_map_window_port
+137++ 6468 DA C4 64             jp      c,p127_map_test_fail
+138++ 646B 11 F7 BF             ld      de,0BFF7h
+139++ 646E B7                   or      a
+140++ 646F ED 52                sbc     hl,de
+141++ 6471 C2 C4 64             jp      nz,p127_map_test_fail
+142++ 6474 3E 03                ld      a,3
+143++ 6476 CD B8 63             call    p127_map_window_port
+144++ 6479 DA C4 64             jp      c,p127_map_test_fail
+145++ 647C 11 F7 FF             ld      de,0FFF7h
+146++ 647F B7                   or      a
+147++ 6480 ED 52                sbc     hl,de
+148++ 6482 C2 C4 64             jp      nz,p127_map_test_fail
+149++ 6485 3E 04                ld      a,4
+150++ 6487 CD B8 63             call    p127_map_window_port
+151++ 648A D2 C4 64             jp      nc,p127_map_test_fail
+152++ 648D
+153++ 648D CD 97 63             call    p127_map_init
+154++ 6490 3E 00                ld      a,0
+155++ 6492 CD DD 63             call    p127_map_get_shadow
+156++ 6495 FE FF                cp      P127_MAP_ROM
+157++ 6497 C2 C4 64             jp      nz,p127_map_test_fail
+158++ 649A 3E 01                ld      a,1
+159++ 649C CD DD 63             call    p127_map_get_shadow
+160++ 649F FE 05                cp      5
+161++ 64A1 C2 C4 64             jp      nz,p127_map_test_fail
+162++ 64A4 3E 02                ld      a,2
+163++ 64A6 CD DD 63             call    p127_map_get_shadow
+164++ 64A9 FE 02                cp      2
+165++ 64AB C2 C4 64             jp      nz,p127_map_test_fail
+166++ 64AE 3E 03                ld      a,3
+167++ 64B0 CD DD 63             call    p127_map_get_shadow
+168++ 64B3 FE 00                cp      0
+169++ 64B5 C2 C4 64             jp      nz,p127_map_test_fail
+170++ 64B8 3E 04                ld      a,4
+171++ 64BA CD DD 63             call    p127_map_get_shadow
+172++ 64BD D2 C4 64             jp      nc,p127_map_test_fail
+173++ 64C0 B7                   or      a
+174++ 64C1 C9                   ret
+175++ 64C2
+176++ 64C2              p127_map_invalid:
+177++ 64C2 37                   scf
+178++ 64C3 C9                   ret
+179++ 64C4              p127_map_test_fail:
+180++ 64C4 37                   scf
+181++ 64C5 C9                   ret
+182++ 64C6
+183++ 64C6              p127_map_shadow:
+184++ 64C6 00 00 00 00          ds      P127_MAP_WINDOW_COUNT,0
+185++ 64CA              p127_map_end:
+186++ 64CA
+# file closed: p127_map.asm
+142+  64CA
+143+  64CA              p127_end:
+144+  64CA                      ASSERT  p127_entry = P127_LOAD_ADDRESS
+145+  64CA                      ASSERT  p127_end > p127_entry
+146+  64CA                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
+147+  64CA
 # file closed: p127_boot.asm
-  8   634F
-  9   634F              ; BASIC boot file is assembly data, not a Python-generated byte array.
- 10   634F                      ORG     #B000
+  8   64CA
+  9   64CA              ; BASIC boot file is assembly data, not a Python-generated byte array.
+ 10   64CA                      ORG     #B000
  11   B000              CLEAR       EQU #FD
  12   B000              LOAD        EQU #EF
  13   B000              CODE        EQU #AF
