@@ -13,13 +13,26 @@ def le16(n):
     return bytes((n & 255, n >> 8))
 
 def basic_loader():
-    # VAL "24576" avoids malformed tokenized numeric literals: Spectrum
-    # BASIC stores a binary numeric marker after each numeric source token.
+    # Spectrum BASIC numeric source is kept inside VAL strings to avoid
+    # malformed numeric-literal markers in the tokenized program.
+    # OUT 239,value writes each progress character to ATM debug port #EF.
     # No CLEAR is used, so the current RAMTOP is left untouched.
     address = bytes([TOK_VAL]) + b' "24576"'
-    body = (bytes([TOK_LOAD]) + b' "P127BOOT" ' + bytes([TOK_CODE]) +
-            b" " + address + b":" + bytes([TOK_RANDOMIZE]) + b" " +
-            bytes([TOK_USR]) + b" " + address)
+
+    def debug_text(message):
+        statements = []
+        for value in message.encode("ascii"):
+            statements.append(bytes([TOK_OUT]) + b' ' +
+                              bytes([TOK_VAL]) + b' "239",' +
+                              bytes([TOK_VAL]) + b' "' + str(value).encode("ascii") + b'"')
+        return b":".join(statements)
+
+    body = (debug_text("[P127] BASIC START\r\n") + b":" +
+            bytes([TOK_LOAD]) + b' "P127BOOT" ' + bytes([TOK_CODE]) +
+            b" " + address + b":" +
+            debug_text("[P127] LOAD OK\r\n") + b":" +
+            debug_text("[P127] CALL 6000\r\n") + b":" +
+            bytes([TOK_RANDOMIZE]) + b" " + bytes([TOK_USR]) + b" " + address)
     line = bytes([0, 10]) + le16(len(body) + 1) + body + b"\x0d"
     area = line + b"\x80"
     return area + b"\xaa\x0a\x00", len(area)
