@@ -74,6 +74,8 @@ atm_mem_range_selftest::
         ld      (p127_range_offset),hl
         ld      hl,#0010
         ld      (p127_range_offset+2),hl
+        ; Zero-length test: HL must be cleared after setting offset high word.
+        ld      hl,0
         ld      (p127_range_length),hl
         ld      (p127_range_length+2),hl
         ; Preserve the exact test input before the validator runs.
