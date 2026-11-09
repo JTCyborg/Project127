@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.25**  
+Scenario revision: **0.8.26**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -39,9 +39,9 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.6.2 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/boot/p127_boot.asm` | 0.6.3 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; reserves video P1/P3/P5/P7, bootstrap P0/P2 and future IRQ table P4 |
-| `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model; inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT |
+| `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.1 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
 | `src/kernel/p127_irq.asm` | 0.3.0 | DI-only contract, closed readiness gate, P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
@@ -444,6 +444,16 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - This does not prove that the emulator's physical P4 is mapped or writable. No bytes are populated at #C000, I is not loaded, IM 2 and EI are not executed, and no interrupt handler/vector is installed. Physical page-port OUT remains disabled.
 - No functional source module changed in this acceptance update. Scenario revision advanced to 0.8.25.
 - Next: implement a software-only W3 target-map transaction with explicit old/new map snapshots, commit validation, injected post-transition failures and exact rollback. Keep hardware OUT, IM and EI disabled.
+
+### 2026-11-09 — Stage 2.14: software-only target-map transaction v0.3.0
+
+- Advanced src/kernel/p127_map.asm to v0.3.0 and boot to v0.6.3.
+- Added transaction begin: validate window/page/protection mask and snapshot all four shadow-map entries before any update.
+- Added software commit, explicit accept and rollback. Rollback restores the complete four-entry snapshot and clears pending/transaction state.
+- Added post-commit failure injection: change W0 from ROM to synthetic page 10, inject failure, roll back, and verify all four original entries (ROM/P5/P2/P0). A second path commits synthetic page 11 and accepts it, then restores the bootstrap map.
+- Boot emits MAP TXN COMMIT/ROLLBACK PASS; OUT DISABLED or a distinct failure line.
+- No physical page-port OUT, physical page identity check, UI ownership transition, vector installation, IM 2 or EI. Physical remapping remains blocked.
+- Scenario revision 0.8.26. Build and emulator verification are pending; no successful assembly is claimed.
 
 ### 2026-11-09 — Memory manager branch-range correction
 
