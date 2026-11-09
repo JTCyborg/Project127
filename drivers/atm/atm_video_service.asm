@@ -324,6 +324,8 @@ p127_video_buffer_create_scan:
         ret
 p127_video_buffer_create_slot:
         ld (p127_video_buffer_slot_ptr),hl
+        ld a,c
+        ld (p127_video_buffer_id),a
         ld hl,P127_ATM_VIDEO_BUFFER_BYTES
         ld (atm_mem_request_length),hl
         ld hl,0
@@ -332,7 +334,7 @@ p127_video_buffer_create_slot:
         ret c
         ld hl,(p127_video_buffer_slot_ptr)
         ld (hl),a
-        ld a,c
+        ld a,(p127_video_buffer_id)
         or a
         ret
 
@@ -358,6 +360,7 @@ p127_video_buffer_invalid:
 
 ; A=video buffer ID. A pinned buffer cannot be destroyed.
 P127_ATM_Video_BufferDestroy::
+        ld (p127_video_buffer_id),a
         call p127_video_buffer_get_handle
         ret c
         ld (p127_video_buffer_temp_handle),a
@@ -480,7 +483,9 @@ p127_video_buffer_busy:
 P127_ATM_Video_BufferUnprepare::
         ld (p127_video_buffer_id),a
         ld a,(p127_video_prepared_id)
-        cp (p127_video_buffer_id)
+        ld b,a
+        ld a,(p127_video_buffer_id)
+        cp b
         jr nz,p127_video_buffer_busy
         ld a,(p127_video_buffer_id)
         call p127_video_buffer_get_handle
@@ -530,8 +535,10 @@ P127_ATM_Video_BufferSelfTest::
         call p127_video_buffer_get_handle
         jr c,p127_video_buffer_test_fail_4
         ld (atm_mem_handle_source),a
-        ld a,3
-        ld (atm_mem_handle_destination),a ; deliberately invalid handle
+        ld a,2
+        call p127_video_buffer_get_handle
+        jr c,p127_video_buffer_test_fail_4
+        ld (atm_mem_handle_destination),a
         ld hl,(p127_video_buffer_offset)
         ld (atm_mem_handle_source_offset),hl
         ld hl,(p127_video_buffer_offset+2)
@@ -562,15 +569,32 @@ P127_ATM_Video_BufferSelfTest::
         jr c,p127_video_buffer_test_fail_9
         xor a
         ret
-p127_video_buffer_test_fail_1: ld a,1 : jr p127_video_buffer_test_fail
-p127_video_buffer_test_fail_2: ld a,2 : jr p127_video_buffer_test_fail
-p127_video_buffer_test_fail_3: ld a,3 : jr p127_video_buffer_test_fail
-p127_video_buffer_test_fail_4: ld a,4 : jr p127_video_buffer_test_fail
-p127_video_buffer_test_fail_5: ld a,5 : jr p127_video_buffer_test_fail
-p127_video_buffer_test_fail_6: ld a,6 : jr p127_video_buffer_test_fail
-p127_video_buffer_test_fail_7: ld a,7 : jr p127_video_buffer_test_fail
-p127_video_buffer_test_fail_8: ld a,8 : jr p127_video_buffer_test_fail
-p127_video_buffer_test_fail_9: ld a,9
+p127_video_buffer_test_fail_1:
+        ld a,1
+        jr p127_video_buffer_test_fail
+p127_video_buffer_test_fail_2:
+        ld a,2
+        jr p127_video_buffer_test_fail
+p127_video_buffer_test_fail_3:
+        ld a,3
+        jr p127_video_buffer_test_fail
+p127_video_buffer_test_fail_4:
+        ld a,4
+        jr p127_video_buffer_test_fail
+p127_video_buffer_test_fail_5:
+        ld a,5
+        jr p127_video_buffer_test_fail
+p127_video_buffer_test_fail_6:
+        ld a,6
+        jr p127_video_buffer_test_fail
+p127_video_buffer_test_fail_7:
+        ld a,7
+        jr p127_video_buffer_test_fail
+p127_video_buffer_test_fail_8:
+        ld a,8
+        jr p127_video_buffer_test_fail
+p127_video_buffer_test_fail_9:
+        ld a,9
 p127_video_buffer_test_fail:
         scf
         ret
