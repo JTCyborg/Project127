@@ -13,7 +13,7 @@
 # file opened: p127_host.asm
   1+  0000              ; =========================================================================
   2+  0000              ; PROJECT127 - ATM Turbo 2+ host entry
-  3+  0000              ; Version: P127_ATM_HOST v0.6.0
+  3+  0000              ; Version: P127_ATM_HOST v0.7.0
   4+  0000              ; ATM allocator record-copy fix.
   5+  0000              ; =========================================================================
   6+  0000
@@ -162,13 +162,13 @@
 149+  610D 18 F5                jr      p127_host_debug_string
 150+  610F
 151+  610F              p127_host_banner:
-152+  610F 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.6.0",13,10
+152+  610F 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.7.0",13,10
 152+  6113 37 5D 20 41
 152+  6117 54 4D 20 48
 152+  611B 4F 53 54 20
 152+  611F 45 4E 54 52
 152+  6123 59 20 76 30
-152+  6127 2E 36 2E 30
+152+  6127 2E 37 2E 30
 152+  612B 0D 0A
 153+  612D 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
 153+  6131 37 5D 20 54
@@ -1530,26 +1530,26 @@
 318+++6BCD 21 00 00             ld      hl,0
 319+++6BD0 22 01 68             ld      (atm_mem_request_length+2),hl
 320+++6BD3 CD EB 64             call    atm_mem_alloc
-321+++6BD6 DA 44 6D             jp      c,atm_mem_ops_test_fail_01
+321+++6BD6 DA E3 6D             jp      c,atm_mem_ops_test_fail_01
 322+++6BD9 2A 03 68             ld      hl,(atm_mem_result_offset)
-323+++6BDC 22 6C 6D             ld      (atm_mem_test_source),hl
+323+++6BDC 22 1F 6E             ld      (atm_mem_test_source),hl
 324+++6BDF 2A 05 68             ld      hl,(atm_mem_result_offset+2)
-325+++6BE2 22 6E 6D             ld      (atm_mem_test_source+2),hl
+325+++6BE2 22 21 6E             ld      (atm_mem_test_source+2),hl
 326+++6BE5
 327+++6BE5 21 01 40             ld      hl,#4001
 328+++6BE8 22 FF 67             ld      (atm_mem_request_length),hl
 329+++6BEB 21 00 00             ld      hl,0
 330+++6BEE 22 01 68             ld      (atm_mem_request_length+2),hl
 331+++6BF1 CD EB 64             call    atm_mem_alloc
-332+++6BF4 DA 48 6D             jp      c,atm_mem_ops_test_fail_02
+332+++6BF4 DA E7 6D             jp      c,atm_mem_ops_test_fail_02
 333+++6BF7 2A 03 68             ld      hl,(atm_mem_result_offset)
-334+++6BFA 22 70 6D             ld      (atm_mem_test_destination),hl
+334+++6BFA 22 23 6E             ld      (atm_mem_test_destination),hl
 335+++6BFD 2A 05 68             ld      hl,(atm_mem_result_offset+2)
-336+++6C00 22 72 6D             ld      (atm_mem_test_destination+2),hl
+336+++6C00 22 25 6E             ld      (atm_mem_test_destination+2),hl
 337+++6C03
-338+++6C03 2A 6C 6D             ld      hl,(atm_mem_test_source)
+338+++6C03 2A 1F 6E             ld      hl,(atm_mem_test_source)
 339+++6C06 22 AD 6B             ld      (atm_mem_destination_offset),hl
-340+++6C09 2A 6E 6D             ld      hl,(atm_mem_test_source+2)
+340+++6C09 2A 21 6E             ld      hl,(atm_mem_test_source+2)
 341+++6C0C 22 AF 6B             ld      (atm_mem_destination_offset+2),hl
 342+++6C0F 21 01 40             ld      hl,#4001
 343+++6C12 22 B1 6B             ld      (atm_mem_op_length),hl
@@ -1558,56 +1558,56 @@
 346+++6C1B 3E A5                ld      a,#A5
 347+++6C1D 32 C5 6B             ld      (atm_mem_fill_value),a
 348+++6C20 CD 34 6A             call    atm_mem_fill
-349+++6C23 DA 4C 6D             jp      c,atm_mem_ops_test_fail_03
+349+++6C23 DA EB 6D             jp      c,atm_mem_ops_test_fail_03
 350+++6C26
-351+++6C26 2A 6C 6D             ld      hl,(atm_mem_test_source)
+351+++6C26 2A 1F 6E             ld      hl,(atm_mem_test_source)
 352+++6C29 22 A9 6B             ld      (atm_mem_source_offset),hl
-353+++6C2C 2A 6E 6D             ld      hl,(atm_mem_test_source+2)
+353+++6C2C 2A 21 6E             ld      hl,(atm_mem_test_source+2)
 354+++6C2F 22 AB 6B             ld      (atm_mem_source_offset+2),hl
-355+++6C32 2A 70 6D             ld      hl,(atm_mem_test_destination)
+355+++6C32 2A 23 6E             ld      hl,(atm_mem_test_destination)
 356+++6C35 22 AD 6B             ld      (atm_mem_destination_offset),hl
-357+++6C38 2A 72 6D             ld      hl,(atm_mem_test_destination+2)
+357+++6C38 2A 25 6E             ld      hl,(atm_mem_test_destination+2)
 358+++6C3B 22 AF 6B             ld      (atm_mem_destination_offset+2),hl
 359+++6C3E 21 01 40             ld      hl,#4001
 360+++6C41 22 B1 6B             ld      (atm_mem_op_length),hl
 361+++6C44 21 00 00             ld      hl,0
 362+++6C47 22 B3 6B             ld      (atm_mem_op_length+2),hl
 363+++6C4A CD A3 69             call    atm_mem_copy
-364+++6C4D DA 50 6D             jp      c,atm_mem_ops_test_fail_04
+364+++6C4D DA EF 6D             jp      c,atm_mem_ops_test_fail_04
 365+++6C50
 366+++6C50                      ; Verify first byte at destination.
-367+++6C50 2A 70 6D             ld      hl,(atm_mem_test_destination)
+367+++6C50 2A 23 6E             ld      hl,(atm_mem_test_destination)
 368+++6C53 22 C1 6B             ld      (atm_mem_work_offset),hl
-369+++6C56 2A 72 6D             ld      hl,(atm_mem_test_destination+2)
+369+++6C56 2A 25 6E             ld      hl,(atm_mem_test_destination+2)
 370+++6C59 22 C3 6B             ld      (atm_mem_work_offset+2),hl
 371+++6C5C CD 1E 6B             call    atm_mem_map_work_offset
-372+++6C5F DA 54 6D             jp      c,atm_mem_ops_test_fail_05
+372+++6C5F DA F3 6D             jp      c,atm_mem_ops_test_fail_05
 373+++6C62 7E                   ld      a,(hl)
 374+++6C63 FE A5                cp      #A5
-375+++6C65 C2 54 6D             jp      nz,atm_mem_ops_test_fail_05
+375+++6C65 C2 F3 6D             jp      nz,atm_mem_ops_test_fail_05
 376+++6C68
 377+++6C68                      ; Verify byte at destination + #4000 (first byte of next page).
-378+++6C68 2A 70 6D             ld      hl,(atm_mem_test_destination)
+378+++6C68 2A 23 6E             ld      hl,(atm_mem_test_destination)
 379+++6C6B 11 00 40             ld      de,#4000
 380+++6C6E 19                   add     hl,de
 381+++6C6F 22 C1 6B             ld      (atm_mem_work_offset),hl
-382+++6C72 2A 72 6D             ld      hl,(atm_mem_test_destination+2)
+382+++6C72 2A 25 6E             ld      hl,(atm_mem_test_destination+2)
 383+++6C75 11 00 00             ld      de,0
 384+++6C78 ED 5A                adc     hl,de
 385+++6C7A 22 C3 6B             ld      (atm_mem_work_offset+2),hl
 386+++6C7D CD 1E 6B             call    atm_mem_map_work_offset
-387+++6C80 DA 58 6D             jp      c,atm_mem_ops_test_fail_06
+387+++6C80 DA F7 6D             jp      c,atm_mem_ops_test_fail_06
 388+++6C83 7E                   ld      a,(hl)
 389+++6C84 FE A5                cp      #A5
-390+++6C86 C2 58 6D             jp      nz,atm_mem_ops_test_fail_06
+390+++6C86 C2 F7 6D             jp      nz,atm_mem_ops_test_fail_06
 391+++6C89
 392+++6C89                      ; Seed five distinct bytes at source start.
-393+++6C89 2A 6C 6D             ld      hl,(atm_mem_test_source)
+393+++6C89 2A 1F 6E             ld      hl,(atm_mem_test_source)
 394+++6C8C 22 C1 6B             ld      (atm_mem_work_offset),hl
-395+++6C8F 2A 6E 6D             ld      hl,(atm_mem_test_source+2)
+395+++6C8F 2A 21 6E             ld      hl,(atm_mem_test_source+2)
 396+++6C92 22 C3 6B             ld      (atm_mem_work_offset+2),hl
 397+++6C95 CD 1E 6B             call    atm_mem_map_work_offset
-398+++6C98 DA 5C 6D             jp      c,atm_mem_ops_test_fail_07
+398+++6C98 DA FB 6D             jp      c,atm_mem_ops_test_fail_07
 399+++6C9B 36 11                ld      (hl),#11
 400+++6C9D 23                   inc     hl
 401+++6C9E 36 22                ld      (hl),#22
@@ -1619,12 +1619,12 @@
 407+++6CA7 36 55                ld      (hl),#55
 408+++6CA9
 409+++6CA9                      ; Overlap: source -> source+1, length 4. Must copy backward.
-410+++6CA9 2A 6C 6D             ld      hl,(atm_mem_test_source)
+410+++6CA9 2A 1F 6E             ld      hl,(atm_mem_test_source)
 411+++6CAC 22 A9 6B             ld      (atm_mem_source_offset),hl
 412+++6CAF 11 01 00             ld      de,1
 413+++6CB2 19                   add     hl,de
 414+++6CB3 22 AD 6B             ld      (atm_mem_destination_offset),hl
-415+++6CB6 2A 6E 6D             ld      hl,(atm_mem_test_source+2)
+415+++6CB6 2A 21 6E             ld      hl,(atm_mem_test_source+2)
 416+++6CB9 22 AB 6B             ld      (atm_mem_source_offset+2),hl
 417+++6CBC 11 00 00             ld      de,0
 418+++6CBF ED 5A                adc     hl,de
@@ -1634,99 +1634,174 @@
 422+++6CCA 21 00 00             ld      hl,0
 423+++6CCD 22 B3 6B             ld      (atm_mem_op_length+2),hl
 424+++6CD0 CD A3 69             call    atm_mem_copy
-425+++6CD3 DA 60 6D             jp      c,atm_mem_ops_test_fail_08
+425+++6CD3 DA FF 6D             jp      c,atm_mem_ops_test_fail_08
 426+++6CD6
 427+++6CD6                      ; Verify resulting bytes: 11 11 22 33 44.
-428+++6CD6 2A 6C 6D             ld      hl,(atm_mem_test_source)
+428+++6CD6 2A 1F 6E             ld      hl,(atm_mem_test_source)
 429+++6CD9 22 C1 6B             ld      (atm_mem_work_offset),hl
-430+++6CDC 2A 6E 6D             ld      hl,(atm_mem_test_source+2)
+430+++6CDC 2A 21 6E             ld      hl,(atm_mem_test_source+2)
 431+++6CDF 22 C3 6B             ld      (atm_mem_work_offset+2),hl
 432+++6CE2 CD 1E 6B             call    atm_mem_map_work_offset
-433+++6CE5 DA 64 6D             jp      c,atm_mem_ops_test_fail_09
+433+++6CE5 DA 03 6E             jp      c,atm_mem_ops_test_fail_09
 434+++6CE8 7E                   ld      a,(hl)
 435+++6CE9 FE 11                cp      #11
-436+++6CEB C2 64 6D             jp      nz,atm_mem_ops_test_fail_09
+436+++6CEB C2 03 6E             jp      nz,atm_mem_ops_test_fail_09
 437+++6CEE 23                   inc     hl
 438+++6CEF 7E                   ld      a,(hl)
 439+++6CF0 FE 11                cp      #11
-440+++6CF2 C2 64 6D             jp      nz,atm_mem_ops_test_fail_09
+440+++6CF2 C2 03 6E             jp      nz,atm_mem_ops_test_fail_09
 441+++6CF5 23                   inc     hl
 442+++6CF6 7E                   ld      a,(hl)
 443+++6CF7 FE 22                cp      #22
-444+++6CF9 C2 64 6D             jp      nz,atm_mem_ops_test_fail_09
+444+++6CF9 C2 03 6E             jp      nz,atm_mem_ops_test_fail_09
 445+++6CFC 23                   inc     hl
 446+++6CFD 7E                   ld      a,(hl)
 447+++6CFE FE 33                cp      #33
-448+++6D00 C2 64 6D             jp      nz,atm_mem_ops_test_fail_09
+448+++6D00 C2 03 6E             jp      nz,atm_mem_ops_test_fail_09
 449+++6D03 23                   inc     hl
 450+++6D04 7E                   ld      a,(hl)
 451+++6D05 FE 44                cp      #44
-452+++6D07 C2 64 6D             jp      nz,atm_mem_ops_test_fail_09
+452+++6D07 C2 03 6E             jp      nz,atm_mem_ops_test_fail_09
 453+++6D0A
-454+++6D0A                      ; Free second allocation.
-455+++6D0A 2A 70 6D             ld      hl,(atm_mem_test_destination)
-456+++6D0D 22 FB 67             ld      (atm_mem_request_offset),hl
-457+++6D10 2A 72 6D             ld      hl,(atm_mem_test_destination+2)
-458+++6D13 22 FD 67             ld      (atm_mem_request_offset+2),hl
-459+++6D16 21 01 40             ld      hl,#4001
-460+++6D19 22 FF 67             ld      (atm_mem_request_length),hl
-461+++6D1C 21 00 00             ld      hl,0
-462+++6D1F 22 01 68             ld      (atm_mem_request_length+2),hl
-463+++6D22 CD AA 65             call    atm_mem_free
-464+++6D25 DA 68 6D             jp      c,atm_mem_ops_test_fail_10
-465+++6D28
-466+++6D28                      ; Free first allocation.
-467+++6D28 2A 6C 6D             ld      hl,(atm_mem_test_source)
-468+++6D2B 22 FB 67             ld      (atm_mem_request_offset),hl
-469+++6D2E 2A 6E 6D             ld      hl,(atm_mem_test_source+2)
-470+++6D31 22 FD 67             ld      (atm_mem_request_offset+2),hl
-471+++6D34 21 01 40             ld      hl,#4001
-472+++6D37 22 FF 67             ld      (atm_mem_request_length),hl
-473+++6D3A 21 00 00             ld      hl,0
-474+++6D3D 22 01 68             ld      (atm_mem_request_length+2),hl
-475+++6D40 CD AA 65             call    atm_mem_free
-476+++6D43 C9                   ret
-477+++6D44
-478+++6D44 3E 01        atm_mem_ops_test_fail_01: ld a,1
-479+++6D46 18 22                jr atm_mem_ops_test_fail
-480+++6D48 3E 02        atm_mem_ops_test_fail_02: ld a,2
-481+++6D4A 18 1E                jr atm_mem_ops_test_fail
-482+++6D4C 3E 03        atm_mem_ops_test_fail_03: ld a,3
-483+++6D4E 18 1A                jr atm_mem_ops_test_fail
-484+++6D50 3E 04        atm_mem_ops_test_fail_04: ld a,4
-485+++6D52 18 16                jr atm_mem_ops_test_fail
-486+++6D54 3E 05        atm_mem_ops_test_fail_05: ld a,5
-487+++6D56 18 12                jr atm_mem_ops_test_fail
-488+++6D58 3E 06        atm_mem_ops_test_fail_06: ld a,6
-489+++6D5A 18 0E                jr atm_mem_ops_test_fail
-490+++6D5C 3E 07        atm_mem_ops_test_fail_07: ld a,7
-491+++6D5E 18 0A                jr atm_mem_ops_test_fail
-492+++6D60 3E 08        atm_mem_ops_test_fail_08: ld a,8
-493+++6D62 18 06                jr atm_mem_ops_test_fail
-494+++6D64 3E 09        atm_mem_ops_test_fail_09: ld a,9
-495+++6D66 18 02                jr atm_mem_ops_test_fail
-496+++6D68              atm_mem_ops_test_fail_10:
-497+++6D68 3E 0A                ld a,10
-498+++6D6A              atm_mem_ops_test_fail:
-499+++6D6A 37                   scf
-500+++6D6B C9                   ret
-501+++6D6C
-502+++6D6C 00 00 00 00  atm_mem_test_source:      defs 4,0
-503+++6D70 00 00 00 00  atm_mem_test_destination: defs 4,0
-504+++6D74
+454+++6D0A                      ; Zero-length FILL at exactly 1 MiB is a valid no-op.
+455+++6D0A 21 00 00             ld      hl,0
+456+++6D0D 22 AD 6B             ld      (atm_mem_destination_offset),hl
+457+++6D10 21 10 00             ld      hl,#0010
+458+++6D13 22 AF 6B             ld      (atm_mem_destination_offset+2),hl
+459+++6D16 21 00 00             ld      hl,0
+460+++6D19 22 B1 6B             ld      (atm_mem_op_length),hl
+461+++6D1C 22 B3 6B             ld      (atm_mem_op_length+2),hl
+462+++6D1F CD 34 6A             call    atm_mem_fill
+463+++6D22 DA 0B 6E             jp      c,atm_mem_ops_test_fail_11
+464+++6D25
+465+++6D25                      ; Zero-length COPY at exactly 1 MiB is also a valid no-op.
+466+++6D25 21 00 00             ld      hl,0
+467+++6D28 22 A9 6B             ld      (atm_mem_source_offset),hl
+468+++6D2B 21 10 00             ld      hl,#0010
+469+++6D2E 22 AB 6B             ld      (atm_mem_source_offset+2),hl
+470+++6D31 21 00 00             ld      hl,0
+471+++6D34 22 AD 6B             ld      (atm_mem_destination_offset),hl
+472+++6D37 21 10 00             ld      hl,#0010
+473+++6D3A 22 AF 6B             ld      (atm_mem_destination_offset+2),hl
+474+++6D3D CD A3 69             call    atm_mem_copy
+475+++6D40 DA 0F 6E             jp      c,atm_mem_ops_test_fail_12
+476+++6D43
+477+++6D43                      ; A nonzero FILL beginning at capacity must be rejected.
+478+++6D43 21 01 00             ld      hl,1
+479+++6D46 22 B1 6B             ld      (atm_mem_op_length),hl
+480+++6D49 21 00 00             ld      hl,0
+481+++6D4C 22 B3 6B             ld      (atm_mem_op_length+2),hl
+482+++6D4F CD 34 6A             call    atm_mem_fill
+483+++6D52 D2 13 6E             jp      nc,atm_mem_ops_test_fail_13
+484+++6D55
+485+++6D55                      ; Invalid destination COPY must fail before modifying its target.
+486+++6D55 2A 1F 6E             ld      hl,(atm_mem_test_source)
+487+++6D58 22 A9 6B             ld      (atm_mem_source_offset),hl
+488+++6D5B 2A 21 6E             ld      hl,(atm_mem_test_source+2)
+489+++6D5E 22 AB 6B             ld      (atm_mem_source_offset+2),hl
+490+++6D61 21 00 00             ld      hl,0
+491+++6D64 22 AD 6B             ld      (atm_mem_destination_offset),hl
+492+++6D67 21 10 00             ld      hl,#0010
+493+++6D6A 22 AF 6B             ld      (atm_mem_destination_offset+2),hl
+494+++6D6D CD A3 69             call    atm_mem_copy
+495+++6D70 D2 17 6E             jp      nc,atm_mem_ops_test_fail_14
+496+++6D73 2A 23 6E             ld      hl,(atm_mem_test_destination)
+497+++6D76 22 C1 6B             ld      (atm_mem_work_offset),hl
+498+++6D79 2A 25 6E             ld      hl,(atm_mem_test_destination+2)
+499+++6D7C 22 C3 6B             ld      (atm_mem_work_offset+2),hl
+500+++6D7F CD 1E 6B             call    atm_mem_map_work_offset
+501+++6D82 DA 17 6E             jp      c,atm_mem_ops_test_fail_14
+502+++6D85 7E                   ld      a,(hl)
+503+++6D86 FE A5                cp      #A5
+504+++6D88 C2 17 6E             jp      nz,atm_mem_ops_test_fail_14
+505+++6D8B
+506+++6D8B                      ; Invalid source COPY must also be rejected.
+507+++6D8B 21 00 00             ld      hl,0
+508+++6D8E 22 A9 6B             ld      (atm_mem_source_offset),hl
+509+++6D91 21 10 00             ld      hl,#0010
+510+++6D94 22 AB 6B             ld      (atm_mem_source_offset+2),hl
+511+++6D97 2A 23 6E             ld      hl,(atm_mem_test_destination)
+512+++6D9A 22 AD 6B             ld      (atm_mem_destination_offset),hl
+513+++6D9D 2A 25 6E             ld      hl,(atm_mem_test_destination+2)
+514+++6DA0 22 AF 6B             ld      (atm_mem_destination_offset+2),hl
+515+++6DA3 CD A3 69             call    atm_mem_copy
+516+++6DA6 D2 1B 6E             jp      nc,atm_mem_ops_test_fail_15
+517+++6DA9
+518+++6DA9                      ; Free second allocation.
+519+++6DA9 2A 23 6E             ld      hl,(atm_mem_test_destination)
+520+++6DAC 22 FB 67             ld      (atm_mem_request_offset),hl
+521+++6DAF 2A 25 6E             ld      hl,(atm_mem_test_destination+2)
+522+++6DB2 22 FD 67             ld      (atm_mem_request_offset+2),hl
+523+++6DB5 21 01 40             ld      hl,#4001
+524+++6DB8 22 FF 67             ld      (atm_mem_request_length),hl
+525+++6DBB 21 00 00             ld      hl,0
+526+++6DBE 22 01 68             ld      (atm_mem_request_length+2),hl
+527+++6DC1 CD AA 65             call    atm_mem_free
+528+++6DC4 DA 07 6E             jp      c,atm_mem_ops_test_fail_10
+529+++6DC7
+530+++6DC7                      ; Free first allocation.
+531+++6DC7 2A 1F 6E             ld      hl,(atm_mem_test_source)
+532+++6DCA 22 FB 67             ld      (atm_mem_request_offset),hl
+533+++6DCD 2A 21 6E             ld      hl,(atm_mem_test_source+2)
+534+++6DD0 22 FD 67             ld      (atm_mem_request_offset+2),hl
+535+++6DD3 21 01 40             ld      hl,#4001
+536+++6DD6 22 FF 67             ld      (atm_mem_request_length),hl
+537+++6DD9 21 00 00             ld      hl,0
+538+++6DDC 22 01 68             ld      (atm_mem_request_length+2),hl
+539+++6DDF CD AA 65             call    atm_mem_free
+540+++6DE2 C9                   ret
+541+++6DE3
+542+++6DE3 3E 01        atm_mem_ops_test_fail_01: ld a,1
+543+++6DE5 18 36                jr atm_mem_ops_test_fail
+544+++6DE7 3E 02        atm_mem_ops_test_fail_02: ld a,2
+545+++6DE9 18 32                jr atm_mem_ops_test_fail
+546+++6DEB 3E 03        atm_mem_ops_test_fail_03: ld a,3
+547+++6DED 18 2E                jr atm_mem_ops_test_fail
+548+++6DEF 3E 04        atm_mem_ops_test_fail_04: ld a,4
+549+++6DF1 18 2A                jr atm_mem_ops_test_fail
+550+++6DF3 3E 05        atm_mem_ops_test_fail_05: ld a,5
+551+++6DF5 18 26                jr atm_mem_ops_test_fail
+552+++6DF7 3E 06        atm_mem_ops_test_fail_06: ld a,6
+553+++6DF9 18 22                jr atm_mem_ops_test_fail
+554+++6DFB 3E 07        atm_mem_ops_test_fail_07: ld a,7
+555+++6DFD 18 1E                jr atm_mem_ops_test_fail
+556+++6DFF 3E 08        atm_mem_ops_test_fail_08: ld a,8
+557+++6E01 18 1A                jr atm_mem_ops_test_fail
+558+++6E03 3E 09        atm_mem_ops_test_fail_09: ld a,9
+559+++6E05 18 16                jr atm_mem_ops_test_fail
+560+++6E07 3E 0A        atm_mem_ops_test_fail_10: ld a,10
+561+++6E09 18 12                jr atm_mem_ops_test_fail
+562+++6E0B 3E 0B        atm_mem_ops_test_fail_11: ld a,11
+563+++6E0D 18 0E                jr atm_mem_ops_test_fail
+564+++6E0F 3E 0C        atm_mem_ops_test_fail_12: ld a,12
+565+++6E11 18 0A                jr atm_mem_ops_test_fail
+566+++6E13 3E 0D        atm_mem_ops_test_fail_13: ld a,13
+567+++6E15 18 06                jr atm_mem_ops_test_fail
+568+++6E17 3E 0E        atm_mem_ops_test_fail_14: ld a,14
+569+++6E19 18 02                jr atm_mem_ops_test_fail
+570+++6E1B              atm_mem_ops_test_fail_15:
+571+++6E1B 3E 0F                ld a,15
+572+++6E1D              atm_mem_ops_test_fail:
+573+++6E1D 37                   scf
+574+++6E1E C9                   ret
+575+++6E1F
+576+++6E1F 00 00 00 00  atm_mem_test_source:      defs 4,0
+577+++6E23 00 00 00 00  atm_mem_test_destination: defs 4,0
+578+++6E27
 # file closed: atm_memory_ops.asm
-159++ 6D74
+159++ 6E27
 # file closed: atm_memory_backend.asm
-183+  6D74
-184+  6D74              p127_host_program_end:
-185+  6D74                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
-186+  6D74                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
-187+  6D74
+183+  6E27
+184+  6E27              p127_host_program_end:
+185+  6E27                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
+186+  6E27                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
+187+  6E27                      ASSERT p127_host_program_end <= #8000
+188+  6E27
 # file closed: p127_host.asm
- 12   6D74                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
- 13   6D74
- 14   6D74                      PAGE 0
- 15   6D74                      ORG #E000
+ 12   6E27                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
+ 13   6E27
+ 14   6E27                      PAGE 0
+ 15   6E27                      ORG #E000
  16   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
 # file opened: boot_loader.generated.asm
   1+  E000              ; =========================================================================
@@ -1977,17 +2052,22 @@ Value    Label
 0x6BB1   atm_mem_op_length
 0x6483   atm_mem_open_shadow_ports
 0x6BC7   atm_mem_ops_selftest
-0x6D6A   atm_mem_ops_test_fail
-0x6D44   atm_mem_ops_test_fail_01
-0x6D48   atm_mem_ops_test_fail_02
-0x6D4C   atm_mem_ops_test_fail_03
-0x6D50   atm_mem_ops_test_fail_04
-0x6D54   atm_mem_ops_test_fail_05
-0x6D58   atm_mem_ops_test_fail_06
-0x6D5C   atm_mem_ops_test_fail_07
-0x6D60   atm_mem_ops_test_fail_08
-0x6D64   atm_mem_ops_test_fail_09
-0x6D68   atm_mem_ops_test_fail_10
+0x6E1D   atm_mem_ops_test_fail
+0x6DE3   atm_mem_ops_test_fail_01
+0x6DE7   atm_mem_ops_test_fail_02
+0x6DEB   atm_mem_ops_test_fail_03
+0x6DEF   atm_mem_ops_test_fail_04
+0x6DF3   atm_mem_ops_test_fail_05
+0x6DF7   atm_mem_ops_test_fail_06
+0x6DFB   atm_mem_ops_test_fail_07
+0x6DFF   atm_mem_ops_test_fail_08
+0x6E03   atm_mem_ops_test_fail_09
+0x6E07   atm_mem_ops_test_fail_10
+0x6E0B   atm_mem_ops_test_fail_11
+0x6E0F   atm_mem_ops_test_fail_12
+0x6E13   atm_mem_ops_test_fail_13
+0x6E17   atm_mem_ops_test_fail_14
+0x6E1B   atm_mem_ops_test_fail_15
 0x6718   atm_mem_page_alloc_test_loop
 0x671C   atm_mem_page_alloc_test_ready
 0x6728   atm_mem_page_clear_allocated
@@ -2029,8 +2109,8 @@ Value    Label
 0x6B46   atm_mem_source_inc
 0x6BA9   atm_mem_source_offset
 0x634D   atm_mem_test4_length_snapshot
-0x6D70   atm_mem_test_destination
-0x6D6C   atm_mem_test_source
+0x6E23   atm_mem_test_destination
+0x6E1F   atm_mem_test_source
 0x6A8B   atm_mem_validate_pair
 0x6355   atm_mem_validate_range
 0x64A7   atm_mem_validate_request
@@ -2086,7 +2166,7 @@ Value    Label
 0x61DA   p127_host_ops_error
 0x603C   p127_host_ops_fail
 0x61B4   p127_host_ops_ok
-0x6D74 X p127_host_program_end
+0x6E27   p127_host_program_end
 0x6000   p127_host_program_start
 0x6258   p127_host_range_error
 0x6078   p127_host_range_fail
