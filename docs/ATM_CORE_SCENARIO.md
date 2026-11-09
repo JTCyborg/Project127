@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.7**  
+Scenario revision: **0.8.12**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 accepted by user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -39,11 +39,11 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.5.3 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
+| `src/boot/p127_boot.asm` | 0.5.7 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
 | `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
-| `src/kernel/p127_resident.asm` | 0.1.0 | Fixed W1/P5 code + W2/P2 stack contract; W3 target only after UI quiescence; software-only |
+| `src/kernel/p127_resident.asm` | 0.3.0 | Fixed W1/P5 code + W2/P2 stack contract; W3 target only after UI quiescence; software-only |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
 ## Stage 1 — physical page-state manager 0.2.0
@@ -313,3 +313,22 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Added both exact global labels and their diagnostic strings immediately after the existing handoff diagnostics, before the kernel INCLUDE directives. This matches the source's actual label-based layout and ensures both definitions are in the same assembly unit.
 - Advanced boot module to 0.5.6; scenario revision 0.8.10. No resident ownership logic or physical mapping behavior changed.
 - Fresh SjASMPlus build and emulator runtime verification remain pending. No successful build is claimed; physical page-port OUT remains disabled.
+
+
+### 2026-11-09 — Runtime acceptance: UI quiesce/W3 ownership v0.2.0
+
+- User rebuilt and ran the Project127 TR-DOS image after boot diagnostic-label correction v0.5.6. The supplied runtime log reaches `UI QUIESCE/W3 OWNERSHIP PASS; OUT DISABLED` and continues through `RESIDENT WINDOW CONTRACT PASS; OUT DISABLED`, `HANDOFF GUARD TEST PASS; OUT DISABLED`, and `MAP MODEL TEST PASS; OUT DISABLED`.
+- Stage 2.8 software W3 lifecycle and UI writer-lease self-test v0.2.0 is accepted in the emulator. The log also reconfirms memory-page accounting, video/bootstrap reservations, and the resident stack probe.
+- Acceptance is limited to software state/lease behavior. It does not prove asynchronous interrupt exclusion, actual UI shutdown during a physical remap, independent physical stack backing, page-register writes, or rollback after a hardware bank change. Physical page-port `OUT` remains disabled.
+- No functional module code changed in this acceptance update. Scenario revision advanced to 0.8.11.
+- Next: implement and test explicit rollback/recovery using the software model only, including failed acquisition, failed transition, and restoration of the prior owner/state. Keep physical page-port writes disabled until rollback, interrupt/IFF handling, and all resident dependencies are validated.
+
+
+### 2026-11-09 — Stage 2.9: W3 software rollback/recovery model v0.3.0
+
+- Added a complete software ownership snapshot tuple (state, owner, busy) and a rollback routine that restores that tuple without touching hardware.
+- Added a recovery self-test covering failed HANDOFF acquisition from UI_ACTIVE/UI, rejection of quiesce while a UI lease is busy, exact restoration of the active/busy UI tuple, successful quiesce followed by HANDOFF acquisition and a rejected transition while HANDOFF owns W3, rollback to QUIESCED/NONE, UI resume, and a fresh successful UI lease.
+- Boot runs this test after the accepted W3 ownership self-test and reports W3 ROLLBACK/RECOVERY PASS; OUT DISABLED or W3 ROLLBACK/RECOVERY FAIL.
+- Resident module advanced to 0.3.0; boot module to 0.5.7; scenario revision 0.8.12.
+- This validates RAM-backed software state restoration and post-recovery UI admission only. It does not model or validate rollback after a physical page-register write, asynchronous interrupt exclusion, actual UI quiescence during remap, or hardware page switching. Physical page-port OUT remains disabled.
+- Build and emulator runtime verification are pending. Do not treat the new recovery test as accepted until the user supplies a fresh SjASMPlus build and runtime log.

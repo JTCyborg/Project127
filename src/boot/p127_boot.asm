@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.5.6
+; Project127 — boot stage 0.5.7
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -78,6 +78,11 @@ p127_start:
         jp      c,p127_w3_failed
         ld      hl,p127_msg_w3_pass
         call    p127_puts
+        ; Stage 2.9: software-only W3 snapshot/rollback recovery tests.
+        call    p127_w3_recovery_selftest
+        jp      c,p127_w3_recovery_failed
+        ld      hl,p127_msg_w3_recovery_pass
+        call    p127_puts
         ld      hl,p127_msg_resident_pass
         call    p127_puts
         ld      hl,p127_msg_handoff_pass
@@ -91,6 +96,10 @@ p127_stack_probe_failed:
         jr      p127_idle
 p127_w3_failed:
         ld      hl,p127_msg_w3_fail
+        call    p127_puts
+        jr      p127_idle
+p127_w3_recovery_failed:
+        ld      hl,p127_msg_w3_recovery_fail
         call    p127_puts
         jr      p127_idle
 p127_resident_failed:
@@ -188,6 +197,10 @@ p127_msg_w3_pass:
         db      "[P127] UI QUIESCE/W3 OWNERSHIP PASS; OUT DISABLED",13,10,0
 p127_msg_w3_fail:
         db      "[P127] UI QUIESCE/W3 OWNERSHIP FAIL",13,10,0
+p127_msg_w3_recovery_pass:
+        db      "[P127] W3 ROLLBACK/RECOVERY PASS; OUT DISABLED",13,10,0
+p127_msg_w3_recovery_fail:
+        db      "[P127] W3 ROLLBACK/RECOVERY FAIL",13,10,0
 
         INCLUDE "src/kernel/p127_mem.asm"
         INCLUDE "src/kernel/p127_map.asm"
