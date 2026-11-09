@@ -1,13 +1,13 @@
 ; ============================================================================
-; Project127 physical ATM RAM page test — Stage 2.19
-; Module version: 0.4.2
+; Project127 physical ATM RAM page test — Stage 2.23
+; Module version: 0.4.3
 ; Runs from W2 (#A000..), with stack in W2. W1 resident/kernel remains fixed.
 ; W3 is exclusively leased from the UI and restored to physical page 0.
 ; This is the first general-purpose physical W3 remap test.
 ; ============================================================================
 P127_PHYSMEM_VERSION_MAJOR EQU 0
 P127_PHYSMEM_VERSION_MINOR EQU 4
-P127_PHYSMEM_VERSION_PATCH EQU 2
+P127_PHYSMEM_VERSION_PATCH EQU 3
 P127_PHYSMEM_PAGE_SIZE     EQU 04000h
 P127_PHYSMEM_WINDOW_BASE   EQU 0C000h
 P127_PHYSMEM_PAGE_PORT     EQU 0FFF7h
@@ -885,6 +885,10 @@ p127_physmem_trace_page:
         push    bc
         push    de
         push    hl
+        ; W3 is leased by the sweep, so live screen progress uses only W1.
+        ; The renderer maps reserved character page P7 in W1, writes one
+        ; status row, then restores resident page P5 before returning.
+        call    p127_physmem_live_trace_page
         cp      'F'
         jr      nz,p127_physmem_trace_page_verify
         ld      hl,p127_physmem_trace_fill_text
@@ -912,6 +916,144 @@ p127_physmem_trace_page_value:
         pop     bc
         pop     af
         ret
+
+
+; Live progress renderer for the physical W3 sweep.
+; W3 is deliberately untouched: it remains mapped to the page under test.
+; Only W1 is temporarily mapped to reserved video character page P7.
+; Character attributes were initialized before the test on reserved P3.
+; Code and stack execute in W2, so the bounded W1 switch is safe here.
+p127_physmem_live_trace_page:
+        push    af
+        push    bc
+        push    de
+        push    hl
+        ld      (p127_physmem_live_phase),a
+        ; Do not guess the resident map. If W1 is not the expected P5,
+        ; skip the optional screen mirror and retain the authoritative #EF log.
+        ld      a,(p127_map_shadow+1)
+        cp      5
+        jp      nz,.p127_live_done
+        ld      a,7
+        call    p127_map_encode_page
+        jp      c,.p127_live_done
+        ld      bc,07FF7h
+        out     (c),a
+        ld      a,7
+        ld      (p127_map_shadow+1),a
+
+        ld      a,(p127_physmem_live_phase)
+        cp      'F'
+        jr      nz,.p127_live_verify
+        ld      a,2
+        ld      (p127_physmem_live_row),a
+        ld      hl,p127_physmem_live_fill_text
+        jr      .p127_live_prefix
+.p127_live_verify:
+        ld      a,3
+        ld      (p127_physmem_live_row),a
+        ld      hl,p127_physmem_live_verify_text
+.p127_live_prefix:
+        xor     a
+        ld      (p127_physmem_live_col),a
+.p127_live_text_loop:
+        ld      a,(hl)
+        or      a
+        jr      z,.p127_live_page_id
+        inc     hl
+        push    hl
+        call    p127_physmem_live_putc
+        pop     hl
+        jr      .p127_live_text_loop
+
+.p127_live_page_id:
+        ld      a,(p127_physmem_current_page)
+        push    af
+        and     0F0h
+        rrca
+        rrca
+        rrca
+        rrca
+        call    p127_physmem_live_nibble
+        pop     af
+        and     00Fh
+        call    p127_physmem_live_nibble
+
+        ; Restore the resident W1 mapping before returning to the sweep.
+        ld      a,5
+        call    p127_map_encode_page
+        ld      bc,07FF7h
+        out     (c),a
+        ld      a,5
+        ld      (p127_map_shadow+1),a
+.p127_live_done:
+        pop     hl
+        pop     de
+        pop     bc
+        pop     af
+        ret
+
+; A=ASCII character. Write only the P7 character plane through W1.
+; ATM 80-column text uses two interleaved character planes at #4000/#6000.
+p127_physmem_live_putc:
+        push    af
+        push    bc
+        push    de
+        push    hl
+        ld      (p127_physmem_live_char),a
+        ld      a,(p127_physmem_live_row)
+        ld      l,a
+        ld      h,0
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        ld      de,001C0h
+        add     hl,de
+        ld      a,(p127_physmem_live_col)
+        ld      c,a
+        and     1
+        ld      (p127_physmem_live_parity),a
+        ld      a,c
+        srl     a
+        ld      e,a
+        ld      d,0
+        add     hl,de
+        ld      a,(p127_physmem_live_parity)
+        or      a
+        jr      nz,.p127_live_odd
+        ld      de,04000h
+        jr      .p127_live_base
+.p127_live_odd:
+        ld      de,06000h
+.p127_live_base:
+        add     hl,de
+        ld      a,(p127_physmem_live_char)
+        ld      (hl),a
+        ld      a,(p127_physmem_live_col)
+        inc     a
+        ld      (p127_physmem_live_col),a
+        pop     hl
+        pop     de
+        pop     bc
+        pop     af
+        ret
+
+; A=hex nibble.
+p127_physmem_live_nibble:
+        ld      e,a
+        ld      d,0
+        ld      hl,p127_physmem_trace_hex_table
+        add     hl,de
+        ld      a,(hl)
+        jp      p127_physmem_live_putc
+
+p127_physmem_live_fill_text:
+        db      "FILL PAGE ID=",0
+p127_physmem_live_verify_text:
+        db      "VERIFY PAGE ID=",0
 
 p127_physmem_trace_hex8:
         push    af
@@ -1013,5 +1155,10 @@ p127_physmem_probe: db 0
 p127_physmem_candidate: db 0
 p127_physmem_current_page: db 0
 p127_physmem_scan_remaining: db 0
+p127_physmem_live_phase: db 0
+p127_physmem_live_row: db 0
+p127_physmem_live_col: db 0
+p127_physmem_live_char: db 0
+p127_physmem_live_parity: db 0
 p127_physmem_page_list: ds P127_PHYSMEM_MAX_PAGES,0
 
