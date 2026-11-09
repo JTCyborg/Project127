@@ -70,6 +70,7 @@ atm_mem_copy_backward_loop:
         call    atm_mem_length_dec
         call    atm_mem_remaining_is_zero
         jr      nz,atm_mem_copy_backward_loop
+        call    atm_mem_restore_window3
         or      a
         ret
 
@@ -82,6 +83,7 @@ atm_mem_copy_forward_loop:
         call    atm_mem_length_dec
         call    atm_mem_remaining_is_zero
         jr      nz,atm_mem_copy_forward_loop
+        call    atm_mem_restore_window3
         or      a
         ret
 
@@ -120,6 +122,7 @@ atm_mem_fill_loop:
         call    atm_mem_length_dec
         call    atm_mem_remaining_is_zero
         jr      nz,atm_mem_fill_loop
+        call    atm_mem_restore_window3
         or      a
         ret
 
@@ -200,6 +203,11 @@ atm_mem_copy_one:
         ld      (hl),a
         or      a
         ret
+
+; Restore the Project112 runtime mapping: CPU window 3 -> physical page 1.
+atm_mem_restore_window3:
+        ld      a,1
+        jp      atm_mem_map_page
 
 ; Map atm_mem_work_offset into window 3 and return its CPU address in HL.
 ; Physical page = (offset >> 14); in-range validation guarantees 0..63.

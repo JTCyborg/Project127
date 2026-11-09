@@ -206,8 +206,11 @@ mapping over the active host code or stack. It also means READ/WRITE must not
 be implemented by blindly copying through the currently mapped CPU window.
 The initial ATM backend provides a safe single-aperture bytewise engine: it
 remaps only CPU window 3 ($C000-$FFFF), while the host image remains in window
-1 and the host stack remains in window 2. Each byte is read into host-resident
-scratch before the destination page is mapped. This is deliberately simple
+1 and the host stack remains in window 2. The Project112 runtime maps window 3
+to physical page 1; the engine restores that mapping after each complete
+operation. Each byte is read into host-resident scratch before the destination
+page is mapped. Calls are synchronous and non-reentrant; callers must serialize
+window-3 users while an operation is active. This is deliberately simple
 and slow; it avoids remapping the active code or stack and has no 16 KiB
 request limit. READ/WRITE/COPY validate both complete ranges before the first
 write; FILL validates its complete destination first. COPY uses backward
