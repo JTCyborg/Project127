@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.18**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 implemented, runtime pending; physical bank switching not yet enabled**  
+Scenario revision: **0.8.19**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -26,7 +26,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
-| 5 — Process/context manager | **DI-ONLY INTERRUPT SAFETY PREFLIGHT IMPLEMENTED; RUNTIME PENDING** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0 | Implement interrupt-entry/return and transactional physical remap; address preflight is runtime accepted but does not prove independent physical stack backing. |
+| 5 — Process/context manager | **DI-ONLY INTERRUPT OWNERSHIP PREFLIGHT RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0 | Implement interrupt-entry/return and transactional physical remap; address preflight is runtime accepted but does not prove independent physical stack backing. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
@@ -390,3 +390,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - New #EF diagnostic: `IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED`. Runtime acceptance is pending the user's build and emulator log.
 - This is only the safe bootstrap interrupt-ownership preflight. Real interrupt entry/return, handler/vector installation, IM selection, and context preservation remain unimplemented. Physical page-port OUT remains disabled.
 - Build was not run in this environment.
+
+
+### 2026-11-09 — Runtime acceptance: DI-only interrupt ownership preflight v0.1.0
+
+- User supplied the #EF log for boot v0.6.0. The run reports `IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED` and continues through `RESIDENT TRAMPOLINE PREFLIGHT PASS; OUT DISABLED`, `RESIDENT WINDOW CONTRACT PASS; OUT DISABLED`, `HANDOFF GUARD TEST PASS; OUT DISABLED`, and `MAP MODEL TEST PASS; OUT DISABLED`.
+- The Stage 2.11 DI-only interrupt ownership preflight v0.1.0 is accepted in the user's emulator. The acceptance covers the software fault-injection checks for the declared masked/no-vector/IM-unset bootstrap contract.
+- This does not validate asynchronous interrupt entry/return, an installed interrupt handler/vector, IM selection, IFF1/IFF2 preservation/restoration, or complete register/context preservation. It is not permission to execute EI or IM. Physical page-port OUT remains disabled.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.19.
+- The first remaining acceptance group is still open: implement a real controlled interrupt-entry/return protocol with explicit vector ownership and a defined interrupt-mode policy. The current bootstrap remains DI-only. Then test resident transition/context preservation, software target-map commit/rollback, controlled physical W3 remap, and full regression.
