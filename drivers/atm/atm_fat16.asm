@@ -335,16 +335,18 @@ p127_fat16_format_base_next:
         ld      bc,8
         add     hl,bc
         ld      b,3
-        ld      a,0
+        xor     a
+        ld      (p127_fat16_ext_present),a
 p127_fat16_check_ext:
-        ld      c,(hl)
+        ld      a,(hl)
         inc     hl
-        ld      a,c
         cp      ' '
         jr      z,p127_fat16_check_ext_next
         ld      a,1
+        ld      (p127_fat16_ext_present),a
 p127_fat16_check_ext_next:
         djnz    p127_fat16_check_ext
+        ld      a,(p127_fat16_ext_present)
         or      a
         jr      z,p127_fat16_format_attr
         ld      a,'.'
@@ -398,6 +400,7 @@ p127_fat16_scan_sector: dw 0
 p127_fat16_dump_count: db 0
 p127_fat16_entry_index: db 0
 p127_fat16_entry_ptr: dw 0
+p127_fat16_ext_present: db 0
 p127_fat16_dump_name: defs 20,0
 p127_fat16_log_list_start: db "[P127] HDD FAT16 ROOT DIRECTORY",13,10,0
 p127_fat16_log_file: db "[P127] HDD FILE ",0

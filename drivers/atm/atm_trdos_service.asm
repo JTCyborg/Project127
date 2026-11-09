@@ -192,7 +192,7 @@ P127_TRDOS_DumpCatalog::
         ld      bc,1
         call    P127_TRDOS_ExecuteCommand
         ; Read track 0, sectors 0..7 into the proven catalog buffer.
-        ld      bc,#0005
+        ld      bc,#0805
         ld      de,0
         ld      hl,#C800
         call    P127_TRDOS_ExecuteCommand
