@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.27**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; physical bank switching not yet enabled**  
+Scenario revision: **0.8.28**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.0 source implemented, runtime pending; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -39,12 +39,12 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.6.3 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/boot/p127_boot.asm` | 0.6.4 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; reserves video P1/P3/P5/P7, bootstrap P0/P2 and future IRQ table P4 |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.1 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
-| `src/kernel/p127_irq.asm` | 0.3.0 | DI-only contract, closed readiness gate, P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
+| `src/kernel/p127_irq.asm` | 0.4.0 | DI-only contract, closed readiness gate, P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
 | `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership and software rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel modules |
 ## Stage 1 — physical page-state manager 0.2.0
@@ -469,3 +469,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Acceptance is limited to the software shadow-map model. It does not validate physical page identity, actual W3 remapping, rollback after a hardware page-port write, or a writable IM2 table. Physical page-port OUT remains disabled; IM 2 and EI remain disabled.
 - No source module changed in this acceptance update. Scenario revision advanced to 0.8.27.
 - Next: implement a real interrupt entry/return protocol and prove resident execution/context preservation before attempting a controlled physical W3 remap. Keep physical OUT, IM 2 and EI disabled until their prerequisites have dedicated runtime verification.
+
+
+### 2026-11-09 — Stage 2.15: resident IRQ frame save/restore protocol v0.4.0
+
+- Added the resident IRQ entry/exit frame in `src/kernel/p127_irq.asm`: saves primary AF/BC/DE/HL/IX/IY and alternate AF'/BC'/DE'/HL', calls a dispatcher hook, restores the complete general-register set, and exits through RETI. RETI is relied upon to copy IFF2 back to IFF1; the routine itself never executes EI or IM.
+- Added an inert dispatcher by default. A test-only clobber mode deliberately overwrites both register banks and index registers so the frame round-trip can be checked without any hardware interrupt source.
+- Added a CALL-based synthetic context self-test with sentinel values for both register banks and an IFF2-disabled check via LD A,I. Boot v0.6.4 invokes it and reports `IRQ FRAME ROUNDTRIP PASS; VECTOR DISABLED`.
+- The test runs under DI and uses RETI only as a return instruction in the synthetic CALL path. It does not install a vector, select IM 1/2, populate/map the P4 table, acknowledge an interrupt controller, or execute EI. No asynchronous IRQ is enabled; physical page-port OUT remains disabled.
+- Module versions: `src/kernel/p127_irq.asm` 0.4.0; `src/boot/p127_boot.asm` 0.6.4; scenario revision 0.8.28.
+- Build and emulator runtime verification are pending. This is source implementation only; do not treat the frame test as accepted until the user rebuilds and supplies the #EF diagnostic.

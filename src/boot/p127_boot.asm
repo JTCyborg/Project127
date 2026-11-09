@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.6.3
+; Project127 — boot stage 0.6.4
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -107,6 +107,10 @@ p127_start:
         jp      c,p127_irq_failed
         call    p127_irq_table_preflight
         jp      c,p127_irq_failed
+        call    p127_irq_context_selftest
+        jp      c,p127_irq_failed
+        ld      hl,p127_msg_irq_context_pass
+        call    p127_puts
         ld      hl,p127_msg_irq_page_pass
         call    p127_puts
         ld      hl,p127_msg_irq_pass
@@ -261,6 +265,8 @@ p127_msg_w3_recovery_pass:
         db      "[P127] W3 ROLLBACK/RECOVERY PASS; OUT DISABLED",13,10,0
 p127_msg_w3_recovery_fail:
         db      "[P127] W3 ROLLBACK/RECOVERY FAIL",13,10,0
+p127_msg_irq_context_pass:
+        db "[P127] IRQ FRAME ROUNDTRIP PASS; VECTOR DISABLED",13,10,0
 p127_msg_irq_pass:
         db "[P127] IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED",13,10,0
 p127_msg_irq_fail:

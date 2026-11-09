@@ -1,6 +1,6 @@
 ; ============================================================================
 ; Project127 — interrupt safety contract / preflight
-; Module version: 0.3.0
+; Module version: 0.4.0
 ; This is deliberately a DI-only bootstrap contract, not an IRQ dispatcher.
 ; No EI, IM instruction, vector write, or hardware page OUT is permitted.
 ; ============================================================================
@@ -150,6 +150,232 @@ p127_irq_test_fail:
         call    p127_irq_init
         scf
         ret
+
+
+; Stage 2.15: resident interrupt frame protocol.
+; Hardware vector installation and IM selection are deliberately separate.
+; Entry contract: CPU has already pushed the interrupted PC; W1/P5 code and
+; W2/P2 stack remain mapped. The dispatcher may freely clobber all registers.
+; RETI restores IFF1 from IFF2; this routine never executes EI or IM.
+p127_irq_entry:
+        push    af
+        push    bc
+        push    de
+        push    hl
+        push    ix
+        push    iy
+        exx
+        push    bc
+        push    de
+        push    hl
+        exx
+        ex      af,af'
+        push    af
+        ex      af,af'
+
+        call    p127_irq_dispatch
+
+        ex      af,af'
+        pop     af
+        ex      af,af'
+        exx
+        pop     hl
+        pop     de
+        pop     bc
+        exx
+        pop     iy
+        pop     ix
+        pop     hl
+        pop     de
+        pop     bc
+        pop     af
+        reti
+
+; The source dispatcher is intentionally inert until an ATM interrupt
+; source, acknowledgement policy and vector ownership are specified.
+; The test-only branch aggressively clobbers both register banks so the
+; frame round-trip can be checked without enabling asynchronous IRQs.
+p127_irq_dispatch:
+        ld      a,(p127_irq_test_clobber)
+        or      a
+        ret     z
+        ld      a,0EEh
+        ld      bc,0EEEEh
+        ld      de,0DDDDh
+        ld      hl,0CCCCh
+        ld      ix,0BBBBh
+        ld      iy,0AAAAh
+        exx
+        ld      bc,09999h
+        ld      de,08888h
+        ld      hl,07777h
+        exx
+        ex      af,af'
+        ld      a,0DDh
+        or      a
+        ex      af,af'
+        ret
+
+; CALL-based synthetic entry test. It saves the caller's complete register
+; set, loads sentinels into primary/alternate banks, invokes the same entry
+; routine used by a future vector, and verifies exact register restoration.
+; DI is mandatory here: RETI copies IFF2 to IFF1, and both must remain zero.
+p127_irq_context_selftest:
+        di
+        push    af
+        push    bc
+        push    de
+        push    hl
+        push    ix
+        push    iy
+        exx
+        push    bc
+        push    de
+        push    hl
+        exx
+        ex      af,af'
+        push    af
+        ex      af,af'
+
+        xor     a
+        ld      (p127_irq_context_result),a
+        ld      a,1
+        ld      (p127_irq_test_clobber),a
+
+        ld      bc,01234h
+        ld      de,05678h
+        ld      hl,09ABCh
+        ld      ix,01357h
+        ld      iy,02468h
+        exx
+        ld      bc,0ABCDh
+        ld      de,09876h
+        ld      hl,05432h
+        exx
+        ex      af,af'
+        ld      a,0A5h
+        or      a
+        ex      af,af'
+        ld      a,05Ah
+        or      a
+
+        call    p127_irq_entry
+
+        ld      (p127_irq_test_bc),bc
+        ld      (p127_irq_test_de),de
+        ld      (p127_irq_test_hl),hl
+        ld      (p127_irq_test_ix),ix
+        ld      (p127_irq_test_iy),iy
+        push    af
+        pop     hl
+        ld      (p127_irq_test_af),hl
+        exx
+        ld      (p127_irq_test_bc_alt),bc
+        ld      (p127_irq_test_de_alt),de
+        ld      (p127_irq_test_hl_alt),hl
+        exx
+        ex      af,af'
+        push    af
+        pop     hl
+        ld      (p127_irq_test_af_alt),hl
+        ex      af,af'
+
+        xor     a
+        ld      (p127_irq_test_clobber),a
+
+        ld      hl,(p127_irq_test_af)
+        ld      de,05A08h
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_context_restore
+        ld      hl,(p127_irq_test_bc)
+        ld      de,01234h
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_context_restore
+        ld      hl,(p127_irq_test_de)
+        ld      de,05678h
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_context_restore
+        ld      hl,(p127_irq_test_hl)
+        ld      de,09ABCh
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_context_restore
+        ld      hl,(p127_irq_test_ix)
+        ld      de,01357h
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_context_restore
+        ld      hl,(p127_irq_test_iy)
+        ld      de,02468h
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_context_restore
+        ld      hl,(p127_irq_test_af_alt)
+        ld      de,0A520h
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_context_restore
+        ld      hl,(p127_irq_test_bc_alt)
+        ld      de,0ABCDh
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_context_restore
+        ld      hl,(p127_irq_test_de_alt)
+        ld      de,09876h
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_context_restore
+        ld      hl,(p127_irq_test_hl_alt)
+        ld      de,05432h
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_context_restore
+
+        ; LD A,I exposes IFF2 in P/V; after DI + RETI it must still be zero.
+        ld      a,i
+        jp      pe,p127_irq_context_restore
+        ld      a,1
+        ld      (p127_irq_context_result),a
+
+p127_irq_context_restore:
+        xor     a
+        ld      (p127_irq_test_clobber),a
+        ex      af,af'
+        pop     af
+        ex      af,af'
+        exx
+        pop     hl
+        pop     de
+        pop     bc
+        exx
+        pop     iy
+        pop     ix
+        pop     hl
+        pop     de
+        pop     bc
+        pop     af
+        ld      a,(p127_irq_context_result)
+        or      a
+        ret     nz
+        scf
+        ret
+
+p127_irq_test_clobber: db 0
+p127_irq_context_result: db 0
+p127_irq_test_af: dw 0
+p127_irq_test_bc: dw 0
+p127_irq_test_de: dw 0
+p127_irq_test_hl: dw 0
+p127_irq_test_ix: dw 0
+p127_irq_test_iy: dw 0
+p127_irq_test_af_alt: dw 0
+p127_irq_test_bc_alt: dw 0
+p127_irq_test_de_alt: dw 0
+p127_irq_test_hl_alt: dw 0
+
 p127_irq_mask_state: db 0
 p127_irq_vector_owner: db 0
 p127_irq_mode_policy: db 0
