@@ -30,6 +30,11 @@ atm_mem_init::
         ld      de,atm_mem_allocated_bitmap+1
         ld      bc,7
         ldir
+        ld      hl,atm_mem_alloc_table
+        ld      (hl),a
+        ld      de,atm_mem_alloc_table+1
+        ld      bc,383
+        ldir
         ; Open the ATM shadow-port decoder using the proven Project112 ROM
         ; trampoline. This is required before writes to #FFF7.
         call    atm_mem_open_shadow_ports
@@ -310,6 +315,7 @@ atm_mem_free_next_record:
 atm_mem_free_record_found:
 
         ; Validate every page before changing any bitmap bit.
+        ld      a,(atm_mem_alloc_start)
         ld      b,a
         ld      a,(atm_mem_pages_needed)
         ld      c,a

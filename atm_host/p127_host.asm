@@ -1,7 +1,7 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
 ; Version: P127_ATM_HOST v0.4.0
-; First ATM memory-core milestone: capability/range validation only.
+; ATM page-map and contiguous allocator milestone.
 ; =========================================================================
 
         DEVICE ZXSPECTRUM128

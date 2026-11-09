@@ -10,10 +10,11 @@ and 32-bit lengths; ATM and NeoGS capacities are independent.
 - drivers/neogs/neogs_memory_backend.asm: NeoGS 4 MiB capability record and checked range validation.
 - drivers/shared/p127_memory_core.inc: common overflow-safe UINT32 range primitive.
 
-This is an executable foundation stage, not a claim that allocation or DMA is
-already operational. Capability flags currently advertise only discovery and
-range validation. Allocatable capacity is zero until system/video/firmware/
-stack/transport reservations and physical mapping are implemented and verified.
+The ATM page allocator is executable and reports 58 allocatable physical
+pages (0x000E8000 bytes). It currently supports contiguous extents and exact
+ALLOC/FREE matching. The 16 KiB physical page size is hidden behind 32-bit byte
+lengths. READ/WRITE/FILL/COPY and multi-extent logical handles are not yet
+implemented. NeoGS still advertises range validation only.
 
 ## Next implementation gates
 
