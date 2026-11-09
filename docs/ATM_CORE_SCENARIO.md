@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.12**  
+Scenario revision: **0.8.13**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 accepted by user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -39,7 +39,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.5.7 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
+| `src/boot/p127_boot.asm` | 0.5.8 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
 | `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -332,3 +332,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Resident module advanced to 0.3.0; boot module to 0.5.7; scenario revision 0.8.12.
 - This validates RAM-backed software state restoration and post-recovery UI admission only. It does not model or validate rollback after a physical page-register write, asynchronous interrupt exclusion, actual UI quiescence during remap, or hardware page switching. Physical page-port OUT remains disabled.
 - Build and emulator runtime verification are pending. Do not treat the new recovery test as accepted until the user supplies a fresh SjASMPlus build and runtime log.
+
+
+### 2026-11-09 — Build correction: memory self-test branch range v0.5.8
+
+- User's SjASMPlus v1.24.0 build reported `src/boot/p127_boot.asm(59): error: [JR] Target out of range (+147)`.
+- The failing instruction was the conditional branch after `p127_mem_selftest`: `JR C,p127_mem_failed`. The failure handler is now 147 bytes forward, outside the signed 8-bit relative displacement range.
+- Replaced that instruction with `JP C,p127_mem_failed`. The condition and failure-path behavior are unchanged; only the branch encoding is now absolute.
+- Boot module advanced to v0.5.8; scenario revision advanced to 0.8.13.
+- No memory-manager logic, test semantics, page mapping, or physical `OUT` behavior changed. Hardware page-port writes remain disabled.
+- This is a source correction for the exact reported assembler error. A fresh full SjASMPlus build and emulator runtime test are still required; no successful build is claimed.
