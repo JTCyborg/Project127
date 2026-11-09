@@ -61,7 +61,8 @@ p127_host_entry:
         call    P127_DebugConsole_Init
         ld      a,1
         ld      (p127_host_console_ready),a
-        call    P127_TRDOS_DumpCatalog
+        ld      hl,p127_host_trdos_deferred
+        call    p127_host_debug_string
         call    P127_RTC_Startup
         call    P127_StorageAndFAT16_Startup
         ld      hl,p127_host_ui_ready
@@ -236,9 +237,11 @@ p127_host_debug_string:
 
 p127_host_console_ready: db 0
 p127_host_banner:
-        db "[P127] ATM HOST ENTRY v0.16.0",13,10
+        db "[P127] ATM HOST ENTRY v0.17.0",13,10
         db "[P127] TR-DOS BOOT OK",13,10
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
+p127_host_trdos_deferred:
+        db "[P127] TR-DOS LIVE CATALOG DEFERRED",13,10,0
 p127_host_range_ok:
         db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
 p127_host_allocator_ok:

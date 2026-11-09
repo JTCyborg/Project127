@@ -15,14 +15,17 @@
 ;              4 LBA28 unsupported, 5 invalid LBA.
 ; =========================================================================
 
-P127_NEMO_DATA_LO       EQU #10
-P127_NEMO_DATA_HI       EQU #11
-P127_NEMO_SECTOR_COUNT  EQU #50
-P127_NEMO_LBA_LOW       EQU #70
-P127_NEMO_LBA_MID       EQU #90
-P127_NEMO_LBA_HIGH      EQU #B0
-P127_NEMO_DRIVE_HEAD    EQU #D0
-P127_NEMO_STATUS_CMD    EQU #F0
+; ATM Nemo IDE uses the 16-bit port decode from Project126/kernel/main.asm.
+; Do not use the NeoGS-side low-byte aliases (#10..#F0) on the ATM host.
+P127_NEMO_DATA_LO       EQU #FE0F
+P127_NEMO_DATA_HI       EQU #FF0F
+P127_NEMO_ERROR         EQU #FE2F
+P127_NEMO_SECTOR_COUNT  EQU #FE4F
+P127_NEMO_LBA_LOW       EQU #FE6F
+P127_NEMO_LBA_MID       EQU #FE8F
+P127_NEMO_LBA_HIGH      EQU #FEAF
+P127_NEMO_DRIVE_HEAD    EQU #FECF
+P127_NEMO_STATUS_CMD    EQU #FEEF
 P127_NEMO_WAIT_LIMIT    EQU #FFFF
 P127_STORAGE_VERSION    EQU #0100
 
