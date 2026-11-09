@@ -1002,7 +1002,7 @@
   24++6C4D C2 8C 6C             jp      nz,p127_layout_reject
   25++6C50
   26++6C50                      ; Require a non-empty image and an end no higher than the UI window.
-  27++6C50 21 74 8B             ld      hl,p127_end
+  27++6C50 21 84 8B             ld      hl,p127_end
   28++6C53 11 00 60             ld      de,p127_entry
   29++6C56 B7                   or      a
   30++6C57 ED 52                sbc     hl,de
@@ -1013,7 +1013,7 @@
   35++6C63 FE 41                cp      041h
   36++6C65 D2 8C 6C             jp      nc,p127_layout_reject
   37++6C68
-  38++6C68 21 74 8B             ld      hl,p127_end
+  38++6C68 21 84 8B             ld      hl,p127_end
   39++6C6B 11 00 A0             ld      de,P127_LAYOUT_LIMIT
   40++6C6E B7                   or      a
   41++6C6F ED 52                sbc     hl,de
@@ -5222,7 +5222,7 @@
    7++8949              ; ============================================================================
    8++8949              P127_HDD_VERSION_MAJOR EQU 0
    9++8949              P127_HDD_VERSION_MINOR EQU 1
-  10++8949              P127_HDD_VERSION_PATCH EQU 0
+  10++8949              P127_HDD_VERSION_PATCH EQU 1
   11++8949
   12++8949              P127_HDD_PORT_DATA_LO   EQU 00010h
   13++8949              P127_HDD_PORT_DATA_HI   EQU 00011h
@@ -5249,26 +5249,26 @@
   34++894F FD E5                push    iy
   35++8951
   36++8951 AF                   xor     a
-  37++8952 32 6F 8B             ld      (p127_hdd_error),a
-  38++8955 21 06 8B             ld      hl,p127_hdd_msg_probe
+  37++8952 32 7E 8B             ld      (p127_hdd_error),a
+  38++8955 21 0C 8B             ld      hl,p127_hdd_msg_probe
   39++8958 CD B1 62             call    p127_puts
   40++895B
   41++895B 3E E0                ld      a,0E0h
   42++895D 01 D0 00             ld      bc,P127_HDD_PORT_DRIVE
   43++8960 ED 79                out     (c),a
-  44++8962 CD 7C 8A             call    p127_hdd_wait_ready
+  44++8962 CD 88 8A             call    p127_hdd_wait_ready
   45++8965 DA AB 89             jp      c,p127_hdd_probe_not_ready
   46++8968
-  47++8968 21 23 8B             ld      hl,p127_hdd_msg_ready
+  47++8968 21 29 8B             ld      hl,p127_hdd_msg_ready
   48++896B CD B1 62             call    p127_puts
   49++896E
   50++896E 3E 3F                ld      a,P127_HDD_PARTITION_LBA
-  51++8970 32 70 8B             ld      (p127_hdd_lba),a
+  51++8970 32 80 8B             ld      (p127_hdd_lba),a
   52++8973 AF                   xor     a
-  53++8974 32 71 8B             ld      (p127_hdd_lba+1),a
-  54++8977 32 72 8B             ld      (p127_hdd_lba+2),a
-  55++897A 32 73 8B             ld      (p127_hdd_lba+3),a
-  56++897D CD E8 89             call    p127_hdd_read_sector_lba28
+  53++8974 32 81 8B             ld      (p127_hdd_lba+1),a
+  54++8977 32 82 8B             ld      (p127_hdd_lba+2),a
+  55++897A 32 83 8B             ld      (p127_hdd_lba+3),a
+  56++897D CD F4 89             call    p127_hdd_read_sector_lba28
   57++8980 DA B3 89             jp      c,p127_hdd_probe_read_failed
   58++8983
   59++8983 3A 0B C8             ld      a,(P127_HDD_SECTOR_BUFFER+11)
@@ -5285,271 +5285,279 @@
   70++899D FE AA                cp      0AAh
   71++899F C2 BE 89             jp      nz,p127_hdd_probe_bad_signature
   72++89A2
-  73++89A2 21 38 8B             ld      hl,p127_hdd_msg_read_ok
+  73++89A2 21 3E 8B             ld      hl,p127_hdd_msg_read_ok
   74++89A5 CD B1 62             call    p127_puts
-  75++89A8 C3 D9 89             jp      p127_hdd_probe_done
+  75++89A8 C3 E5 89             jp      p127_hdd_probe_done
   76++89AB
   77++89AB              p127_hdd_probe_not_ready:
   78++89AB 3E 01                ld      a,1
-  79++89AD 32 6F 8B             ld      (p127_hdd_error),a
+  79++89AD 32 7E 8B             ld      (p127_hdd_error),a
   80++89B0 C3 C3 89             jp      p127_hdd_probe_report_error
   81++89B3              p127_hdd_probe_read_failed:
   82++89B3 C3 C3 89             jp      p127_hdd_probe_report_error
   83++89B6              p127_hdd_probe_bad_bpb:
   84++89B6 3E 04                ld      a,4
-  85++89B8 32 6F 8B             ld      (p127_hdd_error),a
+  85++89B8 32 7E 8B             ld      (p127_hdd_error),a
   86++89BB C3 C3 89             jp      p127_hdd_probe_report_error
   87++89BE              p127_hdd_probe_bad_signature:
   88++89BE 3E 05                ld      a,5
-  89++89C0 32 6F 8B             ld      (p127_hdd_error),a
+  89++89C0 32 7E 8B             ld      (p127_hdd_error),a
   90++89C3
   91++89C3              p127_hdd_probe_report_error:
-  92++89C3 21 62 8B             ld      hl,p127_hdd_msg_error
+  92++89C3 21 68 8B             ld      hl,p127_hdd_msg_error
   93++89C6 CD B1 62             call    p127_puts
-  94++89C9 3A 6F 8B             ld      a,(p127_hdd_error)
+  94++89C9 3A 7E 8B             ld      a,(p127_hdd_error)
   95++89CC CD CD 62             call    p127_put_hex8
-  96++89CF 3E 0D                ld      a,13
-  97++89D1 CD E3 62             call    p127_put_char
-  98++89D4 3E 0A                ld      a,10
-  99++89D6 CD E3 62             call    p127_put_char
- 100++89D9
- 101++89D9              p127_hdd_probe_done:
- 102++89D9 FD E1                pop     iy
- 103++89DB DD E1                pop     ix
- 104++89DD E1                   pop     hl
- 105++89DE D1                   pop     de
- 106++89DF C1                   pop     bc
- 107++89E0 F1                   pop     af
- 108++89E1 3A 6F 8B             ld      a,(p127_hdd_error)
- 109++89E4 B7                   or      a
- 110++89E5 C8                   ret     z
- 111++89E6 37                   scf
- 112++89E7 C9                   ret
- 113++89E8
- 114++89E8              ; Read one 512-byte sector using LBA28.
- 115++89E8              ; Input: p127_hdd_lba = unsigned 28-bit LBA.
- 116++89E8              ; Output: #C800..#C9FF, carry=1 on error.
- 117++89E8              p127_hdd_read_sector_lba28:
- 118++89E8 F5                   push    af
- 119++89E9 C5                   push    bc
- 120++89EA D5                   push    de
- 121++89EB E5                   push    hl
- 122++89EC DD E5                push    ix
- 123++89EE
- 124++89EE AF                   xor     a
- 125++89EF 32 6F 8B             ld      (p127_hdd_error),a
- 126++89F2 3A 73 8B             ld      a,(p127_hdd_lba+3)
- 127++89F5 E6 F0                and     0F0h
- 128++89F7 C2 62 8A             jp      nz,p127_hdd_read_bad_lba
- 129++89FA
- 130++89FA CD 7C 8A             call    p127_hdd_wait_ready
- 131++89FD DA 6A 8A             jp      c,p127_hdd_read_io_error
- 132++8A00
- 133++8A00 3E 01                ld      a,1
- 134++8A02 01 50 00             ld      bc,P127_HDD_PORT_COUNT
- 135++8A05 ED 79                out     (c),a
- 136++8A07 3A 70 8B             ld      a,(p127_hdd_lba)
- 137++8A0A 01 70 00             ld      bc,P127_HDD_PORT_LBA_LOW
- 138++8A0D ED 79                out     (c),a
- 139++8A0F 3A 71 8B             ld      a,(p127_hdd_lba+1)
- 140++8A12 01 90 00             ld      bc,P127_HDD_PORT_LBA_MID
- 141++8A15 ED 79                out     (c),a
- 142++8A17 3A 72 8B             ld      a,(p127_hdd_lba+2)
- 143++8A1A 01 B0 00             ld      bc,P127_HDD_PORT_LBA_HIGH
- 144++8A1D ED 79                out     (c),a
- 145++8A1F 3A 73 8B             ld      a,(p127_hdd_lba+3)
- 146++8A22 E6 0F                and     00Fh
- 147++8A24 F6 E0                or      0E0h
- 148++8A26 01 D0 00             ld      bc,P127_HDD_PORT_DRIVE
- 149++8A29 ED 79                out     (c),a
- 150++8A2B
- 151++8A2B 3E 20                ld      a,020h
- 152++8A2D 01 F0 00             ld      bc,P127_HDD_PORT_COMMAND
- 153++8A30 ED 79                out     (c),a
- 154++8A32
- 155++8A32 CD AA 8A             call    p127_hdd_wait_drq
- 156++8A35 DA 6A 8A             jp      c,p127_hdd_read_io_error
- 157++8A38
- 158++8A38 DD 21 00 C8          ld      ix,P127_HDD_SECTOR_BUFFER
- 159++8A3C 11 00 01             ld      de,256
- 160++8A3F              p127_hdd_read_word_loop:
- 161++8A3F 01 10 00             ld      bc,P127_HDD_PORT_DATA_LO
- 162++8A42 ED 78                in      a,(c)
- 163++8A44 DD 77 00             ld      (ix+0),a
- 164++8A47 DD 23                inc     ix
- 165++8A49 01 11 00             ld      bc,P127_HDD_PORT_DATA_HI
- 166++8A4C ED 78                in      a,(c)
- 167++8A4E DD 77 00             ld      (ix+0),a
- 168++8A51 DD 23                inc     ix
- 169++8A53 1B                   dec     de
- 170++8A54 7A                   ld      a,d
- 171++8A55 B3                   or      e
- 172++8A56 C2 3F 8A             jp      nz,p127_hdd_read_word_loop
- 173++8A59
- 174++8A59 CD D8 8A             call    p127_hdd_wait_complete
- 175++8A5C DA 6A 8A             jp      c,p127_hdd_read_io_error
- 176++8A5F C3 6F 8A             jp      p127_hdd_read_done
- 177++8A62
- 178++8A62              p127_hdd_read_bad_lba:
- 179++8A62 3E 02                ld      a,2
- 180++8A64 32 6F 8B             ld      (p127_hdd_error),a
- 181++8A67 C3 6F 8A             jp      p127_hdd_read_done
- 182++8A6A              p127_hdd_read_io_error:
- 183++8A6A 3E 03                ld      a,3
- 184++8A6C 32 6F 8B             ld      (p127_hdd_error),a
- 185++8A6F
- 186++8A6F              p127_hdd_read_done:
- 187++8A6F DD E1                pop     ix
- 188++8A71 E1                   pop     hl
- 189++8A72 D1                   pop     de
- 190++8A73 C1                   pop     bc
- 191++8A74 F1                   pop     af
- 192++8A75 3A 6F 8B             ld      a,(p127_hdd_error)
- 193++8A78 B7                   or      a
- 194++8A79 C8                   ret     z
- 195++8A7A 37                   scf
- 196++8A7B C9                   ret
- 197++8A7C
- 198++8A7C              p127_hdd_wait_ready:
- 199++8A7C D5                   push    de
- 200++8A7D 11 FF FF             ld      de,0FFFFh
- 201++8A80              p127_hdd_ready_loop:
- 202++8A80 01 F0 00             ld      bc,P127_HDD_PORT_STATUS
- 203++8A83 ED 78                in      a,(c)
- 204++8A85 FE FF                cp      0FFh
- 205++8A87 CA A4 8A             jp      z,p127_hdd_ready_fail
- 206++8A8A B7                   or      a
- 207++8A8B 28 12                jr      z,p127_hdd_ready_tick
- 208++8A8D CB 7F                bit     7,a
- 209++8A8F 20 0E                jr      nz,p127_hdd_ready_tick
- 210++8A91 CB 47                bit     0,a
- 211++8A93 C2 A4 8A             jp      nz,p127_hdd_ready_fail
- 212++8A96 CB 6F                bit     5,a
- 213++8A98 C2 A4 8A             jp      nz,p127_hdd_ready_fail
- 214++8A9B CB 77                bit     6,a
- 215++8A9D 20 08                jr      nz,p127_hdd_ready_ok
- 216++8A9F              p127_hdd_ready_tick:
- 217++8A9F 1B                   dec     de
- 218++8AA0 7A                   ld      a,d
- 219++8AA1 B3                   or      e
- 220++8AA2 20 DC                jr      nz,p127_hdd_ready_loop
- 221++8AA4              p127_hdd_ready_fail:
- 222++8AA4 D1                   pop     de
- 223++8AA5 37                   scf
- 224++8AA6 C9                   ret
- 225++8AA7              p127_hdd_ready_ok:
- 226++8AA7 D1                   pop     de
- 227++8AA8 B7                   or      a
- 228++8AA9 C9                   ret
- 229++8AAA
- 230++8AAA              p127_hdd_wait_drq:
- 231++8AAA D5                   push    de
- 232++8AAB 11 FF FF             ld      de,0FFFFh
- 233++8AAE              p127_hdd_drq_loop:
- 234++8AAE 01 F0 00             ld      bc,P127_HDD_PORT_STATUS
- 235++8AB1 ED 78                in      a,(c)
- 236++8AB3 FE FF                cp      0FFh
- 237++8AB5 CA D2 8A             jp      z,p127_hdd_drq_fail
- 238++8AB8 B7                   or      a
- 239++8AB9 28 12                jr      z,p127_hdd_drq_tick
- 240++8ABB CB 7F                bit     7,a
- 241++8ABD 20 0E                jr      nz,p127_hdd_drq_tick
- 242++8ABF CB 47                bit     0,a
- 243++8AC1 C2 D2 8A             jp      nz,p127_hdd_drq_fail
- 244++8AC4 CB 6F                bit     5,a
- 245++8AC6 C2 D2 8A             jp      nz,p127_hdd_drq_fail
- 246++8AC9 CB 5F                bit     3,a
- 247++8ACB 20 08                jr      nz,p127_hdd_drq_ok
- 248++8ACD              p127_hdd_drq_tick:
- 249++8ACD 1B                   dec     de
- 250++8ACE 7A                   ld      a,d
- 251++8ACF B3                   or      e
- 252++8AD0 20 DC                jr      nz,p127_hdd_drq_loop
- 253++8AD2              p127_hdd_drq_fail:
- 254++8AD2 D1                   pop     de
- 255++8AD3 37                   scf
- 256++8AD4 C9                   ret
- 257++8AD5              p127_hdd_drq_ok:
- 258++8AD5 D1                   pop     de
- 259++8AD6 B7                   or      a
- 260++8AD7 C9                   ret
- 261++8AD8
- 262++8AD8              p127_hdd_wait_complete:
- 263++8AD8 D5                   push    de
- 264++8AD9 11 FF FF             ld      de,0FFFFh
- 265++8ADC              p127_hdd_complete_loop:
- 266++8ADC 01 F0 00             ld      bc,P127_HDD_PORT_STATUS
- 267++8ADF ED 78                in      a,(c)
- 268++8AE1 FE FF                cp      0FFh
- 269++8AE3 CA 00 8B             jp      z,p127_hdd_complete_fail
- 270++8AE6 B7                   or      a
- 271++8AE7 28 12                jr      z,p127_hdd_complete_tick
- 272++8AE9 CB 7F                bit     7,a
- 273++8AEB 20 0E                jr      nz,p127_hdd_complete_tick
- 274++8AED CB 47                bit     0,a
- 275++8AEF C2 00 8B             jp      nz,p127_hdd_complete_fail
- 276++8AF2 CB 6F                bit     5,a
- 277++8AF4 C2 00 8B             jp      nz,p127_hdd_complete_fail
- 278++8AF7 CB 5F                bit     3,a
- 279++8AF9 28 08                jr      z,p127_hdd_complete_ok
- 280++8AFB              p127_hdd_complete_tick:
- 281++8AFB 1B                   dec     de
- 282++8AFC 7A                   ld      a,d
- 283++8AFD B3                   or      e
- 284++8AFE 20 DC                jr      nz,p127_hdd_complete_loop
- 285++8B00              p127_hdd_complete_fail:
- 286++8B00 D1                   pop     de
- 287++8B01 37                   scf
- 288++8B02 C9                   ret
- 289++8B03              p127_hdd_complete_ok:
- 290++8B03 D1                   pop     de
- 291++8B04 B7                   or      a
- 292++8B05 C9                   ret
- 293++8B06
- 294++8B06 5B 48 44 44  p127_hdd_msg_probe:   db "[HDD] NEMO IDE LBA28 PROBE",13,10,0
- 294++8B0A 5D 20 4E 45
- 294++8B0E 4D 4F 20 49
- 294++8B12 44 45 20 4C
- 294++8B16 42 41 32 38
- 294++8B1A 20 50 52 4F
- 294++8B1E 42 45 0D 0A
- 294++8B22 00
- 295++8B23 5B 48 44 44  p127_hdd_msg_ready:   db "[HDD] MASTER READY",13,10,0
- 295++8B27 5D 20 4D 41
- 295++8B2B 53 54 45 52
- 295++8B2F 20 52 45 41
- 295++8B33 44 59 0D 0A
- 295++8B37 00
- 296++8B38 5B 48 44 44  p127_hdd_msg_read_ok: db "[HDD] LBA 63 READ OK; 512B / BPB / 55AA",13,10,0
- 296++8B3C 5D 20 4C 42
- 296++8B40 41 20 36 33
- 296++8B44 20 52 45 41
- 296++8B48 44 20 4F 4B
- 296++8B4C 3B 20 35 31
- 296++8B50 32 42 20 2F
- 296++8B54 20 42 50 42
- 296++8B58 20 2F 20 35
- 296++8B5C 35 41 41 0D
- 296++8B60 0A 00
- 297++8B62 5B 48 44 44  p127_hdd_msg_error:   db "[HDD] ERROR=",0
- 297++8B66 5D 20 45 52
- 297++8B6A 52 4F 52 3D
- 297++8B6E 00
- 298++8B6F
- 299++8B6F 00           p127_hdd_error: db 0
- 300++8B70 00 00 00 00  p127_hdd_lba:   db 0,0,0,0
- 301++8B74
+  96++89CF 21 75 8B             ld      hl,p127_hdd_msg_status
+  97++89D2 CD B1 62             call    p127_puts
+  98++89D5 3A 7F 8B             ld      a,(p127_hdd_last_status)
+  99++89D8 CD CD 62             call    p127_put_hex8
+ 100++89DB 3E 0D                ld      a,13
+ 101++89DD CD E3 62             call    p127_put_char
+ 102++89E0 3E 0A                ld      a,10
+ 103++89E2 CD E3 62             call    p127_put_char
+ 104++89E5
+ 105++89E5              p127_hdd_probe_done:
+ 106++89E5 FD E1                pop     iy
+ 107++89E7 DD E1                pop     ix
+ 108++89E9 E1                   pop     hl
+ 109++89EA D1                   pop     de
+ 110++89EB C1                   pop     bc
+ 111++89EC F1                   pop     af
+ 112++89ED 3A 7E 8B             ld      a,(p127_hdd_error)
+ 113++89F0 B7                   or      a
+ 114++89F1 C8                   ret     z
+ 115++89F2 37                   scf
+ 116++89F3 C9                   ret
+ 117++89F4
+ 118++89F4              ; Read one 512-byte sector using LBA28.
+ 119++89F4              ; Input: p127_hdd_lba = unsigned 28-bit LBA.
+ 120++89F4              ; Output: #C800..#C9FF, carry=1 on error.
+ 121++89F4              p127_hdd_read_sector_lba28:
+ 122++89F4 F5                   push    af
+ 123++89F5 C5                   push    bc
+ 124++89F6 D5                   push    de
+ 125++89F7 E5                   push    hl
+ 126++89F8 DD E5                push    ix
+ 127++89FA
+ 128++89FA AF                   xor     a
+ 129++89FB 32 7E 8B             ld      (p127_hdd_error),a
+ 130++89FE 3A 83 8B             ld      a,(p127_hdd_lba+3)
+ 131++8A01 E6 F0                and     0F0h
+ 132++8A03 C2 6E 8A             jp      nz,p127_hdd_read_bad_lba
+ 133++8A06
+ 134++8A06 CD 88 8A             call    p127_hdd_wait_ready
+ 135++8A09 DA 76 8A             jp      c,p127_hdd_read_io_error
+ 136++8A0C
+ 137++8A0C 3E 01                ld      a,1
+ 138++8A0E 01 50 00             ld      bc,P127_HDD_PORT_COUNT
+ 139++8A11 ED 79                out     (c),a
+ 140++8A13 3A 80 8B             ld      a,(p127_hdd_lba)
+ 141++8A16 01 70 00             ld      bc,P127_HDD_PORT_LBA_LOW
+ 142++8A19 ED 79                out     (c),a
+ 143++8A1B 3A 81 8B             ld      a,(p127_hdd_lba+1)
+ 144++8A1E 01 90 00             ld      bc,P127_HDD_PORT_LBA_MID
+ 145++8A21 ED 79                out     (c),a
+ 146++8A23 3A 82 8B             ld      a,(p127_hdd_lba+2)
+ 147++8A26 01 B0 00             ld      bc,P127_HDD_PORT_LBA_HIGH
+ 148++8A29 ED 79                out     (c),a
+ 149++8A2B 3A 83 8B             ld      a,(p127_hdd_lba+3)
+ 150++8A2E E6 0F                and     00Fh
+ 151++8A30 F6 E0                or      0E0h
+ 152++8A32 01 D0 00             ld      bc,P127_HDD_PORT_DRIVE
+ 153++8A35 ED 79                out     (c),a
+ 154++8A37
+ 155++8A37 3E 20                ld      a,020h
+ 156++8A39 01 F0 00             ld      bc,P127_HDD_PORT_COMMAND
+ 157++8A3C ED 79                out     (c),a
+ 158++8A3E
+ 159++8A3E CD B4 8A             call    p127_hdd_wait_drq
+ 160++8A41 DA 76 8A             jp      c,p127_hdd_read_io_error
+ 161++8A44
+ 162++8A44 DD 21 00 C8          ld      ix,P127_HDD_SECTOR_BUFFER
+ 163++8A48 11 00 01             ld      de,256
+ 164++8A4B              p127_hdd_read_word_loop:
+ 165++8A4B 01 10 00             ld      bc,P127_HDD_PORT_DATA_LO
+ 166++8A4E ED 78                in      a,(c)
+ 167++8A50 DD 77 00             ld      (ix+0),a
+ 168++8A53 DD 23                inc     ix
+ 169++8A55 01 11 00             ld      bc,P127_HDD_PORT_DATA_HI
+ 170++8A58 ED 78                in      a,(c)
+ 171++8A5A DD 77 00             ld      (ix+0),a
+ 172++8A5D DD 23                inc     ix
+ 173++8A5F 1B                   dec     de
+ 174++8A60 7A                   ld      a,d
+ 175++8A61 B3                   or      e
+ 176++8A62 C2 4B 8A             jp      nz,p127_hdd_read_word_loop
+ 177++8A65
+ 178++8A65 CD E0 8A             call    p127_hdd_wait_complete
+ 179++8A68 DA 76 8A             jp      c,p127_hdd_read_io_error
+ 180++8A6B C3 7B 8A             jp      p127_hdd_read_done
+ 181++8A6E
+ 182++8A6E              p127_hdd_read_bad_lba:
+ 183++8A6E 3E 02                ld      a,2
+ 184++8A70 32 7E 8B             ld      (p127_hdd_error),a
+ 185++8A73 C3 7B 8A             jp      p127_hdd_read_done
+ 186++8A76              p127_hdd_read_io_error:
+ 187++8A76 3E 03                ld      a,3
+ 188++8A78 32 7E 8B             ld      (p127_hdd_error),a
+ 189++8A7B
+ 190++8A7B              p127_hdd_read_done:
+ 191++8A7B DD E1                pop     ix
+ 192++8A7D E1                   pop     hl
+ 193++8A7E D1                   pop     de
+ 194++8A7F C1                   pop     bc
+ 195++8A80 F1                   pop     af
+ 196++8A81 3A 7E 8B             ld      a,(p127_hdd_error)
+ 197++8A84 B7                   or      a
+ 198++8A85 C8                   ret     z
+ 199++8A86 37                   scf
+ 200++8A87 C9                   ret
+ 201++8A88
+ 202++8A88              p127_hdd_wait_ready:
+ 203++8A88 D5                   push    de
+ 204++8A89 11 FF FF             ld      de,0FFFFh
+ 205++8A8C              p127_hdd_ready_loop:
+ 206++8A8C 01 F0 00             ld      bc,P127_HDD_PORT_STATUS
+ 207++8A8F ED 78                in      a,(c)
+ 208++8A91 32 7F 8B             ld      (p127_hdd_last_status),a
+ 209++8A94 FE FF                cp      0FFh
+ 210++8A96 CA AE 8A             jp      z,p127_hdd_ready_fail
+ 211++8A99 B7                   or      a
+ 212++8A9A 28 0D                jr      z,p127_hdd_ready_tick
+ 213++8A9C CB 7F                bit     7,a
+ 214++8A9E 20 09                jr      nz,p127_hdd_ready_tick
+ 215++8AA0 CB 47                bit     0,a
+ 216++8AA2 C2 AE 8A             jp      nz,p127_hdd_ready_fail
+ 217++8AA5                      ; Match Project126 ATM bridge: DF is not a READY/DRQ gate.
+ 218++8AA5 CB 77                bit     6,a
+ 219++8AA7 20 08                jr      nz,p127_hdd_ready_ok
+ 220++8AA9              p127_hdd_ready_tick:
+ 221++8AA9 1B                   dec     de
+ 222++8AAA 7A                   ld      a,d
+ 223++8AAB B3                   or      e
+ 224++8AAC 20 DE                jr      nz,p127_hdd_ready_loop
+ 225++8AAE              p127_hdd_ready_fail:
+ 226++8AAE D1                   pop     de
+ 227++8AAF 37                   scf
+ 228++8AB0 C9                   ret
+ 229++8AB1              p127_hdd_ready_ok:
+ 230++8AB1 D1                   pop     de
+ 231++8AB2 B7                   or      a
+ 232++8AB3 C9                   ret
+ 233++8AB4
+ 234++8AB4              p127_hdd_wait_drq:
+ 235++8AB4 D5                   push    de
+ 236++8AB5 11 FF FF             ld      de,0FFFFh
+ 237++8AB8              p127_hdd_drq_loop:
+ 238++8AB8 01 F0 00             ld      bc,P127_HDD_PORT_STATUS
+ 239++8ABB ED 78                in      a,(c)
+ 240++8ABD 32 7F 8B             ld      (p127_hdd_last_status),a
+ 241++8AC0 FE FF                cp      0FFh
+ 242++8AC2 CA DA 8A             jp      z,p127_hdd_drq_fail
+ 243++8AC5 B7                   or      a
+ 244++8AC6 28 0D                jr      z,p127_hdd_drq_tick
+ 245++8AC8 CB 7F                bit     7,a
+ 246++8ACA 20 09                jr      nz,p127_hdd_drq_tick
+ 247++8ACC CB 47                bit     0,a
+ 248++8ACE C2 DA 8A             jp      nz,p127_hdd_drq_fail
+ 249++8AD1                      ; Match Project126 ATM bridge: DF is not a READY/DRQ gate.
+ 250++8AD1 CB 5F                bit     3,a
+ 251++8AD3 20 08                jr      nz,p127_hdd_drq_ok
+ 252++8AD5              p127_hdd_drq_tick:
+ 253++8AD5 1B                   dec     de
+ 254++8AD6 7A                   ld      a,d
+ 255++8AD7 B3                   or      e
+ 256++8AD8 20 DE                jr      nz,p127_hdd_drq_loop
+ 257++8ADA              p127_hdd_drq_fail:
+ 258++8ADA D1                   pop     de
+ 259++8ADB 37                   scf
+ 260++8ADC C9                   ret
+ 261++8ADD              p127_hdd_drq_ok:
+ 262++8ADD D1                   pop     de
+ 263++8ADE B7                   or      a
+ 264++8ADF C9                   ret
+ 265++8AE0
+ 266++8AE0              p127_hdd_wait_complete:
+ 267++8AE0 D5                   push    de
+ 268++8AE1 11 FF FF             ld      de,0FFFFh
+ 269++8AE4              p127_hdd_complete_loop:
+ 270++8AE4 01 F0 00             ld      bc,P127_HDD_PORT_STATUS
+ 271++8AE7 ED 78                in      a,(c)
+ 272++8AE9 32 7F 8B             ld      (p127_hdd_last_status),a
+ 273++8AEC FE FF                cp      0FFh
+ 274++8AEE CA 06 8B             jp      z,p127_hdd_complete_fail
+ 275++8AF1 B7                   or      a
+ 276++8AF2 28 0D                jr      z,p127_hdd_complete_tick
+ 277++8AF4 CB 7F                bit     7,a
+ 278++8AF6 20 09                jr      nz,p127_hdd_complete_tick
+ 279++8AF8 CB 47                bit     0,a
+ 280++8AFA C2 06 8B             jp      nz,p127_hdd_complete_fail
+ 281++8AFD                      ; Match Project126 ATM bridge: DF is not a READY/DRQ gate.
+ 282++8AFD CB 5F                bit     3,a
+ 283++8AFF 28 08                jr      z,p127_hdd_complete_ok
+ 284++8B01              p127_hdd_complete_tick:
+ 285++8B01 1B                   dec     de
+ 286++8B02 7A                   ld      a,d
+ 287++8B03 B3                   or      e
+ 288++8B04 20 DE                jr      nz,p127_hdd_complete_loop
+ 289++8B06              p127_hdd_complete_fail:
+ 290++8B06 D1                   pop     de
+ 291++8B07 37                   scf
+ 292++8B08 C9                   ret
+ 293++8B09              p127_hdd_complete_ok:
+ 294++8B09 D1                   pop     de
+ 295++8B0A B7                   or      a
+ 296++8B0B C9                   ret
+ 297++8B0C
+ 298++8B0C 5B 48 44 44  p127_hdd_msg_probe:   db "[HDD] NEMO IDE LBA28 PROBE",13,10,0
+ 298++8B10 5D 20 4E 45
+ 298++8B14 4D 4F 20 49
+ 298++8B18 44 45 20 4C
+ 298++8B1C 42 41 32 38
+ 298++8B20 20 50 52 4F
+ 298++8B24 42 45 0D 0A
+ 298++8B28 00
+ 299++8B29 5B 48 44 44  p127_hdd_msg_ready:   db "[HDD] MASTER READY",13,10,0
+ 299++8B2D 5D 20 4D 41
+ 299++8B31 53 54 45 52
+ 299++8B35 20 52 45 41
+ 299++8B39 44 59 0D 0A
+ 299++8B3D 00
+ 300++8B3E 5B 48 44 44  p127_hdd_msg_read_ok: db "[HDD] LBA 63 READ OK; 512B / BPB / 55AA",13,10,0
+ 300++8B42 5D 20 4C 42
+ 300++8B46 41 20 36 33
+ 300++8B4A 20 52 45 41
+ 300++8B4E 44 20 4F 4B
+ 300++8B52 3B 20 35 31
+ 300++8B56 32 42 20 2F
+ 300++8B5A 20 42 50 42
+ 300++8B5E 20 2F 20 35
+ 300++8B62 35 41 41 0D
+ 300++8B66 0A 00
+ 301++8B68 5B 48 44 44  p127_hdd_msg_error:   db "[HDD] ERROR=",0
+ 301++8B6C 5D 20 45 52
+ 301++8B70 52 4F 52 3D
+ 301++8B74 00
+ 302++8B75 20 53 54 41  p127_hdd_msg_status:  db " STATUS=",0
+ 302++8B79 54 55 53 3D
+ 302++8B7D 00
+ 303++8B7E
+ 304++8B7E 00           p127_hdd_error: db 0
+ 305++8B7F 00           p127_hdd_last_status: db 0
+ 306++8B80 00 00 00 00  p127_hdd_lba:   db 0,0,0,0
+ 307++8B84
 # file closed: p127_hdd.asm
- 421+ 8B74
- 422+ 8B74              p127_end:
- 423+ 8B74                      ASSERT  p127_entry = P127_LOAD_ADDRESS
- 424+ 8B74                      ASSERT  p127_end > p127_entry
- 425+ 8B74                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
- 426+ 8B74
+ 421+ 8B84
+ 422+ 8B84              p127_end:
+ 423+ 8B84                      ASSERT  p127_entry = P127_LOAD_ADDRESS
+ 424+ 8B84                      ASSERT  p127_end > p127_entry
+ 425+ 8B84                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
+ 426+ 8B84
 # file closed: p127_boot.asm
-   8  8B74
-   9  8B74              ; BASIC boot file is assembly data, not a Python-generated byte array.
-  10  8B74                      ORG     #B000
+   8  8B84
+   9  8B84              ; BASIC boot file is assembly data, not a Python-generated byte array.
+  10  8B84                      ORG     #B000
   11  B000              CLEAR       EQU #FD
   12  B000              LOAD        EQU #EF
   13  B000              CODE        EQU #AF
