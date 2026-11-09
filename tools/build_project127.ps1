@@ -30,6 +30,7 @@ try {
     Write-Host "[BUILD] SjASMPlus: $assembler"
     Write-Host "[BUILD] BASIC boot file: BOOT.B"
     Write-Host "[BUILD] Host CODE file: $HostName.C"
+    Write-Host "[BUILD] UI CODE file: p127ui.C"
 
     & $assembler --msg=all "--lst=build/ATM_DISK.lst" --lstlab=sort "--sym=build/ATM_DISK.map" "atm_host/project127_disk.generated.asm"
     if ($LASTEXITCODE -ne 0) { throw "SjASMPlus failed with exit code $LASTEXITCODE" }
@@ -43,6 +44,7 @@ try {
     [byte[]]$disk = [System.IO.File]::ReadAllBytes($diskImage)
     $required = @(
         @{ Name = ($HostName.PadRight(8) + "C"); Label = "$HostName.C" },
+        @{ Name = "p127ui  C"; Label = "p127ui.C" },
         @{ Name = "boot    B"; Label = "boot.B" }
     )
     foreach ($entry in $required) {

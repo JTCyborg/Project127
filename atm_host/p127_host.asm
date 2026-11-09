@@ -8,7 +8,7 @@
 
 P127_HOST_LOAD_ADDRESS EQU 24576
 P127_HOST_ENTRY_POINT  EQU P127_HOST_LOAD_ADDRESS+9
-P127_HOST_STACK_TOP    EQU #AFFF
+P127_HOST_STACK_TOP    EQU #9FFF
 
         ORG P127_HOST_LOAD_ADDRESS
 p127_host_program_start:
@@ -256,9 +256,6 @@ p127_host_diag_capacity:
 
         INCLUDE "drivers/atm/atm_memory_backend.asm"
 
-        PAGE 0
-        ORG #A000
-        INCLUDE "atm_host/p127_screen_console.asm"
 
 p127_host_program_end:
         ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS

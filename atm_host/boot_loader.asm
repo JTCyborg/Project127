@@ -55,10 +55,25 @@ LINE20:
         DW      15619
         DB      0
         DB      $3A, REM, $3A
-        DB      "LOAD ", 34, "@@HOST_NAME@@", 34, " CODE 24576", $0D
+        DB      "LOAD ", 34, "p127ui", 34, " CODE 40960", $0D
+        DB      $0D
 LINE20_END:
 
-        ; Announce that the host image has been loaded.
+        DB      0, 19
+        DW      LINE19_END-LINE19
+LINE19:
+        DB      "LOAD ", 34, "@@HOST_NAME@@", 34, " CODE 24576", $0D
+LINE19_END:
+
+        DB      0, 18
+        DW      LINE18_END-LINE18
+LINE18:
+        DB      REM, " HOST IMAGE LOAD", $0D
+LINE18_END:
+
+        ; Host image is loaded after the independent UI image.
+
+        ; Announce that both host and UI images have been loaded.
         DB      0, 21
         DW      LINE21_END-LINE21
 LINE21:
