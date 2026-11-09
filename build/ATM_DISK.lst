@@ -31,470 +31,486 @@
  18+  6009              p127_host_entry:
  19+  6009 F3                   di
  20+  600A 31 FF 9F             ld      sp,P127_HOST_STACK_TOP
- 21+  600D 21 E8 61             ld      hl,p127_host_banner
- 22+  6010 CD CF 61             call    p127_host_debug_string
+ 21+  600D 21 EB 61             ld      hl,p127_host_banner
+ 22+  6010 CD D2 61             call    p127_host_debug_string
  23+  6013 CD B6 A1             call    atm_mem_init
- 24+  6016 DA 1A 61             jp      c,p127_host_memory_init_fail
+ 24+  6016 DA 1D 61             jp      c,p127_host_memory_init_fail
  25+  6019 CD B8 A0             call    atm_mem_range_selftest
- 26+  601C DA 41 61             jp      c,p127_host_range_fail
- 27+  601F 21 66 62             ld      hl,p127_host_range_ok
- 28+  6022 CD CF 61             call    p127_host_debug_string
+ 26+  601C DA 44 61             jp      c,p127_host_range_fail
+ 27+  601F 21 9E 62             ld      hl,p127_host_range_ok
+ 28+  6022 CD D2 61             call    p127_host_debug_string
  29+  6025 CD B9 A4             call    atm_mem_allocator_selftest
- 30+  6028 DA 23 61             jp      c,p127_host_allocator_fail
- 31+  602B 21 8A 62             ld      hl,p127_host_allocator_ok
- 32+  602E CD CF 61             call    p127_host_debug_string
+ 30+  6028 DA 26 61             jp      c,p127_host_allocator_fail
+ 31+  602B 21 C2 62             ld      hl,p127_host_allocator_ok
+ 32+  602E CD D2 61             call    p127_host_debug_string
  33+  6031 CD 30 A9             call    atm_mem_ops_selftest
- 34+  6034 DA 02 61             jp      c,p127_host_ops_fail
- 35+  6037 21 B4 62             ld      hl,p127_host_ops_ok
- 36+  603A CD CF 61             call    p127_host_debug_string
+ 34+  6034 DA 05 61             jp      c,p127_host_ops_fail
+ 35+  6037 21 EC 62             ld      hl,p127_host_ops_ok
+ 36+  603A CD D2 61             call    p127_host_debug_string
  37+  603D CD 5E AE             call    atm_mem_scatter_selftest
- 38+  6040 DA EA 60             jp      c,p127_host_scatter_fail
- 39+  6043 21 DA 62             ld      hl,p127_host_scatter_ok
- 40+  6046 CD CF 61             call    p127_host_debug_string
+ 38+  6040 DA ED 60             jp      c,p127_host_scatter_fail
+ 39+  6043 21 12 63             ld      hl,p127_host_scatter_ok
+ 40+  6046 CD D2 61             call    p127_host_debug_string
  41+  6049 CD 1B B9             call    atm_mem_handle_ops_selftest
- 42+  604C DA A2 60             jp      c,p127_host_handle_ops_fail
- 43+  604F 21 04 63             ld      hl,p127_host_handle_ops_ok
- 44+  6052 CD CF 61             call    p127_host_debug_string
+ 42+  604C DA A5 60             jp      c,p127_host_handle_ops_fail
+ 43+  604F 21 3C 63             ld      hl,p127_host_handle_ops_ok
+ 44+  6052 CD D2 61             call    p127_host_debug_string
  45+  6055 CD C6 AD             call    atm_mem_scatter_pin_selftest
- 46+  6058 DA D2 60             jp      c,p127_host_pin_fail
- 47+  605B 21 86 63             ld      hl,p127_host_pin_ok
- 48+  605E CD CF 61             call    p127_host_debug_string
+ 46+  6058 DA D5 60             jp      c,p127_host_pin_fail
+ 47+  605B 21 BE 63             ld      hl,p127_host_pin_ok
+ 48+  605E CD D2 61             call    p127_host_debug_string
  49+  6061 CD A5 80             call    p127_trdos_catalog_selftest
- 50+  6064 DA BA 60             jp      c,p127_host_trdos_fail
- 51+  6067 21 2A 63             ld      hl,p127_host_trdos_ok
- 52+  606A CD CF 61             call    p127_host_debug_string
+ 50+  6064 DA BD 60             jp      c,p127_host_trdos_fail
+ 51+  6067 21 62 63             ld      hl,p127_host_trdos_ok
+ 52+  606A CD D2 61             call    p127_host_debug_string
  53+  606D CD 33 91             call    P127_ATM_Video_SelfTest
  54+  6070 DA BD 94             jp      c,p127_video_host_fail_handler
  55+  6073 21 26 94             ld      hl,p127_host_video_ok
- 56+  6076 CD CF 61             call    p127_host_debug_string
+ 56+  6076 CD D2 61             call    p127_host_debug_string
  57+  6079 CD 2F 93             call    P127_ATM_Video_BufferSelfTest
  58+  607C DA BD 94             jp      c,p127_video_host_fail_handler
  59+  607F 21 5A 94             ld      hl,p127_host_video_buffers_ok
- 60+  6082 CD CF 61             call    p127_host_debug_string
+ 60+  6082 CD D2 61             call    p127_host_debug_string
  61+  6085 CD 00 C0             call    P127_DebugConsole_Init
  62+  6088 3E 01                ld      a,1
- 63+  608A 32 E7 61             ld      (p127_host_console_ready),a
- 64+  608D 21 40 62             ld      hl,p127_host_trdos_deferred
- 65+  6090 CD CF 61             call    p127_host_debug_string
+ 63+  608A 32 EA 61             ld      (p127_host_console_ready),a
+ 64+  608D 21 43 62             ld      hl,p127_host_trdos_deferred
+ 65+  6090 CD D2 61             call    p127_host_debug_string
  66+  6093 CD 43 99             call    P127_RTC_Startup
- 67+  6096 CD 00 D0             call    P127_StorageAndFAT16_Startup
- 68+  6099 21 BC 99             ld      hl,p127_host_ui_ready
- 69+  609C CD CF 61             call    p127_host_debug_string
- 70+  609F C3 97 61             jp      p127_host_idle
- 71+  60A2              p127_host_handle_ops_fail:
- 72+  60A2 57                   ld      d,a
- 73+  60A3 21 E4 63             ld      hl,p127_host_handle_ops_error
- 74+  60A6 CD CF 61             call    p127_host_debug_string
- 75+  60A9 7A                   ld      a,d
- 76+  60AA CD B5 61             call    p127_host_debug_hex_byte
- 77+  60AD 3E 0D                ld      a,13
- 78+  60AF CD 9B 61             call    p127_host_debug_char
- 79+  60B2 3E 0A                ld      a,10
- 80+  60B4 CD 9B 61             call    p127_host_debug_char
- 81+  60B7 C3 97 61             jp      p127_host_idle
- 82+  60BA              p127_host_trdos_fail:
- 83+  60BA 57                   ld      d,a
- 84+  60BB 21 55 63             ld      hl,p127_host_trdos_error
- 85+  60BE CD CF 61             call    p127_host_debug_string
- 86+  60C1 7A                   ld      a,d
- 87+  60C2 CD B5 61             call    p127_host_debug_hex_byte
- 88+  60C5 3E 0D                ld      a,13
- 89+  60C7 CD 9B 61             call    p127_host_debug_char
- 90+  60CA 3E 0A                ld      a,10
- 91+  60CC CD 9B 61             call    p127_host_debug_char
- 92+  60CF C3 97 61             jp      p127_host_idle
- 93+  60D2              p127_host_pin_fail:
- 94+  60D2 57                   ld      d,a
- 95+  60D3 21 B2 63             ld      hl,p127_host_pin_error
- 96+  60D6 CD CF 61             call    p127_host_debug_string
- 97+  60D9 7A                   ld      a,d
- 98+  60DA CD B5 61             call    p127_host_debug_hex_byte
- 99+  60DD 3E 0D                ld      a,13
-100+  60DF CD 9B 61             call    p127_host_debug_char
-101+  60E2 3E 0A                ld      a,10
-102+  60E4 CD 9B 61             call    p127_host_debug_char
-103+  60E7 C3 97 61             jp      p127_host_idle
-104+  60EA              p127_host_scatter_fail:
-105+  60EA 57                   ld      d,a
-106+  60EB 21 10 64             ld      hl,p127_host_scatter_error
-107+  60EE CD CF 61             call    p127_host_debug_string
-108+  60F1 7A                   ld      a,d
-109+  60F2 CD B5 61             call    p127_host_debug_hex_byte
-110+  60F5 3E 0D                ld      a,13
-111+  60F7 CD 9B 61             call    p127_host_debug_char
-112+  60FA 3E 0A                ld      a,10
-113+  60FC CD 9B 61             call    p127_host_debug_char
-114+  60FF C3 97 61             jp      p127_host_idle
-115+  6102              p127_host_ops_fail:
-116+  6102 57                   ld      d,a
-117+  6103 21 40 64             ld      hl,p127_host_ops_error
-118+  6106 CD CF 61             call    p127_host_debug_string
-119+  6109 7A                   ld      a,d
-120+  610A CD B5 61             call    p127_host_debug_hex_byte
-121+  610D 3E 0D                ld      a,13
-122+  610F CD 9B 61             call    p127_host_debug_char
-123+  6112 3E 0A                ld      a,10
-124+  6114 CD 9B 61             call    p127_host_debug_char
-125+  6117 C3 97 61             jp      p127_host_idle
-126+  611A              p127_host_memory_init_fail:
-127+  611A 21 A0 64             ld      hl,p127_host_memory_init_error
-128+  611D CD CF 61             call    p127_host_debug_string
-129+  6120 C3 97 61             jp      p127_host_idle
-130+  6123              p127_host_allocator_fail:
-131+  6123 57                   ld      d,a
-132+  6124 21 6C 64             ld      hl,p127_host_allocator_error
-133+  6127 CD CF 61             call    p127_host_debug_string
-134+  612A 21 94 64             ld      hl,p127_host_allocator_stage
-135+  612D CD CF 61             call    p127_host_debug_string
-136+  6130 7A                   ld      a,d
-137+  6131 CD B5 61             call    p127_host_debug_hex_byte
-138+  6134 3E 0D                ld      a,13
-139+  6136 CD 9B 61             call    p127_host_debug_char
-140+  6139 3E 0A                ld      a,10
-141+  613B CD 9B 61             call    p127_host_debug_char
-142+  613E C3 97 61             jp      p127_host_idle
-143+  6141              p127_host_range_fail:
-144+  6141 57                   ld      d,a
-145+  6142 21 BE 64             ld      hl,p127_host_range_error
-146+  6145 CD CF 61             call    p127_host_debug_string
-147+  6148 7A                   ld      a,d
-148+  6149 C6 30                add     a,'0'
-149+  614B CD 9B 61             call    p127_host_debug_char
-150+  614E 3E 0D                ld      a,13
-151+  6150 CD 9B 61             call    p127_host_debug_char
-152+  6153 3E 0A                ld      a,10
-153+  6155 CD 9B 61             call    p127_host_debug_char
-154+  6158 7A                   ld      a,d
-155+  6159 FE 04                cp      4
-156+  615B 20 3A                jr      nz,p127_host_idle
-157+  615D 21 E6 64             ld      hl,p127_host_diag_offset
-158+  6160 CD CF 61             call    p127_host_debug_string
-159+  6163 21 8E A0             ld      hl,p127_range_offset
-160+  6166 CD A1 61             call    p127_host_debug_hex4
-161+  6169 21 EF 64             ld      hl,p127_host_diag_length_pre
-162+  616C CD CF 61             call    p127_host_debug_string
-163+  616F 21 9E A0             ld      hl,atm_mem_test4_length_snapshot
-164+  6172 CD A1 61             call    p127_host_debug_hex4
-165+  6175 21 FC 64             ld      hl,p127_host_diag_length
-166+  6178 CD CF 61             call    p127_host_debug_string
-167+  617B 21 92 A0             ld      hl,p127_range_length
-168+  617E CD A1 61             call    p127_host_debug_hex4
-169+  6181 21 0A 65             ld      hl,p127_host_diag_capacity
-170+  6184 CD CF 61             call    p127_host_debug_string
-171+  6187 21 96 A0             ld      hl,p127_range_capacity
-172+  618A CD A1 61             call    p127_host_debug_hex4
-173+  618D 3E 0D                ld      a,13
-174+  618F CD 9B 61             call    p127_host_debug_char
-175+  6192 3E 0A                ld      a,10
-176+  6194 CD 9B 61             call    p127_host_debug_char
-177+  6197              p127_host_idle:
-178+  6197 76                   halt
-179+  6198 C3 97 61             jp      p127_host_idle
-180+  619B
-181+  619B              p127_host_debug_char:
-182+  619B 01 EF 00             ld      bc,#00EF
-183+  619E ED 79                out     (c),a
-184+  61A0 C9                   ret
-185+  61A1
-186+  61A1              p127_host_debug_hex4:
-187+  61A1 7E                   ld      a,(hl)
-188+  61A2 CD B5 61             call    p127_host_debug_hex_byte
-189+  61A5 23                   inc     hl
-190+  61A6 7E                   ld      a,(hl)
-191+  61A7 CD B5 61             call    p127_host_debug_hex_byte
-192+  61AA 23                   inc     hl
-193+  61AB 7E                   ld      a,(hl)
-194+  61AC CD B5 61             call    p127_host_debug_hex_byte
-195+  61AF 23                   inc     hl
-196+  61B0 7E                   ld      a,(hl)
-197+  61B1 CD B5 61             call    p127_host_debug_hex_byte
-198+  61B4 C9                   ret
-199+  61B5
-200+  61B5              p127_host_debug_hex_byte:
-201+  61B5 F5                   push    af
-202+  61B6 0F                   rrca
-203+  61B7 0F                   rrca
-204+  61B8 0F                   rrca
-205+  61B9 0F                   rrca
-206+  61BA E6 0F                and     #0F
-207+  61BC CD C2 61             call    p127_host_debug_hex_nibble
-208+  61BF F1                   pop     af
-209+  61C0 E6 0F                and     #0F
-210+  61C2              p127_host_debug_hex_nibble:
-211+  61C2 FE 0A                cp      10
-212+  61C4 DA CB 61             jp      c,p127_host_debug_hex_digit
-213+  61C7 C6 37                add     a,'A'-10
-214+  61C9 18 D0                jr      p127_host_debug_char
-215+  61CB              p127_host_debug_hex_digit:
-216+  61CB C6 30                add     a,'0'
-217+  61CD 18 CC                jr      p127_host_debug_char
-218+  61CF
-219+  61CF              p127_host_debug_string:
-220+  61CF E5                   push    hl
-221+  61D0 3A E7 61             ld      a,(p127_host_console_ready)
-222+  61D3 B7                   or      a
-223+  61D4 28 05                jr      z,.debug_no_screen
-224+  61D6 E1                   pop     hl
-225+  61D7 E5                   push    hl
-226+  61D8 CD 42 C1             call    P127_DebugConsole_String
-227+  61DB              .debug_no_screen:
-228+  61DB E1                   pop     hl
-229+  61DC              .debug_serial:
-230+  61DC 7E                   ld      a,(hl)
-231+  61DD B7                   or      a
-232+  61DE C8                   ret     z
-233+  61DF 01 EF 00             ld      bc,#00EF
-234+  61E2 ED 79                out     (c),a
-235+  61E4 23                   inc     hl
-236+  61E5 18 F5                jr      .debug_serial
-237+  61E7
-238+  61E7 00           p127_host_console_ready: db 0
-239+  61E8              p127_host_banner:
-240+  61E8 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.17.0",13,10
-240+  61EC 37 5D 20 41
-240+  61F0 54 4D 20 48
-240+  61F4 4F 53 54 20
-240+  61F8 45 4E 54 52
-240+  61FC 59 20 76 30
-240+  6200 2E 31 37 2E
-240+  6204 30 0D 0A
-241+  6207 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
-241+  620B 37 5D 20 54
-241+  620F 52 2D 44 4F
-241+  6213 53 20 42 4F
-241+  6217 4F 54 20 4F
-241+  621B 4B 0D 0A
-242+  621E 5B 50 31 32          db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
-242+  6222 37 5D 20 41
-242+  6226 54 4D 20 52
-242+  622A 41 4D 20 52
-242+  622E 41 4E 47 45
-242+  6232 20 43 4F 52
-242+  6236 45 20 31 20
-242+  623A 4D 69 42 0D
-242+  623E 0A 00
-243+  6240              p127_host_trdos_deferred:
-244+  6240 5B 50 31 32          db "[P127] TR-DOS LIVE CATALOG DEFERRED",13,10,0
-244+  6244 37 5D 20 54
-244+  6248 52 2D 44 4F
-244+  624C 53 20 4C 49
-244+  6250 56 45 20 43
-244+  6254 41 54 41 4C
-244+  6258 4F 47 20 44
-244+  625C 45 46 45 52
-244+  6260 52 45 44 0D
-244+  6264 0A 00
-245+  6266              p127_host_range_ok:
-246+  6266 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
-246+  626A 37 5D 20 55
-246+  626E 49 4E 54 33
-246+  6272 32 20 52 41
-246+  6276 4E 47 45 20
-246+  627A 53 45 4C 46
-246+  627E 54 45 53 54
-246+  6282 20 50 41 53
-246+  6286 53 0D 0A 00
-247+  628A              p127_host_allocator_ok:
-248+  628A 5B 50 31 32          db "[P127] ATM PAGE ALLOCATOR SELFTEST PASS",13,10,0
-248+  628E 37 5D 20 41
-248+  6292 54 4D 20 50
-248+  6296 41 47 45 20
-248+  629A 41 4C 4C 4F
-248+  629E 43 41 54 4F
-248+  62A2 52 20 53 45
-248+  62A6 4C 46 54 45
-248+  62AA 53 54 20 50
-248+  62AE 41 53 53 0D
-248+  62B2 0A 00
-249+  62B4              p127_host_ops_ok:
-250+  62B4 5B 50 31 32          db "[P127] ATM MEMORY OPS SELFTEST PASS",13,10,0
-250+  62B8 37 5D 20 41
-250+  62BC 54 4D 20 4D
-250+  62C0 45 4D 4F 52
-250+  62C4 59 20 4F 50
-250+  62C8 53 20 53 45
-250+  62CC 4C 46 54 45
-250+  62D0 53 54 20 50
-250+  62D4 41 53 53 0D
-250+  62D8 0A 00
-251+  62DA              p127_host_scatter_ok:
-252+  62DA 5B 50 31 32          db "[P127] ATM SCATTER HANDLE SELFTEST PASS",13,10,0
-252+  62DE 37 5D 20 41
-252+  62E2 54 4D 20 53
-252+  62E6 43 41 54 54
-252+  62EA 45 52 20 48
-252+  62EE 41 4E 44 4C
-252+  62F2 45 20 53 45
-252+  62F6 4C 46 54 45
-252+  62FA 53 54 20 50
-252+  62FE 41 53 53 0D
-252+  6302 0A 00
-253+  6304              p127_host_handle_ops_ok:
-254+  6304 5B 50 31 32          db "[P127] ATM HANDLE OPS SELFTEST PASS",13,10,0
-254+  6308 37 5D 20 41
-254+  630C 54 4D 20 48
-254+  6310 41 4E 44 4C
-254+  6314 45 20 4F 50
-254+  6318 53 20 53 45
-254+  631C 4C 46 54 45
-254+  6320 53 54 20 50
-254+  6324 41 53 53 0D
-254+  6328 0A 00
-255+  632A              p127_host_trdos_ok:
-256+  632A 5B 50 31 32          db "[P127] TR-DOS CATALOG CORE SELFTEST PASS",13,10,0
-256+  632E 37 5D 20 54
-256+  6332 52 2D 44 4F
-256+  6336 53 20 43 41
-256+  633A 54 41 4C 4F
-256+  633E 47 20 43 4F
-256+  6342 52 45 20 53
-256+  6346 45 4C 46 54
-256+  634A 45 53 54 20
-256+  634E 50 41 53 53
-256+  6352 0D 0A 00
-257+  6355              p127_host_trdos_error:
-258+  6355 5B 50 31 32          db "[P127] TR-DOS CATALOG CORE SELFTEST FAIL STEP=0x",0
-258+  6359 37 5D 20 54
-258+  635D 52 2D 44 4F
-258+  6361 53 20 43 41
-258+  6365 54 41 4C 4F
-258+  6369 47 20 43 4F
-258+  636D 52 45 20 53
-258+  6371 45 4C 46 54
-258+  6375 45 53 54 20
-258+  6379 46 41 49 4C
-258+  637D 20 53 54 45
-258+  6381 50 3D 30 78
-258+  6385 00
-259+  6386              p127_host_pin_ok:
-260+  6386 5B 50 31 32          db "[P127] ATM HANDLE PIN/UNPIN SELFTEST PASS",13,10,0
-260+  638A 37 5D 20 41
-260+  638E 54 4D 20 48
-260+  6392 41 4E 44 4C
-260+  6396 45 20 50 49
-260+  639A 4E 2F 55 4E
-260+  639E 50 49 4E 20
-260+  63A2 53 45 4C 46
-260+  63A6 54 45 53 54
-260+  63AA 20 50 41 53
-260+  63AE 53 0D 0A 00
-261+  63B2              p127_host_pin_error:
-262+  63B2 5B 50 31 32          db "[P127] ATM HANDLE PIN/UNPIN SELFTEST FAIL STEP=0x",0
-262+  63B6 37 5D 20 41
-262+  63BA 54 4D 20 48
-262+  63BE 41 4E 44 4C
-262+  63C2 45 20 50 49
-262+  63C6 4E 2F 55 4E
-262+  63CA 50 49 4E 20
-262+  63CE 53 45 4C 46
-262+  63D2 54 45 53 54
-262+  63D6 20 46 41 49
-262+  63DA 4C 20 53 54
-262+  63DE 45 50 3D 30
-262+  63E2 78 00
-263+  63E4              p127_host_handle_ops_error:
-264+  63E4 5B 50 31 32          db "[P127] ATM HANDLE OPS SELFTEST FAIL STEP=0x",0
-264+  63E8 37 5D 20 41
-264+  63EC 54 4D 20 48
-264+  63F0 41 4E 44 4C
-264+  63F4 45 20 4F 50
-264+  63F8 53 20 53 45
-264+  63FC 4C 46 54 45
-264+  6400 53 54 20 46
-264+  6404 41 49 4C 20
-264+  6408 53 54 45 50
-264+  640C 3D 30 78 00
-265+  6410              p127_host_scatter_error:
-266+  6410 5B 50 31 32          db "[P127] ATM SCATTER HANDLE SELFTEST FAIL STEP=0x",0
-266+  6414 37 5D 20 41
-266+  6418 54 4D 20 53
-266+  641C 43 41 54 54
-266+  6420 45 52 20 48
-266+  6424 41 4E 44 4C
-266+  6428 45 20 53 45
-266+  642C 4C 46 54 45
-266+  6430 53 54 20 46
-266+  6434 41 49 4C 20
-266+  6438 53 54 45 50
-266+  643C 3D 30 78 00
-267+  6440              p127_host_ops_error:
-268+  6440 5B 50 31 32          db "[P127] ATM MEMORY OPS SELFTEST FAIL STEP=0x",0
-268+  6444 37 5D 20 41
-268+  6448 54 4D 20 4D
-268+  644C 45 4D 4F 52
-268+  6450 59 20 4F 50
-268+  6454 53 20 53 45
-268+  6458 4C 46 54 45
-268+  645C 53 54 20 46
-268+  6460 41 49 4C 20
-268+  6464 53 54 45 50
-268+  6468 3D 30 78 00
-269+  646C              p127_host_allocator_error:
-270+  646C 5B 50 31 32          db "[P127] ATM PAGE ALLOCATOR SELFTEST FAIL",0
-270+  6470 37 5D 20 41
-270+  6474 54 4D 20 50
-270+  6478 41 47 45 20
-270+  647C 41 4C 4C 4F
-270+  6480 43 41 54 4F
-270+  6484 52 20 53 45
-270+  6488 4C 46 54 45
-270+  648C 53 54 20 46
-270+  6490 41 49 4C 00
-271+  6494              p127_host_allocator_stage:
-272+  6494 20 53 54 45          db " STEP=0x",0
-272+  6498 50 3D 30 78
-272+  649C 00
-273+  649D              p127_host_allocator_error_nl:
-274+  649D 0D 0A 00             db 13,10,0
-275+  64A0              p127_host_memory_init_error:
-276+  64A0 5B 50 31 32          db "[P127] ATM MEMORY INIT FAIL",13,10,0
-276+  64A4 37 5D 20 41
-276+  64A8 54 4D 20 4D
-276+  64AC 45 4D 4F 52
-276+  64B0 59 20 49 4E
-276+  64B4 49 54 20 46
-276+  64B8 41 49 4C 0D
-276+  64BC 0A 00
-277+  64BE              p127_host_range_error:
-278+  64BE 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST FAIL TEST ",0
-278+  64C2 37 5D 20 55
-278+  64C6 49 4E 54 33
-278+  64CA 32 20 52 41
-278+  64CE 4E 47 45 20
-278+  64D2 53 45 4C 46
-278+  64D6 54 45 53 54
-278+  64DA 20 46 41 49
-278+  64DE 4C 20 54 45
-278+  64E2 53 54 20 00
-279+  64E6              p127_host_diag_offset:
-280+  64E6 20 4F 46 46          db " OFFSET=",0
-280+  64EA 53 45 54 3D
-280+  64EE 00
-281+  64EF              p127_host_diag_length_pre:
-282+  64EF 20 4C 45 4E          db " LENGTH_PRE=",0
-282+  64F3 47 54 48 5F
-282+  64F7 50 52 45 3D
-282+  64FB 00
-283+  64FC              p127_host_diag_length:
-284+  64FC 20 4C 45 4E          db " LENGTH_POST=",0
-284+  6500 47 54 48 5F
-284+  6504 50 4F 53 54
-284+  6508 3D 00
-285+  650A              p127_host_diag_capacity:
-286+  650A 20 43 41 50          db " CAPACITY=",0
-286+  650E 41 43 49 54
-286+  6512 59 3D 00
-287+  6515
-288+  6515              p127_host_program_end:
-289+  6515                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
-290+  6515                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
-291+  6515                      ASSERT p127_host_program_end <= #8000
-292+  6515
+ 67+  6096 21 69 62             ld      hl,p127_host_hdd_deferred
+ 68+  6099 CD D2 61             call    p127_host_debug_string
+ 69+  609C 21 BC 99             ld      hl,p127_host_ui_ready
+ 70+  609F CD D2 61             call    p127_host_debug_string
+ 71+  60A2 C3 9A 61             jp      p127_host_idle
+ 72+  60A5              p127_host_handle_ops_fail:
+ 73+  60A5 57                   ld      d,a
+ 74+  60A6 21 1C 64             ld      hl,p127_host_handle_ops_error
+ 75+  60A9 CD D2 61             call    p127_host_debug_string
+ 76+  60AC 7A                   ld      a,d
+ 77+  60AD CD B8 61             call    p127_host_debug_hex_byte
+ 78+  60B0 3E 0D                ld      a,13
+ 79+  60B2 CD 9E 61             call    p127_host_debug_char
+ 80+  60B5 3E 0A                ld      a,10
+ 81+  60B7 CD 9E 61             call    p127_host_debug_char
+ 82+  60BA C3 9A 61             jp      p127_host_idle
+ 83+  60BD              p127_host_trdos_fail:
+ 84+  60BD 57                   ld      d,a
+ 85+  60BE 21 8D 63             ld      hl,p127_host_trdos_error
+ 86+  60C1 CD D2 61             call    p127_host_debug_string
+ 87+  60C4 7A                   ld      a,d
+ 88+  60C5 CD B8 61             call    p127_host_debug_hex_byte
+ 89+  60C8 3E 0D                ld      a,13
+ 90+  60CA CD 9E 61             call    p127_host_debug_char
+ 91+  60CD 3E 0A                ld      a,10
+ 92+  60CF CD 9E 61             call    p127_host_debug_char
+ 93+  60D2 C3 9A 61             jp      p127_host_idle
+ 94+  60D5              p127_host_pin_fail:
+ 95+  60D5 57                   ld      d,a
+ 96+  60D6 21 EA 63             ld      hl,p127_host_pin_error
+ 97+  60D9 CD D2 61             call    p127_host_debug_string
+ 98+  60DC 7A                   ld      a,d
+ 99+  60DD CD B8 61             call    p127_host_debug_hex_byte
+100+  60E0 3E 0D                ld      a,13
+101+  60E2 CD 9E 61             call    p127_host_debug_char
+102+  60E5 3E 0A                ld      a,10
+103+  60E7 CD 9E 61             call    p127_host_debug_char
+104+  60EA C3 9A 61             jp      p127_host_idle
+105+  60ED              p127_host_scatter_fail:
+106+  60ED 57                   ld      d,a
+107+  60EE 21 48 64             ld      hl,p127_host_scatter_error
+108+  60F1 CD D2 61             call    p127_host_debug_string
+109+  60F4 7A                   ld      a,d
+110+  60F5 CD B8 61             call    p127_host_debug_hex_byte
+111+  60F8 3E 0D                ld      a,13
+112+  60FA CD 9E 61             call    p127_host_debug_char
+113+  60FD 3E 0A                ld      a,10
+114+  60FF CD 9E 61             call    p127_host_debug_char
+115+  6102 C3 9A 61             jp      p127_host_idle
+116+  6105              p127_host_ops_fail:
+117+  6105 57                   ld      d,a
+118+  6106 21 78 64             ld      hl,p127_host_ops_error
+119+  6109 CD D2 61             call    p127_host_debug_string
+120+  610C 7A                   ld      a,d
+121+  610D CD B8 61             call    p127_host_debug_hex_byte
+122+  6110 3E 0D                ld      a,13
+123+  6112 CD 9E 61             call    p127_host_debug_char
+124+  6115 3E 0A                ld      a,10
+125+  6117 CD 9E 61             call    p127_host_debug_char
+126+  611A C3 9A 61             jp      p127_host_idle
+127+  611D              p127_host_memory_init_fail:
+128+  611D 21 D8 64             ld      hl,p127_host_memory_init_error
+129+  6120 CD D2 61             call    p127_host_debug_string
+130+  6123 C3 9A 61             jp      p127_host_idle
+131+  6126              p127_host_allocator_fail:
+132+  6126 57                   ld      d,a
+133+  6127 21 A4 64             ld      hl,p127_host_allocator_error
+134+  612A CD D2 61             call    p127_host_debug_string
+135+  612D 21 CC 64             ld      hl,p127_host_allocator_stage
+136+  6130 CD D2 61             call    p127_host_debug_string
+137+  6133 7A                   ld      a,d
+138+  6134 CD B8 61             call    p127_host_debug_hex_byte
+139+  6137 3E 0D                ld      a,13
+140+  6139 CD 9E 61             call    p127_host_debug_char
+141+  613C 3E 0A                ld      a,10
+142+  613E CD 9E 61             call    p127_host_debug_char
+143+  6141 C3 9A 61             jp      p127_host_idle
+144+  6144              p127_host_range_fail:
+145+  6144 57                   ld      d,a
+146+  6145 21 F6 64             ld      hl,p127_host_range_error
+147+  6148 CD D2 61             call    p127_host_debug_string
+148+  614B 7A                   ld      a,d
+149+  614C C6 30                add     a,'0'
+150+  614E CD 9E 61             call    p127_host_debug_char
+151+  6151 3E 0D                ld      a,13
+152+  6153 CD 9E 61             call    p127_host_debug_char
+153+  6156 3E 0A                ld      a,10
+154+  6158 CD 9E 61             call    p127_host_debug_char
+155+  615B 7A                   ld      a,d
+156+  615C FE 04                cp      4
+157+  615E 20 3A                jr      nz,p127_host_idle
+158+  6160 21 1E 65             ld      hl,p127_host_diag_offset
+159+  6163 CD D2 61             call    p127_host_debug_string
+160+  6166 21 8E A0             ld      hl,p127_range_offset
+161+  6169 CD A4 61             call    p127_host_debug_hex4
+162+  616C 21 27 65             ld      hl,p127_host_diag_length_pre
+163+  616F CD D2 61             call    p127_host_debug_string
+164+  6172 21 9E A0             ld      hl,atm_mem_test4_length_snapshot
+165+  6175 CD A4 61             call    p127_host_debug_hex4
+166+  6178 21 34 65             ld      hl,p127_host_diag_length
+167+  617B CD D2 61             call    p127_host_debug_string
+168+  617E 21 92 A0             ld      hl,p127_range_length
+169+  6181 CD A4 61             call    p127_host_debug_hex4
+170+  6184 21 42 65             ld      hl,p127_host_diag_capacity
+171+  6187 CD D2 61             call    p127_host_debug_string
+172+  618A 21 96 A0             ld      hl,p127_range_capacity
+173+  618D CD A4 61             call    p127_host_debug_hex4
+174+  6190 3E 0D                ld      a,13
+175+  6192 CD 9E 61             call    p127_host_debug_char
+176+  6195 3E 0A                ld      a,10
+177+  6197 CD 9E 61             call    p127_host_debug_char
+178+  619A              p127_host_idle:
+179+  619A 76                   halt
+180+  619B C3 9A 61             jp      p127_host_idle
+181+  619E
+182+  619E              p127_host_debug_char:
+183+  619E 01 EF 00             ld      bc,#00EF
+184+  61A1 ED 79                out     (c),a
+185+  61A3 C9                   ret
+186+  61A4
+187+  61A4              p127_host_debug_hex4:
+188+  61A4 7E                   ld      a,(hl)
+189+  61A5 CD B8 61             call    p127_host_debug_hex_byte
+190+  61A8 23                   inc     hl
+191+  61A9 7E                   ld      a,(hl)
+192+  61AA CD B8 61             call    p127_host_debug_hex_byte
+193+  61AD 23                   inc     hl
+194+  61AE 7E                   ld      a,(hl)
+195+  61AF CD B8 61             call    p127_host_debug_hex_byte
+196+  61B2 23                   inc     hl
+197+  61B3 7E                   ld      a,(hl)
+198+  61B4 CD B8 61             call    p127_host_debug_hex_byte
+199+  61B7 C9                   ret
+200+  61B8
+201+  61B8              p127_host_debug_hex_byte:
+202+  61B8 F5                   push    af
+203+  61B9 0F                   rrca
+204+  61BA 0F                   rrca
+205+  61BB 0F                   rrca
+206+  61BC 0F                   rrca
+207+  61BD E6 0F                and     #0F
+208+  61BF CD C5 61             call    p127_host_debug_hex_nibble
+209+  61C2 F1                   pop     af
+210+  61C3 E6 0F                and     #0F
+211+  61C5              p127_host_debug_hex_nibble:
+212+  61C5 FE 0A                cp      10
+213+  61C7 DA CE 61             jp      c,p127_host_debug_hex_digit
+214+  61CA C6 37                add     a,'A'-10
+215+  61CC 18 D0                jr      p127_host_debug_char
+216+  61CE              p127_host_debug_hex_digit:
+217+  61CE C6 30                add     a,'0'
+218+  61D0 18 CC                jr      p127_host_debug_char
+219+  61D2
+220+  61D2              p127_host_debug_string:
+221+  61D2 E5                   push    hl
+222+  61D3 3A EA 61             ld      a,(p127_host_console_ready)
+223+  61D6 B7                   or      a
+224+  61D7 28 05                jr      z,.debug_no_screen
+225+  61D9 E1                   pop     hl
+226+  61DA E5                   push    hl
+227+  61DB CD 42 C1             call    P127_DebugConsole_String
+228+  61DE              .debug_no_screen:
+229+  61DE E1                   pop     hl
+230+  61DF              .debug_serial:
+231+  61DF 7E                   ld      a,(hl)
+232+  61E0 B7                   or      a
+233+  61E1 C8                   ret     z
+234+  61E2 01 EF 00             ld      bc,#00EF
+235+  61E5 ED 79                out     (c),a
+236+  61E7 23                   inc     hl
+237+  61E8 18 F5                jr      .debug_serial
+238+  61EA
+239+  61EA 00           p127_host_console_ready: db 0
+240+  61EB              p127_host_banner:
+241+  61EB 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.17.0",13,10
+241+  61EF 37 5D 20 41
+241+  61F3 54 4D 20 48
+241+  61F7 4F 53 54 20
+241+  61FB 45 4E 54 52
+241+  61FF 59 20 76 30
+241+  6203 2E 31 37 2E
+241+  6207 30 0D 0A
+242+  620A 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
+242+  620E 37 5D 20 54
+242+  6212 52 2D 44 4F
+242+  6216 53 20 42 4F
+242+  621A 4F 54 20 4F
+242+  621E 4B 0D 0A
+243+  6221 5B 50 31 32          db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
+243+  6225 37 5D 20 41
+243+  6229 54 4D 20 52
+243+  622D 41 4D 20 52
+243+  6231 41 4E 47 45
+243+  6235 20 43 4F 52
+243+  6239 45 20 31 20
+243+  623D 4D 69 42 0D
+243+  6241 0A 00
+244+  6243              p127_host_trdos_deferred:
+245+  6243 5B 50 31 32          db "[P127] TR-DOS LIVE CATALOG DEFERRED",13,10,0
+245+  6247 37 5D 20 54
+245+  624B 52 2D 44 4F
+245+  624F 53 20 4C 49
+245+  6253 56 45 20 43
+245+  6257 41 54 41 4C
+245+  625B 4F 47 20 44
+245+  625F 45 46 45 52
+245+  6263 52 45 44 0D
+245+  6267 0A 00
+246+  6269              p127_host_hdd_deferred:
+247+  6269 5B 50 31 32          db "[P127] HDD PROBE DEFERRED - PORT MAP NOT VALIDATED",13,10,0
+247+  626D 37 5D 20 48
+247+  6271 44 44 20 50
+247+  6275 52 4F 42 45
+247+  6279 20 44 45 46
+247+  627D 45 52 52 45
+247+  6281 44 20 2D 20
+247+  6285 50 4F 52 54
+247+  6289 20 4D 41 50
+247+  628D 20 4E 4F 54
+247+  6291 20 56 41 4C
+247+  6295 49 44 41 54
+247+  6299 45 44 0D 0A
+247+  629D 00
+248+  629E              p127_host_range_ok:
+249+  629E 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
+249+  62A2 37 5D 20 55
+249+  62A6 49 4E 54 33
+249+  62AA 32 20 52 41
+249+  62AE 4E 47 45 20
+249+  62B2 53 45 4C 46
+249+  62B6 54 45 53 54
+249+  62BA 20 50 41 53
+249+  62BE 53 0D 0A 00
+250+  62C2              p127_host_allocator_ok:
+251+  62C2 5B 50 31 32          db "[P127] ATM PAGE ALLOCATOR SELFTEST PASS",13,10,0
+251+  62C6 37 5D 20 41
+251+  62CA 54 4D 20 50
+251+  62CE 41 47 45 20
+251+  62D2 41 4C 4C 4F
+251+  62D6 43 41 54 4F
+251+  62DA 52 20 53 45
+251+  62DE 4C 46 54 45
+251+  62E2 53 54 20 50
+251+  62E6 41 53 53 0D
+251+  62EA 0A 00
+252+  62EC              p127_host_ops_ok:
+253+  62EC 5B 50 31 32          db "[P127] ATM MEMORY OPS SELFTEST PASS",13,10,0
+253+  62F0 37 5D 20 41
+253+  62F4 54 4D 20 4D
+253+  62F8 45 4D 4F 52
+253+  62FC 59 20 4F 50
+253+  6300 53 20 53 45
+253+  6304 4C 46 54 45
+253+  6308 53 54 20 50
+253+  630C 41 53 53 0D
+253+  6310 0A 00
+254+  6312              p127_host_scatter_ok:
+255+  6312 5B 50 31 32          db "[P127] ATM SCATTER HANDLE SELFTEST PASS",13,10,0
+255+  6316 37 5D 20 41
+255+  631A 54 4D 20 53
+255+  631E 43 41 54 54
+255+  6322 45 52 20 48
+255+  6326 41 4E 44 4C
+255+  632A 45 20 53 45
+255+  632E 4C 46 54 45
+255+  6332 53 54 20 50
+255+  6336 41 53 53 0D
+255+  633A 0A 00
+256+  633C              p127_host_handle_ops_ok:
+257+  633C 5B 50 31 32          db "[P127] ATM HANDLE OPS SELFTEST PASS",13,10,0
+257+  6340 37 5D 20 41
+257+  6344 54 4D 20 48
+257+  6348 41 4E 44 4C
+257+  634C 45 20 4F 50
+257+  6350 53 20 53 45
+257+  6354 4C 46 54 45
+257+  6358 53 54 20 50
+257+  635C 41 53 53 0D
+257+  6360 0A 00
+258+  6362              p127_host_trdos_ok:
+259+  6362 5B 50 31 32          db "[P127] TR-DOS CATALOG CORE SELFTEST PASS",13,10,0
+259+  6366 37 5D 20 54
+259+  636A 52 2D 44 4F
+259+  636E 53 20 43 41
+259+  6372 54 41 4C 4F
+259+  6376 47 20 43 4F
+259+  637A 52 45 20 53
+259+  637E 45 4C 46 54
+259+  6382 45 53 54 20
+259+  6386 50 41 53 53
+259+  638A 0D 0A 00
+260+  638D              p127_host_trdos_error:
+261+  638D 5B 50 31 32          db "[P127] TR-DOS CATALOG CORE SELFTEST FAIL STEP=0x",0
+261+  6391 37 5D 20 54
+261+  6395 52 2D 44 4F
+261+  6399 53 20 43 41
+261+  639D 54 41 4C 4F
+261+  63A1 47 20 43 4F
+261+  63A5 52 45 20 53
+261+  63A9 45 4C 46 54
+261+  63AD 45 53 54 20
+261+  63B1 46 41 49 4C
+261+  63B5 20 53 54 45
+261+  63B9 50 3D 30 78
+261+  63BD 00
+262+  63BE              p127_host_pin_ok:
+263+  63BE 5B 50 31 32          db "[P127] ATM HANDLE PIN/UNPIN SELFTEST PASS",13,10,0
+263+  63C2 37 5D 20 41
+263+  63C6 54 4D 20 48
+263+  63CA 41 4E 44 4C
+263+  63CE 45 20 50 49
+263+  63D2 4E 2F 55 4E
+263+  63D6 50 49 4E 20
+263+  63DA 53 45 4C 46
+263+  63DE 54 45 53 54
+263+  63E2 20 50 41 53
+263+  63E6 53 0D 0A 00
+264+  63EA              p127_host_pin_error:
+265+  63EA 5B 50 31 32          db "[P127] ATM HANDLE PIN/UNPIN SELFTEST FAIL STEP=0x",0
+265+  63EE 37 5D 20 41
+265+  63F2 54 4D 20 48
+265+  63F6 41 4E 44 4C
+265+  63FA 45 20 50 49
+265+  63FE 4E 2F 55 4E
+265+  6402 50 49 4E 20
+265+  6406 53 45 4C 46
+265+  640A 54 45 53 54
+265+  640E 20 46 41 49
+265+  6412 4C 20 53 54
+265+  6416 45 50 3D 30
+265+  641A 78 00
+266+  641C              p127_host_handle_ops_error:
+267+  641C 5B 50 31 32          db "[P127] ATM HANDLE OPS SELFTEST FAIL STEP=0x",0
+267+  6420 37 5D 20 41
+267+  6424 54 4D 20 48
+267+  6428 41 4E 44 4C
+267+  642C 45 20 4F 50
+267+  6430 53 20 53 45
+267+  6434 4C 46 54 45
+267+  6438 53 54 20 46
+267+  643C 41 49 4C 20
+267+  6440 53 54 45 50
+267+  6444 3D 30 78 00
+268+  6448              p127_host_scatter_error:
+269+  6448 5B 50 31 32          db "[P127] ATM SCATTER HANDLE SELFTEST FAIL STEP=0x",0
+269+  644C 37 5D 20 41
+269+  6450 54 4D 20 53
+269+  6454 43 41 54 54
+269+  6458 45 52 20 48
+269+  645C 41 4E 44 4C
+269+  6460 45 20 53 45
+269+  6464 4C 46 54 45
+269+  6468 53 54 20 46
+269+  646C 41 49 4C 20
+269+  6470 53 54 45 50
+269+  6474 3D 30 78 00
+270+  6478              p127_host_ops_error:
+271+  6478 5B 50 31 32          db "[P127] ATM MEMORY OPS SELFTEST FAIL STEP=0x",0
+271+  647C 37 5D 20 41
+271+  6480 54 4D 20 4D
+271+  6484 45 4D 4F 52
+271+  6488 59 20 4F 50
+271+  648C 53 20 53 45
+271+  6490 4C 46 54 45
+271+  6494 53 54 20 46
+271+  6498 41 49 4C 20
+271+  649C 53 54 45 50
+271+  64A0 3D 30 78 00
+272+  64A4              p127_host_allocator_error:
+273+  64A4 5B 50 31 32          db "[P127] ATM PAGE ALLOCATOR SELFTEST FAIL",0
+273+  64A8 37 5D 20 41
+273+  64AC 54 4D 20 50
+273+  64B0 41 47 45 20
+273+  64B4 41 4C 4C 4F
+273+  64B8 43 41 54 4F
+273+  64BC 52 20 53 45
+273+  64C0 4C 46 54 45
+273+  64C4 53 54 20 46
+273+  64C8 41 49 4C 00
+274+  64CC              p127_host_allocator_stage:
+275+  64CC 20 53 54 45          db " STEP=0x",0
+275+  64D0 50 3D 30 78
+275+  64D4 00
+276+  64D5              p127_host_allocator_error_nl:
+277+  64D5 0D 0A 00             db 13,10,0
+278+  64D8              p127_host_memory_init_error:
+279+  64D8 5B 50 31 32          db "[P127] ATM MEMORY INIT FAIL",13,10,0
+279+  64DC 37 5D 20 41
+279+  64E0 54 4D 20 4D
+279+  64E4 45 4D 4F 52
+279+  64E8 59 20 49 4E
+279+  64EC 49 54 20 46
+279+  64F0 41 49 4C 0D
+279+  64F4 0A 00
+280+  64F6              p127_host_range_error:
+281+  64F6 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST FAIL TEST ",0
+281+  64FA 37 5D 20 55
+281+  64FE 49 4E 54 33
+281+  6502 32 20 52 41
+281+  6506 4E 47 45 20
+281+  650A 53 45 4C 46
+281+  650E 54 45 53 54
+281+  6512 20 46 41 49
+281+  6516 4C 20 54 45
+281+  651A 53 54 20 00
+282+  651E              p127_host_diag_offset:
+283+  651E 20 4F 46 46          db " OFFSET=",0
+283+  6522 53 45 54 3D
+283+  6526 00
+284+  6527              p127_host_diag_length_pre:
+285+  6527 20 4C 45 4E          db " LENGTH_PRE=",0
+285+  652B 47 54 48 5F
+285+  652F 50 52 45 3D
+285+  6533 00
+286+  6534              p127_host_diag_length:
+287+  6534 20 4C 45 4E          db " LENGTH_POST=",0
+287+  6538 47 54 48 5F
+287+  653C 50 4F 53 54
+287+  6540 3D 00
+288+  6542              p127_host_diag_capacity:
+289+  6542 20 43 41 50          db " CAPACITY=",0
+289+  6546 41 43 49 54
+289+  654A 59 3D 00
+290+  654D
+291+  654D              p127_host_program_end:
+292+  654D                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
+293+  654D                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
+294+  654D                      ASSERT p127_host_program_end <= #8000
+295+  654D
 # file closed: p127_host.asm
- 12   6515
- 13   6515                      ; TR-DOS catalog core at 8000h; UI remains at A000h.
- 14   6515                      PAGE 0
- 15   6515                      ORG #8000
+ 12   654D
+ 13   654D                      ; TR-DOS catalog core at 8000h; UI remains at A000h.
+ 14   654D                      PAGE 0
+ 15   654D                      ORG #8000
  16   8000                      INCLUDE "drivers/atm/atm_trdos_service.asm"
 # file opened: atm_trdos_service.asm
   1+  8000              ; =========================================================================
@@ -685,7 +701,7 @@
 182+  80FB              P127_TRDOS_DumpCatalog:
 182+  80FB
 183+  80FB 21 25 82             ld      hl,p127_trdos_log_read
-184+  80FE CD CF 61             call    p127_host_debug_string
+184+  80FE CD D2 61             call    p127_host_debug_string
 185+  8101 AF                   xor     a
 186+  8102 32 19 5D             ld      (#5D19),a
 187+  8105 32 F6 5C             ld      (#5CF6),a
@@ -712,7 +728,7 @@
 208+  8132 20 F5                jr      nz,p127_trdos_wait_done
 209+  8134 CD 51 C2             call    P127_Console_Restore
 210+  8137 21 B2 82             ld      hl,p127_trdos_log_timeout
-211+  813A C3 CF 61             jp      p127_host_debug_string
+211+  813A C3 D2 61             jp      p127_host_debug_string
 212+  813D              p127_trdos_catalog_read_done:
 213+  813D CD 51 C2             call    P127_Console_Restore
 214+  8140 21 00 C8             ld      hl,#C800
@@ -720,29 +736,29 @@
 216+  8146 CD 00 80             call    p127_trdos_catalog_begin
 217+  8149 38 32                jr      c,p127_trdos_catalog_dump_error
 218+  814B 21 44 82             ld      hl,p127_trdos_log_header
-219+  814E CD CF 61             call    p127_host_debug_string
+219+  814E CD D2 61             call    p127_host_debug_string
 220+  8151              p127_trdos_catalog_dump_next:
 221+  8151 CD 22 80             call    p127_trdos_catalog_next
 222+  8154 38 1E                jr      c,p127_trdos_catalog_dump_end
 223+  8156 22 0B 82             ld      (p127_trdos_dump_entry),hl
 224+  8159 CD 83 81             call    p127_trdos_format_entry
 225+  815C 21 5D 82             ld      hl,p127_trdos_log_file
-226+  815F CD CF 61             call    p127_host_debug_string
+226+  815F CD D2 61             call    p127_host_debug_string
 227+  8162 21 15 82             ld      hl,p127_trdos_dump_name
-228+  8165 CD CF 61             call    p127_host_debug_string
+228+  8165 CD D2 61             call    p127_host_debug_string
 229+  8168 3E 0D                ld      a,13
-230+  816A CD 9B 61             call    p127_host_debug_char
+230+  816A CD 9E 61             call    p127_host_debug_char
 231+  816D 3E 0A                ld      a,10
-232+  816F CD 9B 61             call    p127_host_debug_char
+232+  816F CD 9E 61             call    p127_host_debug_char
 233+  8172 18 DD                jr      p127_trdos_catalog_dump_next
 234+  8174              p127_trdos_catalog_dump_end:
 235+  8174 B7                   or      a
 236+  8175 20 06                jr      nz,p127_trdos_catalog_dump_error
 237+  8177 21 70 82             ld      hl,p127_trdos_log_pass
-238+  817A C3 CF 61             jp      p127_host_debug_string
+238+  817A C3 D2 61             jp      p127_host_debug_string
 239+  817D              p127_trdos_catalog_dump_error:
 240+  817D 21 91 82             ld      hl,p127_trdos_log_fail
-241+  8180 C3 CF 61             jp      p127_host_debug_string
+241+  8180 C3 D2 61             jp      p127_host_debug_string
 242+  8183
 243+  8183              ; HL points to a validated 16-byte TR-DOS descriptor.
 244+  8183              ; Output: p127_trdos_dump_name = trimmed 8-char name + '.' + type.
@@ -1591,14 +1607,14 @@
 627+  94BD              p127_video_host_fail_handler:
 628+  94BD 57                   ld d,a
 629+  94BE 21 8A 94             ld hl,p127_host_video_error
-630+  94C1 CD CF 61             call p127_host_debug_string
+630+  94C1 CD D2 61             call p127_host_debug_string
 631+  94C4 7A                   ld a,d
-632+  94C5 CD B5 61             call p127_host_debug_hex_byte
+632+  94C5 CD B8 61             call p127_host_debug_hex_byte
 633+  94C8 3E 0D                ld a,13
-634+  94CA CD 9B 61             call p127_host_debug_char
+634+  94CA CD 9E 61             call p127_host_debug_char
 635+  94CD 3E 0A                ld a,10
-636+  94CF CD 9B 61             call p127_host_debug_char
-637+  94D2 C3 97 61             jp p127_host_idle
+636+  94CF CD 9E 61             call p127_host_debug_char
+637+  94D2 C3 9A 61             jp p127_host_idle
 638+  94D5
 639+  94D5              p127_atm_video_service_end:
 640+  94D5                      ASSERT p127_atm_video_service_end<=#9800
@@ -1855,27 +1871,27 @@
 239+  9943 CD 1A 99             call P127_RTC_SelfTest
 240+  9946 38 6E                jr c,p127_rtc_start_format_fail
 241+  9948 21 8B 9B             ld hl,p127_rtc_log_selftest
-242+  994B CD CF 61             call p127_host_debug_string
+242+  994B CD D2 61             call p127_host_debug_string
 243+  994E CD 00 98             call P127_RTC_Init
 244+  9951 38 5C                jr c,p127_rtc_start_unavailable
 245+  9953 3A A6 9A             ld a,(p127_rtc_backend)
 246+  9956 B7                   or a
 247+  9957 20 08                jr nz,p127_rtc_start_smuc
 248+  9959 21 BB 9A             ld hl,p127_rtc_log_gluk
-249+  995C CD CF 61             call p127_host_debug_string
+249+  995C CD D2 61             call p127_host_debug_string
 250+  995F 18 06                jr p127_rtc_start_available_log
 251+  9961              p127_rtc_start_smuc:
 252+  9961 21 D5 9A             ld hl,p127_rtc_log_smuc
-253+  9964 CD CF 61             call p127_host_debug_string
+253+  9964 CD D2 61             call p127_host_debug_string
 254+  9967              p127_rtc_start_available_log:
 255+  9967 21 EF 9A             ld hl,p127_rtc_log_available
-256+  996A CD CF 61             call p127_host_debug_string
+256+  996A CD D2 61             call p127_host_debug_string
 257+  996D CD AF 98             call P127_RTC_RuntimeSelfTest
 258+  9970 38 36                jr c,p127_rtc_start_runtime_fail
 259+  9972 21 0E 9B             ld hl,p127_rtc_log_runtime_pass
-260+  9975 CD CF 61             call p127_host_debug_string
+260+  9975 CD D2 61             call p127_host_debug_string
 261+  9978 21 58 9B             ld hl,p127_rtc_log_time
-262+  997B CD CF 61             call p127_host_debug_string
+262+  997B CD D2 61             call p127_host_debug_string
 263+  997E 3A AF 9A             ld a,(p127_rtc_last_hour)
 264+  9981 21 B2 9A             ld hl,p127_rtc_time_buffer
 265+  9984 CD 04 99             call P127_RTC_Format2
@@ -1888,23 +1904,23 @@
 272+  9993 23                   inc hl
 273+  9994 CD 04 99             call P127_RTC_Format2
 274+  9997 21 B2 9A             ld hl,p127_rtc_time_buffer
-275+  999A CD CF 61             call p127_host_debug_string
+275+  999A CD D2 61             call p127_host_debug_string
 276+  999D 3E 0D                ld a,13
-277+  999F CD 9B 61             call p127_host_debug_char
+277+  999F CD 9E 61             call p127_host_debug_char
 278+  99A2 3E 0A                ld a,10
-279+  99A4 CD 9B 61             call p127_host_debug_char
+279+  99A4 CD 9E 61             call p127_host_debug_char
 280+  99A7 C9                   ret
 281+  99A8              p127_rtc_start_runtime_fail:
 282+  99A8 21 33 9B             ld hl,p127_rtc_log_runtime_fail
-283+  99AB CD CF 61             call p127_host_debug_string
+283+  99AB CD D2 61             call p127_host_debug_string
 284+  99AE C9                   ret
 285+  99AF              p127_rtc_start_unavailable:
 286+  99AF 21 69 9B             ld hl,p127_rtc_log_unavailable
-287+  99B2 CD CF 61             call p127_host_debug_string
+287+  99B2 CD D2 61             call p127_host_debug_string
 288+  99B5 C9                   ret
 289+  99B6              p127_rtc_start_format_fail:
 290+  99B6 21 AD 9B             ld hl,p127_rtc_log_selftest_fail
-291+  99B9 C3 CF 61             jp p127_host_debug_string
+291+  99B9 C3 D2 61             jp p127_host_debug_string
 292+  99BC
 293+  99BC              p127_host_ui_ready:
 294+  99BC 5B 50 31 32          db "[P127] PROJECT127 HOST CONSOLE READY",13,10,0
@@ -5271,9 +5287,9 @@
  33+  C400 AF                   xor     a
  34+  C401 32 CF C5             ld      (p127_storage_available),a
  35+  C404 21 DA C7             ld      hl,p127_storage_log_select
- 36+  C407 CD CF 61             call    p127_host_debug_string
+ 36+  C407 CD D2 61             call    p127_host_debug_string
  37+  C40A 21 FB C7             ld      hl,p127_storage_log_wait_ready
- 38+  C40D CD CF 61             call    p127_host_debug_string
+ 38+  C40D CD D2 61             call    p127_host_debug_string
  39+  C410                      ; Match the proven Project127/0 sequence: select Master and poll
  40+  C410                      ; immediately. Do not run console/debug code between these operations.
  41+  C410 3E E0                ld      a,#E0                 ; master, LBA mode
@@ -5283,27 +5299,27 @@
  45+  C41A 30 19                jr      nc,p127_storage_start_ready
  46+  C41C F5                   push    af
  47+  C41D 21 19 C8             ld      hl,p127_storage_log_status
- 48+  C420 CD CF 61             call    p127_host_debug_string
+ 48+  C420 CD D2 61             call    p127_host_debug_string
  49+  C423 3A D0 C5             ld      a,(p127_storage_last_status)
- 50+  C426 CD B5 61             call    p127_host_debug_hex_byte
+ 50+  C426 CD B8 61             call    p127_host_debug_hex_byte
  51+  C429 3E 0D                ld      a,13
- 52+  C42B CD 9B 61             call    p127_host_debug_char
+ 52+  C42B CD 9E 61             call    p127_host_debug_char
  53+  C42E 3E 0A                ld      a,10
- 54+  C430 CD 9B 61             call    p127_host_debug_char
+ 54+  C430 CD 9E 61             call    p127_host_debug_char
  55+  C433 F1                   pop     af
  56+  C434 C9                   ret
  57+  C435              p127_storage_start_ready:
  58+  C435 21 32 C8             ld      hl,p127_storage_log_ready_status
- 59+  C438 CD CF 61             call    p127_host_debug_string
+ 59+  C438 CD D2 61             call    p127_host_debug_string
  60+  C43B 3E EC                ld      a,#EC                 ; IDENTIFY DEVICE
  61+  C43D 01 EF FE             ld      bc,P127_NEMO_STATUS_CMD
  62+  C440 ED 79                out     (c),a
  63+  C442 21 52 C8             ld      hl,p127_storage_log_identify
- 64+  C445 CD CF 61             call    p127_host_debug_string
+ 64+  C445 CD D2 61             call    p127_host_debug_string
  65+  C448 CD 4F C5             call    p127_storage_wait_drq
  66+  C44B D8                   ret     c
  67+  C44C 21 73 C8             ld      hl,p127_storage_log_drq
- 68+  C44F CD CF 61             call    p127_host_debug_string
+ 68+  C44F CD D2 61             call    p127_host_debug_string
  69+  C452 DD 21 DA C5          ld      ix,p127_storage_identify
  70+  C456 CD 85 C5             call    p127_storage_read_256_words
  71+  C459 D8                   ret     c
@@ -5659,22 +5675,22 @@
  25+  D000              ; Combined storage + filesystem startup is kept outside the 8 KiB host image.
  26+  D000              P127_StorageAndFAT16_Startup:
  27+  D000 21 9F D5             ld      hl,p127_fat16_log_probe_start
- 28+  D003 CD CF 61             call    p127_host_debug_string
+ 28+  D003 CD D2 61             call    p127_host_debug_string
  29+  D006 CD 00 C4             call    P127_Storage_Startup
  30+  D009 38 14                jr      c,p127_fat16_storage_missing
  31+  D00B 21 93 C8             ld      hl,p127_storage_log_ready
- 32+  D00E CD CF 61             call    p127_host_debug_string
+ 32+  D00E CD D2 61             call    p127_host_debug_string
  33+  D011 CD 2B D0             call    P127_FAT16_Mount
  34+  D014 38 0F                jr      c,p127_fat16_mount_missing
  35+  D016 21 C0 D5             ld      hl,p127_fat16_log_mounted
- 36+  D019 CD CF 61             call    p127_host_debug_string
+ 36+  D019 CD D2 61             call    p127_host_debug_string
  37+  D01C C3 A0 D1             jp      P127_FAT16_DumpRootDirectory
  38+  D01F              p127_fat16_storage_missing:
  39+  D01F 21 BD C8             ld      hl,p127_storage_log_missing
- 40+  D022 C3 CF 61             jp      p127_host_debug_string
+ 40+  D022 C3 D2 61             jp      p127_host_debug_string
  41+  D025              p127_fat16_mount_missing:
  42+  D025 21 E4 D5             ld      hl,p127_fat16_log_failed
- 43+  D028 C3 CF 61             jp      p127_host_debug_string
+ 43+  D028 C3 D2 61             jp      p127_host_debug_string
  44+  D02B
  45+  D02B              P127_FAT16_Mount:
  46+  D02B AF                   xor     a
@@ -5873,7 +5889,7 @@
 239+  D1A0              ; -------------------------------------------------------------------------
 240+  D1A0              P127_FAT16_DumpRootDirectory:
 241+  D1A0 21 CB D2             ld      hl,p127_fat16_log_list_start
-242+  D1A3 CD CF 61             call    p127_host_debug_string
+242+  D1A3 CD D2 61             call    p127_host_debug_string
 243+  D1A6 AF                   xor     a
 244+  D1A7 32 B0 D2             ld      (p127_fat16_scan_sector),a
 245+  D1AA 32 B1 D2             ld      (p127_fat16_scan_sector+1),a
@@ -5916,13 +5932,13 @@
 282+  D1F1 20 24                jr      nz,p127_fat16_dump_skip
 283+  D1F3 CD 3D D2             call    p127_fat16_format_entry
 284+  D1F6 21 ED D2             ld      hl,p127_fat16_log_file
-285+  D1F9 CD CF 61             call    p127_host_debug_string
+285+  D1F9 CD D2 61             call    p127_host_debug_string
 286+  D1FC 21 B7 D2             ld      hl,p127_fat16_dump_name
-287+  D1FF CD CF 61             call    p127_host_debug_string
+287+  D1FF CD D2 61             call    p127_host_debug_string
 288+  D202 3E 0D                ld      a,13
-289+  D204 CD 9B 61             call    p127_host_debug_char
+289+  D204 CD 9E 61             call    p127_host_debug_char
 290+  D207 3E 0A                ld      a,10
-291+  D209 CD 9B 61             call    p127_host_debug_char
+291+  D209 CD 9E 61             call    p127_host_debug_char
 292+  D20C 3A B2 D2             ld      a,(p127_fat16_dump_count)
 293+  D20F 3C                   inc     a
 294+  D210 32 B2 D2             ld      (p127_fat16_dump_count),a
@@ -5940,13 +5956,13 @@
 306+  D229 18 85                jr      p127_fat16_dump_sector
 307+  D22B              p127_fat16_dump_pass:
 308+  D22B 21 FE D2             ld      hl,p127_fat16_log_list_pass
-309+  D22E C3 CF 61             jp      p127_host_debug_string
+309+  D22E C3 D2 61             jp      p127_host_debug_string
 310+  D231              p127_fat16_dump_truncated:
 311+  D231 21 24 D3             ld      hl,p127_fat16_log_list_truncated
-312+  D234 C3 CF 61             jp      p127_host_debug_string
+312+  D234 C3 D2 61             jp      p127_host_debug_string
 313+  D237              p127_fat16_dump_read_fail:
 314+  D237 21 53 D3             ld      hl,p127_fat16_log_list_read_fail
-315+  D23A C3 CF 61             jp      p127_host_debug_string
+315+  D23A C3 D2 61             jp      p127_host_debug_string
 316+  D23D
 317+  D23D              ; IX points to one 32-byte FAT16 directory entry.
 318+  D23D              ; Formats trimmed 8.3 names and appends " <DIR>" for directories.
@@ -6686,55 +6702,56 @@ Value    Label
 0xD387   p127_fat16_sectors_per_fat
 0xD01F   p127_fat16_storage_missing
 0x0100 X P127_FAT16_VERSION
-0x646C   p127_host_allocator_error
-0x649D X p127_host_allocator_error_nl
-0x6123   p127_host_allocator_fail
-0x628A   p127_host_allocator_ok
-0x6494   p127_host_allocator_stage
-0x61E8   p127_host_banner
-0x61E7   p127_host_console_ready
-0x619B   p127_host_debug_char
-0x61A1   p127_host_debug_hex4
-0x61B5   p127_host_debug_hex_byte
-0x61CB   p127_host_debug_hex_digit
-0x61C2   p127_host_debug_hex_nibble
-0x61CF   p127_host_debug_string
-0x61DB   p127_host_debug_string.debug_no_screen
-0x61DC   p127_host_debug_string.debug_serial
-0x650A   p127_host_diag_capacity
-0x64FC   p127_host_diag_length
-0x64EF   p127_host_diag_length_pre
-0x64E6   p127_host_diag_offset
+0x64A4   p127_host_allocator_error
+0x64D5 X p127_host_allocator_error_nl
+0x6126   p127_host_allocator_fail
+0x62C2   p127_host_allocator_ok
+0x64CC   p127_host_allocator_stage
+0x61EB   p127_host_banner
+0x61EA   p127_host_console_ready
+0x619E   p127_host_debug_char
+0x61A4   p127_host_debug_hex4
+0x61B8   p127_host_debug_hex_byte
+0x61CE   p127_host_debug_hex_digit
+0x61C5   p127_host_debug_hex_nibble
+0x61D2   p127_host_debug_string
+0x61DE   p127_host_debug_string.debug_no_screen
+0x61DF   p127_host_debug_string.debug_serial
+0x6542   p127_host_diag_capacity
+0x6534   p127_host_diag_length
+0x6527   p127_host_diag_length_pre
+0x651E   p127_host_diag_offset
 0x6009   p127_host_entry
 0x6009   P127_HOST_ENTRY_POINT
-0x63E4   p127_host_handle_ops_error
-0x60A2   p127_host_handle_ops_fail
-0x6304   p127_host_handle_ops_ok
-0x6197   p127_host_idle
+0x641C   p127_host_handle_ops_error
+0x60A5   p127_host_handle_ops_fail
+0x633C   p127_host_handle_ops_ok
+0x6269   p127_host_hdd_deferred
+0x619A   p127_host_idle
 0x6000   P127_HOST_LOAD_ADDRESS
-0x64A0   p127_host_memory_init_error
-0x611A   p127_host_memory_init_fail
-0x6440   p127_host_ops_error
-0x6102   p127_host_ops_fail
-0x62B4   p127_host_ops_ok
+0x64D8   p127_host_memory_init_error
+0x611D   p127_host_memory_init_fail
+0x6478   p127_host_ops_error
+0x6105   p127_host_ops_fail
+0x62EC   p127_host_ops_ok
 0x007F   P127_HOST_PAGE0
 0x007A   P127_HOST_PAGE5
-0x63B2   p127_host_pin_error
-0x60D2   p127_host_pin_fail
-0x6386   p127_host_pin_ok
-0x6515   p127_host_program_end
+0x63EA   p127_host_pin_error
+0x60D5   p127_host_pin_fail
+0x63BE   p127_host_pin_ok
+0x654D   p127_host_program_end
 0x6000   p127_host_program_start
-0x64BE   p127_host_range_error
-0x6141   p127_host_range_fail
-0x6266   p127_host_range_ok
-0x6410   p127_host_scatter_error
-0x60EA   p127_host_scatter_fail
-0x62DA   p127_host_scatter_ok
+0x64F6   p127_host_range_error
+0x6144   p127_host_range_fail
+0x629E   p127_host_range_ok
+0x6448   p127_host_scatter_error
+0x60ED   p127_host_scatter_fail
+0x6312   p127_host_scatter_ok
 0x9FFF   P127_HOST_STACK_TOP
-0x6240   p127_host_trdos_deferred
-0x6355   p127_host_trdos_error
-0x60BA   p127_host_trdos_fail
-0x632A   p127_host_trdos_ok
+0x6243   p127_host_trdos_deferred
+0x638D   p127_host_trdos_error
+0x60BD   p127_host_trdos_fail
+0x6362   p127_host_trdos_ok
 0x99BC   p127_host_ui_ready
 0x945A   p127_host_video_buffers_ok
 0x948A   p127_host_video_error
@@ -6876,7 +6893,7 @@ Value    Label
 0xC5A3   p127_storage_write_256_words
 0xC5A6   p127_storage_write_256_words.write_word
 0xC49F X P127_Storage_WriteSector
-0xD000   P127_StorageAndFAT16_Startup
+0xD000 X P127_StorageAndFAT16_Startup
 0x8019   p127_trdos_catalog_bad_length
 0x8000   p127_trdos_catalog_begin
 0x8081   p127_trdos_catalog_count
