@@ -62,8 +62,6 @@ p127_host_entry:
         ld      a,1
         ld      (p127_host_console_ready),a
         call    P127_RTC_Startup
-        ld      hl,p127_host_hdd_start
-        call    p127_host_debug_string
         call    P127_StorageAndFAT16_Startup
         ld      hl,p127_host_ui_ready
         call    p127_host_debug_string
@@ -236,8 +234,6 @@ p127_host_debug_string:
         jr      .debug_serial
 
 p127_host_console_ready: db 0
-p127_host_hdd_start:
-        db "[P127] HDD STARTUP ENTER",13,10,0
 p127_host_banner:
         db "[P127] ATM HOST ENTRY v0.16.0",13,10
         db "[P127] TR-DOS BOOT OK",13,10
