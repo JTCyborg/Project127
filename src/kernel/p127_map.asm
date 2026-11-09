@@ -4,7 +4,6 @@
 ; No hardware OUT instructions are permitted in this stage.
 ; ============================================================================
 P127_MAP_VERSION_MAJOR EQU 0
-P127_MAP_VERSION_MINOR EQU 1
 P127_MAP_VERSION_MINOR EQU 2
 P127_MAP_VERSION_PATCH EQU 0
 
