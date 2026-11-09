@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.71**  
+Scenario revision: **0.8.72**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -28,7 +28,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | **SOFTWARE PREFLIGHT + MAP TRANSACTION RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0, P4 table-slot preflight v0.3.0, map transaction v0.3.0 | Implement resident interrupt-entry/return and controlled physical W3 mapping. Physical remap remains blocked; independent physical stack backing and IFF/IM/vector handling are not proven. |
 | 6 — Managed program address space | **STAGE 6.1/6.2/6.3 PASS (user runtime log)** | 4 MiB logical page table; complete source/destination preflight; non-overlapping copy; 64-byte resident bounce buffer; page-boundary chunking through guarded W3 lease; exact completed-byte count and explicit partial-write semantics. Cross-page copy and W3 restoration runtime-accepted. |
-| 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
+| 7 — TR-DOS and filesystem services | **AUDIT COMPLETE; IMPLEMENTATION NEXT** | Preserve BASIC/BOOT0 loader; design a read-only directory/file service over the existing TR-DOS boot medium, with managed-address-space transfers and no assumptions about physical contiguity. Project126 catalog/browser and legacy filesystem routines are references, not drop-in modules. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
 | 9 — RTC and input | PLANNED | DS12887/SMUC and keyboard/input host services. |
 | 10 — Physical storage | PLANNED | Nemo IDE/SMUC IDENTIFY, READ, WRITE, FLUSH with LBA and RAM bounds checks. |
@@ -894,6 +894,20 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 
 
 ### 2026-11-09 — Stage 6.3 runtime acceptance: logical cross-page copy v0.1.3
+
+### 2026-11-09 — Stage 6 checkpoint and Stage 7 TR-DOS audit
+
+- Fixed the development checkpoint at commit `ae4674442e437f3249eeb7384c29b7c92cd45083`: Stage 6.1, 6.2 and 6.3 are runtime-accepted from the user's #EF log. The verified scope includes logical page translation, full-span preflight, cross-page copy and W3=P0/UI restoration. This does not establish live IRQ, IM/EI, DMA, arbitrary workload safety or memmove semantics.
+- Re-audited the Project127 boot contract: the single SjASMPlus image contains `boot.B` and `P127BOOT.C`; BASIC uses the established `RANDOMIZE USR 15619 : REM : LOAD "P127BOOT" CODE 24576` sequence and enters Stage2 at `#6000`. This path is a compatibility boundary and must remain unchanged.
+- Audited Project126 `atm_host/boot_loader.asm`: it uses the same legacy TR-DOS BASIC interception/load pattern. Its boot loader is useful as a compatibility reference, not a replacement for Project127's current loader.
+- Audited Project126 `atm_host/p126_disk_catalog.asm`: its directory browser expects a preloaded 2 KiB directory buffer at `#C800`, calls Project126-specific console/keyboard/BIOS routines and assumes a prior disk-read phase. It cannot be copied into Project127 unchanged: its fixed buffer and host UI assumptions are outside the current managed 4 MiB logical-address ABI.
+- Audited Project126 `docs/src.r2731/kernel/trdosfs.asm` and `trdosio.asm` as legacy TR-DOS filesystem/I/O references. They are tied to legacy kernel entry points and direct disk/controller assumptions; no source-level evidence yet establishes that they can safely serve the current Project127 memory model. They must be dependency-audited before any port.
+- Project127's existing `docs/TRD_IMAGE_FORMAT.md` describes the build-time 640 KiB image layout (160 interleaved logical tracks, 16 sectors/track, 256 bytes/sector, 128 directory entries). It is a disk-image format description, not a runtime sector-I/O implementation.
+- Stage 7 implementation boundary: keep the BASIC loader and BOOT0 unchanged; first implement a read-only TR-DOS directory parser over a bounded 2 KiB directory snapshot, then file-entry validation and file extent/length calculation. Do not yet read arbitrary sectors, write the disk, invoke direct controller ports, or copy a file into the managed address space until a host-side read primitive and its buffer/ownership contract are specified.
+- Stage 7.1 acceptance must test all 128 directory slots, deleted/empty entries, valid BASIC/CODE metadata, invalid track/sector values, file lengths and end-of-disk bounds, and malformed descriptors. Parser inputs are memory snapshots; tests must not perform disk I/O or change W3/IRQ/IM/EI/DMA state.
+- Audit conclusion: the next safe implementation unit is a pure TR-DOS directory/entry parser and its synthetic regression tests. The Project126 browser UI and direct disk I/O are explicitly deferred.
+- No source code or runtime behavior changed in this checkpoint. SjASMPlus and Unreal Speccy were not run here.
+
 
 - User supplied the rebuilt Project127 startup #EF log after the copy-loop arithmetic correction. It reports `LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED`; Stage 6.3 is accepted on this user-provided runtime evidence.
 - The preceding diagnostics in the same run also pass: 4 MiB logical page table/boundary translation, complete logical-span preflight, physical free-page W3 sweep (57/57), W3=P0 restoration with UI active, and the guarded allocator/W3 lease API.
