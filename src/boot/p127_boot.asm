@@ -179,6 +179,29 @@ p127_start:
 p127_as_copy_failed:
         ld      hl,p127_msg_as_copy_fail
         call    p127_puts
+        ; Detailed self-test location and API status for the next regression run.
+        ld      hl,p127_msg_as_copy_phase
+        call    p127_puts
+        ld      a,(p127_as_copy_test_phase)
+        call    p127_put_hex8
+        ld      hl,p127_msg_as_copy_error
+        call    p127_puts
+        ld      a,(p127_as_copy_error)
+        call    p127_put_hex8
+        ld      hl,p127_msg_as_copy_done
+        call    p127_puts
+        ld      a,(p127_as_copy_completed+3)
+        call    p127_put_hex8
+        ld      a,(p127_as_copy_completed+2)
+        call    p127_put_hex8
+        ld      a,(p127_as_copy_completed+1)
+        call    p127_put_hex8
+        ld      a,(p127_as_copy_completed)
+        call    p127_put_hex8
+        ld      a,13
+        call    p127_put_char
+        ld      a,10
+        call    p127_put_char
         jp      p127_idle
 p127_physmem_api_failed:
         ld      hl,p127_msg_physmem_api_fail
@@ -380,6 +403,12 @@ p127_msg_as_copy_pass:
         db      "[P127] LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED",13,10,0
 p127_msg_as_copy_fail:
         db      "[P127] LOGICAL SPAN COPY TEST FAIL",13,10,0
+p127_msg_as_copy_phase:
+        db      "[P127] COPY PHASE=",0
+p127_msg_as_copy_error:
+        db      " ERROR=",0
+p127_msg_as_copy_done:
+        db      " DONE=",0
 p127_msg_map_txn_pass:
         db      "[P127] MAP TXN COMMIT/ROLLBACK PASS; OUT DISABLED",13,10,0
 p127_msg_map_txn_fail:

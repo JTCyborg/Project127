@@ -20,7 +20,7 @@
 ; ============================================================================
 P127_AS_COPY_VERSION_MAJOR EQU 0
 P127_AS_COPY_VERSION_MINOR EQU 1
-P127_AS_COPY_VERSION_PATCH EQU 1
+P127_AS_COPY_VERSION_PATCH EQU 2
 P127_AS_COPY_BUFFER_SIZE EQU 64
 P127_AS_COPY_WINDOW_BASE EQU 0C000h
 
@@ -352,6 +352,8 @@ p127_as_copy_limit_page_tail:
 ; Runtime regression: seed two source pages, copy 32 bytes across both source
 ; and destination page boundaries, then verify destination byte-for-byte.
 p127_as_copy_selftest:
+        ld      a,1
+        ld      (p127_as_copy_test_phase),a
         xor     a
         ld      (p127_as_copy_test_alloc_count),a
         ld      (p127_as_copy_test_bind_count),a
@@ -396,6 +398,8 @@ p127_as_copy_selftest:
         ld      a,3
         ld      (p127_as_copy_test_bind_count),a
 
+        ld      a,2
+        ld      (p127_as_copy_test_phase),a
         ; Zero-length at the exact 4 MiB boundary must not acquire W3.
         ld      a,040h
         ld      (p127_as_copy_source+2),a
@@ -417,6 +421,8 @@ p127_as_copy_selftest:
         or      a
         jp      nz,p127_as_copy_test_cleanup
 
+        ld      a,3
+        ld      (p127_as_copy_test_phase),a
         ; Overlapping spans must be rejected before lease acquisition.
         xor     a
         ld      (p127_as_copy_source+2),a
@@ -442,6 +448,8 @@ p127_as_copy_selftest:
         or      a
         jp      nz,p127_as_copy_test_cleanup
 
+        ld      a,4
+        ld      (p127_as_copy_test_phase),a
         ; Invalid destination page 3 is rejected before any W3 lease.
         ld      a,0F0h
         ld      (p127_as_copy_source),a
@@ -466,6 +474,8 @@ p127_as_copy_selftest:
         or      a
         jp      nz,p127_as_copy_test_cleanup
 
+        ld      a,5
+        ld      (p127_as_copy_test_phase),a
         ; Seed 16 bytes at the end of page 0 and 16 at the start of page 1.
         call    p127_physmem_w3_begin
         jp      c,p127_as_copy_test_cleanup
@@ -490,6 +500,8 @@ p127_as_copy_selftest:
         xor     a
         ld      (p127_as_copy_test_lease),a
 
+        ld      a,6
+        ld      (p127_as_copy_test_phase),a
         ; Source [3FF0h,4010h), destination [7FF0h,8010h).
         ld      a,0F0h
         ld      (p127_as_copy_source),a
@@ -518,6 +530,8 @@ p127_as_copy_selftest:
         or      a
         jp      nz,p127_as_copy_test_cleanup
 
+        ld      a,7
+        ld      (p127_as_copy_test_phase),a
         ; Verify the two destination fragments byte-for-byte.
         call    p127_physmem_w3_begin
         jp      c,p127_as_copy_test_cleanup
@@ -651,6 +665,7 @@ p127_as_copy_destination_offset: dw 0
 p127_as_copy_chunk: db 0
 p127_as_copy_buffer: ds P127_AS_COPY_BUFFER_SIZE,0
 
+p127_as_copy_test_phase: db 0
 p127_as_copy_test_page_a: db 0
 p127_as_copy_test_page_b: db 0
 p127_as_copy_test_page_c: db 0
