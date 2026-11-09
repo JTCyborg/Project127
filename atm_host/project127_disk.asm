@@ -36,7 +36,17 @@
         ; TR-DOS host file. Keep it after the complete Nemo IDE module.
         ORG #B000
         INCLUDE "drivers/atm/atm_fat16.asm"
-        SAVETRD "disk_A.trd", "@@HOST_NAME@@.C", P127_HOST_LOAD_ADDRESS, p127_fat16_end-P127_HOST_LOAD_ADDRESS
+
+        ; The host entry must stay inside its 8 KiB CODE load window.
+        ; Memory backend is resident support code, loaded in the free C000-DFFF
+        ; region instead of being appended to the host entry at 6000h.
+        ORG #C000
+        INCLUDE "drivers/atm/atm_memory_backend.asm"
+p127_memory_backend_end:
+        ASSERT p127_memory_backend_end <= #E000
+
+        ; One contiguous TR-DOS CODE file loads the host and all resident modules.
+        SAVETRD "disk_A.trd", "@@HOST_NAME@@.C", P127_HOST_LOAD_ADDRESS, p127_memory_backend_end-P127_HOST_LOAD_ADDRESS
 
         PAGE 0
         ORG #E000
