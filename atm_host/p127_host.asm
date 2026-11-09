@@ -145,6 +145,8 @@ p127_host_allocator_error:
         db "[P127] ATM PAGE ALLOCATOR SELFTEST FAIL",0
 p127_host_allocator_stage:
         db " STEP=0x",0
+p127_host_allocator_error_nl:
+        db 13,10,0
 p127_host_memory_init_error:
         db "[P127] ATM MEMORY INIT FAIL",13,10,0
 p127_host_range_error:
