@@ -21,31 +21,42 @@ def basic_loader():
     def line(number, body):
         return bytes((0, number)) + le16(len(body) + 1) + body + b"\x0d"
 
-    def debug_text(message):
-        statements = []
-        for value in message.encode("ascii"):
-            statements.append(bytes([TOK_OUT]) + b' ' +
-                              bytes([TOK_VAL]) + b' "239",' +
-                              bytes([TOK_VAL]) + b' "' + str(value).encode("ascii") + b'"')
-        return b":".join(statements)
+    def debug_lines(first_number, message):
+        # Keep every tokenized BASIC line below the Spectrum 255-byte limit.
+        # Match Project125's exact OUT VAL "239",VAL "<byte>" token sequence.
+        result = []
+        line_number = first_number
+        values = message.encode("ascii")
+        for start in range(0, len(values), 8):
+            statements = []
+            for value in values[start:start + 8]:
+                statements.append(bytes([TOK_OUT, TOK_VAL, 34]) + b"239" +
+                                  bytes([34]) + b"," + bytes([TOK_VAL, 34]) +
+                                  str(value).encode("ascii") + bytes([34]))
+            body = b":".join(statements)
+            if len(body) + 1 > 255:
+                raise ValueError("Generated BASIC debug line exceeds 255 bytes")
+            result.append(line(line_number, body))
+            line_number += 1
+            if line_number > 255:
+                raise ValueError("BASIC line number overflow")
+        return result
 
     # Spectrum BASIC stores a five-byte numeric value after the 0x0E marker.
     direct_out = (bytes([TOK_OUT]) + b" 239" +
                   bytes([0x0E, 0x00, 0x00, 0xEF, 0x00, 0x00]) +
                   b",1" + bytes([0x0E, 0x00, 0x00, 0x01, 0x00, 0x00]))
 
-    lines = [
-        line(10, direct_out),
-        line(11, debug_text("[P127] BASIC START\r\n")),
-        line(20, bytes([TOK_LOAD]) + b' "P127BOOT" ' +
-             bytes([TOK_CODE]) + b" " + address),
-        line(21, debug_text("[P127] LOAD OK\r\n")),
-        line(22, debug_text("[P127] CALL 6000\r\n")),
-        line(30, bytes([TOK_OUT]) + b" 239" +
-             bytes([0x0E, 0x00, 0x00, 0xEF, 0x00, 0x00]) +
-             b",2" + bytes([0x0E, 0x00, 0x00, 0x02, 0x00, 0x00]) +
-             b":" + bytes([TOK_RANDOMIZE, TOK_USR]) + b" " + address),
-    ]
+    lines = [line(10, direct_out)]
+    lines += debug_lines(11, "[P127] BASIC START\r\n")
+    lines.append(line(20, bytes([TOK_LOAD]) + b' "P127BOOT" ' +
+                      bytes([TOK_CODE]) + b" " + address))
+    lines += debug_lines(21, "[P127] LOAD OK\r\n")
+    lines += debug_lines(23, "[P127] CALL 6000\r\n")
+    lines.append(line(30, bytes([TOK_OUT]) + b" 239" +
+                      bytes([0x0E, 0x00, 0x00, 0xEF, 0x00, 0x00]) +
+                      b",2" + bytes([0x0E, 0x00, 0x00, 0x02, 0x00, 0x00]) +
+                      b":" + bytes([TOK_RANDOMIZE, TOK_USR]) + b" " + address))
     area = b"".join(lines) + b"\x80"
     return area + b"\xaa\x0a\x00", len(area)
 
