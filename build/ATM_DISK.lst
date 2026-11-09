@@ -13,7 +13,7 @@
 # file opened: p127_host.asm
   1+  0000              ; =========================================================================
   2+  0000              ; PROJECT127 - ATM Turbo 2+ host entry
-  3+  0000              ; Version: P127_ATM_HOST v0.3.0
+  3+  0000              ; Version: P127_ATM_HOST v0.3.1
   4+  0000              ; First ATM memory-core milestone: capability/range validation only.
   5+  0000              ; =========================================================================
   6+  0000
@@ -31,292 +31,327 @@
  18+  6009              p127_host_entry:
  19+  6009 F3                   di
  20+  600A 31 FF AF             ld      sp,P127_HOST_STACK_TOP
- 21+  600D 21 34 60             ld      hl,p127_host_banner
- 22+  6010 CD 29 60             call    p127_host_debug_string
- 23+  6013 CD 4D 61             call    atm_mem_range_selftest
+ 21+  600D 21 4B 60             ld      hl,p127_host_banner
+ 22+  6010 CD 40 60             call    p127_host_debug_string
+ 23+  6013 CD 68 61             call    atm_mem_range_selftest
  24+  6016 38 08                jr      c,p127_host_range_fail
- 25+  6018 21 8B 60             ld      hl,p127_host_range_ok
- 26+  601B CD 29 60             call    p127_host_debug_string
- 27+  601E 18 06                jr      p127_host_idle
+ 25+  6018 21 A2 60             ld      hl,p127_host_range_ok
+ 26+  601B CD 40 60             call    p127_host_debug_string
+ 27+  601E 18 17                jr      p127_host_idle
  28+  6020              p127_host_range_fail:
- 29+  6020 21 AF 60             ld      hl,p127_host_range_error
- 30+  6023 CD 29 60             call    p127_host_debug_string
- 31+  6026              p127_host_idle:
- 32+  6026 76                   halt
- 33+  6027 18 FD                jr      p127_host_idle
- 34+  6029
- 35+  6029              p127_host_debug_string:
- 36+  6029 7E                   ld      a,(hl)
- 37+  602A B7                   or      a
- 38+  602B C8                   ret     z
- 39+  602C 01 EF 00             ld      bc,#00EF
- 40+  602F ED 79                out     (c),a
- 41+  6031 23                   inc     hl
- 42+  6032 18 F5                jr      p127_host_debug_string
- 43+  6034
- 44+  6034              p127_host_banner:
- 45+  6034 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.3.0",13,10
- 45+  6038 37 5D 20 41
- 45+  603C 54 4D 20 48
- 45+  6040 4F 53 54 20
- 45+  6044 45 4E 54 52
- 45+  6048 59 20 76 30
- 45+  604C 2E 33 2E 30
- 45+  6050 0D 0A
- 46+  6052 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
- 46+  6056 37 5D 20 54
- 46+  605A 52 2D 44 4F
- 46+  605E 53 20 42 4F
- 46+  6062 4F 54 20 4F
- 46+  6066 4B 0D 0A
- 47+  6069 5B 50 31 32          db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
- 47+  606D 37 5D 20 41
- 47+  6071 54 4D 20 52
- 47+  6075 41 4D 20 52
- 47+  6079 41 4E 47 45
- 47+  607D 20 43 4F 52
- 47+  6081 45 20 31 20
- 47+  6085 4D 69 42 0D
- 47+  6089 0A 00
- 48+  608B              p127_host_range_ok:
- 49+  608B 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
- 49+  608F 37 5D 20 55
- 49+  6093 49 4E 54 33
- 49+  6097 32 20 52 41
- 49+  609B 4E 47 45 20
- 49+  609F 53 45 4C 46
- 49+  60A3 54 45 53 54
- 49+  60A7 20 50 41 53
- 49+  60AB 53 0D 0A 00
- 50+  60AF              p127_host_range_error:
- 51+  60AF 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST FAIL",13,10,0
- 51+  60B3 37 5D 20 55
- 51+  60B7 49 4E 54 33
- 51+  60BB 32 20 52 41
- 51+  60BF 4E 47 45 20
- 51+  60C3 53 45 4C 46
- 51+  60C7 54 45 53 54
- 51+  60CB 20 46 41 49
- 51+  60CF 4C 0D 0A 00
- 52+  60D3
- 53+  60D3                      INCLUDE "drivers/atm/atm_memory_backend.asm"
+ 29+  6020 57                   ld      d,a
+ 30+  6021 21 C6 60             ld      hl,p127_host_range_error
+ 31+  6024 CD 40 60             call    p127_host_debug_string
+ 32+  6027 7A                   ld      a,d
+ 33+  6028 C6 30                add     a,'0'
+ 34+  602A CD 3A 60             call    p127_host_debug_char
+ 35+  602D 3E 0D                ld      a,13
+ 36+  602F CD 3A 60             call    p127_host_debug_char
+ 37+  6032 3E 0A                ld      a,10
+ 38+  6034 CD 3A 60             call    p127_host_debug_char
+ 39+  6037              p127_host_idle:
+ 40+  6037 76                   halt
+ 41+  6038 18 FD                jr      p127_host_idle
+ 42+  603A
+ 43+  603A              p127_host_debug_char:
+ 44+  603A 01 EF 00             ld      bc,#00EF
+ 45+  603D ED 79                out     (c),a
+ 46+  603F C9                   ret
+ 47+  6040
+ 48+  6040              p127_host_debug_string:
+ 49+  6040 7E                   ld      a,(hl)
+ 50+  6041 B7                   or      a
+ 51+  6042 C8                   ret     z
+ 52+  6043 01 EF 00             ld      bc,#00EF
+ 53+  6046 ED 79                out     (c),a
+ 54+  6048 23                   inc     hl
+ 55+  6049 18 F5                jr      p127_host_debug_string
+ 56+  604B
+ 57+  604B              p127_host_banner:
+ 58+  604B 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.3.1",13,10
+ 58+  604F 37 5D 20 41
+ 58+  6053 54 4D 20 48
+ 58+  6057 4F 53 54 20
+ 58+  605B 45 4E 54 52
+ 58+  605F 59 20 76 30
+ 58+  6063 2E 33 2E 31
+ 58+  6067 0D 0A
+ 59+  6069 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
+ 59+  606D 37 5D 20 54
+ 59+  6071 52 2D 44 4F
+ 59+  6075 53 20 42 4F
+ 59+  6079 4F 54 20 4F
+ 59+  607D 4B 0D 0A
+ 60+  6080 5B 50 31 32          db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
+ 60+  6084 37 5D 20 41
+ 60+  6088 54 4D 20 52
+ 60+  608C 41 4D 20 52
+ 60+  6090 41 4E 47 45
+ 60+  6094 20 43 4F 52
+ 60+  6098 45 20 31 20
+ 60+  609C 4D 69 42 0D
+ 60+  60A0 0A 00
+ 61+  60A2              p127_host_range_ok:
+ 62+  60A2 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
+ 62+  60A6 37 5D 20 55
+ 62+  60AA 49 4E 54 33
+ 62+  60AE 32 20 52 41
+ 62+  60B2 4E 47 45 20
+ 62+  60B6 53 45 4C 46
+ 62+  60BA 54 45 53 54
+ 62+  60BE 20 50 41 53
+ 62+  60C2 53 0D 0A 00
+ 63+  60C6              p127_host_range_error:
+ 64+  60C6 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST FAIL TEST ",0
+ 64+  60CA 37 5D 20 55
+ 64+  60CE 49 4E 54 33
+ 64+  60D2 32 20 52 41
+ 64+  60D6 4E 47 45 20
+ 64+  60DA 53 45 4C 46
+ 64+  60DE 54 45 53 54
+ 64+  60E2 20 46 41 49
+ 64+  60E6 4C 20 54 45
+ 64+  60EA 53 54 20 00
+ 65+  60EE
+ 66+  60EE                      INCLUDE "drivers/atm/atm_memory_backend.asm"
 # file opened: atm_memory_backend.asm
-  1++ 60D3              ; Project127 ATM Turbo 2+ memory backend — capability and range core.
-  2++ 60D3              ; Physical capacity is the agreed 1 MiB ATM RAM configuration.
-  3++ 60D3              ; Active video backing and system reservations are NOT allocatable.
-  4++ 60D3              ; Project112 proves video mappings (physical page 5/page 1), but does not
-  5++ 60D3              ; define a complete general-purpose physical-page selector for all ATM RAM.
-  6++ 60D3              ;
-  7++ 60D3              ; atm_mem_query_caps: HL -> 18-byte capability record
-  8++ 60D3              ; atm_mem_validate_range: carry clear iff offset+length is in 1 MiB
-  9++ 60D3              ; atm_mem_range_selftest: carry clear iff all arithmetic boundary tests pass
- 10++ 60D3              ;
- 11++ 60D3              ; READ/WRITE/ALLOC/FREE are not advertised until page selection and the
- 12++ 60D3              ; reservation map are implemented and tested on target.
- 13++ 60D3
- 14++ 60D3                      INCLUDE "drivers/shared/p127_memory_core.inc"
+  1++ 60EE              ; Project127 ATM Turbo 2+ memory backend — capability and range core.
+  2++ 60EE              ; Physical capacity is the agreed 1 MiB ATM RAM configuration.
+  3++ 60EE              ; Active video backing and system reservations are NOT allocatable.
+  4++ 60EE              ; Project112 proves video mappings (physical page 5/page 1), but does not
+  5++ 60EE              ; define a complete general-purpose physical-page selector for all ATM RAM.
+  6++ 60EE              ;
+  7++ 60EE              ; atm_mem_query_caps: HL -> 18-byte capability record
+  8++ 60EE              ; atm_mem_validate_range: carry clear iff offset+length is in 1 MiB
+  9++ 60EE              ; atm_mem_range_selftest: carry clear iff all arithmetic boundary tests pass
+ 10++ 60EE              ;
+ 11++ 60EE              ; READ/WRITE/ALLOC/FREE are not advertised until page selection and the
+ 12++ 60EE              ; reservation map are implemented and tested on target.
+ 13++ 60EE
+ 14++ 60EE                      INCLUDE "drivers/shared/p127_memory_core.inc"
 # file opened: p127_memory_core.inc
-  1+++60D3              ; Project127 shared 32-bit memory range core
-  2+++60D3              ; UINT32 values are little-endian. Carry set means overflow or end > capacity.
-  3+++60D3              ; Zero-length ranges are valid when offset <= capacity.
-  4+++60D3              ; Non-reentrant: each processor serializes memory API calls.
-  5+++60D3
-  6+++60D3              P127_ABI_MAJOR EQU 1
-  7+++60D3              P127_ABI_MINOR EQU 0
-  8+++60D3              P127_MEM_CAPS_SIZE EQU 18
-  9+++60D3
- 10+++60D3              p127_range_check:
- 10+++60D3
- 11+++60D3 21 27 61             ld      hl,p127_range_offset
- 12+++60D6 11 2B 61             ld      de,p127_range_length
- 13+++60D9 7E                   ld      a,(hl)
- 14+++60DA 47                   ld      b,a
- 15+++60DB 1A                   ld      a,(de)
- 16+++60DC 80                   add     a,b
- 17+++60DD 32 33 61             ld      (p127_range_end),a
- 18+++60E0 23                   inc     hl
- 19+++60E1 13                   inc     de
- 20+++60E2 7E                   ld      a,(hl)
- 21+++60E3 47                   ld      b,a
- 22+++60E4 1A                   ld      a,(de)
- 23+++60E5 88                   adc     a,b
- 24+++60E6 32 34 61             ld      (p127_range_end+1),a
- 25+++60E9 23                   inc     hl
- 26+++60EA 13                   inc     de
- 27+++60EB 7E                   ld      a,(hl)
- 28+++60EC 47                   ld      b,a
- 29+++60ED 1A                   ld      a,(de)
- 30+++60EE 88                   adc     a,b
- 31+++60EF 32 35 61             ld      (p127_range_end+2),a
- 32+++60F2 23                   inc     hl
- 33+++60F3 13                   inc     de
- 34+++60F4 7E                   ld      a,(hl)
- 35+++60F5 47                   ld      b,a
- 36+++60F6 1A                   ld      a,(de)
- 37+++60F7 88                   adc     a,b
- 38+++60F8 32 36 61             ld      (p127_range_end+3),a
- 39+++60FB 38 28                jr      c,p127_range_invalid
- 40+++60FD
- 41+++60FD                      ; Unsigned end <= capacity, most-significant byte first.
- 42+++60FD 3A 36 61             ld      a,(p127_range_end+3)
- 43+++6100 21 32 61             ld      hl,p127_range_capacity+3
- 44+++6103 BE                   cp      (hl)
- 45+++6104 38 1D                jr      c,p127_range_valid
- 46+++6106 20 1D                jr      nz,p127_range_invalid
- 47+++6108 3A 35 61             ld      a,(p127_range_end+2)
- 48+++610B 2B                   dec     hl
- 49+++610C BE                   cp      (hl)
- 50+++610D 38 14                jr      c,p127_range_valid
- 51+++610F 20 14                jr      nz,p127_range_invalid
- 52+++6111 3A 34 61             ld      a,(p127_range_end+1)
- 53+++6114 2B                   dec     hl
- 54+++6115 BE                   cp      (hl)
- 55+++6116 38 0B                jr      c,p127_range_valid
- 56+++6118 20 0B                jr      nz,p127_range_invalid
- 57+++611A 3A 33 61             ld      a,(p127_range_end)
- 58+++611D 2B                   dec     hl
- 59+++611E BE                   cp      (hl)
- 60+++611F 38 02                jr      c,p127_range_valid
- 61+++6121 20 02                jr      nz,p127_range_invalid
- 62+++6123              p127_range_valid:
- 63+++6123 B7                   or      a
- 64+++6124 C9                   ret
- 65+++6125              p127_range_invalid:
- 66+++6125 37                   scf
- 67+++6126 C9                   ret
- 68+++6127
- 69+++6127 00 00 00 00  p127_range_offset:   defs 4,0
- 70+++612B 00 00 00 00  p127_range_length:   defs 4,0
- 71+++612F 00 00 00 00  p127_range_capacity: defs 4,0
- 72+++6133 00 00 00 00  p127_range_end:      defs 4,0
- 73+++6137
+  1+++60EE              ; Project127 shared 32-bit memory range core
+  2+++60EE              ; UINT32 values are little-endian. Carry set means overflow or end > capacity.
+  3+++60EE              ; Zero-length ranges are valid when offset <= capacity.
+  4+++60EE              ; Non-reentrant: each processor serializes memory API calls.
+  5+++60EE
+  6+++60EE              P127_ABI_MAJOR EQU 1
+  7+++60EE              P127_ABI_MINOR EQU 0
+  8+++60EE              P127_MEM_CAPS_SIZE EQU 18
+  9+++60EE
+ 10+++60EE              p127_range_check:
+ 10+++60EE
+ 11+++60EE 21 42 61             ld      hl,p127_range_offset
+ 12+++60F1 11 46 61             ld      de,p127_range_length
+ 13+++60F4 7E                   ld      a,(hl)
+ 14+++60F5 47                   ld      b,a
+ 15+++60F6 1A                   ld      a,(de)
+ 16+++60F7 80                   add     a,b
+ 17+++60F8 32 4E 61             ld      (p127_range_end),a
+ 18+++60FB 23                   inc     hl
+ 19+++60FC 13                   inc     de
+ 20+++60FD 7E                   ld      a,(hl)
+ 21+++60FE 47                   ld      b,a
+ 22+++60FF 1A                   ld      a,(de)
+ 23+++6100 88                   adc     a,b
+ 24+++6101 32 4F 61             ld      (p127_range_end+1),a
+ 25+++6104 23                   inc     hl
+ 26+++6105 13                   inc     de
+ 27+++6106 7E                   ld      a,(hl)
+ 28+++6107 47                   ld      b,a
+ 29+++6108 1A                   ld      a,(de)
+ 30+++6109 88                   adc     a,b
+ 31+++610A 32 50 61             ld      (p127_range_end+2),a
+ 32+++610D 23                   inc     hl
+ 33+++610E 13                   inc     de
+ 34+++610F 7E                   ld      a,(hl)
+ 35+++6110 47                   ld      b,a
+ 36+++6111 1A                   ld      a,(de)
+ 37+++6112 88                   adc     a,b
+ 38+++6113 32 51 61             ld      (p127_range_end+3),a
+ 39+++6116 38 28                jr      c,p127_range_invalid
+ 40+++6118
+ 41+++6118                      ; Unsigned end <= capacity, most-significant byte first.
+ 42+++6118 3A 51 61             ld      a,(p127_range_end+3)
+ 43+++611B 21 4D 61             ld      hl,p127_range_capacity+3
+ 44+++611E BE                   cp      (hl)
+ 45+++611F 38 1D                jr      c,p127_range_valid
+ 46+++6121 20 1D                jr      nz,p127_range_invalid
+ 47+++6123 3A 50 61             ld      a,(p127_range_end+2)
+ 48+++6126 2B                   dec     hl
+ 49+++6127 BE                   cp      (hl)
+ 50+++6128 38 14                jr      c,p127_range_valid
+ 51+++612A 20 14                jr      nz,p127_range_invalid
+ 52+++612C 3A 4F 61             ld      a,(p127_range_end+1)
+ 53+++612F 2B                   dec     hl
+ 54+++6130 BE                   cp      (hl)
+ 55+++6131 38 0B                jr      c,p127_range_valid
+ 56+++6133 20 0B                jr      nz,p127_range_invalid
+ 57+++6135 3A 4E 61             ld      a,(p127_range_end)
+ 58+++6138 2B                   dec     hl
+ 59+++6139 BE                   cp      (hl)
+ 60+++613A 38 02                jr      c,p127_range_valid
+ 61+++613C 20 02                jr      nz,p127_range_invalid
+ 62+++613E              p127_range_valid:
+ 63+++613E B7                   or      a
+ 64+++613F C9                   ret
+ 65+++6140              p127_range_invalid:
+ 66+++6140 37                   scf
+ 67+++6141 C9                   ret
+ 68+++6142
+ 69+++6142 00 00 00 00  p127_range_offset:   defs 4,0
+ 70+++6146 00 00 00 00  p127_range_length:   defs 4,0
+ 71+++614A 00 00 00 00  p127_range_capacity: defs 4,0
+ 72+++614E 00 00 00 00  p127_range_end:      defs 4,0
+ 73+++6152
 # file closed: p127_memory_core.inc
- 15++ 6137
- 16++ 6137              ATM_RAM_CAPACITY_LO  EQU #00
- 17++ 6137              ATM_RAM_CAPACITY_MID EQU #00
- 18++ 6137              ATM_RAM_CAPACITY_HI  EQU #10
- 19++ 6137              ATM_RAM_CAPACITY_TOP EQU #00
- 20++ 6137
- 21++ 6137              atm_mem_query_caps:
- 21++ 6137
- 22++ 6137 21 11 62             ld      hl,atm_mem_capabilities
- 23++ 613A C9                   ret
- 24++ 613B
- 25++ 613B              atm_mem_validate_range:
- 25++ 613B
- 26++ 613B 21 00 00             ld      hl,ATM_RAM_CAPACITY_LO
- 27++ 613E 22 2F 61             ld      (p127_range_capacity),hl
- 28++ 6141 3E 10                ld      a,ATM_RAM_CAPACITY_HI
- 29++ 6143 32 31 61             ld      (p127_range_capacity+2),a
- 30++ 6146 AF                   xor     a
- 31++ 6147 32 32 61             ld      (p127_range_capacity+3),a
- 32++ 614A C3 D3 60             jp      p127_range_check
- 33++ 614D
- 34++ 614D              atm_mem_range_selftest:
- 34++ 614D
- 35++ 614D                      ; Last byte of installed RAM is valid: 0x000FFFFF + 1.
- 36++ 614D 21 FF FF             ld      hl,#FFFF
- 37++ 6150 22 27 61             ld      (p127_range_offset),hl
- 38++ 6153 21 0F 00             ld      hl,#000F
- 39++ 6156 22 29 61             ld      (p127_range_offset+2),hl
- 40++ 6159 21 01 00             ld      hl,1
- 41++ 615C 22 2B 61             ld      (p127_range_length),hl
- 42++ 615F 21 00 00             ld      hl,0
- 43++ 6162 22 2D 61             ld      (p127_range_length+2),hl
- 44++ 6165 CD 3B 61             call    atm_mem_validate_range
- 45++ 6168 DA 0F 62             jp      c,atm_mem_selftest_fail
- 46++ 616B
- 47++ 616B                      ; First byte beyond installed RAM is invalid: 0x00100000 + 1.
- 48++ 616B 21 00 00             ld      hl,0
- 49++ 616E 22 27 61             ld      (p127_range_offset),hl
- 50++ 6171 21 10 00             ld      hl,#0010
- 51++ 6174 22 29 61             ld      (p127_range_offset+2),hl
- 52++ 6177 21 01 00             ld      hl,1
- 53++ 617A 22 2B 61             ld      (p127_range_length),hl
- 54++ 617D 21 00 00             ld      hl,0
- 55++ 6180 22 2D 61             ld      (p127_range_length+2),hl
- 56++ 6183 CD 3B 61             call    atm_mem_validate_range
- 57++ 6186 D2 0F 62             jp      nc,atm_mem_selftest_fail
- 58++ 6189
- 59++ 6189                      ; Exact full-capacity range: 0 + 0x00100000.
- 60++ 6189 21 00 00             ld      hl,0
- 61++ 618C 22 27 61             ld      (p127_range_offset),hl
- 62++ 618F 22 29 61             ld      (p127_range_offset+2),hl
- 63++ 6192 22 2B 61             ld      (p127_range_length),hl
- 64++ 6195 21 10 00             ld      hl,#0010
- 65++ 6198 22 2D 61             ld      (p127_range_length+2),hl
- 66++ 619B CD 3B 61             call    atm_mem_validate_range
- 67++ 619E DA 0F 62             jp      c,atm_mem_selftest_fail
- 68++ 61A1
- 69++ 61A1                      ; Zero length exactly at capacity is a valid empty range.
- 70++ 61A1 21 00 00             ld      hl,0
- 71++ 61A4 22 27 61             ld      (p127_range_offset),hl
- 72++ 61A7 21 10 00             ld      hl,#0010
- 73++ 61AA 22 29 61             ld      (p127_range_offset+2),hl
- 74++ 61AD 22 2B 61             ld      (p127_range_length),hl
- 75++ 61B0 22 2D 61             ld      (p127_range_length+2),hl
- 76++ 61B3 CD 3B 61             call    atm_mem_validate_range
- 77++ 61B6 DA 0F 62             jp      c,atm_mem_selftest_fail
- 78++ 61B9
- 79++ 61B9                      ; Zero length beyond capacity is invalid.
- 80++ 61B9 21 01 00             ld      hl,1
- 81++ 61BC 22 27 61             ld      (p127_range_offset),hl
- 82++ 61BF 21 10 00             ld      hl,#0010
- 83++ 61C2 22 29 61             ld      (p127_range_offset+2),hl
- 84++ 61C5 21 00 00             ld      hl,0
- 85++ 61C8 22 2B 61             ld      (p127_range_length),hl
- 86++ 61CB 22 2D 61             ld      (p127_range_length+2),hl
- 87++ 61CE CD 3B 61             call    atm_mem_validate_range
- 88++ 61D1 D2 0F 62             jp      nc,atm_mem_selftest_fail
- 89++ 61D4
- 90++ 61D4                      ; A two-byte range starting at the last byte crosses the end.
- 91++ 61D4 21 FF FF             ld      hl,#FFFF
- 92++ 61D7 22 27 61             ld      (p127_range_offset),hl
- 93++ 61DA 21 0F 00             ld      hl,#000F
- 94++ 61DD 22 29 61             ld      (p127_range_offset+2),hl
- 95++ 61E0 21 02 00             ld      hl,2
- 96++ 61E3 22 2B 61             ld      (p127_range_length),hl
- 97++ 61E6 21 00 00             ld      hl,0
- 98++ 61E9 22 2D 61             ld      (p127_range_length+2),hl
- 99++ 61EC CD 3B 61             call    atm_mem_validate_range
-100++ 61EF D2 0F 62             jp      nc,atm_mem_selftest_fail
-101++ 61F2
-102++ 61F2                      ; UINT32 addition overflow must be rejected.
-103++ 61F2 21 FF FF             ld      hl,#FFFF
-104++ 61F5 22 27 61             ld      (p127_range_offset),hl
-105++ 61F8 22 29 61             ld      (p127_range_offset+2),hl
-106++ 61FB 21 01 00             ld      hl,1
-107++ 61FE 22 2B 61             ld      (p127_range_length),hl
-108++ 6201 21 00 00             ld      hl,0
-109++ 6204 22 2D 61             ld      (p127_range_length+2),hl
-110++ 6207 CD 3B 61             call    atm_mem_validate_range
-111++ 620A D2 0F 62             jp      nc,atm_mem_selftest_fail
-112++ 620D B7                   or      a
-113++ 620E C9                   ret
-114++ 620F              atm_mem_selftest_fail:
-115++ 620F 37                   scf
-116++ 6210 C9                   ret
-117++ 6211
-118++ 6211              atm_mem_capabilities:
-119++ 6211 50 31 32 37          db      "P127"
-120++ 6215 01 00                db      P127_ABI_MAJOR,P127_ABI_MINOR
-121++ 6217 00                   db      0
-122++ 6218 00                   db      0
-123++ 6219 00 00 10 00          db      #00,#00,#10,#00
-124++ 621D 00 00 00 00          db      #00,#00,#00,#00
-125++ 6221 12 00                db      P127_MEM_CAPS_SIZE,0
-126++ 6223
+ 15++ 6152
+ 16++ 6152              ATM_RAM_CAPACITY_LO  EQU #00
+ 17++ 6152              ATM_RAM_CAPACITY_MID EQU #00
+ 18++ 6152              ATM_RAM_CAPACITY_HI  EQU #10
+ 19++ 6152              ATM_RAM_CAPACITY_TOP EQU #00
+ 20++ 6152
+ 21++ 6152              atm_mem_query_caps:
+ 21++ 6152
+ 22++ 6152 21 46 62             ld      hl,atm_mem_capabilities
+ 23++ 6155 C9                   ret
+ 24++ 6156
+ 25++ 6156              atm_mem_validate_range:
+ 25++ 6156
+ 26++ 6156 21 00 00             ld      hl,ATM_RAM_CAPACITY_LO
+ 27++ 6159 22 4A 61             ld      (p127_range_capacity),hl
+ 28++ 615C 3E 10                ld      a,ATM_RAM_CAPACITY_HI
+ 29++ 615E 32 4C 61             ld      (p127_range_capacity+2),a
+ 30++ 6161 AF                   xor     a
+ 31++ 6162 32 4D 61             ld      (p127_range_capacity+3),a
+ 32++ 6165 C3 EE 60             jp      p127_range_check
+ 33++ 6168
+ 34++ 6168              atm_mem_range_selftest:
+ 34++ 6168
+ 35++ 6168                      ; Test 1: final installed byte is valid.
+ 36++ 6168 21 FF FF             ld      hl,#FFFF
+ 37++ 616B 22 42 61             ld      (p127_range_offset),hl
+ 38++ 616E 21 0F 00             ld      hl,#000F
+ 39++ 6171 22 44 61             ld      (p127_range_offset+2),hl
+ 40++ 6174 21 01 00             ld      hl,1
+ 41++ 6177 22 46 61             ld      (p127_range_length),hl
+ 42++ 617A 21 00 00             ld      hl,0
+ 43++ 617D 22 48 61             ld      (p127_range_length+2),hl
+ 44++ 6180 CD 56 61             call    atm_mem_validate_range
+ 45++ 6183 DA 2A 62             jp      c,atm_mem_selftest_fail_1
+ 46++ 6186
+ 47++ 6186                      ; Test 2: first byte beyond installed RAM is invalid.
+ 48++ 6186 21 00 00             ld      hl,0
+ 49++ 6189 22 42 61             ld      (p127_range_offset),hl
+ 50++ 618C 21 10 00             ld      hl,#0010
+ 51++ 618F 22 44 61             ld      (p127_range_offset+2),hl
+ 52++ 6192 21 01 00             ld      hl,1
+ 53++ 6195 22 46 61             ld      (p127_range_length),hl
+ 54++ 6198 21 00 00             ld      hl,0
+ 55++ 619B 22 48 61             ld      (p127_range_length+2),hl
+ 56++ 619E CD 56 61             call    atm_mem_validate_range
+ 57++ 61A1 D2 2E 62             jp      nc,atm_mem_selftest_fail_2
+ 58++ 61A4
+ 59++ 61A4                      ; Test 3: exact full-capacity range is valid.
+ 60++ 61A4 21 00 00             ld      hl,0
+ 61++ 61A7 22 42 61             ld      (p127_range_offset),hl
+ 62++ 61AA 22 44 61             ld      (p127_range_offset+2),hl
+ 63++ 61AD 22 46 61             ld      (p127_range_length),hl
+ 64++ 61B0 21 10 00             ld      hl,#0010
+ 65++ 61B3 22 48 61             ld      (p127_range_length+2),hl
+ 66++ 61B6 CD 56 61             call    atm_mem_validate_range
+ 67++ 61B9 DA 32 62             jp      c,atm_mem_selftest_fail_3
+ 68++ 61BC
+ 69++ 61BC                      ; Test 4: zero length at capacity is valid.
+ 70++ 61BC 21 00 00             ld      hl,0
+ 71++ 61BF 22 42 61             ld      (p127_range_offset),hl
+ 72++ 61C2 21 10 00             ld      hl,#0010
+ 73++ 61C5 22 44 61             ld      (p127_range_offset+2),hl
+ 74++ 61C8 22 46 61             ld      (p127_range_length),hl
+ 75++ 61CB 22 48 61             ld      (p127_range_length+2),hl
+ 76++ 61CE CD 56 61             call    atm_mem_validate_range
+ 77++ 61D1 DA 36 62             jp      c,atm_mem_selftest_fail_4
+ 78++ 61D4
+ 79++ 61D4                      ; Test 5: zero length beyond capacity is invalid.
+ 80++ 61D4 21 01 00             ld      hl,1
+ 81++ 61D7 22 42 61             ld      (p127_range_offset),hl
+ 82++ 61DA 21 10 00             ld      hl,#0010
+ 83++ 61DD 22 44 61             ld      (p127_range_offset+2),hl
+ 84++ 61E0 21 00 00             ld      hl,0
+ 85++ 61E3 22 46 61             ld      (p127_range_length),hl
+ 86++ 61E6 22 48 61             ld      (p127_range_length+2),hl
+ 87++ 61E9 CD 56 61             call    atm_mem_validate_range
+ 88++ 61EC D2 3A 62             jp      nc,atm_mem_selftest_fail_5
+ 89++ 61EF
+ 90++ 61EF                      ; Test 6: two bytes from the final byte cross the end.
+ 91++ 61EF 21 FF FF             ld      hl,#FFFF
+ 92++ 61F2 22 42 61             ld      (p127_range_offset),hl
+ 93++ 61F5 21 0F 00             ld      hl,#000F
+ 94++ 61F8 22 44 61             ld      (p127_range_offset+2),hl
+ 95++ 61FB 21 02 00             ld      hl,2
+ 96++ 61FE 22 46 61             ld      (p127_range_length),hl
+ 97++ 6201 21 00 00             ld      hl,0
+ 98++ 6204 22 48 61             ld      (p127_range_length+2),hl
+ 99++ 6207 CD 56 61             call    atm_mem_validate_range
+100++ 620A D2 3E 62             jp      nc,atm_mem_selftest_fail_6
+101++ 620D
+102++ 620D                      ; Test 7: UINT32 addition overflow is rejected.
+103++ 620D 21 FF FF             ld      hl,#FFFF
+104++ 6210 22 42 61             ld      (p127_range_offset),hl
+105++ 6213 22 44 61             ld      (p127_range_offset+2),hl
+106++ 6216 21 01 00             ld      hl,1
+107++ 6219 22 46 61             ld      (p127_range_length),hl
+108++ 621C 21 00 00             ld      hl,0
+109++ 621F 22 48 61             ld      (p127_range_length+2),hl
+110++ 6222 CD 56 61             call    atm_mem_validate_range
+111++ 6225 D2 42 62             jp      nc,atm_mem_selftest_fail_7
+112++ 6228 AF                   xor     a
+113++ 6229 C9                   ret
+114++ 622A
+115++ 622A              atm_mem_selftest_fail_1:
+116++ 622A 3E 01                ld      a,1
+117++ 622C 18 16                jr      atm_mem_selftest_fail
+118++ 622E              atm_mem_selftest_fail_2:
+119++ 622E 3E 02                ld      a,2
+120++ 6230 18 12                jr      atm_mem_selftest_fail
+121++ 6232              atm_mem_selftest_fail_3:
+122++ 6232 3E 03                ld      a,3
+123++ 6234 18 0E                jr      atm_mem_selftest_fail
+124++ 6236              atm_mem_selftest_fail_4:
+125++ 6236 3E 04                ld      a,4
+126++ 6238 18 0A                jr      atm_mem_selftest_fail
+127++ 623A              atm_mem_selftest_fail_5:
+128++ 623A 3E 05                ld      a,5
+129++ 623C 18 06                jr      atm_mem_selftest_fail
+130++ 623E              atm_mem_selftest_fail_6:
+131++ 623E 3E 06                ld      a,6
+132++ 6240 18 02                jr      atm_mem_selftest_fail
+133++ 6242              atm_mem_selftest_fail_7:
+134++ 6242 3E 07                ld      a,7
+135++ 6244              atm_mem_selftest_fail:
+136++ 6244 37                   scf
+137++ 6245 C9                   ret
+138++ 6246
+139++ 6246              atm_mem_capabilities:
+140++ 6246 50 31 32 37          db      "P127"
+141++ 624A 01 00                db      P127_ABI_MAJOR,P127_ABI_MINOR
+142++ 624C 00                   db      0
+143++ 624D 00                   db      0
+144++ 624E 00 00 10 00          db      #00,#00,#10,#00
+145++ 6252 00 00 00 00          db      #00,#00,#00,#00
+146++ 6256 12 00                db      P127_MEM_CAPS_SIZE,0
+147++ 6258
 # file closed: atm_memory_backend.asm
- 54+  6223
- 55+  6223              p127_host_program_end:
- 56+  6223                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
- 57+  6223                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
- 58+  6223
+ 67+  6258
+ 68+  6258              p127_host_program_end:
+ 69+  6258                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
+ 70+  6258                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
+ 71+  6258
 # file closed: p127_host.asm
- 12   6223                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
- 13   6223
- 14   6223                      PAGE 0
- 15   6223                      ORG #E000
+ 12   6258                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
+ 13   6258
+ 14   6258                      PAGE 0
+ 15   6258                      ORG #E000
  16   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
 # file opened: boot_loader.generated.asm
   1+  E000              ; =========================================================================
@@ -501,11 +536,18 @@
 
 Value    Label
 ------ - -----------------------------------------------------------
-0x6211   atm_mem_capabilities
-0x6137 X atm_mem_query_caps
-0x614D   atm_mem_range_selftest
-0x620F   atm_mem_selftest_fail
-0x613B   atm_mem_validate_range
+0x6246   atm_mem_capabilities
+0x6152 X atm_mem_query_caps
+0x6168   atm_mem_range_selftest
+0x6244   atm_mem_selftest_fail
+0x622A   atm_mem_selftest_fail_1
+0x622E   atm_mem_selftest_fail_2
+0x6232   atm_mem_selftest_fail_3
+0x6236   atm_mem_selftest_fail_4
+0x623A   atm_mem_selftest_fail_5
+0x623E   atm_mem_selftest_fail_6
+0x6242   atm_mem_selftest_fail_7
+0x6156   atm_mem_validate_range
 0x0010   ATM_RAM_CAPACITY_HI
 0x0000   ATM_RAM_CAPACITY_LO
 0x0000 X ATM_RAM_CAPACITY_MID
@@ -527,26 +569,27 @@ Value    Label
 0x00DF   OUT_CMD
 0x0001   P127_ABI_MAJOR
 0x0000   P127_ABI_MINOR
-0x6034   p127_host_banner
-0x6029   p127_host_debug_string
+0x604B   p127_host_banner
+0x603A   p127_host_debug_char
+0x6040   p127_host_debug_string
 0x6009   p127_host_entry
 0x6009   P127_HOST_ENTRY_POINT
-0x6026   p127_host_idle
+0x6037   p127_host_idle
 0x6000   P127_HOST_LOAD_ADDRESS
-0x6223 X p127_host_program_end
+0x6258 X p127_host_program_end
 0x6000   p127_host_program_start
-0x60AF   p127_host_range_error
+0x60C6   p127_host_range_error
 0x6020   p127_host_range_fail
-0x608B   p127_host_range_ok
+0x60A2   p127_host_range_ok
 0xAFFF   P127_HOST_STACK_TOP
 0x0012   P127_MEM_CAPS_SIZE
-0x612F   p127_range_capacity
-0x60D3   p127_range_check
-0x6133   p127_range_end
-0x6125   p127_range_invalid
-0x612B   p127_range_length
-0x6127   p127_range_offset
-0x6123   p127_range_valid
+0x614A   p127_range_capacity
+0x60EE   p127_range_check
+0x614E   p127_range_end
+0x6140   p127_range_invalid
+0x6146   p127_range_length
+0x6142   p127_range_offset
+0x613E   p127_range_valid
 0x00F9   RANDOMIZE
 0x00EA   REM
 0x00C0   USR
