@@ -51,6 +51,11 @@ LINE11_END:
         DW      LINE20_END-LINE20
 LINE20:
         ; TR-DOS requires the ROM hand-off: RANDOMIZE USR 15619: REM : LOAD ...
+        DB      OUT_CMD
+        DB      "239", $0E, $00, $00, $EF, $00, $00
+        DB      ","
+        DB      "3", $0E, $00, $00, $03, $00, $00
+        DB      ":"
         DB      RANDOMIZE
         DB      USR, "15619", $0E, 0, 0
         DW      15619
