@@ -20,6 +20,10 @@
         ORG #9000
         INCLUDE "drivers/atm/atm_video_service.asm"
 
+        ; DS12887 RTC service follows the video module in the reserved #9000 area.
+        ORG #9200
+        INCLUDE "drivers/atm/atm_rtc_service.asm"
+
         ; Keep the proven single-file TR-DOS boot path.
         PAGE 0
         ORG #A000
