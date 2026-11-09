@@ -75,9 +75,10 @@ atm_mem_scatter_alloc_loop:
         ld      (atm_mem_request_length+2),hl
         call    atm_mem_alloc
         jp      c,atm_mem_scatter_rollback
+        ; Store the allocator's physical byte offset in this extent slot.
+        ; LDIR copies HL -> DE; do not reverse these endpoints.
         ld      hl,atm_mem_result_offset
         ld      de,(atm_mem_scatter_vector)
-        ex      de,hl
         ld      bc,4
         ldir
         ld      hl,(atm_mem_scatter_vector)
@@ -233,10 +234,52 @@ atm_mem_scatter_selftest::
         call    atm_mem_scatter_alloc
         jp      c,atm_mem_scatter_test_fail
         ld      (atm_mem_scatter_test_handle),a
-        ; 0x4001 bytes must be represented by exactly two page extents.
+        ; 0x4001 bytes must be represented by exactly two distinct
+        ; physical page offsets, both stored in the private extent vector.
         ld      a,(atm_mem_scatter_done)
         cp      2
         jp      nz,atm_mem_scatter_test_fail
+        ld      hl,(atm_mem_scatter_vector)
+        ld      de,8
+        or      a
+        sbc     hl,de
+        ld      (atm_mem_scatter_test_vector),hl
+        ld      hl,(atm_mem_scatter_test_vector)
+        ld      a,(hl)
+        ld      b,a
+        inc     hl
+        ld      a,(hl)
+        or      b
+        inc     hl
+        ld      a,(hl)
+        or      b
+        inc     hl
+        ld      a,(hl)
+        or      b
+        jp      z,atm_mem_scatter_test_fail
+        ld      hl,(atm_mem_scatter_test_vector)
+        ld      de,4
+        add     hl,de
+        ld      de,atm_mem_scatter_test_first
+        ld      bc,4
+        ldir
+        ld      hl,(atm_mem_scatter_test_vector)
+        ld      de,4
+        add     hl,de
+        ld      de,4
+        add     hl,de
+        ld      a,(hl)
+        ld      b,a
+        inc     hl
+        ld      a,(hl)
+        or      b
+        inc     hl
+        ld      a,(hl)
+        or      b
+        inc     hl
+        ld      a,(hl)
+        or      b
+        jp      z,atm_mem_scatter_test_fail
         ld      a,(atm_mem_scatter_test_handle)
         call    atm_mem_scatter_free
         ret
@@ -249,6 +292,8 @@ atm_mem_scatter_done:            db 0
 atm_mem_scatter_handle:          db 0
 atm_mem_scatter_rollback_count:  db 0
 atm_mem_scatter_test_handle:     db 0
+atm_mem_scatter_test_vector:     dw 0
+atm_mem_scatter_test_first:      defs 4,0
 atm_mem_scatter_record:          dw 0
 atm_mem_scatter_vector:          dw 0
 atm_mem_scatter_length:          defs 4,0
