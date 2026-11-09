@@ -68,8 +68,15 @@ p127_host_entry:
         call    p127_host_debug_string
         jr      p127_host_storage_done
 p127_host_storage_unavailable:
+        ld      d,a
         ld      hl,p127_storage_log_missing
         call    p127_host_debug_string
+        ld      a,d
+        call    p127_host_debug_hex_byte
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
 p127_host_storage_done:
         ld      hl,p127_host_ui_ready
         call    p127_host_debug_string
