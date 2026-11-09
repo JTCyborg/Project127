@@ -20,7 +20,7 @@
 ; ============================================================================
 P127_AS_COPY_VERSION_MAJOR EQU 0
 P127_AS_COPY_VERSION_MINOR EQU 1
-P127_AS_COPY_VERSION_PATCH EQU 2
+P127_AS_COPY_VERSION_PATCH EQU 3
 P127_AS_COPY_BUFFER_SIZE EQU 64
 P127_AS_COPY_WINDOW_BASE EQU 0C000h
 
@@ -116,7 +116,8 @@ p127_as_copy_ranges_disjoint:
         call    p127_physmem_w3_begin
         jp      c,p127_as_copy_lease_reject
 
-        ld      hl,p127_as_copy_source
+        ; Remaining is the requested byte count, not the source address.
+        ld      hl,p127_as_copy_length
         ld      de,p127_as_copy_remaining
         ld      bc,4
         ldir
@@ -178,9 +179,15 @@ p127_as_copy_loop:
         ld      a,(p127_as_copy_remaining+3)
         or      b
         jr      nz,p127_as_copy_chunk_ready
+        ; Apply remaining as another MIN constraint; never enlarge a chunk
+        ; already shortened by either logical-page boundary.
         ld      a,(p127_as_copy_remaining)
-        cp      P127_AS_COPY_BUFFER_SIZE
-        jr      nc,p127_as_copy_chunk_ready
+        ld      b,a
+        ld      a,(p127_as_copy_chunk)
+        cp      b
+        jr      c,p127_as_copy_chunk_ready
+        jr      z,p127_as_copy_chunk_ready
+        ld      a,b
         ld      (p127_as_copy_chunk),a
 p127_as_copy_chunk_ready:
         ld      a,(p127_as_copy_source_page)
