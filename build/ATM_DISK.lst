@@ -1,7 +1,7 @@
 # file opened: project127_disk.generated.asm
   1   0000              ; =========================================================================
   2   0000              ; PROJECT127 ??? clean TR-DOS disk image
-  3   0000              ; Contains BOOT.B, the ATM host image and Project126-style native status console.
+  3   0000              ; Contains BOOT.B, the ATM host image and Project127 native status console.
   4   0000              ; No Project126 x86 overlays or fixed 16 KiB module layout are included.
   5   0000              ; =========================================================================
   6   0000
@@ -13,7 +13,7 @@
 # file opened: p127_host.asm
   1+  0000              ; =========================================================================
   2+  0000              ; PROJECT127 - ATM Turbo 2+ host entry
-  3+  0000              ; Version: P127_ATM_HOST v0.11.0
+  3+  0000              ; Version: P127_ATM_HOST v0.12.0
   4+  0000              ; ATM handle pin/unpin reference counting.
   5+  0000              ; =========================================================================
   6+  0000
@@ -63,15 +63,15 @@
  50+  6064 DA A5 60             jp      c,p127_host_trdos_fail
  51+  6067 21 EF 62             ld      hl,p127_host_trdos_ok
  52+  606A CD BA 61             call    p127_host_debug_string
- 53+  606D CD EE 90             call    P127_ATM_Video_SelfTest
- 54+  6070 DA 93 91             jp      c,p127_video_host_fail_handler
- 55+  6073 21 2C 91             ld      hl,p127_host_video_ok
+ 53+  606D CD 31 91             call    P127_ATM_Video_SelfTest
+ 54+  6070 DA 3D 92             jp      c,p127_video_host_fail_handler
+ 55+  6073 21 D6 91             ld      hl,p127_host_video_ok
  56+  6076 CD BA 61             call    p127_host_debug_string
  57+  6079 CD 00 A0             call    P127_DebugConsole_Init
  58+  607C 3E 01                ld      a,1
  59+  607E 32 D2 61             ld      (p127_host_console_ready),a
  60+  6081 CD 43 93             call    P127_RTC_Startup
- 61+  6084 21 B2 93             ld      hl,p127_host_ui_ready
+ 61+  6084 21 BC 93             ld      hl,p127_host_ui_ready
  62+  6087 CD BA 61             call    p127_host_debug_string
  63+  608A C3 82 61             jp      p127_host_idle
  64+  608D              p127_host_handle_ops_fail:
@@ -243,13 +243,13 @@
 230+  61D2
 231+  61D2 00           p127_host_console_ready: db 0
 232+  61D3              p127_host_banner:
-233+  61D3 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.11.0",13,10
+233+  61D3 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.12.0",13,10
 233+  61D7 37 5D 20 41
 233+  61DB 54 4D 20 48
 233+  61DF 4F 53 54 20
 233+  61E3 45 4E 54 52
 233+  61E7 59 20 76 30
-233+  61EB 2E 31 31 2E
+233+  61EB 2E 31 32 2E
 233+  61EF 30 0D 0A
 234+  61F2 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
 234+  61F6 37 5D 20 54
@@ -3309,249 +3309,357 @@
  21   9000                      INCLUDE "drivers/atm/atm_video_service.asm"
 # file opened: atm_video_service.asm
   1+  9000              ; =========================================================================
-  2+  9000              ; PROJECT127 ATM native video service v0.1.0
+  2+  9000              ; PROJECT127 ATM native video service v0.2.0
   3+  9000              ; Confirmed ATM Turbo 2+ RG6 80x25 text framebuffer.
   4+  9000              ; Host code occupies page 5, so video uses the established alternate
   5+  9000              ; framebuffer pages 7 (characters) and 3 (attributes).
   6+  9000              ;
   7+  9000              ; API:
-  8+  9000              ;   P127_ATM_Video_Query: A=mode register, B=columns, C=rows, HL=frame bytes
-  9+  9000              ;   P127_ATM_Video_WriteCell: D=row, E=column, A=character; carry=invalid
- 10+  9000              ;   P127_ATM_Video_Clear: clears the 80x25 character/attribute planes
- 11+  9000              ;   P127_ATM_Video_SelfTest: geometry-only test; carry clear=pass
- 12+  9000              ; =========================================================================
- 13+  9000              P127_ATM_VIDEO_VERSION       EQU #0100
- 14+  9000              P127_ATM_VIDEO_MODE_RG6      EQU #C6
- 15+  9000              P127_ATM_VIDEO_COLUMNS       EQU 80
- 16+  9000              P127_ATM_VIDEO_ROWS          EQU 25
- 17+  9000              P127_ATM_VIDEO_FRAME_BYTES   EQU 4000
- 18+  9000              P127_ATM_VIDEO_PAGE7         EQU #78
- 19+  9000              P127_ATM_VIDEO_PAGE3         EQU #7C
- 20+  9000              P127_ATM_VIDEO_HOST_PAGE5    EQU #7A
- 21+  9000              P127_ATM_VIDEO_HOST_PAGE0    EQU #7F
- 22+  9000
- 23+  9000              P127_ATM_Video_Query:
- 23+  9000
- 24+  9000 3E C6                ld a,P127_ATM_VIDEO_MODE_RG6
- 25+  9002 06 50                ld b,P127_ATM_VIDEO_COLUMNS
- 26+  9004 0E 19                ld c,P127_ATM_VIDEO_ROWS
- 27+  9006 21 A0 0F             ld hl,P127_ATM_VIDEO_FRAME_BYTES
- 28+  9009 B7                   or a
- 29+  900A C9                   ret
- 30+  900B
- 31+  900B              ; D=row, E=column. Returns HL=offset from text-plane base.
- 32+  900B              P127_ATM_Video_CalcOffset:
- 33+  900B 7B                   ld a,e
- 34+  900C 32 28 91             ld (p127_video_column),a
- 35+  900F 7A                   ld a,d
- 36+  9010 32 27 91             ld (p127_video_row),a
- 37+  9013 FE 19                cp P127_ATM_VIDEO_ROWS
- 38+  9015 30 22                jr nc,p127_video_bad_coordinate
- 39+  9017 3A 28 91             ld a,(p127_video_column)
- 40+  901A FE 50                cp P127_ATM_VIDEO_COLUMNS
- 41+  901C 30 1B                jr nc,p127_video_bad_coordinate
- 42+  901E 3A 27 91             ld a,(p127_video_row)
- 43+  9021 6F                   ld l,a
- 44+  9022 26 00                ld h,0
- 45+  9024 29                   add hl,hl
- 46+  9025 29                   add hl,hl
- 47+  9026 29                   add hl,hl
- 48+  9027 29                   add hl,hl
- 49+  9028 29                   add hl,hl
- 50+  9029 29                   add hl,hl
- 51+  902A 11 C0 01             ld de,#01C0
- 52+  902D 19                   add hl,de
- 53+  902E 3A 28 91             ld a,(p127_video_column)
- 54+  9031 CB 3F                srl a
- 55+  9033 5F                   ld e,a
- 56+  9034 16 00                ld d,0
- 57+  9036 19                   add hl,de
- 58+  9037 B7                   or a
- 59+  9038 C9                   ret
- 60+  9039              p127_video_bad_coordinate:
- 61+  9039 37                   scf
- 62+  903A C9                   ret
- 63+  903B
- 64+  903B              P127_ATM_Video_WriteCell:
- 64+  903B
- 65+  903B 32 29 91             ld (p127_video_character),a
- 66+  903E CD 0B 90             call P127_ATM_Video_CalcOffset
- 67+  9041 D8                   ret c
- 68+  9042 22 2A 91             ld (p127_video_offset),hl
- 69+  9045 3E 78                ld a,P127_ATM_VIDEO_PAGE7
- 70+  9047 01 F7 7F             ld bc,#7FF7
- 71+  904A ED 79                out (c),a
- 72+  904C 3E 7C                ld a,P127_ATM_VIDEO_PAGE3
- 73+  904E 01 F7 FF             ld bc,#FFF7
- 74+  9051 ED 79                out (c),a
- 75+  9053 3A 28 91             ld a,(p127_video_column)
- 76+  9056 E6 01                and 1
- 77+  9058 20 16                jr nz,p127_video_write_odd
- 78+  905A 2A 2A 91             ld hl,(p127_video_offset)
- 79+  905D 11 00 40             ld de,#4000
- 80+  9060 19                   add hl,de
- 81+  9061 3A 29 91             ld a,(p127_video_character)
- 82+  9064 77                   ld (hl),a
- 83+  9065 2A 2A 91             ld hl,(p127_video_offset)
- 84+  9068 11 00 E0             ld de,#E000
- 85+  906B 19                   add hl,de
- 86+  906C 36 44                ld (hl),#44
- 87+  906E 18 15                jr p127_video_write_restore
- 88+  9070              p127_video_write_odd:
- 89+  9070 2A 2A 91             ld hl,(p127_video_offset)
- 90+  9073 11 00 60             ld de,#6000
- 91+  9076 19                   add hl,de
- 92+  9077 3A 29 91             ld a,(p127_video_character)
- 93+  907A 77                   ld (hl),a
- 94+  907B 2A 2A 91             ld hl,(p127_video_offset)
- 95+  907E 11 00 C0             ld de,#C000
- 96+  9081 19                   add hl,de
- 97+  9082 23                   inc hl
- 98+  9083 36 44                ld (hl),#44
- 99+  9085              p127_video_write_restore:
-100+  9085 3E 7A                ld a,P127_ATM_VIDEO_HOST_PAGE5
-101+  9087 01 F7 7F             ld bc,#7FF7
-102+  908A ED 79                out (c),a
-103+  908C 3E 7F                ld a,P127_ATM_VIDEO_HOST_PAGE0
-104+  908E 01 F7 FF             ld bc,#FFF7
-105+  9091 ED 79                out (c),a
-106+  9093 B7                   or a
-107+  9094 C9                   ret
-108+  9095
-109+  9095              P127_ATM_Video_Clear:
-109+  9095
-110+  9095 F5                   push af
-111+  9096 C5                   push bc
-112+  9097 D5                   push de
-113+  9098 E5                   push hl
-114+  9099 3E 78                ld a,P127_ATM_VIDEO_PAGE7
-115+  909B 01 F7 7F             ld bc,#7FF7
-116+  909E ED 79                out (c),a
-117+  90A0 3E 7C                ld a,P127_ATM_VIDEO_PAGE3
-118+  90A2 01 F7 FF             ld bc,#FFF7
-119+  90A5 ED 79                out (c),a
-120+  90A7 21 C0 41             ld hl,#41C0
-121+  90AA 11 C1 41             ld de,#41C1
-122+  90AD 36 20                ld (hl),32
-123+  90AF 01 3F 06             ld bc,#063F
-124+  90B2 ED B0                ldir
-125+  90B4 21 C0 61             ld hl,#61C0
-126+  90B7 11 C1 61             ld de,#61C1
-127+  90BA 36 20                ld (hl),32
-128+  90BC 01 3F 06             ld bc,#063F
-129+  90BF ED B0                ldir
-130+  90C1 21 C0 E1             ld hl,#E1C0
-131+  90C4 11 C1 E1             ld de,#E1C1
-132+  90C7 36 44                ld (hl),#44
-133+  90C9 01 3F 06             ld bc,#063F
-134+  90CC ED B0                ldir
-135+  90CE 21 C1 C1             ld hl,#C1C1
-136+  90D1 11 C2 C1             ld de,#C1C2
-137+  90D4 36 44                ld (hl),#44
-138+  90D6 01 3F 06             ld bc,#063F
-139+  90D9 ED B0                ldir
-140+  90DB 3E 7A                ld a,P127_ATM_VIDEO_HOST_PAGE5
-141+  90DD 01 F7 7F             ld bc,#7FF7
-142+  90E0 ED 79                out (c),a
-143+  90E2 3E 7F                ld a,P127_ATM_VIDEO_HOST_PAGE0
-144+  90E4 01 F7 FF             ld bc,#FFF7
-145+  90E7 ED 79                out (c),a
-146+  90E9 E1                   pop hl
-147+  90EA D1                   pop de
-148+  90EB C1                   pop bc
-149+  90EC F1                   pop af
-150+  90ED C9                   ret
-151+  90EE
-152+  90EE              ; Pure geometry test. No port writes and no framebuffer changes.
-153+  90EE              P127_ATM_Video_SelfTest:
-153+  90EE
-154+  90EE 16 00                ld d,0
-155+  90F0 1E 00                ld e,0
-156+  90F2 CD 0B 90             call P127_ATM_Video_CalcOffset
-157+  90F5 38 24                jr c,p127_video_test_fail_1
-158+  90F7 11 C0 01             ld de,#01C0
-159+  90FA B7                   or a
-160+  90FB ED 52                sbc hl,de
-161+  90FD 20 1C                jr nz,p127_video_test_fail_1
-162+  90FF 16 18                ld d,24
-163+  9101 1E 4F                ld e,79
-164+  9103 CD 0B 90             call P127_ATM_Video_CalcOffset
-165+  9106 38 17                jr c,p127_video_test_fail_2
-166+  9108 11 E7 07             ld de,#07E7
-167+  910B B7                   or a
-168+  910C ED 52                sbc hl,de
-169+  910E 20 0F                jr nz,p127_video_test_fail_2
-170+  9110 16 19                ld d,25
-171+  9112 1E 00                ld e,0
-172+  9114 CD 0B 90             call P127_ATM_Video_CalcOffset
-173+  9117 30 0A                jr nc,p127_video_test_fail_3
-174+  9119 AF                   xor a
-175+  911A C9                   ret
-176+  911B              p127_video_test_fail_1:
-177+  911B 3E 01                ld a,1
-178+  911D 18 06                jr p127_video_test_fail
-179+  911F              p127_video_test_fail_2:
-180+  911F 3E 02                ld a,2
-181+  9121 18 02                jr p127_video_test_fail
-182+  9123              p127_video_test_fail_3:
-183+  9123 3E 03                ld a,3
-184+  9125              p127_video_test_fail:
-185+  9125 37                   scf
-186+  9126 C9                   ret
-187+  9127
-188+  9127 00           p127_video_row:       db 0
-189+  9128 00           p127_video_column:    db 0
-190+  9129 00           p127_video_character: db 0
-191+  912A 00 00        p127_video_offset:    dw 0
-192+  912C              p127_host_video_ok:
-193+  912C 5B 50 31 32          db "[P127] ATM NATIVE VIDEO CORE v0.1.0 SELFTEST PASS",13,10,0
-193+  9130 37 5D 20 41
-193+  9134 54 4D 20 4E
-193+  9138 41 54 49 56
-193+  913C 45 20 56 49
-193+  9140 44 45 4F 20
-193+  9144 43 4F 52 45
-193+  9148 20 76 30 2E
-193+  914C 31 2E 30 20
-193+  9150 53 45 4C 46
-193+  9154 54 45 53 54
-193+  9158 20 50 41 53
-193+  915C 53 0D 0A 00
-194+  9160              p127_host_video_error:
-195+  9160 5B 50 31 32          db "[P127] ATM NATIVE VIDEO CORE SELFTEST FAIL STEP=0x",0
-195+  9164 37 5D 20 41
-195+  9168 54 4D 20 4E
-195+  916C 41 54 49 56
-195+  9170 45 20 56 49
-195+  9174 44 45 4F 20
-195+  9178 43 4F 52 45
-195+  917C 20 53 45 4C
-195+  9180 46 54 45 53
-195+  9184 54 20 46 41
-195+  9188 49 4C 20 53
-195+  918C 54 45 50 3D
-195+  9190 30 78 00
-196+  9193
-197+  9193              ; Failure path lives with the video module to keep the host image below 8 KiB.
-198+  9193              p127_video_host_fail_handler:
-199+  9193 57                   ld d,a
-200+  9194 21 60 91             ld hl,p127_host_video_error
-201+  9197 CD BA 61             call p127_host_debug_string
-202+  919A 7A                   ld a,d
-203+  919B CD A0 61             call p127_host_debug_hex_byte
-204+  919E 3E 0D                ld a,13
-205+  91A0 CD 86 61             call p127_host_debug_char
-206+  91A3 3E 0A                ld a,10
-207+  91A5 CD 86 61             call p127_host_debug_char
-208+  91A8 C3 82 61             jp p127_host_idle
-209+  91AB
-210+  91AB              p127_atm_video_service_end:
-211+  91AB                      ASSERT p127_atm_video_service_end<=#A000
-212+  91AB
+  8+  9000              ;   P127_ATM_Video_Query: A=mode, B=columns, C=rows, HL=frame bytes
+  9+  9000              ;   P127_ATM_Video_WriteCell: D=row, E=column, A=character; attr defaults #44
+ 10+  9000              ;   P127_ATM_Video_WriteCellEx: D=row, E=column, A=character, B=attribute
+ 11+  9000              ;   P127_ATM_Video_ReadCell: D=row, E=column; returns A=character, B=attribute
+ 12+  9000              ;   P127_ATM_Video_Clear: clears the 80x25 character/attribute planes
+ 13+  9000              ;   P127_ATM_Video_SelfTest: framebuffer write/readback + bounds test
+ 14+  9000              ; Carry clear = success; carry set = invalid request or test failure.
+ 15+  9000              ; =========================================================================
+ 16+  9000              P127_ATM_VIDEO_VERSION       EQU #0200
+ 17+  9000              P127_ATM_VIDEO_MODE_RG6      EQU #C6
+ 18+  9000              P127_ATM_VIDEO_COLUMNS       EQU 80
+ 19+  9000              P127_ATM_VIDEO_ROWS          EQU 25
+ 20+  9000              P127_ATM_VIDEO_FRAME_BYTES   EQU 4000
+ 21+  9000              P127_ATM_VIDEO_PAGE7         EQU #78
+ 22+  9000              P127_ATM_VIDEO_PAGE3         EQU #7C
+ 23+  9000              P127_ATM_VIDEO_HOST_PAGE5    EQU #7A
+ 24+  9000              P127_ATM_VIDEO_HOST_PAGE0    EQU #7F
+ 25+  9000              P127_ATM_VIDEO_DEFAULT_ATTR  EQU #44
+ 26+  9000
+ 27+  9000              P127_ATM_Video_Query:
+ 27+  9000
+ 28+  9000 3E C6                ld a,P127_ATM_VIDEO_MODE_RG6
+ 29+  9002 06 50                ld b,P127_ATM_VIDEO_COLUMNS
+ 30+  9004 0E 19                ld c,P127_ATM_VIDEO_ROWS
+ 31+  9006 21 A0 0F             ld hl,P127_ATM_VIDEO_FRAME_BYTES
+ 32+  9009 B7                   or a
+ 33+  900A C9                   ret
+ 34+  900B
+ 35+  900B              ; D=row, E=column. Returns HL=offset from text-plane base.
+ 36+  900B              P127_ATM_Video_CalcOffset:
+ 37+  900B 7B                   ld a,e
+ 38+  900C 32 CF 91             ld (p127_video_column),a
+ 39+  900F 7A                   ld a,d
+ 40+  9010 32 CE 91             ld (p127_video_row),a
+ 41+  9013 FE 19                cp P127_ATM_VIDEO_ROWS
+ 42+  9015 30 22                jr nc,p127_video_bad_coordinate
+ 43+  9017 3A CF 91             ld a,(p127_video_column)
+ 44+  901A FE 50                cp P127_ATM_VIDEO_COLUMNS
+ 45+  901C 30 1B                jr nc,p127_video_bad_coordinate
+ 46+  901E 3A CE 91             ld a,(p127_video_row)
+ 47+  9021 6F                   ld l,a
+ 48+  9022 26 00                ld h,0
+ 49+  9024 29                   add hl,hl
+ 50+  9025 29                   add hl,hl
+ 51+  9026 29                   add hl,hl
+ 52+  9027 29                   add hl,hl
+ 53+  9028 29                   add hl,hl
+ 54+  9029 29                   add hl,hl
+ 55+  902A 11 C0 01             ld de,#01C0
+ 56+  902D 19                   add hl,de
+ 57+  902E 3A CF 91             ld a,(p127_video_column)
+ 58+  9031 CB 3F                srl a
+ 59+  9033 5F                   ld e,a
+ 60+  9034 16 00                ld d,0
+ 61+  9036 19                   add hl,de
+ 62+  9037 B7                   or a
+ 63+  9038 C9                   ret
+ 64+  9039              p127_video_bad_coordinate:
+ 65+  9039 37                   scf
+ 66+  903A C9                   ret
+ 67+  903B
+ 68+  903B              ; Compatibility entry: write a character using the standard attribute.
+ 69+  903B              P127_ATM_Video_WriteCell:
+ 69+  903B
+ 70+  903B 06 44                ld b,P127_ATM_VIDEO_DEFAULT_ATTR
+ 71+  903D C3 40 90             jp P127_ATM_Video_WriteCellEx
+ 72+  9040
+ 73+  9040              ; D=row, E=column, A=character, B=attribute.
+ 74+  9040              P127_ATM_Video_WriteCellEx:
+ 74+  9040
+ 75+  9040 32 D0 91             ld (p127_video_character),a
+ 76+  9043 78                   ld a,b
+ 77+  9044 32 D1 91             ld (p127_video_attribute),a
+ 78+  9047 CD 0B 90             call P127_ATM_Video_CalcOffset
+ 79+  904A D8                   ret c
+ 80+  904B 22 D2 91             ld (p127_video_offset),hl
+ 81+  904E CD D0 90             call p127_video_map
+ 82+  9051 3A CF 91             ld a,(p127_video_column)
+ 83+  9054 E6 01                and 1
+ 84+  9056 20 18                jr nz,p127_video_write_odd
+ 85+  9058 2A D2 91             ld hl,(p127_video_offset)
+ 86+  905B 11 00 40             ld de,#4000
+ 87+  905E 19                   add hl,de
+ 88+  905F 3A D0 91             ld a,(p127_video_character)
+ 89+  9062 77                   ld (hl),a
+ 90+  9063 2A D2 91             ld hl,(p127_video_offset)
+ 91+  9066 11 00 E0             ld de,#E000
+ 92+  9069 19                   add hl,de
+ 93+  906A 3A D1 91             ld a,(p127_video_attribute)
+ 94+  906D 77                   ld (hl),a
+ 95+  906E 18 17                jr p127_video_write_restore
+ 96+  9070              p127_video_write_odd:
+ 97+  9070 2A D2 91             ld hl,(p127_video_offset)
+ 98+  9073 11 00 60             ld de,#6000
+ 99+  9076 19                   add hl,de
+100+  9077 3A D0 91             ld a,(p127_video_character)
+101+  907A 77                   ld (hl),a
+102+  907B 2A D2 91             ld hl,(p127_video_offset)
+103+  907E 11 00 C0             ld de,#C000
+104+  9081 19                   add hl,de
+105+  9082 23                   inc hl
+106+  9083 3A D1 91             ld a,(p127_video_attribute)
+107+  9086 77                   ld (hl),a
+108+  9087              p127_video_write_restore:
+109+  9087 CD DF 90             call p127_video_restore
+110+  908A B7                   or a
+111+  908B C9                   ret
+112+  908C
+113+  908C              ; D=row, E=column. Returns A=character, B=attribute.
+114+  908C              P127_ATM_Video_ReadCell:
+114+  908C
+115+  908C CD 0B 90             call P127_ATM_Video_CalcOffset
+116+  908F D8                   ret c
+117+  9090 22 D2 91             ld (p127_video_offset),hl
+118+  9093 CD D0 90             call p127_video_map
+119+  9096 3A CF 91             ld a,(p127_video_column)
+120+  9099 E6 01                and 1
+121+  909B 20 16                jr nz,p127_video_read_odd
+122+  909D 2A D2 91             ld hl,(p127_video_offset)
+123+  90A0 11 00 40             ld de,#4000
+124+  90A3 19                   add hl,de
+125+  90A4 7E                   ld a,(hl)
+126+  90A5 32 D0 91             ld (p127_video_character),a
+127+  90A8 2A D2 91             ld hl,(p127_video_offset)
+128+  90AB 11 00 E0             ld de,#E000
+129+  90AE 19                   add hl,de
+130+  90AF 7E                   ld a,(hl)
+131+  90B0 47                   ld b,a
+132+  90B1 18 15                jr p127_video_read_restore
+133+  90B3              p127_video_read_odd:
+134+  90B3 2A D2 91             ld hl,(p127_video_offset)
+135+  90B6 11 00 60             ld de,#6000
+136+  90B9 19                   add hl,de
+137+  90BA 7E                   ld a,(hl)
+138+  90BB 32 D0 91             ld (p127_video_character),a
+139+  90BE 2A D2 91             ld hl,(p127_video_offset)
+140+  90C1 11 00 C0             ld de,#C000
+141+  90C4 19                   add hl,de
+142+  90C5 23                   inc hl
+143+  90C6 7E                   ld a,(hl)
+144+  90C7 47                   ld b,a
+145+  90C8              p127_video_read_restore:
+146+  90C8 CD DF 90             call p127_video_restore
+147+  90CB 3A D0 91             ld a,(p127_video_character)
+148+  90CE B7                   or a
+149+  90CF C9                   ret
+150+  90D0
+151+  90D0              p127_video_map:
+152+  90D0 3E 78                ld a,P127_ATM_VIDEO_PAGE7
+153+  90D2 01 F7 7F             ld bc,#7FF7
+154+  90D5 ED 79                out (c),a
+155+  90D7 3E 7C                ld a,P127_ATM_VIDEO_PAGE3
+156+  90D9 01 F7 FF             ld bc,#FFF7
+157+  90DC ED 79                out (c),a
+158+  90DE C9                   ret
+159+  90DF
+160+  90DF              p127_video_restore:
+161+  90DF 3E 7A                ld a,P127_ATM_VIDEO_HOST_PAGE5
+162+  90E1 01 F7 7F             ld bc,#7FF7
+163+  90E4 ED 79                out (c),a
+164+  90E6 3E 7F                ld a,P127_ATM_VIDEO_HOST_PAGE0
+165+  90E8 01 F7 FF             ld bc,#FFF7
+166+  90EB ED 79                out (c),a
+167+  90ED C9                   ret
+168+  90EE
+169+  90EE              P127_ATM_Video_Clear:
+169+  90EE
+170+  90EE F5                   push af
+171+  90EF C5                   push bc
+172+  90F0 D5                   push de
+173+  90F1 E5                   push hl
+174+  90F2 CD D0 90             call p127_video_map
+175+  90F5 21 C0 41             ld hl,#41C0
+176+  90F8 11 C1 41             ld de,#41C1
+177+  90FB 36 20                ld (hl),32
+178+  90FD 01 3F 06             ld bc,#063F
+179+  9100 ED B0                ldir
+180+  9102 21 C0 61             ld hl,#61C0
+181+  9105 11 C1 61             ld de,#61C1
+182+  9108 36 20                ld (hl),32
+183+  910A 01 3F 06             ld bc,#063F
+184+  910D ED B0                ldir
+185+  910F 21 C0 E1             ld hl,#E1C0
+186+  9112 11 C1 E1             ld de,#E1C1
+187+  9115 36 44                ld (hl),P127_ATM_VIDEO_DEFAULT_ATTR
+188+  9117 01 3F 06             ld bc,#063F
+189+  911A ED B0                ldir
+190+  911C 21 C1 C1             ld hl,#C1C1
+191+  911F 11 C2 C1             ld de,#C1C2
+192+  9122 36 44                ld (hl),P127_ATM_VIDEO_DEFAULT_ATTR
+193+  9124 01 3F 06             ld bc,#063F
+194+  9127 ED B0                ldir
+195+  9129 CD DF 90             call p127_video_restore
+196+  912C E1                   pop hl
+197+  912D D1                   pop de
+198+  912E C1                   pop bc
+199+  912F F1                   pop af
+200+  9130 C9                   ret
+201+  9131
+202+  9131              ; Runtime test of both character/attribute parity layouts. Original cells are
+203+  9131              ; restored before returning, including when a readback comparison fails.
+204+  9131              P127_ATM_Video_SelfTest:
+204+  9131
+205+  9131 16 00                ld d,0
+206+  9133 1E 00                ld e,0
+207+  9135 CD 8C 90             call P127_ATM_Video_ReadCell
+208+  9138 38 69                jr c,p127_video_test_fail_1
+209+  913A 32 D4 91             ld (p127_video_saved_char),a
+210+  913D 78                   ld a,b
+211+  913E 32 D5 91             ld (p127_video_saved_attr),a
+212+  9141 16 00                ld d,0
+213+  9143 1E 00                ld e,0
+214+  9145 3E 51                ld a,#51
+215+  9147 06 2A                ld b,#2A
+216+  9149 CD 40 90             call P127_ATM_Video_WriteCellEx
+217+  914C 38 55                jr c,p127_video_test_fail_1
+218+  914E 16 00                ld d,0
+219+  9150 1E 00                ld e,0
+220+  9152 CD 8C 90             call P127_ATM_Video_ReadCell
+221+  9155 38 49                jr c,p127_video_test_restore_0_fail
+222+  9157 FE 51                cp #51
+223+  9159 20 45                jr nz,p127_video_test_restore_0_fail
+224+  915B 78                   ld a,b
+225+  915C FE 2A                cp #2A
+226+  915E 20 40                jr nz,p127_video_test_restore_0_fail
+227+  9160 CD B2 91             call p127_video_restore_cell_0
+228+  9163
+229+  9163 16 18                ld d,24
+230+  9165 1E 4F                ld e,79
+231+  9167 CD 8C 90             call P127_ATM_Video_ReadCell
+232+  916A 38 3E                jr c,p127_video_test_fail_2
+233+  916C 32 D4 91             ld (p127_video_saved_char),a
+234+  916F 78                   ld a,b
+235+  9170 32 D5 91             ld (p127_video_saved_attr),a
+236+  9173 16 18                ld d,24
+237+  9175 1E 4F                ld e,79
+238+  9177 3E A6                ld a,#A6
+239+  9179 06 35                ld b,#35
+240+  917B CD 40 90             call P127_ATM_Video_WriteCellEx
+241+  917E 38 2A                jr c,p127_video_test_fail_2
+242+  9180 16 18                ld d,24
+243+  9182 1E 4F                ld e,79
+244+  9184 CD 8C 90             call P127_ATM_Video_ReadCell
+245+  9187 38 1E                jr c,p127_video_test_restore_1_fail
+246+  9189 FE A6                cp #A6
+247+  918B 20 1A                jr nz,p127_video_test_restore_1_fail
+248+  918D 78                   ld a,b
+249+  918E FE 35                cp #35
+250+  9190 20 15                jr nz,p127_video_test_restore_1_fail
+251+  9192 CD C0 91             call p127_video_restore_cell_1
+252+  9195
+253+  9195 16 19                ld d,25
+254+  9197 1E 00                ld e,0
+255+  9199 CD 0B 90             call P127_ATM_Video_CalcOffset
+256+  919C 30 10                jr nc,p127_video_test_fail_3
+257+  919E AF                   xor a
+258+  919F C9                   ret
+259+  91A0
+260+  91A0              p127_video_test_restore_0_fail:
+261+  91A0 CD B2 91             call p127_video_restore_cell_0
+262+  91A3              p127_video_test_fail_1:
+263+  91A3 3E 01                ld a,1
+264+  91A5 18 09                jr p127_video_test_fail
+265+  91A7              p127_video_test_restore_1_fail:
+266+  91A7 CD C0 91             call p127_video_restore_cell_1
+267+  91AA              p127_video_test_fail_2:
+268+  91AA 3E 02                ld a,2
+269+  91AC 18 02                jr p127_video_test_fail
+270+  91AE              p127_video_test_fail_3:
+271+  91AE 3E 03                ld a,3
+272+  91B0              p127_video_test_fail:
+273+  91B0 37                   scf
+274+  91B1 C9                   ret
+275+  91B2
+276+  91B2              p127_video_restore_cell_0:
+277+  91B2 16 00                ld d,0
+278+  91B4 1E 00                ld e,0
+279+  91B6 3A D5 91             ld a,(p127_video_saved_attr)
+280+  91B9 47                   ld b,a
+281+  91BA 3A D4 91             ld a,(p127_video_saved_char)
+282+  91BD C3 40 90             jp P127_ATM_Video_WriteCellEx
+283+  91C0
+284+  91C0              p127_video_restore_cell_1:
+285+  91C0 16 18                ld d,24
+286+  91C2 1E 4F                ld e,79
+287+  91C4 3A D5 91             ld a,(p127_video_saved_attr)
+288+  91C7 47                   ld b,a
+289+  91C8 3A D4 91             ld a,(p127_video_saved_char)
+290+  91CB C3 40 90             jp P127_ATM_Video_WriteCellEx
+291+  91CE
+292+  91CE 00           p127_video_row:          db 0
+293+  91CF 00           p127_video_column:       db 0
+294+  91D0 00           p127_video_character:    db 0
+295+  91D1 00           p127_video_attribute:    db 0
+296+  91D2 00 00        p127_video_offset:       dw 0
+297+  91D4 00           p127_video_saved_char:   db 0
+298+  91D5 00           p127_video_saved_attr:   db 0
+299+  91D6              p127_host_video_ok:
+300+  91D6 5B 50 31 32          db "[P127] ATM NATIVE VIDEO CORE v0.2.0 SELFTEST PASS",13,10,0
+300+  91DA 37 5D 20 41
+300+  91DE 54 4D 20 4E
+300+  91E2 41 54 49 56
+300+  91E6 45 20 56 49
+300+  91EA 44 45 4F 20
+300+  91EE 43 4F 52 45
+300+  91F2 20 76 30 2E
+300+  91F6 32 2E 30 20
+300+  91FA 53 45 4C 46
+300+  91FE 54 45 53 54
+300+  9202 20 50 41 53
+300+  9206 53 0D 0A 00
+301+  920A              p127_host_video_error:
+302+  920A 5B 50 31 32          db "[P127] ATM NATIVE VIDEO CORE SELFTEST FAIL STEP=0x",0
+302+  920E 37 5D 20 41
+302+  9212 54 4D 20 4E
+302+  9216 41 54 49 56
+302+  921A 45 20 56 49
+302+  921E 44 45 4F 20
+302+  9222 43 4F 52 45
+302+  9226 20 53 45 4C
+302+  922A 46 54 45 53
+302+  922E 54 20 46 41
+302+  9232 49 4C 20 53
+302+  9236 54 45 50 3D
+302+  923A 30 78 00
+303+  923D
+304+  923D              p127_video_host_fail_handler:
+305+  923D 57                   ld d,a
+306+  923E 21 0A 92             ld hl,p127_host_video_error
+307+  9241 CD BA 61             call p127_host_debug_string
+308+  9244 7A                   ld a,d
+309+  9245 CD A0 61             call p127_host_debug_hex_byte
+310+  9248 3E 0D                ld a,13
+311+  924A CD 86 61             call p127_host_debug_char
+312+  924D 3E 0A                ld a,10
+313+  924F CD 86 61             call p127_host_debug_char
+314+  9252 C3 82 61             jp p127_host_idle
+315+  9255
+316+  9255              p127_atm_video_service_end:
+317+  9255                      ASSERT p127_atm_video_service_end<=#A000
+318+  9255
 # file closed: atm_video_service.asm
- 22   91AB
- 23   91AB                      ; DS12887 RTC service follows the video module in the reserved #9000 area.
- 24   91AB                      ORG #9200
+ 22   9255
+ 23   9255                      ; DS12887 RTC service follows the video module in the reserved #9000 area.
+ 24   9255                      ORG #9200
  25   9200                      INCLUDE "drivers/atm/atm_rtc_service.asm"
 # file opened: atm_rtc_service.asm
   1+  9200              ; =========================================================================
@@ -3580,100 +3688,100 @@
  24+  9200              P127_RTC_Init:
  24+  9200
  25+  9200 AF                   xor a
- 26+  9201 32 A1 94             ld (p127_rtc_available),a
- 27+  9204 32 A2 94             ld (p127_rtc_backend),a
+ 26+  9201 32 A5 94             ld (p127_rtc_available),a
+ 27+  9204 32 A6 94             ld (p127_rtc_backend),a
  28+  9207                      ; Project126 order: native GLUK first, then SMUC fallback.
  29+  9207 CD 23 92             call P127_RTC_ProbeBackend
  30+  920A 30 10                jr nc,p127_rtc_init_available
  31+  920C 3E 01                ld a,1
- 32+  920E 32 A2 94             ld (p127_rtc_backend),a
+ 32+  920E 32 A6 94             ld (p127_rtc_backend),a
  33+  9211 CD 23 92             call P127_RTC_ProbeBackend
  34+  9214 30 06                jr nc,p127_rtc_init_available
  35+  9216 AF                   xor a
- 36+  9217 32 A1 94             ld (p127_rtc_available),a
+ 36+  9217 32 A5 94             ld (p127_rtc_available),a
  37+  921A 37                   scf
  38+  921B C9                   ret
  39+  921C              p127_rtc_init_available:
  40+  921C 3E 01                ld a,1
- 41+  921E 32 A1 94             ld (p127_rtc_available),a
+ 41+  921E 32 A5 94             ld (p127_rtc_available),a
  42+  9221 B7                   or a
  43+  9222 C9                   ret
  44+  9223
  45+  9223              ; Probe the currently selected backend. Carry means no valid RTC response.
  46+  9223              ; Status D must report VRT=1 and Status A must have divider bits #20.
  47+  9223              P127_RTC_ProbeBackend:
- 48+  9223 CD DF 93             call P127_RTC_Open
+ 48+  9223 CD E3 93             call P127_RTC_Open
  49+  9226 3E 0D                ld a,#0D
- 50+  9228 CD 1B 94             call P127_RTC_ReadReg
+ 50+  9228 CD 1F 94             call P127_RTC_ReadReg
  51+  922B FE 80                cp #80
  52+  922D 20 1C                jr nz,p127_rtc_probe_bad
  53+  922F 3E 0A                ld a,#0A
- 54+  9231 CD 1B 94             call P127_RTC_ReadReg
+ 54+  9231 CD 1F 94             call P127_RTC_ReadReg
  55+  9234 E6 70                and #70
  56+  9236 FE 20                cp #20
  57+  9238 20 11                jr nz,p127_rtc_probe_bad
  58+  923A 3E 0B                ld a,#0B
- 59+  923C CD 1B 94             call P127_RTC_ReadReg
- 60+  923F 32 A3 94             ld (p127_rtc_status_b),a
- 61+  9242 CD 3A 94             call P127_RTC_ReadSnapshot
+ 59+  923C CD 1F 94             call P127_RTC_ReadReg
+ 60+  923F 32 A7 94             ld (p127_rtc_status_b),a
+ 61+  9242 CD 3E 94             call P127_RTC_ReadSnapshot
  62+  9245 F5                   push af
- 63+  9246 CD FA 93             call P127_RTC_Close
+ 63+  9246 CD FE 93             call P127_RTC_Close
  64+  9249 F1                   pop af
  65+  924A C9                   ret
  66+  924B              p127_rtc_probe_bad:
- 67+  924B CD FA 93             call P127_RTC_Close
+ 67+  924B CD FE 93             call P127_RTC_Close
  68+  924E 37                   scf
  69+  924F C9                   ret
  70+  9250
  71+  9250              ; Returns A=hour, B=minute, C=second, all binary.
  72+  9250              P127_RTC_ReadTime:
  72+  9250
- 73+  9250 3A A1 94             ld a,(p127_rtc_available)
+ 73+  9250 3A A5 94             ld a,(p127_rtc_available)
  74+  9253 B7                   or a
  75+  9254 28 57                jr z,p127_rtc_read_unavailable
- 76+  9256 CD DF 93             call P127_RTC_Open
- 77+  9259 CD 3A 94             call P127_RTC_ReadSnapshot
+ 76+  9256 CD E3 93             call P127_RTC_Open
+ 77+  9259 CD 3E 94             call P127_RTC_ReadSnapshot
  78+  925C F5                   push af
- 79+  925D CD FA 93             call P127_RTC_Close
+ 79+  925D CD FE 93             call P127_RTC_Close
  80+  9260 F1                   pop af
  81+  9261 D8                   ret c
  82+  9262
- 83+  9262 3A A6 94             ld a,(p127_rtc_hours)
+ 83+  9262 3A AA 94             ld a,(p127_rtc_hours)
  84+  9265 47                   ld b,a
- 85+  9266 3A A3 94             ld a,(p127_rtc_status_b)
+ 85+  9266 3A A7 94             ld a,(p127_rtc_status_b)
  86+  9269 CB 4F                bit 1,a
  87+  926B 20 2A                jr nz,p127_rtc_hour_24
  88+  926D 78                   ld a,b
  89+  926E E6 80                and #80
- 90+  9270 32 A7 94             ld (p127_rtc_pm),a
+ 90+  9270 32 AB 94             ld (p127_rtc_pm),a
  91+  9273 78                   ld a,b
  92+  9274 E6 7F                and #7F
- 93+  9276 CD 82 94             call P127_RTC_ToBinary
- 94+  9279 32 A8 94             ld (p127_rtc_hour_tmp),a
- 95+  927C 3A A7 94             ld a,(p127_rtc_pm)
+ 93+  9276 CD 86 94             call P127_RTC_ToBinary
+ 94+  9279 32 AC 94             ld (p127_rtc_hour_tmp),a
+ 95+  927C 3A AB 94             ld a,(p127_rtc_pm)
  96+  927F B7                   or a
  97+  9280 28 0B                jr z,p127_rtc_hour_am
- 98+  9282 3A A8 94             ld a,(p127_rtc_hour_tmp)
+ 98+  9282 3A AC 94             ld a,(p127_rtc_hour_tmp)
  99+  9285 FE 0C                cp 12
 100+  9287 28 12                jr z,p127_rtc_hour_ready
 101+  9289 C6 0C                add a,12
 102+  928B 18 0E                jr p127_rtc_hour_ready
 103+  928D              p127_rtc_hour_am:
-104+  928D 3A A8 94             ld a,(p127_rtc_hour_tmp)
+104+  928D 3A AC 94             ld a,(p127_rtc_hour_tmp)
 105+  9290 FE 0C                cp 12
 106+  9292 20 07                jr nz,p127_rtc_hour_ready
 107+  9294 AF                   xor a
 108+  9295 18 04                jr p127_rtc_hour_ready
 109+  9297              p127_rtc_hour_24:
 110+  9297 78                   ld a,b
-111+  9298 CD 82 94             call P127_RTC_ToBinary
+111+  9298 CD 86 94             call P127_RTC_ToBinary
 112+  929B              p127_rtc_hour_ready:
 113+  929B F5                   push af
-114+  929C 3A A5 94             ld a,(p127_rtc_minutes)
-115+  929F CD 82 94             call P127_RTC_ToBinary
+114+  929C 3A A9 94             ld a,(p127_rtc_minutes)
+115+  929F CD 86 94             call P127_RTC_ToBinary
 116+  92A2 47                   ld b,a
-117+  92A3 3A A4 94             ld a,(p127_rtc_seconds)
-118+  92A6 CD 82 94             call P127_RTC_ToBinary
+117+  92A3 3A A8 94             ld a,(p127_rtc_seconds)
+118+  92A6 CD 86 94             call P127_RTC_ToBinary
 119+  92A9 4F                   ld c,a
 120+  92AA F1                   pop af
 121+  92AB B7                   or a
@@ -3692,9 +3800,9 @@
 133+  92B3 CD EF 92             call P127_RTC_ValidateTime
 134+  92B6 D8                   ret c
 135+  92B7 79                   ld a,c
-136+  92B8 32 A9 94             ld (p127_rtc_previous_second),a
+136+  92B8 32 AD 94             ld (p127_rtc_previous_second),a
 137+  92BB 3E 04                ld a,4
-138+  92BD 32 AA 94             ld (p127_rtc_tick_attempts),a
+138+  92BD 32 AE 94             ld (p127_rtc_tick_attempts),a
 139+  92C0              p127_rtc_tick_wait:
 140+  92C0 01 FF FF             ld bc,#FFFF
 141+  92C3              p127_rtc_tick_delay:
@@ -3706,18 +3814,18 @@
 147+  92CB D8                   ret c
 148+  92CC CD EF 92             call P127_RTC_ValidateTime
 149+  92CF D8                   ret c
-150+  92D0 32 AB 94             ld (p127_rtc_last_hour),a
+150+  92D0 32 AF 94             ld (p127_rtc_last_hour),a
 151+  92D3 78                   ld a,b
-152+  92D4 32 AC 94             ld (p127_rtc_last_minute),a
+152+  92D4 32 B0 94             ld (p127_rtc_last_minute),a
 153+  92D7 79                   ld a,c
-154+  92D8 32 AD 94             ld (p127_rtc_last_second),a
+154+  92D8 32 B1 94             ld (p127_rtc_last_second),a
 155+  92DB 57                   ld d,a
-156+  92DC 3A A9 94             ld a,(p127_rtc_previous_second)
+156+  92DC 3A AD 94             ld a,(p127_rtc_previous_second)
 157+  92DF BA                   cp d
 158+  92E0 20 0B                jr nz,p127_rtc_tick_pass
-159+  92E2 3A AA 94             ld a,(p127_rtc_tick_attempts)
+159+  92E2 3A AE 94             ld a,(p127_rtc_tick_attempts)
 160+  92E5 3D                   dec a
-161+  92E6 32 AA 94             ld (p127_rtc_tick_attempts),a
+161+  92E6 32 AE 94             ld (p127_rtc_tick_attempts),a
 162+  92E9 20 D5                jr nz,p127_rtc_tick_wait
 163+  92EB 37                   scf
 164+  92EC C9                   ret
@@ -3768,15 +3876,15 @@
 209+  931A              P127_RTC_SelfTest:
 209+  931A
 210+  931A 3E 42                ld a,#42
-211+  931C CD 8C 94             call P127_RTC_BCDToBinary
+211+  931C CD 90 94             call P127_RTC_BCDToBinary
 212+  931F FE 2A                cp 42
 213+  9321 20 14                jr nz,p127_rtc_test_fail_1
 214+  9323 3E 09                ld a,#09
-215+  9325 CD 8C 94             call P127_RTC_BCDToBinary
+215+  9325 CD 90 94             call P127_RTC_BCDToBinary
 216+  9328 FE 09                cp 9
 217+  932A 20 0F                jr nz,p127_rtc_test_fail_2
 218+  932C 3E 59                ld a,#59
-219+  932E CD 8C 94             call P127_RTC_BCDToBinary
+219+  932E CD 90 94             call P127_RTC_BCDToBinary
 220+  9331 FE 3B                cp 59
 221+  9333 20 0A                jr nz,p127_rtc_test_fail_3
 222+  9335 AF                   xor a
@@ -3798,324 +3906,326 @@
 238+  9343              P127_RTC_Startup:
 238+  9343
 239+  9343 CD 1A 93             call P127_RTC_SelfTest
-240+  9346 38 64                jr c,p127_rtc_start_format_fail
-241+  9348 21 87 95             ld hl,p127_rtc_log_selftest
+240+  9346 38 6E                jr c,p127_rtc_start_format_fail
+241+  9348 21 8B 95             ld hl,p127_rtc_log_selftest
 242+  934B CD BA 61             call p127_host_debug_string
 243+  934E CD 00 92             call P127_RTC_Init
-244+  9351 38 52                jr c,p127_rtc_start_unavailable
-245+  9353 3A A2 94             ld a,(p127_rtc_backend)
+244+  9351 38 5C                jr c,p127_rtc_start_unavailable
+245+  9353 3A A6 94             ld a,(p127_rtc_backend)
 246+  9356 B7                   or a
 247+  9357 20 08                jr nz,p127_rtc_start_smuc
-248+  9359 21 B7 94             ld hl,p127_rtc_log_gluk
+248+  9359 21 BB 94             ld hl,p127_rtc_log_gluk
 249+  935C CD BA 61             call p127_host_debug_string
 250+  935F 18 06                jr p127_rtc_start_available_log
 251+  9361              p127_rtc_start_smuc:
-252+  9361 21 D1 94             ld hl,p127_rtc_log_smuc
+252+  9361 21 D5 94             ld hl,p127_rtc_log_smuc
 253+  9364 CD BA 61             call p127_host_debug_string
 254+  9367              p127_rtc_start_available_log:
-255+  9367 21 EB 94             ld hl,p127_rtc_log_available
+255+  9367 21 EF 94             ld hl,p127_rtc_log_available
 256+  936A CD BA 61             call p127_host_debug_string
 257+  936D CD AF 92             call P127_RTC_RuntimeSelfTest
-258+  9370 38 2C                jr c,p127_rtc_start_runtime_fail
-259+  9372 21 0A 95             ld hl,p127_rtc_log_runtime_pass
+258+  9370 38 36                jr c,p127_rtc_start_runtime_fail
+259+  9372 21 0E 95             ld hl,p127_rtc_log_runtime_pass
 260+  9375 CD BA 61             call p127_host_debug_string
-261+  9378 21 54 95             ld hl,p127_rtc_log_time
+261+  9378 21 58 95             ld hl,p127_rtc_log_time
 262+  937B CD BA 61             call p127_host_debug_string
-263+  937E 3A AB 94             ld a,(p127_rtc_last_hour)
-264+  9381 21 AE 94             ld hl,p127_rtc_time_buffer
+263+  937E 3A AF 94             ld a,(p127_rtc_last_hour)
+264+  9381 21 B2 94             ld hl,p127_rtc_time_buffer
 265+  9384 CD 04 93             call P127_RTC_Format2
-266+  9387 3A AC 94             ld a,(p127_rtc_last_minute)
+266+  9387 3A B0 94             ld a,(p127_rtc_last_minute)
 267+  938A 23                   inc hl
 268+  938B 23                   inc hl
 269+  938C CD 04 93             call P127_RTC_Format2
-270+  938F 3A AD 94             ld a,(p127_rtc_last_second)
+270+  938F 3A B1 94             ld a,(p127_rtc_last_second)
 271+  9392 23                   inc hl
 272+  9393 23                   inc hl
 273+  9394 CD 04 93             call P127_RTC_Format2
-274+  9397 21 AE 94             ld hl,p127_rtc_time_buffer
+274+  9397 21 B2 94             ld hl,p127_rtc_time_buffer
 275+  939A CD BA 61             call p127_host_debug_string
-276+  939D C9                   ret
-277+  939E              p127_rtc_start_runtime_fail:
-278+  939E 21 2F 95             ld hl,p127_rtc_log_runtime_fail
-279+  93A1 CD BA 61             call p127_host_debug_string
-280+  93A4 C9                   ret
-281+  93A5              p127_rtc_start_unavailable:
-282+  93A5 21 65 95             ld hl,p127_rtc_log_unavailable
-283+  93A8 CD BA 61             call p127_host_debug_string
-284+  93AB C9                   ret
-285+  93AC              p127_rtc_start_format_fail:
-286+  93AC 21 A9 95             ld hl,p127_rtc_log_selftest_fail
-287+  93AF C3 BA 61             jp p127_host_debug_string
-288+  93B2
-289+  93B2              p127_host_ui_ready:
-290+  93B2 5B 50 31 32          db "[P127] PROJECT126-STYLE HOST CONSOLE READY",13,10,0
-290+  93B6 37 5D 20 50
-290+  93BA 52 4F 4A 45
-290+  93BE 43 54 31 32
-290+  93C2 36 2D 53 54
-290+  93C6 59 4C 45 20
-290+  93CA 48 4F 53 54
-290+  93CE 20 43 4F 4E
-290+  93D2 53 4F 4C 45
-290+  93D6 20 52 45 41
-290+  93DA 44 59 0D 0A
-290+  93DE 00
-291+  93DF
-292+  93DF              ; Open native ATM DS12887 register gate.
-293+  93DF              P127_RTC_Open:
-294+  93DF F5                   push af
-295+  93E0 C5                   push bc
-296+  93E1 3A A2 94             ld a,(p127_rtc_backend)
-297+  93E4 B7                   or a
-298+  93E5 20 09                jr nz,p127_rtc_open_smuc
-299+  93E7 01 F7 EF             ld bc,#EFF7
-300+  93EA 3E 80                ld a,#80
-301+  93EC ED 79                out (c),a
-302+  93EE 18 07                jr p127_rtc_open_done
-303+  93F0              p127_rtc_open_smuc:
-304+  93F0                      ; Project126 SMUC address/read mode. Do not write zero to FFBA:
-305+  93F0                      ; #71 preserves the multiplexed ISA/NVRAM control pattern.
-306+  93F0 01 BA FF             ld bc,#FFBA
-307+  93F3 3E 71                ld a,#71
-308+  93F5 ED 79                out (c),a
-309+  93F7              p127_rtc_open_done:
-310+  93F7 C1                   pop bc
-311+  93F8 F1                   pop af
-312+  93F9 C9                   ret
-313+  93FA
-314+  93FA              ; Close gate and restore the known-working DOSEN + RG6 mode.
-315+  93FA              P127_RTC_Close:
-316+  93FA F5                   push af
-317+  93FB C5                   push bc
-318+  93FC 3A A2 94             ld a,(p127_rtc_backend)
-319+  93FF B7                   or a
-320+  9400 20 16                jr nz,p127_rtc_close_smuc
-321+  9402 01 12 94             ld bc,p127_rtc_close_done
-322+  9405 C5                   push bc
-323+  9406 01 53 2A             ld bc,#2A53
-324+  9409 C5                   push bc
-325+  940A 01 77 01             ld bc,#0177
-326+  940D 3E C6                ld a,#C6
-327+  940F C3 2F 3D             jp #3D2F
-328+  9412              p127_rtc_close_done:
-329+  9412                      ; Native GLUK gate closure uses the same ROM trampoline as Project126.
-330+  9412 CD 51 A2             call P127_Console_Restore
-331+  9415 C1                   pop bc
-332+  9416 F1                   pop af
-333+  9417 C9                   ret
-334+  9418              p127_rtc_close_smuc:
-335+  9418                      ; Project126 leaves the SMUC RTC address/read selector in place.
-336+  9418 C1                   pop bc
-337+  9419 F1                   pop af
-338+  941A C9                   ret
-339+  941B
-340+  941B              ; A=register index, returns A=data. Caller opened gate.
-341+  941B              P127_RTC_ReadReg:
-342+  941B C5                   push bc
-343+  941C 4F                   ld c,a
-344+  941D 3A A2 94             ld a,(p127_rtc_backend)
-345+  9420 B7                   or a
-346+  9421 20 0D                jr nz,p127_rtc_read_smuc
-347+  9423 79                   ld a,c
-348+  9424 01 F7 DF             ld bc,#DFF7
-349+  9427 ED 79                out (c),a
-350+  9429 01 F7 BF             ld bc,#BFF7
-351+  942C ED 78                in a,(c)
-352+  942E C1                   pop bc
-353+  942F C9                   ret
-354+  9430              p127_rtc_read_smuc:
-355+  9430 79                   ld a,c
-356+  9431 01 BA DF             ld bc,#DFBA
-357+  9434 ED 79                out (c),a
-358+  9436 ED 78                in a,(c)
-359+  9438 C1                   pop bc
-360+  9439 C9                   ret
-361+  943A
-362+  943A              ; Wait for UIP clear and take a stable seconds/minutes/hours snapshot.
-363+  943A              P127_RTC_ReadSnapshot:
-364+  943A 06 04                ld b,4
-365+  943C              p127_rtc_snapshot_retry:
-366+  943C CD 6E 94             call P127_RTC_WaitUIP
-367+  943F D8                   ret c
-368+  9440 3E 00                ld a,#00
-369+  9442 CD 1B 94             call P127_RTC_ReadReg
-370+  9445 32 A4 94             ld (p127_rtc_seconds),a
-371+  9448 3E 02                ld a,#02
-372+  944A CD 1B 94             call P127_RTC_ReadReg
-373+  944D 32 A5 94             ld (p127_rtc_minutes),a
-374+  9450 3E 04                ld a,#04
-375+  9452 CD 1B 94             call P127_RTC_ReadReg
-376+  9455 32 A6 94             ld (p127_rtc_hours),a
-377+  9458 3E 00                ld a,#00
-378+  945A CD 1B 94             call P127_RTC_ReadReg
-379+  945D 4F                   ld c,a
-380+  945E 3A A4 94             ld a,(p127_rtc_seconds)
-381+  9461 B9                   cp c
-382+  9462 28 04                jr z,p127_rtc_snapshot_ok
-383+  9464 10 D6                djnz p127_rtc_snapshot_retry
-384+  9466 37                   scf
-385+  9467 C9                   ret
-386+  9468              p127_rtc_snapshot_ok:
-387+  9468 79                   ld a,c
-388+  9469 32 A4 94             ld (p127_rtc_seconds),a
-389+  946C B7                   or a
-390+  946D C9                   ret
-391+  946E
-392+  946E              P127_RTC_WaitUIP:
-393+  946E C5                   push bc
-394+  946F 06 00                ld b,0
-395+  9471              p127_rtc_uip_loop:
-396+  9471 3E 0A                ld a,#0A
-397+  9473 CD 1B 94             call P127_RTC_ReadReg
-398+  9476 CB 7F                bit 7,a
-399+  9478 28 05                jr z,p127_rtc_uip_ready
-400+  947A 10 F5                djnz p127_rtc_uip_loop
-401+  947C 37                   scf
-402+  947D C1                   pop bc
-403+  947E C9                   ret
-404+  947F              p127_rtc_uip_ready:
-405+  947F B7                   or a
-406+  9480 C1                   pop bc
-407+  9481 C9                   ret
-408+  9482
-409+  9482              ; Convert A according to Status B bit 2 (binary=1, BCD=0).
-410+  9482              P127_RTC_ToBinary:
-411+  9482 C5                   push bc
-412+  9483 47                   ld b,a
-413+  9484 3A A3 94             ld a,(p127_rtc_status_b)
-414+  9487 CB 57                bit 2,a
-415+  9489 78                   ld a,b
-416+  948A C1                   pop bc
-417+  948B C0                   ret nz
-418+  948C              P127_RTC_BCDToBinary:
-419+  948C C5                   push bc
-420+  948D 47                   ld b,a
-421+  948E E6 0F                and #0F
-422+  9490 4F                   ld c,a
-423+  9491 78                   ld a,b
-424+  9492 E6 F0                and #F0
-425+  9494 0F                   rrca
-426+  9495 0F                   rrca
-427+  9496 0F                   rrca
-428+  9497 0F                   rrca
-429+  9498 47                   ld b,a
-430+  9499 87                   add a,a
-431+  949A 57                   ld d,a
-432+  949B 87                   add a,a
-433+  949C 87                   add a,a
-434+  949D 82                   add a,d
-435+  949E 81                   add a,c
-436+  949F C1                   pop bc
-437+  94A0 C9                   ret
-438+  94A1
-439+  94A1 00           p127_rtc_available: db 0
-440+  94A2 00           p127_rtc_backend: db 0       ; 0=GLUK DFF7/BFF7, 1=SMUC DFBA/FFBA
-441+  94A3 00           p127_rtc_status_b: db 0
-442+  94A4 00           p127_rtc_seconds: db 0
-443+  94A5 00           p127_rtc_minutes: db 0
-444+  94A6 00           p127_rtc_hours: db 0
-445+  94A7 00           p127_rtc_pm: db 0
-446+  94A8 00           p127_rtc_hour_tmp: db 0
-447+  94A9 00           p127_rtc_previous_second: db 0
-448+  94AA 00           p127_rtc_tick_attempts: db 0
-449+  94AB 00           p127_rtc_last_hour: db 0
-450+  94AC 00           p127_rtc_last_minute: db 0
-451+  94AD 00           p127_rtc_last_second: db 0
-452+  94AE 30 30 3A 30  p127_rtc_time_buffer: db "00:00:00",0
-452+  94B2 30 3A 30 30
-452+  94B6 00
-453+  94B7
-454+  94B7              p127_rtc_log_gluk:
-455+  94B7 5B 50 31 32          db "[P127] RTC BACKEND GLUK",13,10,0
-455+  94BB 37 5D 20 52
-455+  94BF 54 43 20 42
-455+  94C3 41 43 4B 45
-455+  94C7 4E 44 20 47
-455+  94CB 4C 55 4B 0D
-455+  94CF 0A 00
-456+  94D1              p127_rtc_log_smuc:
-457+  94D1 5B 50 31 32          db "[P127] RTC BACKEND SMUC",13,10,0
-457+  94D5 37 5D 20 52
-457+  94D9 54 43 20 42
-457+  94DD 41 43 4B 45
-457+  94E1 4E 44 20 53
-457+  94E5 4D 55 43 0D
-457+  94E9 0A 00
-458+  94EB              p127_rtc_log_available:
-459+  94EB 5B 50 31 32          db "[P127] RTC DS12887 AVAILABLE",13,10,0
-459+  94EF 37 5D 20 52
-459+  94F3 54 43 20 44
-459+  94F7 53 31 32 38
-459+  94FB 38 37 20 41
-459+  94FF 56 41 49 4C
-459+  9503 41 42 4C 45
-459+  9507 0D 0A 00
-460+  950A              p127_rtc_log_runtime_pass:
-461+  950A 5B 50 31 32          db "[P127] RTC READ/TICK SELFTEST PASS",13,10,0
-461+  950E 37 5D 20 52
-461+  9512 54 43 20 52
-461+  9516 45 41 44 2F
-461+  951A 54 49 43 4B
-461+  951E 20 53 45 4C
-461+  9522 46 54 45 53
-461+  9526 54 20 50 41
-461+  952A 53 53 0D 0A
-461+  952E 00
-462+  952F              p127_rtc_log_runtime_fail:
-463+  952F 5B 50 31 32          db "[P127] RTC READ/TICK SELFTEST FAIL",13,10,0
-463+  9533 37 5D 20 52
-463+  9537 54 43 20 52
-463+  953B 45 41 44 2F
-463+  953F 54 49 43 4B
-463+  9543 20 53 45 4C
-463+  9547 46 54 45 53
-463+  954B 54 20 46 41
-463+  954F 49 4C 0D 0A
-463+  9553 00
-464+  9554              p127_rtc_log_time:
-465+  9554 5B 50 31 32          db "[P127] RTC TIME ",0
-465+  9558 37 5D 20 52
-465+  955C 54 43 20 54
-465+  9560 49 4D 45 20
-465+  9564 00
-466+  9565              p127_rtc_log_unavailable:
-467+  9565 5B 50 31 32          db "[P127] RTC DS12887 NOT DETECTED",13,10,0
-467+  9569 37 5D 20 52
-467+  956D 54 43 20 44
-467+  9571 53 31 32 38
-467+  9575 38 37 20 4E
-467+  9579 4F 54 20 44
-467+  957D 45 54 45 43
-467+  9581 54 45 44 0D
-467+  9585 0A 00
-468+  9587              p127_rtc_log_selftest:
-469+  9587 5B 50 31 32          db "[P127] RTC FORMAT SELFTEST PASS",13,10,0
-469+  958B 37 5D 20 52
-469+  958F 54 43 20 46
-469+  9593 4F 52 4D 41
-469+  9597 54 20 53 45
-469+  959B 4C 46 54 45
-469+  959F 53 54 20 50
-469+  95A3 41 53 53 0D
-469+  95A7 0A 00
-470+  95A9              p127_rtc_log_selftest_fail:
-471+  95A9 5B 50 31 32          db "[P127] RTC FORMAT SELFTEST FAIL",13,10,0
-471+  95AD 37 5D 20 52
-471+  95B1 54 43 20 46
-471+  95B5 4F 52 4D 41
-471+  95B9 54 20 53 45
-471+  95BD 4C 46 54 45
-471+  95C1 53 54 20 46
-471+  95C5 41 49 4C 0D
-471+  95C9 0A 00
-472+  95CB              p127_rtc_service_end:
-473+  95CB                      ASSERT p127_rtc_service_end<=#A000
-474+  95CB
+276+  939D 3E 0D                ld a,13
+277+  939F CD 86 61             call p127_host_debug_char
+278+  93A2 3E 0A                ld a,10
+279+  93A4 CD 86 61             call p127_host_debug_char
+280+  93A7 C9                   ret
+281+  93A8              p127_rtc_start_runtime_fail:
+282+  93A8 21 33 95             ld hl,p127_rtc_log_runtime_fail
+283+  93AB CD BA 61             call p127_host_debug_string
+284+  93AE C9                   ret
+285+  93AF              p127_rtc_start_unavailable:
+286+  93AF 21 69 95             ld hl,p127_rtc_log_unavailable
+287+  93B2 CD BA 61             call p127_host_debug_string
+288+  93B5 C9                   ret
+289+  93B6              p127_rtc_start_format_fail:
+290+  93B6 21 AD 95             ld hl,p127_rtc_log_selftest_fail
+291+  93B9 C3 BA 61             jp p127_host_debug_string
+292+  93BC
+293+  93BC              p127_host_ui_ready:
+294+  93BC 5B 50 31 32          db "[P127] PROJECT127 HOST CONSOLE READY",13,10,0
+294+  93C0 37 5D 20 50
+294+  93C4 52 4F 4A 45
+294+  93C8 43 54 31 32
+294+  93CC 37 20 48 4F
+294+  93D0 53 54 20 43
+294+  93D4 4F 4E 53 4F
+294+  93D8 4C 45 20 52
+294+  93DC 45 41 44 59
+294+  93E0 0D 0A 00
+295+  93E3
+296+  93E3              ; Open native ATM DS12887 register gate.
+297+  93E3              P127_RTC_Open:
+298+  93E3 F5                   push af
+299+  93E4 C5                   push bc
+300+  93E5 3A A6 94             ld a,(p127_rtc_backend)
+301+  93E8 B7                   or a
+302+  93E9 20 09                jr nz,p127_rtc_open_smuc
+303+  93EB 01 F7 EF             ld bc,#EFF7
+304+  93EE 3E 80                ld a,#80
+305+  93F0 ED 79                out (c),a
+306+  93F2 18 07                jr p127_rtc_open_done
+307+  93F4              p127_rtc_open_smuc:
+308+  93F4                      ; Verified SMUC RTC address/read mode. Do not write zero to FFBA:
+309+  93F4                      ; #71 preserves the multiplexed ISA/NVRAM control pattern.
+310+  93F4 01 BA FF             ld bc,#FFBA
+311+  93F7 3E 71                ld a,#71
+312+  93F9 ED 79                out (c),a
+313+  93FB              p127_rtc_open_done:
+314+  93FB C1                   pop bc
+315+  93FC F1                   pop af
+316+  93FD C9                   ret
+317+  93FE
+318+  93FE              ; Close gate and restore the known-working DOSEN + RG6 mode.
+319+  93FE              P127_RTC_Close:
+320+  93FE F5                   push af
+321+  93FF C5                   push bc
+322+  9400 3A A6 94             ld a,(p127_rtc_backend)
+323+  9403 B7                   or a
+324+  9404 20 16                jr nz,p127_rtc_close_smuc
+325+  9406 01 16 94             ld bc,p127_rtc_close_done
+326+  9409 C5                   push bc
+327+  940A 01 53 2A             ld bc,#2A53
+328+  940D C5                   push bc
+329+  940E 01 77 01             ld bc,#0177
+330+  9411 3E C6                ld a,#C6
+331+  9413 C3 2F 3D             jp #3D2F
+332+  9416              p127_rtc_close_done:
+333+  9416                      ; Native GLUK gate closure uses the established ROM trampoline.
+334+  9416 CD 51 A2             call P127_Console_Restore
+335+  9419 C1                   pop bc
+336+  941A F1                   pop af
+337+  941B C9                   ret
+338+  941C              p127_rtc_close_smuc:
+339+  941C                      ; Keep the SMUC RTC address/read selector in place.
+340+  941C C1                   pop bc
+341+  941D F1                   pop af
+342+  941E C9                   ret
+343+  941F
+344+  941F              ; A=register index, returns A=data. Caller opened gate.
+345+  941F              P127_RTC_ReadReg:
+346+  941F C5                   push bc
+347+  9420 4F                   ld c,a
+348+  9421 3A A6 94             ld a,(p127_rtc_backend)
+349+  9424 B7                   or a
+350+  9425 20 0D                jr nz,p127_rtc_read_smuc
+351+  9427 79                   ld a,c
+352+  9428 01 F7 DF             ld bc,#DFF7
+353+  942B ED 79                out (c),a
+354+  942D 01 F7 BF             ld bc,#BFF7
+355+  9430 ED 78                in a,(c)
+356+  9432 C1                   pop bc
+357+  9433 C9                   ret
+358+  9434              p127_rtc_read_smuc:
+359+  9434 79                   ld a,c
+360+  9435 01 BA DF             ld bc,#DFBA
+361+  9438 ED 79                out (c),a
+362+  943A ED 78                in a,(c)
+363+  943C C1                   pop bc
+364+  943D C9                   ret
+365+  943E
+366+  943E              ; Wait for UIP clear and take a stable seconds/minutes/hours snapshot.
+367+  943E              P127_RTC_ReadSnapshot:
+368+  943E 06 04                ld b,4
+369+  9440              p127_rtc_snapshot_retry:
+370+  9440 CD 72 94             call P127_RTC_WaitUIP
+371+  9443 D8                   ret c
+372+  9444 3E 00                ld a,#00
+373+  9446 CD 1F 94             call P127_RTC_ReadReg
+374+  9449 32 A8 94             ld (p127_rtc_seconds),a
+375+  944C 3E 02                ld a,#02
+376+  944E CD 1F 94             call P127_RTC_ReadReg
+377+  9451 32 A9 94             ld (p127_rtc_minutes),a
+378+  9454 3E 04                ld a,#04
+379+  9456 CD 1F 94             call P127_RTC_ReadReg
+380+  9459 32 AA 94             ld (p127_rtc_hours),a
+381+  945C 3E 00                ld a,#00
+382+  945E CD 1F 94             call P127_RTC_ReadReg
+383+  9461 4F                   ld c,a
+384+  9462 3A A8 94             ld a,(p127_rtc_seconds)
+385+  9465 B9                   cp c
+386+  9466 28 04                jr z,p127_rtc_snapshot_ok
+387+  9468 10 D6                djnz p127_rtc_snapshot_retry
+388+  946A 37                   scf
+389+  946B C9                   ret
+390+  946C              p127_rtc_snapshot_ok:
+391+  946C 79                   ld a,c
+392+  946D 32 A8 94             ld (p127_rtc_seconds),a
+393+  9470 B7                   or a
+394+  9471 C9                   ret
+395+  9472
+396+  9472              P127_RTC_WaitUIP:
+397+  9472 C5                   push bc
+398+  9473 06 00                ld b,0
+399+  9475              p127_rtc_uip_loop:
+400+  9475 3E 0A                ld a,#0A
+401+  9477 CD 1F 94             call P127_RTC_ReadReg
+402+  947A CB 7F                bit 7,a
+403+  947C 28 05                jr z,p127_rtc_uip_ready
+404+  947E 10 F5                djnz p127_rtc_uip_loop
+405+  9480 37                   scf
+406+  9481 C1                   pop bc
+407+  9482 C9                   ret
+408+  9483              p127_rtc_uip_ready:
+409+  9483 B7                   or a
+410+  9484 C1                   pop bc
+411+  9485 C9                   ret
+412+  9486
+413+  9486              ; Convert A according to Status B bit 2 (binary=1, BCD=0).
+414+  9486              P127_RTC_ToBinary:
+415+  9486 C5                   push bc
+416+  9487 47                   ld b,a
+417+  9488 3A A7 94             ld a,(p127_rtc_status_b)
+418+  948B CB 57                bit 2,a
+419+  948D 78                   ld a,b
+420+  948E C1                   pop bc
+421+  948F C0                   ret nz
+422+  9490              P127_RTC_BCDToBinary:
+423+  9490 C5                   push bc
+424+  9491 47                   ld b,a
+425+  9492 E6 0F                and #0F
+426+  9494 4F                   ld c,a
+427+  9495 78                   ld a,b
+428+  9496 E6 F0                and #F0
+429+  9498 0F                   rrca
+430+  9499 0F                   rrca
+431+  949A 0F                   rrca
+432+  949B 0F                   rrca
+433+  949C 47                   ld b,a
+434+  949D 87                   add a,a
+435+  949E 57                   ld d,a
+436+  949F 87                   add a,a
+437+  94A0 87                   add a,a
+438+  94A1 82                   add a,d
+439+  94A2 81                   add a,c
+440+  94A3 C1                   pop bc
+441+  94A4 C9                   ret
+442+  94A5
+443+  94A5 00           p127_rtc_available: db 0
+444+  94A6 00           p127_rtc_backend: db 0       ; 0=GLUK DFF7/BFF7, 1=SMUC DFBA/FFBA
+445+  94A7 00           p127_rtc_status_b: db 0
+446+  94A8 00           p127_rtc_seconds: db 0
+447+  94A9 00           p127_rtc_minutes: db 0
+448+  94AA 00           p127_rtc_hours: db 0
+449+  94AB 00           p127_rtc_pm: db 0
+450+  94AC 00           p127_rtc_hour_tmp: db 0
+451+  94AD 00           p127_rtc_previous_second: db 0
+452+  94AE 00           p127_rtc_tick_attempts: db 0
+453+  94AF 00           p127_rtc_last_hour: db 0
+454+  94B0 00           p127_rtc_last_minute: db 0
+455+  94B1 00           p127_rtc_last_second: db 0
+456+  94B2 30 30 3A 30  p127_rtc_time_buffer: db "00:00:00",0
+456+  94B6 30 3A 30 30
+456+  94BA 00
+457+  94BB
+458+  94BB              p127_rtc_log_gluk:
+459+  94BB 5B 50 31 32          db "[P127] RTC BACKEND GLUK",13,10,0
+459+  94BF 37 5D 20 52
+459+  94C3 54 43 20 42
+459+  94C7 41 43 4B 45
+459+  94CB 4E 44 20 47
+459+  94CF 4C 55 4B 0D
+459+  94D3 0A 00
+460+  94D5              p127_rtc_log_smuc:
+461+  94D5 5B 50 31 32          db "[P127] RTC BACKEND SMUC",13,10,0
+461+  94D9 37 5D 20 52
+461+  94DD 54 43 20 42
+461+  94E1 41 43 4B 45
+461+  94E5 4E 44 20 53
+461+  94E9 4D 55 43 0D
+461+  94ED 0A 00
+462+  94EF              p127_rtc_log_available:
+463+  94EF 5B 50 31 32          db "[P127] RTC DS12887 AVAILABLE",13,10,0
+463+  94F3 37 5D 20 52
+463+  94F7 54 43 20 44
+463+  94FB 53 31 32 38
+463+  94FF 38 37 20 41
+463+  9503 56 41 49 4C
+463+  9507 41 42 4C 45
+463+  950B 0D 0A 00
+464+  950E              p127_rtc_log_runtime_pass:
+465+  950E 5B 50 31 32          db "[P127] RTC READ/TICK SELFTEST PASS",13,10,0
+465+  9512 37 5D 20 52
+465+  9516 54 43 20 52
+465+  951A 45 41 44 2F
+465+  951E 54 49 43 4B
+465+  9522 20 53 45 4C
+465+  9526 46 54 45 53
+465+  952A 54 20 50 41
+465+  952E 53 53 0D 0A
+465+  9532 00
+466+  9533              p127_rtc_log_runtime_fail:
+467+  9533 5B 50 31 32          db "[P127] RTC READ/TICK SELFTEST FAIL",13,10,0
+467+  9537 37 5D 20 52
+467+  953B 54 43 20 52
+467+  953F 45 41 44 2F
+467+  9543 54 49 43 4B
+467+  9547 20 53 45 4C
+467+  954B 46 54 45 53
+467+  954F 54 20 46 41
+467+  9553 49 4C 0D 0A
+467+  9557 00
+468+  9558              p127_rtc_log_time:
+469+  9558 5B 50 31 32          db "[P127] RTC TIME ",0
+469+  955C 37 5D 20 52
+469+  9560 54 43 20 54
+469+  9564 49 4D 45 20
+469+  9568 00
+470+  9569              p127_rtc_log_unavailable:
+471+  9569 5B 50 31 32          db "[P127] RTC DS12887 NOT DETECTED",13,10,0
+471+  956D 37 5D 20 52
+471+  9571 54 43 20 44
+471+  9575 53 31 32 38
+471+  9579 38 37 20 4E
+471+  957D 4F 54 20 44
+471+  9581 45 54 45 43
+471+  9585 54 45 44 0D
+471+  9589 0A 00
+472+  958B              p127_rtc_log_selftest:
+473+  958B 5B 50 31 32          db "[P127] RTC FORMAT SELFTEST PASS",13,10,0
+473+  958F 37 5D 20 52
+473+  9593 54 43 20 46
+473+  9597 4F 52 4D 41
+473+  959B 54 20 53 45
+473+  959F 4C 46 54 45
+473+  95A3 53 54 20 50
+473+  95A7 41 53 53 0D
+473+  95AB 0A 00
+474+  95AD              p127_rtc_log_selftest_fail:
+475+  95AD 5B 50 31 32          db "[P127] RTC FORMAT SELFTEST FAIL",13,10,0
+475+  95B1 37 5D 20 52
+475+  95B5 54 43 20 46
+475+  95B9 4F 52 4D 41
+475+  95BD 54 20 53 45
+475+  95C1 4C 46 54 45
+475+  95C5 53 54 20 46
+475+  95C9 41 49 4C 0D
+475+  95CD 0A 00
+476+  95CF              p127_rtc_service_end:
+477+  95CF                      ASSERT p127_rtc_service_end<=#A000
+478+  95CF
 # file closed: atm_rtc_service.asm
- 26   95CB
- 27   95CB                      ; Keep the proven single-file TR-DOS boot path.
- 28   95CB                      PAGE 0
- 29   95CB                      ORG #A000
+ 26   95CF
+ 27   95CF                      ; Keep the proven single-file TR-DOS boot path.
+ 28   95CF                      PAGE 0
+ 29   95CF                      ORG #A000
  30   A000                      INCLUDE "atm_host/p127_screen_console.asm"
 # file opened: p127_screen_console.asm
   1+  A000              ; =========================================================================
@@ -4953,8 +5063,9 @@ Value    Label
 0x0001   P127_ABI_MAJOR
 0x0000   P127_ABI_MINOR
 0x900B   P127_ATM_Video_CalcOffset
-0x9095 X P127_ATM_Video_Clear
+0x90EE X P127_ATM_Video_Clear
 0x0050   P127_ATM_VIDEO_COLUMNS
+0x0044   P127_ATM_VIDEO_DEFAULT_ATTR
 0x0FA0   P127_ATM_VIDEO_FRAME_BYTES
 0x007F   P127_ATM_VIDEO_HOST_PAGE0
 0x007A   P127_ATM_VIDEO_HOST_PAGE5
@@ -4962,11 +5073,13 @@ Value    Label
 0x007C   P127_ATM_VIDEO_PAGE3
 0x0078   P127_ATM_VIDEO_PAGE7
 0x9000 X P127_ATM_Video_Query
+0x908C   P127_ATM_Video_ReadCell
 0x0019   P127_ATM_VIDEO_ROWS
-0x90EE   P127_ATM_Video_SelfTest
-0x91AB   p127_atm_video_service_end
-0x0100 X P127_ATM_VIDEO_VERSION
+0x9131   P127_ATM_Video_SelfTest
+0x9255   p127_atm_video_service_end
+0x0200 X P127_ATM_VIDEO_VERSION
 0x903B X P127_ATM_Video_WriteCell
+0x9040   P127_ATM_Video_WriteCellEx
 0xA39E   p127_console_char
 0xA0AF   P127_Console_Clear
 0xA39D   p127_console_col
@@ -5048,9 +5161,9 @@ Value    Label
 0x631A   p127_host_trdos_error
 0x60A5   p127_host_trdos_fail
 0x62EF   p127_host_trdos_ok
-0x93B2   p127_host_ui_ready
-0x9160   p127_host_video_error
-0x912C   p127_host_video_ok
+0x93BC   p127_host_ui_ready
+0x920A   p127_host_video_error
+0x91D6   p127_host_video_ok
 0x0012   P127_MEM_CAPS_SIZE
 0x6570   p127_range_capacity
 0x64DA   p127_range_check
@@ -5060,76 +5173,76 @@ Value    Label
 0x6514   p127_range_nonzero
 0x6568   p127_range_offset
 0x6564   p127_range_valid
-0x94A1   p127_rtc_available
-0x94A2   p127_rtc_backend
-0x948C   P127_RTC_BCDToBinary
-0x93FA   P127_RTC_Close
-0x9412   p127_rtc_close_done
-0x9418   p127_rtc_close_smuc
+0x94A5   p127_rtc_available
+0x94A6   p127_rtc_backend
+0x9490   P127_RTC_BCDToBinary
+0x93FE   P127_RTC_Close
+0x9416   p127_rtc_close_done
+0x941C   p127_rtc_close_smuc
 0x9304   P127_RTC_Format2
 0x930F   p127_rtc_format_ones
 0x9306   p127_rtc_format_tens
 0x9297   p127_rtc_hour_24
 0x928D   p127_rtc_hour_am
 0x929B   p127_rtc_hour_ready
-0x94A8   p127_rtc_hour_tmp
-0x94A6   p127_rtc_hours
+0x94AC   p127_rtc_hour_tmp
+0x94AA   p127_rtc_hours
 0x9200   P127_RTC_Init
 0x921C   p127_rtc_init_available
-0x94AB   p127_rtc_last_hour
-0x94AC   p127_rtc_last_minute
-0x94AD   p127_rtc_last_second
-0x94EB   p127_rtc_log_available
-0x94B7   p127_rtc_log_gluk
-0x952F   p127_rtc_log_runtime_fail
-0x950A   p127_rtc_log_runtime_pass
-0x9587   p127_rtc_log_selftest
-0x95A9   p127_rtc_log_selftest_fail
-0x94D1   p127_rtc_log_smuc
-0x9554   p127_rtc_log_time
-0x9565   p127_rtc_log_unavailable
-0x94A5   p127_rtc_minutes
-0x93DF   P127_RTC_Open
-0x93F7   p127_rtc_open_done
-0x93F0   p127_rtc_open_smuc
-0x94A7   p127_rtc_pm
-0x94A9   p127_rtc_previous_second
+0x94AF   p127_rtc_last_hour
+0x94B0   p127_rtc_last_minute
+0x94B1   p127_rtc_last_second
+0x94EF   p127_rtc_log_available
+0x94BB   p127_rtc_log_gluk
+0x9533   p127_rtc_log_runtime_fail
+0x950E   p127_rtc_log_runtime_pass
+0x958B   p127_rtc_log_selftest
+0x95AD   p127_rtc_log_selftest_fail
+0x94D5   p127_rtc_log_smuc
+0x9558   p127_rtc_log_time
+0x9569   p127_rtc_log_unavailable
+0x94A9   p127_rtc_minutes
+0x93E3   P127_RTC_Open
+0x93FB   p127_rtc_open_done
+0x93F4   p127_rtc_open_smuc
+0x94AB   p127_rtc_pm
+0x94AD   p127_rtc_previous_second
 0x924B   p127_rtc_probe_bad
 0x9223   P127_RTC_ProbeBackend
-0x9430   p127_rtc_read_smuc
+0x9434   p127_rtc_read_smuc
 0x92AD   p127_rtc_read_unavailable
-0x941B   P127_RTC_ReadReg
-0x943A   P127_RTC_ReadSnapshot
+0x941F   P127_RTC_ReadReg
+0x943E   P127_RTC_ReadSnapshot
 0x9250   P127_RTC_ReadTime
 0x92AF   P127_RTC_RuntimeSelfTest
-0x94A4   p127_rtc_seconds
+0x94A8   p127_rtc_seconds
 0x931A   P127_RTC_SelfTest
-0x95CB   p127_rtc_service_end
-0x9468   p127_rtc_snapshot_ok
-0x943C   p127_rtc_snapshot_retry
+0x95CF   p127_rtc_service_end
+0x946C   p127_rtc_snapshot_ok
+0x9440   p127_rtc_snapshot_retry
 0x9367   p127_rtc_start_available_log
-0x93AC   p127_rtc_start_format_fail
-0x939E   p127_rtc_start_runtime_fail
+0x93B6   p127_rtc_start_format_fail
+0x93A8   p127_rtc_start_runtime_fail
 0x9361   p127_rtc_start_smuc
-0x93A5   p127_rtc_start_unavailable
+0x93AF   p127_rtc_start_unavailable
 0x9343   P127_RTC_Startup
-0x94A3   p127_rtc_status_b
+0x94A7   p127_rtc_status_b
 0x9341   p127_rtc_test_fail
 0x9337   p127_rtc_test_fail_1
 0x933B   p127_rtc_test_fail_2
 0x933F   p127_rtc_test_fail_3
-0x94AA   p127_rtc_tick_attempts
+0x94AE   p127_rtc_tick_attempts
 0x92C3   p127_rtc_tick_delay
 0x92ED   p127_rtc_tick_pass
 0x92C0   p127_rtc_tick_wait
-0x94AE   p127_rtc_time_buffer
+0x94B2   p127_rtc_time_buffer
 0x9301   p127_rtc_time_invalid
-0x9482   P127_RTC_ToBinary
-0x9471   p127_rtc_uip_loop
-0x947F   p127_rtc_uip_ready
+0x9486   P127_RTC_ToBinary
+0x9475   p127_rtc_uip_loop
+0x9483   p127_rtc_uip_ready
 0x92EF   P127_RTC_ValidateTime
 0x0100 X P127_RTC_VERSION
-0x946E   P127_RTC_WaitUIP
+0x9472   P127_RTC_WaitUIP
 0x8019   p127_trdos_catalog_bad_length
 0x8000   p127_trdos_catalog_begin
 0x8081   p127_trdos_catalog_count
@@ -5168,20 +5281,31 @@ Value    Label
 0xA312   p127_ui4
 0xA340   p127_ui5
 0xA376   p127_ui6
+0x91D1   p127_video_attribute
 0x9039   p127_video_bad_coordinate
-0x9129   p127_video_character
-0x9128   p127_video_column
-0x9193   p127_video_host_fail_handler
-0x912A   p127_video_offset
+0x91D0   p127_video_character
+0x91CF   p127_video_column
+0x923D   p127_video_host_fail_handler
+0x90D0   p127_video_map
+0x91D2   p127_video_offset
 0x007C   P127_VIDEO_PAGE3
 0x0078   P127_VIDEO_PAGE7
-0x9127   p127_video_row
-0x9125   p127_video_test_fail
-0x911B   p127_video_test_fail_1
-0x911F   p127_video_test_fail_2
-0x9123   p127_video_test_fail_3
+0x90B3   p127_video_read_odd
+0x90C8   p127_video_read_restore
+0x90DF   p127_video_restore
+0x91B2   p127_video_restore_cell_0
+0x91C0   p127_video_restore_cell_1
+0x91CE   p127_video_row
+0x91D5   p127_video_saved_attr
+0x91D4   p127_video_saved_char
+0x91B0   p127_video_test_fail
+0x91A3   p127_video_test_fail_1
+0x91AA   p127_video_test_fail_2
+0x91AE   p127_video_test_fail_3
+0x91A0   p127_video_test_restore_0_fail
+0x91A7   p127_video_test_restore_1_fail
 0x9070   p127_video_write_odd
-0x9085   p127_video_write_restore
+0x9087   p127_video_write_restore
 0x00F9   RANDOMIZE
 0x00EA   REM
 0x00C0   USR
