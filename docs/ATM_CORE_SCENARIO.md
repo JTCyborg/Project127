@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.69**  
+Scenario revision: **0.8.70**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -882,3 +882,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Added a self-test phase byte to `p127_as_copy.asm` v0.1.2: 01 setup/allocation/binding, 02 zero-length boundary, 03 overlap rejection, 04 unmapped-destination preflight, 05 source seeding, 06 actual cross-page copy, 07 destination verification. The existing API error byte and completed-byte count are also emitted on failure.
 - Boot diagnostics now print `COPY PHASE`, `ERROR`, and the 32-bit `DONE` count after the failure marker. This is diagnostic instrumentation only; it does not change mapping, copy, lease, interrupt or allocator behavior.
 - The next user runtime log is required to identify the failing instruction path before changing transfer semantics. Stage 6.3 remains implemented but not runtime-accepted. No independent SjASMPlus or Unreal Speccy run is claimed.
+
+
+### 2026-11-09 — Stage 6.3 copy-loop arithmetic fix v0.1.3
+
+- User runtime diagnostics localized the failure to self-test phase 06 and reported `ERROR=00 DONE=00003FF0`. The completed count exactly matched the source logical address used by the test.
+- Root cause: copy-loop initialization mistakenly copied `p127_as_copy_source` into `p127_as_copy_remaining` instead of copying `p127_as_copy_length`. The loop therefore attempted to transfer 0x3FF0 bytes for a 0x20-byte request.
+- Corrected the remaining-length initialization to use the requested length.
+- Corrected chunk limiting: the remaining byte count is now applied as a true minimum against the chunk already limited by source and destination page tails. It can no longer enlarge a chunk after a page-boundary limit has been applied.
+- Module version: `p127_as_copy.asm` v0.1.3. Expected test outcome is `LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED`; build and runtime confirmation remain pending user rebuild.
