@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.7.3**  
+Scenario revision: **0.8.0**  
 Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; software mapper model accepted after user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -25,7 +25,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | 1 — Physical page-state manager | **PASS (runtime accepted)** | 64-entry page-state table; video and active boot-map reservations; allocate/free/reallocate smoke test. |
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
-| 4 — Page mapper | **SOFTWARE MODEL IMPLEMENTED; RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
+| 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD IMPLEMENTED; RUNTIME ACCEPTED / NEW GUARD TEST PENDING** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | PLANNED | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
@@ -39,8 +39,8 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.4.1 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
-| `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.1.1 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
+| `src/boot/p127_boot.asm` | 0.5.2 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
+| `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.2.0 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
@@ -194,3 +194,15 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Acceptance is strictly software-only. Hardware page switching remains disabled; no physical OUT writes, safe remap handoff, or application-memory allocation have been validated.
 - RTC remains `NOT INITIALIZED`; this is unchanged and outside this stage.
 - Next stage: design and implement the remap handoff with explicit execution-window, stack, UI, interrupt and rollback protections. Keep hardware OUT disabled until the handoff can be tested without risking the active boot environment.
+
+
+### 2026-11-09 — Stage 2.5: software-only safe-remap handoff gate v0.2.0
+
+- Added `p127_map_handoff_prepare`: caller supplies the target window, destination physical page, and a four-bit protected-window mask. The routine rejects invalid windows/pages and any target marked protected; otherwise it stages a pending request in RAM.
+- Added `p127_map_handoff_abort` to clear a staged request.
+- Added self-tests for all four bootstrap windows being protected, rejection of invalid window/page values, a synthetic case with W0 explicitly declared stable, pending-request contents, and abort.
+- The bootstrap protection mask is currently `#0F`: W0=TR-DOS ROM, W1=executing Stage 2 code, W2=UI/stack, W3=host/staging. Therefore no real bootstrap window is eligible for remapping. The synthetic W0 case tests the guard logic only; it does not assert that W0 is safe in the real system.
+- Boot module advanced to v0.5.2 and now emits `[P127] HANDOFF GUARD TEST PASS; OUT DISABLED` when the new self-test passes.
+- **No OUT instructions, physical remap, page-table commit, or automatic protection-mask discovery are implemented.** Caller correctness in declaring every live window protected remains a requirement. The guard is a software preflight model, not yet the final executable handoff trampoline.
+- Build/runtime verification of this new stage is pending. Existing accepted tests remain accepted; do not interpret the new pass message until the user rebuilds and runs this revision.
+- Next: after user acceptance, design a resident trampoline and stack transition located in a verified stable mapping, then validate interrupt/IFF handling and rollback before considering any physical page-port write.

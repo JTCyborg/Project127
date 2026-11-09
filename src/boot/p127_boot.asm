@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.5.1
+; Project127 — boot stage 0.5.2
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -62,7 +62,15 @@ p127_start:
         call    p127_map_init
         call    p127_map_selftest
         jp      c,p127_map_failed
+        call    p127_map_handoff_selftest
+        jp      c,p127_handoff_failed
+        ld      hl,p127_msg_handoff_pass
+        call    p127_puts
         ld      hl,p127_msg_map_pass
+        call    p127_puts
+        jr      p127_idle
+p127_handoff_failed:
+        ld      hl,p127_msg_handoff_fail
         call    p127_puts
         jr      p127_idle
 p127_map_failed:
@@ -136,6 +144,10 @@ p127_msg_map_pass:
         db      "[P127] MAP MODEL TEST PASS; OUT DISABLED", 13, 10, 0
 p127_msg_map_fail:
         db      "[P127] MAP MODEL TEST FAIL", 13, 10, 0
+p127_msg_handoff_pass:
+        db      "[P127] HANDOFF GUARD TEST PASS; OUT DISABLED",13,10,0
+p127_msg_handoff_fail:
+        db      "[P127] HANDOFF GUARD TEST FAIL",13,10,0
 
         INCLUDE "src/kernel/p127_mem.asm"
         INCLUDE "src/kernel/p127_map.asm"
