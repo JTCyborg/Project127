@@ -1,6 +1,6 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.15.0
+; Version: P127_ATM_HOST v0.16.0
 ; ATM handle pin/unpin reference counting.
 ; =========================================================================
 
@@ -66,10 +66,32 @@ p127_host_entry:
         jr      c,p127_host_storage_unavailable
         ld      hl,p127_storage_log_ready
         call    p127_host_debug_string
+        call    P127_FAT16_Mount
+        jr      c,p127_host_fat16_unavailable
+        ld      hl,p127_fat16_log_mounted
+        call    p127_host_debug_string
+        jr      p127_host_storage_done
+p127_host_fat16_unavailable:
+        ld      d,a
+        ld      hl,p127_fat16_log_failed
+        call    p127_host_debug_string
+        ld      a,d
+        call    p127_host_debug_hex_byte
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
         jr      p127_host_storage_done
 p127_host_storage_unavailable:
+        ld      d,a
         ld      hl,p127_storage_log_missing
         call    p127_host_debug_string
+        ld      a,d
+        call    p127_host_debug_hex_byte
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
 p127_host_storage_done:
         ld      hl,p127_host_ui_ready
         call    p127_host_debug_string
@@ -243,7 +265,7 @@ p127_host_debug_string:
 
 p127_host_console_ready: db 0
 p127_host_banner:
-        db "[P127] ATM HOST ENTRY v0.15.0",13,10
+        db "[P127] ATM HOST ENTRY v0.16.0",13,10
         db "[P127] TR-DOS BOOT OK",13,10
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
 p127_host_range_ok:
