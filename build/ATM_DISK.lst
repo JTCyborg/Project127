@@ -1,467 +1,510 @@
 # file opened: project127_disk.generated.asm
- 1    0000              ; =========================================================================
- 2    0000              ; PROJECT127 ??? clean TR-DOS disk image
- 3    0000              ; Contains only BOOT.B and the initial ATM host entry image.
- 4    0000              ; No Project126 x86 overlays or fixed 16 KiB module layout are included.
- 5    0000              ; =========================================================================
- 6    0000
- 7    0000                      DEVICE ZXSPECTRUM128
- 8    0000                      EMPTYTRD "disk_A.trd"
- 9    0000
-10    0000                      PAGE 0
-11    0000                      INCLUDE "atm_host/p127_host.asm"
+  1   0000              ; =========================================================================
+  2   0000              ; PROJECT127 ??? clean TR-DOS disk image
+  3   0000              ; Contains only BOOT.B and the initial ATM host entry image.
+  4   0000              ; No Project126 x86 overlays or fixed 16 KiB module layout are included.
+  5   0000              ; =========================================================================
+  6   0000
+  7   0000                      DEVICE ZXSPECTRUM128
+  8   0000                      EMPTYTRD "disk_A.trd"
+  9   0000
+ 10   0000                      PAGE 0
+ 11   0000                      INCLUDE "atm_host/p127_host.asm"
 # file opened: p127_host.asm
- 1+   0000              ; =========================================================================
- 2+   0000              ; PROJECT127 - ATM Turbo 2+ host entry
- 3+   0000              ; Version: P127_ATM_HOST v0.2.0
- 4+   0000              ; First ATM memory-core milestone: capability/range validation only.
- 5+   0000              ; =========================================================================
- 6+   0000
- 7+   0000                      DEVICE ZXSPECTRUM128
- 8+   0000
- 9+   0000              P127_HOST_LOAD_ADDRESS EQU 24576
-10+   0000              P127_HOST_ENTRY_POINT  EQU P127_HOST_LOAD_ADDRESS+9
-11+   0000              P127_HOST_STACK_TOP    EQU #AFFF
-12+   0000
-13+   0000                      ORG P127_HOST_LOAD_ADDRESS
-14+   6000              p127_host_program_start:
-15+   6000 C3 09 60             jp      p127_host_entry
-16+   6003 00 00 00...          BLOCK   6,0
-17+   6009
-18+   6009              p127_host_entry:
-19+   6009 F3                   di
-20+   600A 31 FF AF             ld      sp,P127_HOST_STACK_TOP
-21+   600D 21 34 60             ld      hl,p127_host_banner
-22+   6010 CD 29 60             call    p127_host_debug_string
-23+   6013 CD 4D 61             call    atm_mem_range_selftest
-24+   6016 38 08                jr      c,p127_host_range_fail
-25+   6018 21 8B 60             ld      hl,p127_host_range_ok
-26+   601B CD 29 60             call    p127_host_debug_string
-27+   601E 18 06                jr      p127_host_idle
-28+   6020              p127_host_range_fail:
-29+   6020 21 AF 60             ld      hl,p127_host_range_error
-30+   6023 CD 29 60             call    p127_host_debug_string
-31+   6026              p127_host_idle:
-32+   6026 76                   halt
-33+   6027 18 FD                jr      p127_host_idle
-34+   6029
-35+   6029              p127_host_debug_string:
-36+   6029 7E                   ld      a,(hl)
-37+   602A B7                   or      a
-38+   602B C8                   ret     z
-39+   602C 01 EF 00             ld      bc,#00EF
-40+   602F ED 79                out     (c),a
-41+   6031 23                   inc     hl
-42+   6032 18 F5                jr      p127_host_debug_string
-43+   6034
-44+   6034              p127_host_banner:
-45+   6034 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.2.0",13,10
-45+   6038 37 5D 20 41
-45+   603C 54 4D 20 48
-45+   6040 4F 53 54 20
-45+   6044 45 4E 54 52
-45+   6048 59 20 76 30
-45+   604C 2E 32 2E 30
-45+   6050 0D 0A
-46+   6052 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
-46+   6056 37 5D 20 54
-46+   605A 52 2D 44 4F
-46+   605E 53 20 42 4F
-46+   6062 4F 54 20 4F
-46+   6066 4B 0D 0A
-47+   6069 5B 50 31 32          db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
-47+   606D 37 5D 20 41
-47+   6071 54 4D 20 52
-47+   6075 41 4D 20 52
-47+   6079 41 4E 47 45
-47+   607D 20 43 4F 52
-47+   6081 45 20 31 20
-47+   6085 4D 69 42 0D
-47+   6089 0A 00
-48+   608B              p127_host_range_ok:
-49+   608B 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
-49+   608F 37 5D 20 55
-49+   6093 49 4E 54 33
-49+   6097 32 20 52 41
-49+   609B 4E 47 45 20
-49+   609F 53 45 4C 46
-49+   60A3 54 45 53 54
-49+   60A7 20 50 41 53
-49+   60AB 53 0D 0A 00
-50+   60AF              p127_host_range_error:
-51+   60AF 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST FAIL",13,10,0
-51+   60B3 37 5D 20 55
-51+   60B7 49 4E 54 33
-51+   60BB 32 20 52 41
-51+   60BF 4E 47 45 20
-51+   60C3 53 45 4C 46
-51+   60C7 54 45 53 54
-51+   60CB 20 46 41 49
-51+   60CF 4C 0D 0A 00
-52+   60D3
-53+   60D3                      INCLUDE "drivers/atm/atm_memory_backend.asm"
+  1+  0000              ; =========================================================================
+  2+  0000              ; PROJECT127 - ATM Turbo 2+ host entry
+  3+  0000              ; Version: P127_ATM_HOST v0.3.0
+  4+  0000              ; First ATM memory-core milestone: capability/range validation only.
+  5+  0000              ; =========================================================================
+  6+  0000
+  7+  0000                      DEVICE ZXSPECTRUM128
+  8+  0000
+  9+  0000              P127_HOST_LOAD_ADDRESS EQU 24576
+ 10+  0000              P127_HOST_ENTRY_POINT  EQU P127_HOST_LOAD_ADDRESS+9
+ 11+  0000              P127_HOST_STACK_TOP    EQU #AFFF
+ 12+  0000
+ 13+  0000                      ORG P127_HOST_LOAD_ADDRESS
+ 14+  6000              p127_host_program_start:
+ 15+  6000 C3 09 60             jp      p127_host_entry
+ 16+  6003 00 00 00...          BLOCK   6,0
+ 17+  6009
+ 18+  6009              p127_host_entry:
+ 19+  6009 F3                   di
+ 20+  600A 31 FF AF             ld      sp,P127_HOST_STACK_TOP
+ 21+  600D 21 34 60             ld      hl,p127_host_banner
+ 22+  6010 CD 29 60             call    p127_host_debug_string
+ 23+  6013 CD 4D 61             call    atm_mem_range_selftest
+ 24+  6016 38 08                jr      c,p127_host_range_fail
+ 25+  6018 21 8B 60             ld      hl,p127_host_range_ok
+ 26+  601B CD 29 60             call    p127_host_debug_string
+ 27+  601E 18 06                jr      p127_host_idle
+ 28+  6020              p127_host_range_fail:
+ 29+  6020 21 AF 60             ld      hl,p127_host_range_error
+ 30+  6023 CD 29 60             call    p127_host_debug_string
+ 31+  6026              p127_host_idle:
+ 32+  6026 76                   halt
+ 33+  6027 18 FD                jr      p127_host_idle
+ 34+  6029
+ 35+  6029              p127_host_debug_string:
+ 36+  6029 7E                   ld      a,(hl)
+ 37+  602A B7                   or      a
+ 38+  602B C8                   ret     z
+ 39+  602C 01 EF 00             ld      bc,#00EF
+ 40+  602F ED 79                out     (c),a
+ 41+  6031 23                   inc     hl
+ 42+  6032 18 F5                jr      p127_host_debug_string
+ 43+  6034
+ 44+  6034              p127_host_banner:
+ 45+  6034 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.3.0",13,10
+ 45+  6038 37 5D 20 41
+ 45+  603C 54 4D 20 48
+ 45+  6040 4F 53 54 20
+ 45+  6044 45 4E 54 52
+ 45+  6048 59 20 76 30
+ 45+  604C 2E 33 2E 30
+ 45+  6050 0D 0A
+ 46+  6052 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
+ 46+  6056 37 5D 20 54
+ 46+  605A 52 2D 44 4F
+ 46+  605E 53 20 42 4F
+ 46+  6062 4F 54 20 4F
+ 46+  6066 4B 0D 0A
+ 47+  6069 5B 50 31 32          db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
+ 47+  606D 37 5D 20 41
+ 47+  6071 54 4D 20 52
+ 47+  6075 41 4D 20 52
+ 47+  6079 41 4E 47 45
+ 47+  607D 20 43 4F 52
+ 47+  6081 45 20 31 20
+ 47+  6085 4D 69 42 0D
+ 47+  6089 0A 00
+ 48+  608B              p127_host_range_ok:
+ 49+  608B 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
+ 49+  608F 37 5D 20 55
+ 49+  6093 49 4E 54 33
+ 49+  6097 32 20 52 41
+ 49+  609B 4E 47 45 20
+ 49+  609F 53 45 4C 46
+ 49+  60A3 54 45 53 54
+ 49+  60A7 20 50 41 53
+ 49+  60AB 53 0D 0A 00
+ 50+  60AF              p127_host_range_error:
+ 51+  60AF 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST FAIL",13,10,0
+ 51+  60B3 37 5D 20 55
+ 51+  60B7 49 4E 54 33
+ 51+  60BB 32 20 52 41
+ 51+  60BF 4E 47 45 20
+ 51+  60C3 53 45 4C 46
+ 51+  60C7 54 45 53 54
+ 51+  60CB 20 46 41 49
+ 51+  60CF 4C 0D 0A 00
+ 52+  60D3
+ 53+  60D3                      INCLUDE "drivers/atm/atm_memory_backend.asm"
 # file opened: atm_memory_backend.asm
- 1++  60D3              ; Project127 ATM Turbo 2+ memory backend — capability and range core.
- 2++  60D3              ; Physical capacity is the agreed 1 MiB ATM RAM configuration.
- 3++  60D3              ; Active video backing and system reservations are NOT allocatable.
- 4++  60D3              ; Project112 proves video mappings (physical page 5/page 1), but does not
- 5++  60D3              ; define a complete general-purpose physical-page selector for all ATM RAM.
- 6++  60D3              ;
- 7++  60D3              ; atm_mem_query_caps: HL -> 18-byte capability record
- 8++  60D3              ; atm_mem_validate_range: carry clear iff offset+length is in 1 MiB
- 9++  60D3              ; atm_mem_range_selftest: carry clear iff all arithmetic boundary tests pass
-10++  60D3              ;
-11++  60D3              ; READ/WRITE/ALLOC/FREE are not advertised until page selection and the
-12++  60D3              ; reservation map are implemented and tested on target.
-13++  60D3
-14++  60D3                      INCLUDE "drivers/shared/p127_memory_core.inc"
+  1++ 60D3              ; Project127 ATM Turbo 2+ memory backend — capability and range core.
+  2++ 60D3              ; Physical capacity is the agreed 1 MiB ATM RAM configuration.
+  3++ 60D3              ; Active video backing and system reservations are NOT allocatable.
+  4++ 60D3              ; Project112 proves video mappings (physical page 5/page 1), but does not
+  5++ 60D3              ; define a complete general-purpose physical-page selector for all ATM RAM.
+  6++ 60D3              ;
+  7++ 60D3              ; atm_mem_query_caps: HL -> 18-byte capability record
+  8++ 60D3              ; atm_mem_validate_range: carry clear iff offset+length is in 1 MiB
+  9++ 60D3              ; atm_mem_range_selftest: carry clear iff all arithmetic boundary tests pass
+ 10++ 60D3              ;
+ 11++ 60D3              ; READ/WRITE/ALLOC/FREE are not advertised until page selection and the
+ 12++ 60D3              ; reservation map are implemented and tested on target.
+ 13++ 60D3
+ 14++ 60D3                      INCLUDE "drivers/shared/p127_memory_core.inc"
 # file opened: p127_memory_core.inc
- 1+++ 60D3              ; Project127 shared 32-bit memory range core
- 2+++ 60D3              ; UINT32 values are little-endian. Carry set means overflow or end > capacity.
- 3+++ 60D3              ; Zero-length ranges are valid when offset <= capacity.
- 4+++ 60D3              ; Non-reentrant: each processor serializes memory API calls.
- 5+++ 60D3
- 6+++ 60D3              P127_ABI_MAJOR EQU 1
- 7+++ 60D3              P127_ABI_MINOR EQU 0
- 8+++ 60D3              P127_MEM_CAPS_SIZE EQU 18
- 9+++ 60D3
-10+++ 60D3              p127_range_check:
-10+++ 60D3
-11+++ 60D3 21 27 61             ld      hl,p127_range_offset
-12+++ 60D6 11 2B 61             ld      de,p127_range_length
-13+++ 60D9 7E                   ld      a,(hl)
-14+++ 60DA 47                   ld      b,a
-15+++ 60DB 1A                   ld      a,(de)
-16+++ 60DC 80                   add     a,b
-17+++ 60DD 32 33 61             ld      (p127_range_end),a
-18+++ 60E0 23                   inc     hl
-19+++ 60E1 13                   inc     de
-20+++ 60E2 7E                   ld      a,(hl)
-21+++ 60E3 47                   ld      b,a
-22+++ 60E4 1A                   ld      a,(de)
-23+++ 60E5 88                   adc     a,b
-24+++ 60E6 32 34 61             ld      (p127_range_end+1),a
-25+++ 60E9 23                   inc     hl
-26+++ 60EA 13                   inc     de
-27+++ 60EB 7E                   ld      a,(hl)
-28+++ 60EC 47                   ld      b,a
-29+++ 60ED 1A                   ld      a,(de)
-30+++ 60EE 88                   adc     a,b
-31+++ 60EF 32 35 61             ld      (p127_range_end+2),a
-32+++ 60F2 23                   inc     hl
-33+++ 60F3 13                   inc     de
-34+++ 60F4 7E                   ld      a,(hl)
-35+++ 60F5 47                   ld      b,a
-36+++ 60F6 1A                   ld      a,(de)
-37+++ 60F7 88                   adc     a,b
-38+++ 60F8 32 36 61             ld      (p127_range_end+3),a
-39+++ 60FB 38 28                jr      c,p127_range_invalid
-40+++ 60FD
-41+++ 60FD                      ; Unsigned end <= capacity, most-significant byte first.
-42+++ 60FD 3A 36 61             ld      a,(p127_range_end+3)
-43+++ 6100 21 32 61             ld      hl,p127_range_capacity+3
-44+++ 6103 BE                   cp      (hl)
-45+++ 6104 38 1D                jr      c,p127_range_valid
-46+++ 6106 20 1D                jr      nz,p127_range_invalid
-47+++ 6108 3A 35 61             ld      a,(p127_range_end+2)
-48+++ 610B 2B                   dec     hl
-49+++ 610C BE                   cp      (hl)
-50+++ 610D 38 14                jr      c,p127_range_valid
-51+++ 610F 20 14                jr      nz,p127_range_invalid
-52+++ 6111 3A 34 61             ld      a,(p127_range_end+1)
-53+++ 6114 2B                   dec     hl
-54+++ 6115 BE                   cp      (hl)
-55+++ 6116 38 0B                jr      c,p127_range_valid
-56+++ 6118 20 0B                jr      nz,p127_range_invalid
-57+++ 611A 3A 33 61             ld      a,(p127_range_end)
-58+++ 611D 2B                   dec     hl
-59+++ 611E BE                   cp      (hl)
-60+++ 611F 38 02                jr      c,p127_range_valid
-61+++ 6121 20 02                jr      nz,p127_range_invalid
-62+++ 6123              p127_range_valid:
-63+++ 6123 B7                   or      a
-64+++ 6124 C9                   ret
-65+++ 6125              p127_range_invalid:
-66+++ 6125 37                   scf
-67+++ 6126 C9                   ret
-68+++ 6127
-69+++ 6127 00 00 00 00  p127_range_offset:   defs 4,0
-70+++ 612B 00 00 00 00  p127_range_length:   defs 4,0
-71+++ 612F 00 00 00 00  p127_range_capacity: defs 4,0
-72+++ 6133 00 00 00 00  p127_range_end:      defs 4,0
-73+++ 6137
+  1+++60D3              ; Project127 shared 32-bit memory range core
+  2+++60D3              ; UINT32 values are little-endian. Carry set means overflow or end > capacity.
+  3+++60D3              ; Zero-length ranges are valid when offset <= capacity.
+  4+++60D3              ; Non-reentrant: each processor serializes memory API calls.
+  5+++60D3
+  6+++60D3              P127_ABI_MAJOR EQU 1
+  7+++60D3              P127_ABI_MINOR EQU 0
+  8+++60D3              P127_MEM_CAPS_SIZE EQU 18
+  9+++60D3
+ 10+++60D3              p127_range_check:
+ 10+++60D3
+ 11+++60D3 21 27 61             ld      hl,p127_range_offset
+ 12+++60D6 11 2B 61             ld      de,p127_range_length
+ 13+++60D9 7E                   ld      a,(hl)
+ 14+++60DA 47                   ld      b,a
+ 15+++60DB 1A                   ld      a,(de)
+ 16+++60DC 80                   add     a,b
+ 17+++60DD 32 33 61             ld      (p127_range_end),a
+ 18+++60E0 23                   inc     hl
+ 19+++60E1 13                   inc     de
+ 20+++60E2 7E                   ld      a,(hl)
+ 21+++60E3 47                   ld      b,a
+ 22+++60E4 1A                   ld      a,(de)
+ 23+++60E5 88                   adc     a,b
+ 24+++60E6 32 34 61             ld      (p127_range_end+1),a
+ 25+++60E9 23                   inc     hl
+ 26+++60EA 13                   inc     de
+ 27+++60EB 7E                   ld      a,(hl)
+ 28+++60EC 47                   ld      b,a
+ 29+++60ED 1A                   ld      a,(de)
+ 30+++60EE 88                   adc     a,b
+ 31+++60EF 32 35 61             ld      (p127_range_end+2),a
+ 32+++60F2 23                   inc     hl
+ 33+++60F3 13                   inc     de
+ 34+++60F4 7E                   ld      a,(hl)
+ 35+++60F5 47                   ld      b,a
+ 36+++60F6 1A                   ld      a,(de)
+ 37+++60F7 88                   adc     a,b
+ 38+++60F8 32 36 61             ld      (p127_range_end+3),a
+ 39+++60FB 38 28                jr      c,p127_range_invalid
+ 40+++60FD
+ 41+++60FD                      ; Unsigned end <= capacity, most-significant byte first.
+ 42+++60FD 3A 36 61             ld      a,(p127_range_end+3)
+ 43+++6100 21 32 61             ld      hl,p127_range_capacity+3
+ 44+++6103 BE                   cp      (hl)
+ 45+++6104 38 1D                jr      c,p127_range_valid
+ 46+++6106 20 1D                jr      nz,p127_range_invalid
+ 47+++6108 3A 35 61             ld      a,(p127_range_end+2)
+ 48+++610B 2B                   dec     hl
+ 49+++610C BE                   cp      (hl)
+ 50+++610D 38 14                jr      c,p127_range_valid
+ 51+++610F 20 14                jr      nz,p127_range_invalid
+ 52+++6111 3A 34 61             ld      a,(p127_range_end+1)
+ 53+++6114 2B                   dec     hl
+ 54+++6115 BE                   cp      (hl)
+ 55+++6116 38 0B                jr      c,p127_range_valid
+ 56+++6118 20 0B                jr      nz,p127_range_invalid
+ 57+++611A 3A 33 61             ld      a,(p127_range_end)
+ 58+++611D 2B                   dec     hl
+ 59+++611E BE                   cp      (hl)
+ 60+++611F 38 02                jr      c,p127_range_valid
+ 61+++6121 20 02                jr      nz,p127_range_invalid
+ 62+++6123              p127_range_valid:
+ 63+++6123 B7                   or      a
+ 64+++6124 C9                   ret
+ 65+++6125              p127_range_invalid:
+ 66+++6125 37                   scf
+ 67+++6126 C9                   ret
+ 68+++6127
+ 69+++6127 00 00 00 00  p127_range_offset:   defs 4,0
+ 70+++612B 00 00 00 00  p127_range_length:   defs 4,0
+ 71+++612F 00 00 00 00  p127_range_capacity: defs 4,0
+ 72+++6133 00 00 00 00  p127_range_end:      defs 4,0
+ 73+++6137
 # file closed: p127_memory_core.inc
-15++  6137
-16++  6137              ATM_RAM_CAPACITY_LO  EQU #00
-17++  6137              ATM_RAM_CAPACITY_MID EQU #00
-18++  6137              ATM_RAM_CAPACITY_HI  EQU #10
-19++  6137              ATM_RAM_CAPACITY_TOP EQU #00
-20++  6137
-21++  6137              atm_mem_query_caps:
-21++  6137
-22++  6137 21 A5 61             ld      hl,atm_mem_capabilities
-23++  613A C9                   ret
-24++  613B
-25++  613B              atm_mem_validate_range:
-25++  613B
-26++  613B 21 00 00             ld      hl,ATM_RAM_CAPACITY_LO
-27++  613E 22 2F 61             ld      (p127_range_capacity),hl
-28++  6141 3E 10                ld      a,ATM_RAM_CAPACITY_HI
-29++  6143 32 31 61             ld      (p127_range_capacity+2),a
-30++  6146 AF                   xor     a
-31++  6147 32 32 61             ld      (p127_range_capacity+3),a
-32++  614A C3 D3 60             jp      p127_range_check
-33++  614D
-34++  614D              atm_mem_range_selftest:
-34++  614D
-35++  614D                      ; Last byte of installed RAM is valid.
-36++  614D 21 FF FF             ld      hl,#FFFF
-37++  6150 22 27 61             ld      (p127_range_offset),hl
-38++  6153 21 0F 00             ld      hl,#000F
-39++  6156 22 29 61             ld      (p127_range_offset+2),hl
-40++  6159 21 01 00             ld      hl,1
-41++  615C 22 2B 61             ld      (p127_range_length),hl
-42++  615F 21 00 00             ld      hl,0
-43++  6162 22 2D 61             ld      (p127_range_length+2),hl
-44++  6165 CD 3B 61             call    atm_mem_validate_range
-45++  6168 38 39                jr      c,atm_mem_selftest_fail
-46++  616A
-47++  616A                      ; First byte beyond installed RAM is invalid.
-48++  616A 21 00 00             ld      hl,0
-49++  616D 22 27 61             ld      (p127_range_offset),hl
-50++  6170 21 10 00             ld      hl,#0010
-51++  6173 22 29 61             ld      (p127_range_offset+2),hl
-52++  6176 21 01 00             ld      hl,1
-53++  6179 22 2B 61             ld      (p127_range_length),hl
-54++  617C 21 00 00             ld      hl,0
-55++  617F 22 2D 61             ld      (p127_range_length+2),hl
-56++  6182 CD 3B 61             call    atm_mem_validate_range
-57++  6185 30 1C                jr      nc,atm_mem_selftest_fail
-58++  6187
-59++  6187                      ; UINT32 addition overflow must be rejected.
-60++  6187 21 FF FF             ld      hl,#FFFF
-61++  618A 22 27 61             ld      (p127_range_offset),hl
-62++  618D 22 29 61             ld      (p127_range_offset+2),hl
-63++  6190 21 01 00             ld      hl,1
-64++  6193 22 2B 61             ld      (p127_range_length),hl
-65++  6196 21 00 00             ld      hl,0
-66++  6199 22 2D 61             ld      (p127_range_length+2),hl
-67++  619C CD 3B 61             call    atm_mem_validate_range
-68++  619F 30 02                jr      nc,atm_mem_selftest_fail
-69++  61A1 B7                   or      a
-70++  61A2 C9                   ret
-71++  61A3              atm_mem_selftest_fail:
-72++  61A3 37                   scf
-73++  61A4 C9                   ret
-74++  61A5
-75++  61A5              atm_mem_capabilities:
-76++  61A5 50 31 32 37          db      "P127"
-77++  61A9 01 00                db      P127_ABI_MAJOR,P127_ABI_MINOR
-78++  61AB 00                   db      0
-79++  61AC 00                   db      0
-80++  61AD 00 00 10 00          db      #00,#00,#10,#00
-81++  61B1 00 00 00 00          db      #00,#00,#00,#00
-82++  61B5 12 00                db      P127_MEM_CAPS_SIZE,0
-83++  61B7
+ 15++ 6137
+ 16++ 6137              ATM_RAM_CAPACITY_LO  EQU #00
+ 17++ 6137              ATM_RAM_CAPACITY_MID EQU #00
+ 18++ 6137              ATM_RAM_CAPACITY_HI  EQU #10
+ 19++ 6137              ATM_RAM_CAPACITY_TOP EQU #00
+ 20++ 6137
+ 21++ 6137              atm_mem_query_caps:
+ 21++ 6137
+ 22++ 6137 21 11 62             ld      hl,atm_mem_capabilities
+ 23++ 613A C9                   ret
+ 24++ 613B
+ 25++ 613B              atm_mem_validate_range:
+ 25++ 613B
+ 26++ 613B 21 00 00             ld      hl,ATM_RAM_CAPACITY_LO
+ 27++ 613E 22 2F 61             ld      (p127_range_capacity),hl
+ 28++ 6141 3E 10                ld      a,ATM_RAM_CAPACITY_HI
+ 29++ 6143 32 31 61             ld      (p127_range_capacity+2),a
+ 30++ 6146 AF                   xor     a
+ 31++ 6147 32 32 61             ld      (p127_range_capacity+3),a
+ 32++ 614A C3 D3 60             jp      p127_range_check
+ 33++ 614D
+ 34++ 614D              atm_mem_range_selftest:
+ 34++ 614D
+ 35++ 614D                      ; Last byte of installed RAM is valid: 0x000FFFFF + 1.
+ 36++ 614D 21 FF FF             ld      hl,#FFFF
+ 37++ 6150 22 27 61             ld      (p127_range_offset),hl
+ 38++ 6153 21 0F 00             ld      hl,#000F
+ 39++ 6156 22 29 61             ld      (p127_range_offset+2),hl
+ 40++ 6159 21 01 00             ld      hl,1
+ 41++ 615C 22 2B 61             ld      (p127_range_length),hl
+ 42++ 615F 21 00 00             ld      hl,0
+ 43++ 6162 22 2D 61             ld      (p127_range_length+2),hl
+ 44++ 6165 CD 3B 61             call    atm_mem_validate_range
+ 45++ 6168 DA 0F 62             jp      c,atm_mem_selftest_fail
+ 46++ 616B
+ 47++ 616B                      ; First byte beyond installed RAM is invalid: 0x00100000 + 1.
+ 48++ 616B 21 00 00             ld      hl,0
+ 49++ 616E 22 27 61             ld      (p127_range_offset),hl
+ 50++ 6171 21 10 00             ld      hl,#0010
+ 51++ 6174 22 29 61             ld      (p127_range_offset+2),hl
+ 52++ 6177 21 01 00             ld      hl,1
+ 53++ 617A 22 2B 61             ld      (p127_range_length),hl
+ 54++ 617D 21 00 00             ld      hl,0
+ 55++ 6180 22 2D 61             ld      (p127_range_length+2),hl
+ 56++ 6183 CD 3B 61             call    atm_mem_validate_range
+ 57++ 6186 D2 0F 62             jp      nc,atm_mem_selftest_fail
+ 58++ 6189
+ 59++ 6189                      ; Exact full-capacity range: 0 + 0x00100000.
+ 60++ 6189 21 00 00             ld      hl,0
+ 61++ 618C 22 27 61             ld      (p127_range_offset),hl
+ 62++ 618F 22 29 61             ld      (p127_range_offset+2),hl
+ 63++ 6192 22 2B 61             ld      (p127_range_length),hl
+ 64++ 6195 21 10 00             ld      hl,#0010
+ 65++ 6198 22 2D 61             ld      (p127_range_length+2),hl
+ 66++ 619B CD 3B 61             call    atm_mem_validate_range
+ 67++ 619E DA 0F 62             jp      c,atm_mem_selftest_fail
+ 68++ 61A1
+ 69++ 61A1                      ; Zero length exactly at capacity is a valid empty range.
+ 70++ 61A1 21 00 00             ld      hl,0
+ 71++ 61A4 22 27 61             ld      (p127_range_offset),hl
+ 72++ 61A7 21 10 00             ld      hl,#0010
+ 73++ 61AA 22 29 61             ld      (p127_range_offset+2),hl
+ 74++ 61AD 22 2B 61             ld      (p127_range_length),hl
+ 75++ 61B0 22 2D 61             ld      (p127_range_length+2),hl
+ 76++ 61B3 CD 3B 61             call    atm_mem_validate_range
+ 77++ 61B6 DA 0F 62             jp      c,atm_mem_selftest_fail
+ 78++ 61B9
+ 79++ 61B9                      ; Zero length beyond capacity is invalid.
+ 80++ 61B9 21 01 00             ld      hl,1
+ 81++ 61BC 22 27 61             ld      (p127_range_offset),hl
+ 82++ 61BF 21 10 00             ld      hl,#0010
+ 83++ 61C2 22 29 61             ld      (p127_range_offset+2),hl
+ 84++ 61C5 21 00 00             ld      hl,0
+ 85++ 61C8 22 2B 61             ld      (p127_range_length),hl
+ 86++ 61CB 22 2D 61             ld      (p127_range_length+2),hl
+ 87++ 61CE CD 3B 61             call    atm_mem_validate_range
+ 88++ 61D1 D2 0F 62             jp      nc,atm_mem_selftest_fail
+ 89++ 61D4
+ 90++ 61D4                      ; A two-byte range starting at the last byte crosses the end.
+ 91++ 61D4 21 FF FF             ld      hl,#FFFF
+ 92++ 61D7 22 27 61             ld      (p127_range_offset),hl
+ 93++ 61DA 21 0F 00             ld      hl,#000F
+ 94++ 61DD 22 29 61             ld      (p127_range_offset+2),hl
+ 95++ 61E0 21 02 00             ld      hl,2
+ 96++ 61E3 22 2B 61             ld      (p127_range_length),hl
+ 97++ 61E6 21 00 00             ld      hl,0
+ 98++ 61E9 22 2D 61             ld      (p127_range_length+2),hl
+ 99++ 61EC CD 3B 61             call    atm_mem_validate_range
+100++ 61EF D2 0F 62             jp      nc,atm_mem_selftest_fail
+101++ 61F2
+102++ 61F2                      ; UINT32 addition overflow must be rejected.
+103++ 61F2 21 FF FF             ld      hl,#FFFF
+104++ 61F5 22 27 61             ld      (p127_range_offset),hl
+105++ 61F8 22 29 61             ld      (p127_range_offset+2),hl
+106++ 61FB 21 01 00             ld      hl,1
+107++ 61FE 22 2B 61             ld      (p127_range_length),hl
+108++ 6201 21 00 00             ld      hl,0
+109++ 6204 22 2D 61             ld      (p127_range_length+2),hl
+110++ 6207 CD 3B 61             call    atm_mem_validate_range
+111++ 620A D2 0F 62             jp      nc,atm_mem_selftest_fail
+112++ 620D B7                   or      a
+113++ 620E C9                   ret
+114++ 620F              atm_mem_selftest_fail:
+115++ 620F 37                   scf
+116++ 6210 C9                   ret
+117++ 6211
+118++ 6211              atm_mem_capabilities:
+119++ 6211 50 31 32 37          db      "P127"
+120++ 6215 01 00                db      P127_ABI_MAJOR,P127_ABI_MINOR
+121++ 6217 00                   db      0
+122++ 6218 00                   db      0
+123++ 6219 00 00 10 00          db      #00,#00,#10,#00
+124++ 621D 00 00 00 00          db      #00,#00,#00,#00
+125++ 6221 12 00                db      P127_MEM_CAPS_SIZE,0
+126++ 6223
 # file closed: atm_memory_backend.asm
-54+   61B7
-55+   61B7              p127_host_program_end:
-56+   61B7                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
-57+   61B7                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
-58+   61B7
+ 54+  6223
+ 55+  6223              p127_host_program_end:
+ 56+  6223                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
+ 57+  6223                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
+ 58+  6223
 # file closed: p127_host.asm
-12    61B7                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
-13    61B7
-14    61B7                      PAGE 0
-15    61B7                      ORG #E000
-16    E000                      INCLUDE "atm_host/boot_loader.generated.asm"
+ 12   6223                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
+ 13   6223
+ 14   6223                      PAGE 0
+ 15   6223                      ORG #E000
+ 16   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
 # file opened: boot_loader.generated.asm
- 1+   E000              ; =========================================================================
- 2+   E000              ; PROJECT127 ??? TR-DOS BASIC BOOT.B loader
- 3+   E000              ; Derived from the proven Project126 ATM/TR-DOS boot sequence.
- 4+   E000              ; The build replaces p127host with the 8.3 host program name.
- 5+   E000              ; =========================================================================
- 6+   E000
- 7+   E000              CLEAR       EQU     $FD
- 8+   E000              RANDOMIZE   EQU     $F9
- 9+   E000              USR         EQU     $C0
-10+   E000              REM         EQU     $EA
-11+   E000              VAL         EQU     $B0
-12+   E000              OUT_CMD     EQU     $DF
-13+   E000
-14+   E000              BASIC_START:
-15+   E000              basic_loader:
-16+   E000                      ; Establish the same safe BASIC memory boundary as Project126.
-17+   E000 00 0A                DB      0, 10
-18+   E002 20 00                DW      LINE10_END-LINE10
-19+   E004              LINE10:
-20+   E004 DF                   DB      OUT_CMD
-21+   E005 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
-21+   E009 00 00 EF 00
-21+   E00D 00
-22+   E00E 2C                   DB      ","
-23+   E00F 31 0E 00 00          DB      "1", $0E, $00, $00, $01, $00, $00
-23+   E013 01 00 00
-24+   E016 3A                   DB      ":"
-25+   E017 FD                   DB      CLEAR
-26+   E018 32 34 30 30          DB      "24000", $0E, $00, $00, $5D, $C0, $00
-26+   E01C 30 0E 00 00
-26+   E020 5D C0 00
-27+   E023 0D                   DB      $0D
-28+   E024              LINE10_END:
-29+   E024
-30+   E024                      ; Startup marker on ATM debug port #EF.
-31+   E024 00 0B                DB      0, 11
-32+   E026 A8 00                DW      LINE11_END-LINE11
-33+   E028              LINE11:
-34+   E028 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "80", 34, ":"
-34+   E02C 33 39 22 2C
-34+   E030 B0 22 38 30
-34+   E034 22 3A
-35+   E036 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "49", 34, ":"
-35+   E03A 33 39 22 2C
-35+   E03E B0 22 34 39
-35+   E042 22 3A
-36+   E044 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "50", 34, ":"
-36+   E048 33 39 22 2C
-36+   E04C B0 22 35 30
-36+   E050 22 3A
-37+   E052 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "55", 34, ":"
-37+   E056 33 39 22 2C
-37+   E05A B0 22 35 35
-37+   E05E 22 3A
-38+   E060 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "32", 34, ":"
-38+   E064 33 39 22 2C
-38+   E068 B0 22 33 32
-38+   E06C 22 3A
-39+   E06E DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "83", 34, ":"
-39+   E072 33 39 22 2C
-39+   E076 B0 22 38 33
-39+   E07A 22 3A
-40+   E07C DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "84", 34, ":"
-40+   E080 33 39 22 2C
-40+   E084 B0 22 38 34
-40+   E088 22 3A
-41+   E08A DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "65", 34, ":"
-41+   E08E 33 39 22 2C
-41+   E092 B0 22 36 35
-41+   E096 22 3A
-42+   E098 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "82", 34, ":"
-42+   E09C 33 39 22 2C
-42+   E0A0 B0 22 38 32
-42+   E0A4 22 3A
-43+   E0A6 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "84", 34, ":"
-43+   E0AA 33 39 22 2C
-43+   E0AE B0 22 38 34
-43+   E0B2 22 3A
-44+   E0B4 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "13", 34, ":"
-44+   E0B8 33 39 22 2C
-44+   E0BC B0 22 31 33
-44+   E0C0 22 3A
-45+   E0C2 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "10", 34
-45+   E0C6 33 39 22 2C
-45+   E0CA B0 22 31 30
-45+   E0CE 22
-46+   E0CF 0D                   DB      $0D
-47+   E0D0              LINE11_END:
-48+   E0D0
-49+   E0D0                      ; The same Project126 ROM trampoline and CODE load address.
-50+   E0D0 00 14                DB      0, 20
-51+   E0D2 2B 00                DW      LINE20_END-LINE20
-52+   E0D4              LINE20:
-53+   E0D4 F9                   DB      RANDOMIZE
-54+   E0D5 C0 31 35 36          DB      USR, "15619", $0E, 0, 0
-54+   E0D9 31 39 0E 00
-54+   E0DD 00
-55+   E0DE 03 3D                DW      15619
-56+   E0E0 00                   DB      0
-57+   E0E1 3A EA 3A             DB      $3A, REM, $3A
-58+   E0E4 4C 4F 41 44          DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D
-58+   E0E8 20 22 70 31
-58+   E0EC 32 37 68 6F
-58+   E0F0 73 74 22 20
-58+   E0F4 43 4F 44 45
-58+   E0F8 20 32 34 35
-58+   E0FC 37 36 0D
-59+   E0FF              LINE20_END:
-60+   E0FF
-61+   E0FF                      ; Announce that the host image has been loaded.
-62+   E0FF 00 15                DB      0, 21
-63+   E101 70 00                DW      LINE21_END-LINE21
-64+   E103              LINE21:
-65+   E103 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "76", 34, ":"
-65+   E107 33 39 22 2C
-65+   E10B B0 22 37 36
-65+   E10F 22 3A
-66+   E111 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "79", 34, ":"
-66+   E115 33 39 22 2C
-66+   E119 B0 22 37 39
-66+   E11D 22 3A
-67+   E11F DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "65", 34, ":"
-67+   E123 33 39 22 2C
-67+   E127 B0 22 36 35
-67+   E12B 22 3A
-68+   E12D DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
-68+   E131 33 39 22 2C
-68+   E135 B0 22 36 38
-68+   E139 22 3A
-69+   E13B DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "69", 34, ":"
-69+   E13F 33 39 22 2C
-69+   E143 B0 22 36 39
-69+   E147 22 3A
-70+   E149 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
-70+   E14D 33 39 22 2C
-70+   E151 B0 22 36 38
-70+   E155 22 3A
-71+   E157 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "13", 34, ":"
-71+   E15B 33 39 22 2C
-71+   E15F B0 22 31 33
-71+   E163 22 3A
-72+   E165 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "10", 34
-72+   E169 33 39 22 2C
-72+   E16D B0 22 31 30
-72+   E171 22
-73+   E172 0D                   DB      $0D
-74+   E173              LINE21_END:
-75+   E173
-76+   E173                      ; Enter the host program at 6009h, exactly as Project126 does.
-77+   E173 00 1E                DB      0, 30
-78+   E175 1E 00                DW      LINE30_END-LINE30
-79+   E177              LINE30:
-80+   E177 DF                   DB      OUT_CMD
-81+   E178 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
-81+   E17C 00 00 EF 00
-81+   E180 00
-82+   E181 2C                   DB      ","
-83+   E182 32 0E 00 00          DB      "2", $0E, $00, $00, $02, $00, $00
-83+   E186 02 00 00
-84+   E189 3A                   DB      ":"
-85+   E18A F9                   DB      RANDOMIZE
-86+   E18B C0                   DB      USR
-87+   E18C B0                   DB      VAL
-88+   E18D 22                   DB      34
-89+   E18E 32 34 35 38          DEFM    "24585"
-89+   E192 35
-90+   E193 22                   DB      34
-91+   E194 0D                   DB      $0D
-92+   E195              LINE30_END:
-93+   E195
-94+   E195 80                   DB      $80
-95+   E196              BASIC_END:
-96+   E196
+  1+  E000              ; =========================================================================
+  2+  E000              ; PROJECT127 ??? TR-DOS BASIC BOOT.B loader
+  3+  E000              ; Derived from the proven Project126 ATM/TR-DOS boot sequence.
+  4+  E000              ; The build replaces p127host with the 8.3 host program name.
+  5+  E000              ; =========================================================================
+  6+  E000
+  7+  E000              CLEAR       EQU     $FD
+  8+  E000              RANDOMIZE   EQU     $F9
+  9+  E000              USR         EQU     $C0
+ 10+  E000              REM         EQU     $EA
+ 11+  E000              VAL         EQU     $B0
+ 12+  E000              OUT_CMD     EQU     $DF
+ 13+  E000
+ 14+  E000              BASIC_START:
+ 15+  E000              basic_loader:
+ 16+  E000                      ; Establish the same safe BASIC memory boundary as Project126.
+ 17+  E000 00 0A                DB      0, 10
+ 18+  E002 20 00                DW      LINE10_END-LINE10
+ 19+  E004              LINE10:
+ 20+  E004 DF                   DB      OUT_CMD
+ 21+  E005 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
+ 21+  E009 00 00 EF 00
+ 21+  E00D 00
+ 22+  E00E 2C                   DB      ","
+ 23+  E00F 31 0E 00 00          DB      "1", $0E, $00, $00, $01, $00, $00
+ 23+  E013 01 00 00
+ 24+  E016 3A                   DB      ":"
+ 25+  E017 FD                   DB      CLEAR
+ 26+  E018 32 34 30 30          DB      "24000", $0E, $00, $00, $5D, $C0, $00
+ 26+  E01C 30 0E 00 00
+ 26+  E020 5D C0 00
+ 27+  E023 0D                   DB      $0D
+ 28+  E024              LINE10_END:
+ 29+  E024
+ 30+  E024                      ; Startup marker on ATM debug port #EF.
+ 31+  E024 00 0B                DB      0, 11
+ 32+  E026 A8 00                DW      LINE11_END-LINE11
+ 33+  E028              LINE11:
+ 34+  E028 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "80", 34, ":"
+ 34+  E02C 33 39 22 2C
+ 34+  E030 B0 22 38 30
+ 34+  E034 22 3A
+ 35+  E036 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "49", 34, ":"
+ 35+  E03A 33 39 22 2C
+ 35+  E03E B0 22 34 39
+ 35+  E042 22 3A
+ 36+  E044 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "50", 34, ":"
+ 36+  E048 33 39 22 2C
+ 36+  E04C B0 22 35 30
+ 36+  E050 22 3A
+ 37+  E052 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "55", 34, ":"
+ 37+  E056 33 39 22 2C
+ 37+  E05A B0 22 35 35
+ 37+  E05E 22 3A
+ 38+  E060 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "32", 34, ":"
+ 38+  E064 33 39 22 2C
+ 38+  E068 B0 22 33 32
+ 38+  E06C 22 3A
+ 39+  E06E DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "83", 34, ":"
+ 39+  E072 33 39 22 2C
+ 39+  E076 B0 22 38 33
+ 39+  E07A 22 3A
+ 40+  E07C DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "84", 34, ":"
+ 40+  E080 33 39 22 2C
+ 40+  E084 B0 22 38 34
+ 40+  E088 22 3A
+ 41+  E08A DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "65", 34, ":"
+ 41+  E08E 33 39 22 2C
+ 41+  E092 B0 22 36 35
+ 41+  E096 22 3A
+ 42+  E098 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "82", 34, ":"
+ 42+  E09C 33 39 22 2C
+ 42+  E0A0 B0 22 38 32
+ 42+  E0A4 22 3A
+ 43+  E0A6 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "84", 34, ":"
+ 43+  E0AA 33 39 22 2C
+ 43+  E0AE B0 22 38 34
+ 43+  E0B2 22 3A
+ 44+  E0B4 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "13", 34, ":"
+ 44+  E0B8 33 39 22 2C
+ 44+  E0BC B0 22 31 33
+ 44+  E0C0 22 3A
+ 45+  E0C2 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "10", 34
+ 45+  E0C6 33 39 22 2C
+ 45+  E0CA B0 22 31 30
+ 45+  E0CE 22
+ 46+  E0CF 0D                   DB      $0D
+ 47+  E0D0              LINE11_END:
+ 48+  E0D0
+ 49+  E0D0                      ; The same Project126 ROM trampoline and CODE load address.
+ 50+  E0D0 00 14                DB      0, 20
+ 51+  E0D2 2B 00                DW      LINE20_END-LINE20
+ 52+  E0D4              LINE20:
+ 53+  E0D4 F9                   DB      RANDOMIZE
+ 54+  E0D5 C0 31 35 36          DB      USR, "15619", $0E, 0, 0
+ 54+  E0D9 31 39 0E 00
+ 54+  E0DD 00
+ 55+  E0DE 03 3D                DW      15619
+ 56+  E0E0 00                   DB      0
+ 57+  E0E1 3A EA 3A             DB      $3A, REM, $3A
+ 58+  E0E4 4C 4F 41 44          DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D
+ 58+  E0E8 20 22 70 31
+ 58+  E0EC 32 37 68 6F
+ 58+  E0F0 73 74 22 20
+ 58+  E0F4 43 4F 44 45
+ 58+  E0F8 20 32 34 35
+ 58+  E0FC 37 36 0D
+ 59+  E0FF              LINE20_END:
+ 60+  E0FF
+ 61+  E0FF                      ; Announce that the host image has been loaded.
+ 62+  E0FF 00 15                DB      0, 21
+ 63+  E101 70 00                DW      LINE21_END-LINE21
+ 64+  E103              LINE21:
+ 65+  E103 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "76", 34, ":"
+ 65+  E107 33 39 22 2C
+ 65+  E10B B0 22 37 36
+ 65+  E10F 22 3A
+ 66+  E111 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "79", 34, ":"
+ 66+  E115 33 39 22 2C
+ 66+  E119 B0 22 37 39
+ 66+  E11D 22 3A
+ 67+  E11F DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "65", 34, ":"
+ 67+  E123 33 39 22 2C
+ 67+  E127 B0 22 36 35
+ 67+  E12B 22 3A
+ 68+  E12D DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
+ 68+  E131 33 39 22 2C
+ 68+  E135 B0 22 36 38
+ 68+  E139 22 3A
+ 69+  E13B DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "69", 34, ":"
+ 69+  E13F 33 39 22 2C
+ 69+  E143 B0 22 36 39
+ 69+  E147 22 3A
+ 70+  E149 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
+ 70+  E14D 33 39 22 2C
+ 70+  E151 B0 22 36 38
+ 70+  E155 22 3A
+ 71+  E157 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "13", 34, ":"
+ 71+  E15B 33 39 22 2C
+ 71+  E15F B0 22 31 33
+ 71+  E163 22 3A
+ 72+  E165 DF B0 22 32          DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "10", 34
+ 72+  E169 33 39 22 2C
+ 72+  E16D B0 22 31 30
+ 72+  E171 22
+ 73+  E172 0D                   DB      $0D
+ 74+  E173              LINE21_END:
+ 75+  E173
+ 76+  E173                      ; Enter the host program at 6009h, exactly as Project126 does.
+ 77+  E173 00 1E                DB      0, 30
+ 78+  E175 1E 00                DW      LINE30_END-LINE30
+ 79+  E177              LINE30:
+ 80+  E177 DF                   DB      OUT_CMD
+ 81+  E178 32 33 39 0E          DB      "239", $0E, $00, $00, $EF, $00, $00
+ 81+  E17C 00 00 EF 00
+ 81+  E180 00
+ 82+  E181 2C                   DB      ","
+ 83+  E182 32 0E 00 00          DB      "2", $0E, $00, $00, $02, $00, $00
+ 83+  E186 02 00 00
+ 84+  E189 3A                   DB      ":"
+ 85+  E18A F9                   DB      RANDOMIZE
+ 86+  E18B C0                   DB      USR
+ 87+  E18C B0                   DB      VAL
+ 88+  E18D 22                   DB      34
+ 89+  E18E 32 34 35 38          DEFM    "24585"
+ 89+  E192 35
+ 90+  E193 22                   DB      34
+ 91+  E194 0D                   DB      $0D
+ 92+  E195              LINE30_END:
+ 93+  E195
+ 94+  E195 80                   DB      $80
+ 95+  E196              BASIC_END:
+ 96+  E196
 # file closed: boot_loader.generated.asm
-17    E196                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
-18    E196
-19    E196                      PAGE 0
-20    E196
+ 17   E196                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
+ 18   E196
+ 19   E196                      PAGE 0
+ 20   E196
 # file closed: project127_disk.generated.asm
 
 Value    Label
 ------ - -----------------------------------------------------------
-0x61A5   atm_mem_capabilities
+0x6211   atm_mem_capabilities
 0x6137 X atm_mem_query_caps
 0x614D   atm_mem_range_selftest
-0x61A3   atm_mem_selftest_fail
+0x620F   atm_mem_selftest_fail
 0x613B   atm_mem_validate_range
 0x0010   ATM_RAM_CAPACITY_HI
 0x0000   ATM_RAM_CAPACITY_LO
@@ -490,7 +533,7 @@ Value    Label
 0x6009   P127_HOST_ENTRY_POINT
 0x6026   p127_host_idle
 0x6000   P127_HOST_LOAD_ADDRESS
-0x61B7 X p127_host_program_end
+0x6223 X p127_host_program_end
 0x6000   p127_host_program_start
 0x60AF   p127_host_range_error
 0x6020   p127_host_range_fail
