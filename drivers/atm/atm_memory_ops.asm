@@ -231,6 +231,8 @@ atm_mem_source_inc:
         ld      hl,(atm_mem_source_cursor)
         inc     hl
         ld      (atm_mem_source_cursor),hl
+        ld      a,h
+        or      l
         ret     nz
         ld      hl,(atm_mem_source_cursor+2)
         inc     hl
@@ -241,6 +243,8 @@ atm_mem_destination_inc:
         ld      hl,(atm_mem_destination_cursor)
         inc     hl
         ld      (atm_mem_destination_cursor),hl
+        ld      a,h
+        or      l
         ret     nz
         ld      hl,(atm_mem_destination_cursor+2)
         inc     hl
