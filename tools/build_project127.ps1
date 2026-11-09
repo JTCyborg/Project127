@@ -20,7 +20,7 @@ try {
     $loaderTemplate = Get-Content -Raw "atm_host/boot_loader.asm"
     $loader = $loaderTemplate.Replace("@@HOST_NAME@@", $HostName)
     Set-Content -Path "atm_host/boot_loader.generated.asm" -Value $loader -Encoding ASCII
-    $diskTemplate = Get-Content -Raw "atm_host/project127_disk.generated.asm"
+    $diskTemplate = Get-Content -Raw "atm_host/project127_disk.asm"
     $diskGenerated = $diskTemplate.Replace("@@HOST_NAME@@", $HostName)
     Set-Content -Path "atm_host/project127_disk.generated.asm" -Value $diskGenerated -Encoding ASCII
 
@@ -31,7 +31,7 @@ try {
     Write-Host "[BUILD] BASIC boot file: BOOT.B"
     Write-Host "[BUILD] Host CODE file: $HostName.C"
 
-    & $assembler --msg=all "--lst=build/ATM_DISK.lst" --lstlab=sort "--sym=build/ATM_DISK.map" "atm_host/project127_disk.asm"
+    & $assembler --msg=all "--lst=build/ATM_DISK.lst" --lstlab=sort "--sym=build/ATM_DISK.map" "atm_host/project127_disk.generated.asm"
     if ($LASTEXITCODE -ne 0) { throw "SjASMPlus failed with exit code $LASTEXITCODE" }
 
     foreach ($path in @($diskImage,"build/ATM_DISK.lst","build/ATM_DISK.map")) {
