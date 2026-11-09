@@ -36,8 +36,17 @@ p127_host_memory_init_fail:
         call    p127_host_debug_string
         jr      p127_host_idle
 p127_host_allocator_fail:
+        ld      d,a
         ld      hl,p127_host_allocator_error
         call    p127_host_debug_string
+        ld      hl,p127_host_allocator_stage
+        call    p127_host_debug_string
+        ld      a,d
+        call    p127_host_debug_hex_byte
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
         jr      p127_host_idle
 p127_host_range_fail:
         ld      d,a
@@ -133,7 +142,9 @@ p127_host_range_ok:
 p127_host_allocator_ok:
         db "[P127] ATM PAGE ALLOCATOR SELFTEST PASS",13,10,0
 p127_host_allocator_error:
-        db "[P127] ATM PAGE ALLOCATOR SELFTEST FAIL",13,10,0
+        db "[P127] ATM PAGE ALLOCATOR SELFTEST FAIL",0
+p127_host_allocator_stage:
+        db " STEP=0x",0
 p127_host_memory_init_error:
         db "[P127] ATM MEMORY INIT FAIL",13,10,0
 p127_host_range_error:
