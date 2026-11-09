@@ -1,8 +1,8 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.42**  
+Scenario revision: **0.8.44**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
-Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
+Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
 ## Fixed architecture requirements
 
@@ -615,3 +615,22 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - The progress routine preserves AF/BC/DE/HL so it cannot corrupt the page-list traversal or pattern seed. Output is sent directly to the already established debug port while UI ownership is quiesced; it does not invoke UI/BIOS console code.
 - Physical-memory module advanced to v0.3.4; scenario revision 0.8.42. Existing phase markers remain. No mapping, test-pattern, allocation or cleanup behavior changed.
 - Expected output is 57 FILL lines followed by 57 VERIFY lines, followed by the existing completion marker. Build and emulator verification are pending.
+
+
+### 2026-11-09 — Stage 2.19 runtime acceptance: exhaustive free-page sweep v0.3.4
+
+- User supplied the #EF log from the v0.3.4 image. The diagnostic shows all 57 allocatable pages being filled (IDs #06 and #08–#3F) and then verified in reverse order (#3F–#08 and #06).
+- The final marker `PHYS W3 FULL FREE-PAGE SWEEP/ALLOCATOR/RESERVES/P0 RESTORE PASS` confirms that the batch returned successfully after the full-page data checks, allocator-state validation, reserved-page checks, W3=P0 restoration, UI handoff release/resume, freeing all allocated pages, free-state audit and first-fit allocator reuse check.
+- Stage 2.19 / `src/kernel/p127_physmem.asm` v0.3.4 is accepted by the user's runtime result. The page-by-page progress output also confirms that the apparent stall was execution time rather than an infinite loop in this run.
+- The seven protected pages remain outside the sweep: P0–P5 and P7. The test validates the 57 allocatable pages through W3; it does not establish arbitrary concurrent remapping, W0/W1/W2 remapping, DMA, or interrupt operation. IM/EI remain disabled.
+- The concatenated phase letters (`S2A`, `F`, `V`, `C`) are legacy compact markers; the readable per-page lines and final PASS are authoritative. No source change is required for this acceptance.
+- Scenario revision advanced to 0.8.43. No assembler build was independently run here; runtime acceptance is based on the user's supplied log.
+
+
+### 2026-11-09 — Stage 2.20: allocator wrappers and guarded W3 lease API v0.4.0
+
+- Added public `p127_physmem_alloc_page` / `p127_physmem_free_page` entry points over the page-state allocator. Free is rejected while a W3 lease is active, preventing release of a page that may be mapped or in use by the caller.
+- Added `p127_physmem_w3_begin`, `p127_physmem_w3_map`, and `p127_physmem_w3_end`. Begin requires the bootstrap W3=P0 map, quiesces the UI and acquires the existing W3 handoff owner, then saves the P0 byte. Map accepts only a page whose allocator state is ALLOCATED and changes W3 only. End restores W3=P0 and the saved byte before releasing ownership and resuming UI. Failure flags are retained across release/resume errors so end can be retried.
+- Added a runtime API self-test after the exhaustive Stage 2.19 sweep: reject freeing a reserved page; reject mapping a reserved page; reject freeing the currently mapped allocated page; map/write a test page; restore P0 data; free and first-fit reallocate the same page; verify W3 shadow and UI owner/state restoration.
+- Boot module advanced to v0.7.2; physical-memory module advanced to v0.4.0; scenario revision 0.8.44. This is deliberately a W3-only lease API. It does not permit W0/W1/W2 mapping, arbitrary simultaneous mappings, DMA, or interrupt enablement. DI remains asserted; IM/EI and IRQ vector ownership remain unchanged.
+- Build and emulator runtime verification are pending. The new boot marker is `PAGE ALLOC/FREE + GUARDED W3 LEASE API PASS; IM/EI DISABLED`.
