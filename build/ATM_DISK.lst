@@ -6178,152 +6178,157 @@
  15+  E000
  16+  E000              ; 10 CLEAR 24000
  17+  E000 00 0A                DB      0,10
- 18+  E002 0D 00                DW      L10_END-L10
+ 18+  E002 0E 00                DW      L10_END-L10
  19+  E004              L10:
  20+  E004 FD                   DB      CLEAR
  21+  E005 32 34 35 37          DB      "24575",$0E,0,0
  21+  E009 35 0E 00 00
  22+  E00D FF 5F                DW      24575
- 23+  E00F 00 0D                DB      0,$0D
- 24+  E011              L10_END:
- 25+  E011
- 26+  E011              ; 20 OUT 239,50:... "P127 START"... (debug only)
- 27+  E011 00 14                DB      0,20
- 28+  E013 9A 00                DW      L20_END-L20
- 29+  E015              L20:
- 30+  E015 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"31",34,":"
- 30+  E019 33 39 22 2C
- 30+  E01D B0 22 33 31
- 30+  E021 22 3A
- 31+  E023 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"32",34,":"
- 31+  E027 33 39 22 2C
- 31+  E02B B0 22 33 32
- 31+  E02F 22 3A
- 32+  E031 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"37",34,":"
- 32+  E035 33 39 22 2C
- 32+  E039 B0 22 33 37
- 32+  E03D 22 3A
- 33+  E03F DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"32",34,":"
- 33+  E043 33 39 22 2C
- 33+  E047 B0 22 33 32
- 33+  E04B 22 3A
- 34+  E04D DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"83",34,":"
- 34+  E051 33 39 22 2C
- 34+  E055 B0 22 38 33
- 34+  E059 22 3A
- 35+  E05B DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"84",34,":"
- 35+  E05F 33 39 22 2C
- 35+  E063 B0 22 38 34
- 35+  E067 22 3A
- 36+  E069 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"65",34,":"
- 36+  E06D 33 39 22 2C
- 36+  E071 B0 22 36 35
- 36+  E075 22 3A
- 37+  E077 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"82",34,":"
- 37+  E07B 33 39 22 2C
- 37+  E07F B0 22 38 32
- 37+  E083 22 3A
- 38+  E085 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"84",34,":"
- 38+  E089 33 39 22 2C
- 38+  E08D B0 22 38 34
- 38+  E091 22 3A
- 39+  E093 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"13",34,":"
- 39+  E097 33 39 22 2C
- 39+  E09B B0 22 31 33
- 39+  E09F 22 3A
- 40+  E0A1 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"10",34
- 40+  E0A5 33 39 22 2C
- 40+  E0A9 B0 22 31 30
- 40+  E0AD 22
- 41+  E0AE 0D                   DB      $0D
- 42+  E0AF              L20_END:
- 43+  E0AF
- 44+  E0AF              ; 30 RANDOMIZE USR 15619 : REM : LOAD "p127host" CODE 24576
- 45+  E0AF              ; The TR-DOS trap must be the first statement on this line.
- 46+  E0AF 00 1E                DB      0,30
- 47+  E0B1 2B 00                DW      L30_END-L30
- 48+  E0B3              L30:
- 49+  E0B3 F9 C0                DB      RANDOMIZE,USR
- 50+  E0B5 31 35 36 31          DB      "15619",$0E,0,0
- 50+  E0B9 39 0E 00 00
- 51+  E0BD 03 3D                DW      15619
- 52+  E0BF 00                   DB      0
- 53+  E0C0 3A EA 3A             DB      $3A,REM,$3A
- 54+  E0C3 4C 4F 41 44          DB      "LOAD ",34,"p127host",34," CODE 24576",$0D
- 54+  E0C7 20 22 70 31
- 54+  E0CB 32 37 68 6F
- 54+  E0CF 73 74 22 20
- 54+  E0D3 43 4F 44 45
- 54+  E0D7 20 32 34 35
- 54+  E0DB 37 36 0D
- 55+  E0DE              L30_END:
- 56+  E0DE
- 57+  E0DE              ; 40 OUT 239,76... "LOADED"
- 58+  E0DE 00 28                DB      0,40
- 59+  E0E0 70 00                DW      L40_END-L40
- 60+  E0E2              L40:
- 61+  E0E2 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"76",34,":"
- 61+  E0E6 33 39 22 2C
- 61+  E0EA B0 22 37 36
- 61+  E0EE 22 3A
- 62+  E0F0 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"79",34,":"
- 62+  E0F4 33 39 22 2C
- 62+  E0F8 B0 22 37 39
- 62+  E0FC 22 3A
- 63+  E0FE DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"65",34,":"
- 63+  E102 33 39 22 2C
- 63+  E106 B0 22 36 35
- 63+  E10A 22 3A
- 64+  E10C DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"68",34,":"
- 64+  E110 33 39 22 2C
- 64+  E114 B0 22 36 38
- 64+  E118 22 3A
- 65+  E11A DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"69",34,":"
- 65+  E11E 33 39 22 2C
- 65+  E122 B0 22 36 39
- 65+  E126 22 3A
- 66+  E128 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"68",34,":"
- 66+  E12C 33 39 22 2C
- 66+  E130 B0 22 36 38
- 66+  E134 22 3A
- 67+  E136 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"13",34,":"
- 67+  E13A 33 39 22 2C
- 67+  E13E B0 22 31 33
- 67+  E142 22 3A
- 68+  E144 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"10",34
- 68+  E148 33 39 22 2C
- 68+  E14C B0 22 31 30
- 68+  E150 22
- 69+  E151 0D                   DB      $0D
- 70+  E152              L40_END:
- 71+  E152
- 72+  E152              ; 50 OUT 239,2: RANDOMIZE USR 24576
- 73+  E152 00 32                DB      0,50
- 74+  E154 21 00                DW      L50_END-L50
- 75+  E156              L50:
- 76+  E156 DF                   DB      OUT_CMD
- 77+  E157 32 33 39 0E          DB      "239",$0E,0,0
- 77+  E15B 00 00
- 78+  E15D EF 00                DW      239
- 79+  E15F 00 2C                DB      0,","
- 80+  E161 32 0E 00 00          DB      "2",$0E,0,0
- 81+  E165 02 00                DW      2
- 82+  E167 00 3A                DB      0,":"
- 83+  E169 F9 C0                DB      RANDOMIZE,USR
- 84+  E16B 32 34 35 37          DB      "24576",$0E,0,0
- 84+  E16F 36 0E 00 00
- 85+  E173 00 60                DW      24576
- 86+  E175 00 0D                DB      0,$0D
- 87+  E177              L50_END:
- 88+  E177
- 89+  E177 80                   DB      $80
- 90+  E178              BASIC_END:
- 91+  E178
+ 23+  E00F 00                   DB      0
+ 24+  E010 00 0D                DB      0,$0D
+ 25+  E012              L10_END:
+ 26+  E012
+ 27+  E012              ; 20 OUT 239,50:... "P127 START"... (debug only)
+ 28+  E012 00 14                DB      0,20
+ 29+  E014 9A 00                DW      L20_END-L20
+ 30+  E016              L20:
+ 31+  E016 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"31",34,":"
+ 31+  E01A 33 39 22 2C
+ 31+  E01E B0 22 33 31
+ 31+  E022 22 3A
+ 32+  E024 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"32",34,":"
+ 32+  E028 33 39 22 2C
+ 32+  E02C B0 22 33 32
+ 32+  E030 22 3A
+ 33+  E032 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"37",34,":"
+ 33+  E036 33 39 22 2C
+ 33+  E03A B0 22 33 37
+ 33+  E03E 22 3A
+ 34+  E040 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"32",34,":"
+ 34+  E044 33 39 22 2C
+ 34+  E048 B0 22 33 32
+ 34+  E04C 22 3A
+ 35+  E04E DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"83",34,":"
+ 35+  E052 33 39 22 2C
+ 35+  E056 B0 22 38 33
+ 35+  E05A 22 3A
+ 36+  E05C DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"84",34,":"
+ 36+  E060 33 39 22 2C
+ 36+  E064 B0 22 38 34
+ 36+  E068 22 3A
+ 37+  E06A DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"65",34,":"
+ 37+  E06E 33 39 22 2C
+ 37+  E072 B0 22 36 35
+ 37+  E076 22 3A
+ 38+  E078 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"82",34,":"
+ 38+  E07C 33 39 22 2C
+ 38+  E080 B0 22 38 32
+ 38+  E084 22 3A
+ 39+  E086 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"84",34,":"
+ 39+  E08A 33 39 22 2C
+ 39+  E08E B0 22 38 34
+ 39+  E092 22 3A
+ 40+  E094 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"13",34,":"
+ 40+  E098 33 39 22 2C
+ 40+  E09C B0 22 31 33
+ 40+  E0A0 22 3A
+ 41+  E0A2 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"10",34
+ 41+  E0A6 33 39 22 2C
+ 41+  E0AA B0 22 31 30
+ 41+  E0AE 22
+ 42+  E0AF 0D                   DB      $0D
+ 43+  E0B0              L20_END:
+ 44+  E0B0
+ 45+  E0B0              ; 30 RANDOMIZE USR 15619 : REM : LOAD "p127host" CODE 24576
+ 46+  E0B0              ; The TR-DOS trap must be the first statement on this line.
+ 47+  E0B0 00 1E                DB      0,30
+ 48+  E0B2 2C 00                DW      L30_END-L30
+ 49+  E0B4              L30:
+ 50+  E0B4 F9 C0                DB      RANDOMIZE,USR
+ 51+  E0B6 31 35 36 31          DB      "15619",$0E,0,0
+ 51+  E0BA 39 0E 00 00
+ 52+  E0BE 03 3D                DW      15619
+ 53+  E0C0 00                   DB      0
+ 54+  E0C1 00                   DB      0
+ 55+  E0C2 3A EA 3A             DB      $3A,REM,$3A
+ 56+  E0C5 4C 4F 41 44          DB      "LOAD ",34,"p127host",34," CODE 24576",$0D
+ 56+  E0C9 20 22 70 31
+ 56+  E0CD 32 37 68 6F
+ 56+  E0D1 73 74 22 20
+ 56+  E0D5 43 4F 44 45
+ 56+  E0D9 20 32 34 35
+ 56+  E0DD 37 36 0D
+ 57+  E0E0              L30_END:
+ 58+  E0E0
+ 59+  E0E0              ; 40 OUT 239,76... "LOADED"
+ 60+  E0E0 00 28                DB      0,40
+ 61+  E0E2 70 00                DW      L40_END-L40
+ 62+  E0E4              L40:
+ 63+  E0E4 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"76",34,":"
+ 63+  E0E8 33 39 22 2C
+ 63+  E0EC B0 22 37 36
+ 63+  E0F0 22 3A
+ 64+  E0F2 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"79",34,":"
+ 64+  E0F6 33 39 22 2C
+ 64+  E0FA B0 22 37 39
+ 64+  E0FE 22 3A
+ 65+  E100 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"65",34,":"
+ 65+  E104 33 39 22 2C
+ 65+  E108 B0 22 36 35
+ 65+  E10C 22 3A
+ 66+  E10E DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"68",34,":"
+ 66+  E112 33 39 22 2C
+ 66+  E116 B0 22 36 38
+ 66+  E11A 22 3A
+ 67+  E11C DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"69",34,":"
+ 67+  E120 33 39 22 2C
+ 67+  E124 B0 22 36 39
+ 67+  E128 22 3A
+ 68+  E12A DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"68",34,":"
+ 68+  E12E 33 39 22 2C
+ 68+  E132 B0 22 36 38
+ 68+  E136 22 3A
+ 69+  E138 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"13",34,":"
+ 69+  E13C 33 39 22 2C
+ 69+  E140 B0 22 31 33
+ 69+  E144 22 3A
+ 70+  E146 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"10",34
+ 70+  E14A 33 39 22 2C
+ 70+  E14E B0 22 31 30
+ 70+  E152 22
+ 71+  E153 0D                   DB      $0D
+ 72+  E154              L40_END:
+ 73+  E154
+ 74+  E154              ; 50 OUT 239,2: RANDOMIZE USR 24576
+ 75+  E154 00 32                DB      0,50
+ 76+  E156 24 00                DW      L50_END-L50
+ 77+  E158              L50:
+ 78+  E158 DF                   DB      OUT_CMD
+ 79+  E159 32 33 39 0E          DB      "239",$0E,0,0
+ 79+  E15D 00 00
+ 80+  E15F EF 00                DW      239
+ 81+  E161 00                   DB      0
+ 82+  E162 00 2C                DB      0,","
+ 83+  E164 32 0E 00 00          DB      "2",$0E,0,0
+ 84+  E168 02 00                DW      2
+ 85+  E16A 00                   DB      0
+ 86+  E16B 00 3A                DB      0,":"
+ 87+  E16D F9 C0                DB      RANDOMIZE,USR
+ 88+  E16F 32 34 35 37          DB      "24576",$0E,0,0
+ 88+  E173 36 0E 00 00
+ 89+  E177 00 60                DW      24576
+ 90+  E179 00                   DB      0
+ 91+  E17A 00 0D                DB      0,$0D
+ 92+  E17C              L50_END:
+ 93+  E17C
+ 94+  E17C 80                   DB      $80
+ 95+  E17D              BASIC_END:
+ 96+  E17D
 # file closed: boot_loader.generated.asm
- 56   E178                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
- 57   E178
- 58   E178                      PAGE 0
- 59   E178
+ 56   E17D                      SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
+ 57   E17D
+ 58   E17D                      PAGE 0
+ 59   E17D
 # file closed: project127_disk.generated.asm
 
 Value    Label
@@ -6570,20 +6575,20 @@ Value    Label
 0x00E8   ATM_SCATTER_EXTENT_BYTES
 0x0008   ATM_SCATTER_HANDLE_COUNT
 0x003A   ATM_SCATTER_MAX_EXTENTS
-0xE178 X BASIC_END
+0xE17D X BASIC_END
 0xE000 X basic_loader
 0xE000 X BASIC_START
 0x00FD   CLEAR
 0xE004   L10
-0xE011   L10_END
-0xE015   L20
-0xE0AF   L20_END
-0xE0B3   L30
-0xE0DE   L30_END
-0xE0E2   L40
-0xE152   L40_END
-0xE156   L50
-0xE177   L50_END
+0xE012   L10_END
+0xE016   L20
+0xE0B0   L20_END
+0xE0B4   L30
+0xE0E0   L30_END
+0xE0E4   L40
+0xE154   L40_END
+0xE158   L50
+0xE17C   L50_END
 0x00DF   OUT_CMD
 0x0001   P127_ABI_MAJOR
 0x0000   P127_ABI_MINOR
