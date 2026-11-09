@@ -1,12 +1,12 @@
 ; ============================================================================
-; Project127 physical ATM RAM page test — Stage 2.17
-; Module version: 0.1.0
+; Project127 physical ATM RAM page test — Stage 2.18
+; Module version: 0.2.0
 ; Runs from W2 (#A000..), with stack in W2. W1 resident/kernel remains fixed.
 ; W3 is exclusively leased from the UI and restored to physical page 0.
 ; This is the first general-purpose physical W3 remap test.
 ; ============================================================================
 P127_PHYSMEM_VERSION_MAJOR EQU 0
-P127_PHYSMEM_VERSION_MINOR EQU 1
+P127_PHYSMEM_VERSION_MINOR EQU 2
 P127_PHYSMEM_VERSION_PATCH EQU 0
 P127_PHYSMEM_PAGE_SIZE     EQU 04000h
 P127_PHYSMEM_WINDOW_BASE   EQU 0C000h
@@ -95,40 +95,122 @@ p127_physmem_batch_selftest:
         cp      b
         jp      nz,p127_physmem_fail_probe
 
-        ; Full 16 KiB write/read pass on two distinct physical pages.
+        ; Stage 2.18: four address-sensitive pattern rounds. Every round
+        ; fills both pages, then alternates W3 and verifies retention.
         ld      a,(p127_physmem_page_a)
         call    p127_physmem_set_w3
         jp      c,p127_physmem_fail_map
-        ld      d,0A5h
-        call    p127_physmem_fill_page
-
+        ld      d,011h
+        call    p127_physmem_fill_pattern
         ld      a,(p127_physmem_page_b)
         call    p127_physmem_set_w3
         jp      c,p127_physmem_fail_map
-        ld      d,05Ah
-        call    p127_physmem_fill_page
-
-        ; Switching back and forth must preserve both independent patterns.
+        ld      d,0A2h
+        call    p127_physmem_fill_pattern
         ld      a,(p127_physmem_page_a)
         call    p127_physmem_set_w3
         jp      c,p127_physmem_fail_map
-        ld      d,0A5h
-        call    p127_physmem_verify_page
+        ld      d,011h
+        call    p127_physmem_verify_pattern
         jp      c,p127_physmem_fail_data
-
         ld      a,(p127_physmem_page_b)
         call    p127_physmem_set_w3
         jp      c,p127_physmem_fail_map
-        ld      d,05Ah
-        call    p127_physmem_verify_page
+        ld      d,0A2h
+        call    p127_physmem_verify_pattern
         jp      c,p127_physmem_fail_data
-
-        ; Final page-A check after page-B verification catches aliasing.
         ld      a,(p127_physmem_page_a)
         call    p127_physmem_set_w3
         jp      c,p127_physmem_fail_map
-        ld      d,0A5h
-        call    p127_physmem_verify_page
+        ld      d,011h
+        call    p127_physmem_verify_pattern
+        jp      c,p127_physmem_fail_data
+
+        ld      a,(p127_physmem_page_a)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,037h
+        call    p127_physmem_fill_pattern
+        ld      a,(p127_physmem_page_b)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,0C8h
+        call    p127_physmem_fill_pattern
+        ld      a,(p127_physmem_page_b)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,0C8h
+        call    p127_physmem_verify_pattern
+        jp      c,p127_physmem_fail_data
+        ld      a,(p127_physmem_page_a)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,037h
+        call    p127_physmem_verify_pattern
+        jp      c,p127_physmem_fail_data
+        ld      a,(p127_physmem_page_b)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,0C8h
+        call    p127_physmem_verify_pattern
+        jp      c,p127_physmem_fail_data
+
+        ld      a,(p127_physmem_page_a)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,05Dh
+        call    p127_physmem_fill_pattern
+        ld      a,(p127_physmem_page_b)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,0E4h
+        call    p127_physmem_fill_pattern
+        ld      a,(p127_physmem_page_a)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,05Dh
+        call    p127_physmem_verify_pattern
+        jp      c,p127_physmem_fail_data
+        ld      a,(p127_physmem_page_b)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,0E4h
+        call    p127_physmem_verify_pattern
+        jp      c,p127_physmem_fail_data
+        ld      a,(p127_physmem_page_a)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,05Dh
+        call    p127_physmem_verify_pattern
+        jp      c,p127_physmem_fail_data
+
+        ld      a,(p127_physmem_page_a)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,083h
+        call    p127_physmem_fill_pattern
+        ld      a,(p127_physmem_page_b)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,016h
+        call    p127_physmem_fill_pattern
+        ld      a,(p127_physmem_page_b)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,016h
+        call    p127_physmem_verify_pattern
+        jp      c,p127_physmem_fail_data
+        ld      a,(p127_physmem_page_a)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,083h
+        call    p127_physmem_verify_pattern
+        jp      c,p127_physmem_fail_data
+        ld      a,(p127_physmem_page_b)
+        call    p127_physmem_set_w3
+        jp      c,p127_physmem_fail_map
+        ld      d,016h
+        call    p127_physmem_verify_pattern
         jp      c,p127_physmem_fail_data
 
         xor     a
@@ -223,34 +305,43 @@ p127_physmem_set_w3:
         or      a
         ret
 
-p127_physmem_fill_page:
+; IN D=pattern seed. Byte(address)=ROL(address_low) XOR address_high XOR D.
+; The same address produces a different expected value at each seed.
+p127_physmem_fill_pattern:
         ld      hl,P127_PHYSMEM_WINDOW_BASE
         ld      bc,P127_PHYSMEM_PAGE_SIZE
-.p127_physmem_fill_loop:
-        ld      (hl),d
+.p127_physmem_fill_pattern_loop:
+        ld      a,l
+        rlca
+        xor     h
+        xor     d
+        ld      (hl),a
         inc     hl
         dec     bc
         ld      a,b
         or      c
-        jr      nz,.p127_physmem_fill_loop
+        jr      nz,.p127_physmem_fill_pattern_loop
         ret
 
-; IN D=expected byte. Verifies every byte in the 16 KiB W3 window.
-p127_physmem_verify_page:
+; IN D=pattern seed. Verify all 16 KiB against the address-derived pattern.
+p127_physmem_verify_pattern:
         ld      hl,P127_PHYSMEM_WINDOW_BASE
         ld      bc,P127_PHYSMEM_PAGE_SIZE
-.p127_physmem_verify_loop:
-        ld      a,(hl)
-        cp      d
-        jr      nz,.p127_physmem_verify_fail
+.p127_physmem_verify_pattern_loop:
+        ld      a,l
+        rlca
+        xor     h
+        xor     d
+        cp      (hl)
+        jr      nz,.p127_physmem_verify_pattern_fail
         inc     hl
         dec     bc
         ld      a,b
         or      c
-        jr      nz,.p127_physmem_verify_loop
+        jr      nz,.p127_physmem_verify_pattern_loop
         or      a
         ret
-.p127_physmem_verify_fail:
+.p127_physmem_verify_pattern_fail:
         scf
         ret
 
