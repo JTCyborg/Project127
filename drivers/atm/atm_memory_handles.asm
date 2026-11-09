@@ -227,6 +227,8 @@ atm_mem_scatter_clear_ready:
 
 ; Smoke test verifies an object spanning two private extent records.
 atm_mem_scatter_selftest::
+        ld      a,1
+        ld      (atm_mem_scatter_test_stage),a
         ld      hl,#4001
         ld      (atm_mem_request_length),hl
         ld      hl,0
@@ -234,8 +236,9 @@ atm_mem_scatter_selftest::
         call    atm_mem_scatter_alloc
         jp      c,atm_mem_scatter_test_fail
         ld      (atm_mem_scatter_test_handle),a
-        ; 0x4001 bytes must be represented by exactly two distinct
-        ; physical page offsets, both stored in the private extent vector.
+
+        ld      a,2
+        ld      (atm_mem_scatter_test_stage),a
         ld      a,(atm_mem_scatter_done)
         cp      2
         jp      nz,atm_mem_scatter_test_fail
@@ -244,6 +247,9 @@ atm_mem_scatter_selftest::
         or      a
         sbc     hl,de
         ld      (atm_mem_scatter_test_vector),hl
+
+        ld      a,3
+        ld      (atm_mem_scatter_test_stage),a
         ld      hl,(atm_mem_scatter_test_vector)
         ld      a,(hl)
         inc     hl
@@ -253,13 +259,13 @@ atm_mem_scatter_selftest::
         inc     hl
         or      (hl)
         jp      z,atm_mem_scatter_test_fail
-        ; Read extent[0] from vector base (not base+4).
         ld      hl,(atm_mem_scatter_test_vector)
         ld      de,atm_mem_scatter_test_first
         ld      bc,4
         ldir
 
-        ; Extent[1] must be nonzero and distinct from extent[0].
+        ld      a,4
+        ld      (atm_mem_scatter_test_stage),a
         ld      hl,(atm_mem_scatter_test_vector)
         ld      de,4
         add     hl,de
@@ -275,6 +281,9 @@ atm_mem_scatter_selftest::
         ld      a,(hl)
         or      b
         jp      z,atm_mem_scatter_test_fail
+
+        ld      a,5
+        ld      (atm_mem_scatter_test_stage),a
         ld      hl,atm_mem_scatter_test_first
         ld      de,(atm_mem_scatter_test_vector)
         inc     de
@@ -291,10 +300,15 @@ atm_mem_scatter_test_compare_offsets:
         djnz    atm_mem_scatter_test_compare_offsets
         jp      atm_mem_scatter_test_fail
 atm_mem_scatter_test_offsets_distinct:
+        ld      a,6
+        ld      (atm_mem_scatter_test_stage),a
         ld      a,(atm_mem_scatter_test_handle)
         call    atm_mem_scatter_free
+        jp      c,atm_mem_scatter_test_fail
+        xor     a
         ret
 atm_mem_scatter_test_fail:
+        ld      a,(atm_mem_scatter_test_stage)
         scf
         ret
 
@@ -303,6 +317,7 @@ atm_mem_scatter_done:            db 0
 atm_mem_scatter_handle:          db 0
 atm_mem_scatter_rollback_count:  db 0
 atm_mem_scatter_test_handle:     db 0
+atm_mem_scatter_test_stage:      db 0
 atm_mem_scatter_test_vector:     dw 0
 atm_mem_scatter_test_first:      defs 4,0
 atm_mem_scatter_record:          dw 0
