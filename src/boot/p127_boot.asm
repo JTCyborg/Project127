@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.6.1
+; Project127 — boot stage 0.6.2
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -8,6 +8,14 @@
 P127_LOAD_ADDRESS  EQU 06000h
 P127_STACK_TOP     EQU 0BFFFh
 P127_DEBUG_PORT    EQU 00EFh
+
+; Reserved physical page for the future IM2 vector table (accounting only).
+P127_IRQ_TABLE_PAGE EQU 4
+P127_IRQ_TABLE_WINDOW EQU 3
+P127_IRQ_TABLE_BASE EQU 0C000h
+P127_IRQ_TABLE_BYTES EQU 257
+P127_IRQ_TABLE_END EQU P127_IRQ_TABLE_BASE+P127_IRQ_TABLE_BYTES
+P127_IRQ_TABLE_I EQU 0C0h
 
         ORG P127_LOAD_ADDRESS
 
@@ -55,6 +63,10 @@ p127_start:
         jp      c,p127_mem_boot_failed
         ld      hl,p127_msg_boot_reserved
         call    p127_puts
+        call    p127_mem_reserve_irq_table
+        jp      c,p127_mem_irq_reserve_failed
+        ld      hl,p127_msg_irq_page_reserved
+        call    p127_puts
         call    p127_mem_selftest
         jp      c,p127_mem_failed
         ld      hl,p127_msg_mem_pass
@@ -89,6 +101,10 @@ p127_start:
         jp      c,p127_irq_failed
         call    p127_irq_gate_selftest
         jp      c,p127_irq_failed
+        call    p127_irq_table_preflight
+        jp      c,p127_irq_failed
+        ld      hl,p127_msg_irq_page_pass
+        call    p127_puts
         ld      hl,p127_msg_irq_pass
         call    p127_puts
         ; Stage 2.10: verify the resident trampoline's real linked placement,
@@ -138,6 +154,10 @@ p127_map_failed:
         jr      p127_idle
 p127_mem_map_failed:
         ld      hl,p127_msg_mem_map_fail
+        call    p127_puts
+        jr      p127_idle
+p127_mem_irq_reserve_failed:
+        ld      hl,p127_msg_irq_page_fail
         call    p127_puts
         jr      p127_idle
 p127_mem_boot_failed:
@@ -191,6 +211,12 @@ p127_msg_video_reserved:
         db      "[P127] VIDEO RAM RESERVED P1,P3,P5,P7", 13, 10, 0
 p127_msg_boot_reserved:
         db      "[P127] BOOT MAP RESERVED P0,P2; P5 ACTIVE", 13, 10, 0
+p127_msg_irq_page_reserved:
+        db      "[P127] IRQ TABLE PAGE RESERVED P4; IM2 DISABLED",13,10,0
+p127_msg_irq_page_pass:
+        db      "[P127] IRQ TABLE SLOT PREFLIGHT PASS; OUT DISABLED",13,10,0
+p127_msg_irq_page_fail:
+        db      "[P127] IRQ TABLE PAGE RESERVE FAIL",13,10,0
 p127_msg_boot_reserve_fail:
         db      "[P127] BOOT RAM RESERVE FAIL", 13, 10, 0
 p127_msg_mem_map_fail:

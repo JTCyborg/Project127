@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.21**  
+Scenario revision: **0.8.22**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 implemented, runtime pending; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -39,11 +39,11 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.6.1 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
-| `src/kernel/p127_mem.asm` | 0.3.1 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
+| `src/boot/p127_boot.asm` | 0.6.2 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
+| `src/kernel/p127_mem.asm` | 0.4.0 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |\n| `src/kernel/p127_map.asm` | 0.2.2 | Pure mapper model: inverse page encoding, window-port lookup, bootstrap shadow map and self-test; no OUT instructions |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
-| `src/kernel/p127_irq.asm` | 0.2.0 | DI-only mask/vector ownership plus closed-by-default interrupt-enable readiness gate; no EI/IM or vector writes | DI-only mask/vector ownership preflight; no EI, IM, vector writes or IRQ dispatcher |\n| `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership, UI leases and software snapshot/rollback; no page OUT |
+| `src/kernel/p127_irq.asm` | 0.3.0 | DI-only contract, closed readiness gate, reserved IM2 table page/address preflight; no EI/IM or physical mapping | DI-only mask/vector ownership plus closed-by-default interrupt-enable readiness gate; no EI/IM or vector writes | DI-only mask/vector ownership preflight; no EI, IM, vector writes or IRQ dispatcher |\n| `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership, UI leases and software snapshot/rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
 ## Stage 1 — physical page-state manager 0.2.0
@@ -419,3 +419,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - The log does not independently identify the gate test with its own marker, and does not demonstrate real asynchronous interrupt entry/return, an installed vector/handler, a selected IM, IFF preservation, or execution of EI. The system remains DI-only; physical page-port OUT remains disabled.
 - No source module changed in this acceptance update. Scenario revision advanced to 0.8.21.
 - Next: reserve and verify a writable interrupt vector/table strategy compatible with the actual ATM memory map, then implement controlled handler entry/return and context preservation. Do not enable interrupts until those prerequisites have dedicated runtime diagnostics.
+
+### 2026-11-09 — Stage 2.13: reserve future IM2 table page v0.3.0
+
+- Audited the live Project127 bootstrap map and page reservations. W0 is TR-DOS ROM, W1 is resident image on P5, W2 is UI/stack on P2, and W3 remains host/staging P0. Video pages {1,3,5,7} are reserved; pages 0 and 2 are also reserved.
+- Reserved physical page P4 exclusively for a future IM2 vector table. P4 is not part of the active bootstrap map or the video-page union; this stage changes only the 64-entry software page-state table.
+- Defined the future table geometry: W3 base #C000, I=#C0, 257 bytes (#C000-#C100 inclusive), leaving the rest of the 16 KiB physical page available. The 257-byte extent covers the maximum vector offset #FF and the second byte of the fetched address.
+- Added a runtime preflight that verifies P4 is RESERVED and the live W3 shadow mapping remains P0. Added assembly-time assertions for the address, I value, window, extent and 64 KiB boundary.
+- Boot v0.6.2 emits IRQ TABLE PAGE RESERVED P4; IM2 DISABLED and IRQ TABLE SLOT PREFLIGHT PASS; OUT DISABLED. Memory manager v0.4.0; IRQ module v0.3.0; scenario revision 0.8.22.
+- This does NOT populate the table, map P4 into W3, load I, execute IM 2, install a handler, or execute EI. It does not prove P4 physical identity in the emulator. The next stage must implement a controlled W3 map transaction with rollback and runtime verification before any IM2 instruction is considered. Physical page-port OUT remains disabled.
+- Build and emulator verification pending user run; no successful build is claimed.

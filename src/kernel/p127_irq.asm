@@ -1,11 +1,11 @@
 ; ============================================================================
 ; Project127 — interrupt safety contract / preflight
-; Module version: 0.2.0
+; Module version: 0.3.0
 ; This is deliberately a DI-only bootstrap contract, not an IRQ dispatcher.
 ; No EI, IM instruction, vector write, or hardware page OUT is permitted.
 ; ============================================================================
 P127_IRQ_VERSION_MAJOR EQU 0
-P127_IRQ_VERSION_MINOR EQU 2
+P127_IRQ_VERSION_MINOR EQU 3
 P127_IRQ_VERSION_PATCH EQU 0
 P127_IRQ_MASKED EQU 1
 P127_IRQ_VECTOR_NONE EQU 0
@@ -112,6 +112,36 @@ p127_irq_gate_selftest:
         jp      nc,p127_irq_test_fail
         or      a
         ret
+
+; Validate the future IM2 table reservation and address geometry. The page
+; remains unmapped: W3 must still describe physical page 0 in the live map.
+; No table bytes are written, no I register is loaded, and no IM is selected.
+p127_irq_table_preflight:
+        ld      hl,p127_mem_page_state+P127_IRQ_TABLE_PAGE
+        ld      a,(hl)
+        cp      1                       ; P127_MEM_RESERVED
+        jp      nz,p127_irq_reject
+        ld      a,(p127_map_shadow+P127_IRQ_TABLE_WINDOW)
+        or      a
+        jp      nz,p127_irq_reject      ; W3 still maps bootstrap page 0
+        ld      hl,P127_IRQ_TABLE_BASE
+        ld      a,h
+        cp      P127_IRQ_TABLE_I
+        jp      nz,p127_irq_reject
+        ld      hl,P127_IRQ_TABLE_END
+        ld      de,10000h
+        or      a
+        sbc     hl,de
+        jp      nc,p127_irq_reject
+        or      a
+        ret
+
+        ASSERT P127_IRQ_TABLE_WINDOW = 3
+        ASSERT P127_IRQ_TABLE_BASE = 0C000h
+        ASSERT P127_IRQ_TABLE_I = 0C0h
+        ASSERT P127_IRQ_TABLE_BYTES = 257
+        ASSERT P127_IRQ_TABLE_END = 0C101h
+        ASSERT P127_IRQ_TABLE_END <= 10000h
 
 p127_irq_reject:
         scf
