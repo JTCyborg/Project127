@@ -138,6 +138,29 @@ p127_rtc_test_fail:
         scf
         ret
 
+; Startup diagnostics are kept in this service module so the host
+; resident image remains within its established #6000-#7FFF load window.
+P127_RTC_Startup::
+        call P127_RTC_SelfTest
+        jr c,p127_rtc_start_format_fail
+        ld hl,p127_rtc_log_selftest
+        call p127_host_debug_string
+        call P127_RTC_Init
+        jr c,p127_rtc_start_unavailable
+        ld hl,p127_rtc_log_available
+        call p127_host_debug_string
+        ret
+p127_rtc_start_unavailable:
+        ld hl,p127_rtc_log_unavailable
+        call p127_host_debug_string
+        ret
+p127_rtc_start_format_fail:
+        ld hl,p127_rtc_log_selftest_fail
+        jp p127_host_debug_string
+
+p127_host_ui_ready:
+        db "[P127] PROJECT126-STYLE HOST CONSOLE READY",13,10,0
+
 ; Open native ATM DS12887 register gate.
 P127_RTC_Open:
         push af
