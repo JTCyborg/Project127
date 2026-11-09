@@ -154,7 +154,7 @@
 145+  611E CD B0 61             call    p127_puts
 146+  6121 21 F7 64             ld      hl,p127_msg_physmem_error
 147+  6124 CD B0 61             call    p127_puts
-148+  6127 3A 11 A8             ld      a,(p127_physmem_error)
+148+  6127 3A C5 A8             ld      a,(p127_physmem_error)
 149+  612A CD CC 61             call    p127_put_hex8
 150+  612D 3E 0D                ld      a,13
 151+  612F CD E2 61             call    p127_put_char
@@ -3188,14 +3188,14 @@
 # file opened: p127_physmem.asm
   1+  A3F2              ; ============================================================================
   2+  A3F2              ; Project127 physical ATM RAM page test — Stage 2.19
-  3+  A3F2              ; Module version: 0.3.2
+  3+  A3F2              ; Module version: 0.3.4
   4+  A3F2              ; Runs from W2 (#A000..), with stack in W2. W1 resident/kernel remains fixed.
   5+  A3F2              ; W3 is exclusively leased from the UI and restored to physical page 0.
   6+  A3F2              ; This is the first general-purpose physical W3 remap test.
   7+  A3F2              ; ============================================================================
   8+  A3F2              P127_PHYSMEM_VERSION_MAJOR EQU 0
   9+  A3F2              P127_PHYSMEM_VERSION_MINOR EQU 3
- 10+  A3F2              P127_PHYSMEM_VERSION_PATCH EQU 2
+ 10+  A3F2              P127_PHYSMEM_VERSION_PATCH EQU 4
  11+  A3F2              P127_PHYSMEM_PAGE_SIZE     EQU 04000h
  12+  A3F2              P127_PHYSMEM_WINDOW_BASE   EQU 0C000h
  13+  A3F2              P127_PHYSMEM_PAGE_PORT     EQU 0FFF7h
@@ -3207,599 +3207,704 @@
  19+  A3F2              ; touched and it is restored before returning. Full-page writes start only
  20+  A3F2              ; after the physical switch has been proven.
  21+  A3F2              p127_physmem_batch_selftest:
- 22+  A3F2 AF                   xor     a
- 23+  A3F3 32 11 A8             ld      (p127_physmem_error),a
- 24+  A3F6 32 12 A8             ld      (p127_physmem_alloc_count),a
- 25+  A3F9 32 13 A8             ld      (p127_physmem_quiesced),a
- 26+  A3FC 32 14 A8             ld      (p127_physmem_acquired),a
- 27+  A3FF 32 15 A8             ld      (p127_physmem_mapped),a
- 28+  A402 32 16 A8             ld      (p127_physmem_saved_valid),a
- 29+  A405
- 30+  A405                      ; The host/staging page must be the documented W3 page before entry.
- 31+  A405 3A B1 70             ld      a,(p127_map_shadow+3)
- 32+  A408 B7                   or      a
- 33+  A409 C2 7C A6             jp      nz,p127_physmem_fail_map_state
- 34+  A40C
- 35+  A40C CD F7 6D             call    p127_mem_alloc
- 36+  A40F DA 81 A6             jp      c,p127_physmem_fail_alloc
- 37+  A412 32 17 A8             ld      (p127_physmem_page_a),a
- 38+  A415 32 1F A8             ld      (p127_physmem_page_list),a
- 39+  A418 3E 01                ld      a,1
- 40+  A41A 32 12 A8             ld      (p127_physmem_alloc_count),a
- 41+  A41D
- 42+  A41D CD F7 6D             call    p127_mem_alloc
- 43+  A420 DA 81 A6             jp      c,p127_physmem_fail_alloc
- 44+  A423 32 18 A8             ld      (p127_physmem_page_b),a
- 45+  A426 32 20 A8             ld      (p127_physmem_page_list+1),a
- 46+  A429 3E 02                ld      a,2
- 47+  A42B 32 12 A8             ld      (p127_physmem_alloc_count),a
- 48+  A42E
- 49+  A42E 3A 17 A8             ld      a,(p127_physmem_page_a)
- 50+  A431 47                   ld      b,a
- 51+  A432 3A 18 A8             ld      a,(p127_physmem_page_b)
- 52+  A435 B8                   cp      b
- 53+  A436 CA 81 A6             jp      z,p127_physmem_fail_alloc
- 54+  A439
- 55+  A439                      ; No UI routine may run while W3 is reassigned.
- 56+  A439 CD D2 68             call    p127_w3_quiesce
- 57+  A43C DA 86 A6             jp      c,p127_physmem_fail_lease
- 58+  A43F 3E 01                ld      a,1
- 59+  A441 32 13 A8             ld      (p127_physmem_quiesced),a
- 60+  A444 CD F1 68             call    p127_w3_handoff_acquire
- 61+  A447 DA 86 A6             jp      c,p127_physmem_fail_lease
- 62+  A44A 3E 01                ld      a,1
- 63+  A44C 32 14 A8             ld      (p127_physmem_acquired),a
- 64+  A44F
- 65+  A44F                      ; Preserve one byte from P0 for a non-destructive port-open probe.
- 66+  A44F 3A 00 C0             ld      a,(P127_PHYSMEM_WINDOW_BASE)
- 67+  A452 32 1A A8             ld      (p127_physmem_saved_p0),a
- 68+  A455 2F                   cpl
- 69+  A456 32 1B A8             ld      (p127_physmem_probe),a
- 70+  A459 3E 01                ld      a,1
- 71+  A45B 32 16 A8             ld      (p127_physmem_saved_valid),a
- 72+  A45E
- 73+  A45E                      ; Select allocated page A and write one complemented probe byte.
- 74+  A45E 3A 17 A8             ld      a,(p127_physmem_page_a)
- 75+  A461 CD D4 A7             call    p127_physmem_set_w3
- 76+  A464 DA 8B A6             jp      c,p127_physmem_fail_map
- 77+  A467 3E 01                ld      a,1
- 78+  A469 32 15 A8             ld      (p127_physmem_mapped),a
- 79+  A46C 3A 1B A8             ld      a,(p127_physmem_probe)
- 80+  A46F 32 00 C0             ld      (P127_PHYSMEM_WINDOW_BASE),a
- 81+  A472
- 82+  A472                      ; Return to P0. Its saved byte must be unchanged if the OUT worked.
- 83+  A472 AF                   xor     a
- 84+  A473 CD D4 A7             call    p127_physmem_set_w3
- 85+  A476 DA 8B A6             jp      c,p127_physmem_fail_map
- 86+  A479 3A 00 C0             ld      a,(P127_PHYSMEM_WINDOW_BASE)
- 87+  A47C 47                   ld      b,a
- 88+  A47D 3A 1A A8             ld      a,(p127_physmem_saved_p0)
- 89+  A480 B8                   cp      b
- 90+  A481 C2 90 A6             jp      nz,p127_physmem_fail_probe
- 91+  A484                      ; Re-select page A and verify that its probe byte persisted.
- 92+  A484 3A 17 A8             ld      a,(p127_physmem_page_a)
- 93+  A487 CD D4 A7             call    p127_physmem_set_w3
- 94+  A48A DA 8B A6             jp      c,p127_physmem_fail_map
- 95+  A48D 3A 00 C0             ld      a,(P127_PHYSMEM_WINDOW_BASE)
- 96+  A490 47                   ld      b,a
- 97+  A491 3A 1B A8             ld      a,(p127_physmem_probe)
- 98+  A494 B8                   cp      b
- 99+  A495 C2 90 A6             jp      nz,p127_physmem_fail_probe
-100+  A498
-101+  A498                      ; Stage 2.18: four address-sensitive pattern rounds. Every round
-102+  A498                      ; fills both pages, then alternates W3 and verifies retention.
-103+  A498 3A 17 A8             ld      a,(p127_physmem_page_a)
-104+  A49B CD D4 A7             call    p127_physmem_set_w3
-105+  A49E DA 8B A6             jp      c,p127_physmem_fail_map
-106+  A4A1 16 11                ld      d,011h
-107+  A4A3 CD E8 A7             call    p127_physmem_fill_pattern
-108+  A4A6 3A 18 A8             ld      a,(p127_physmem_page_b)
-109+  A4A9 CD D4 A7             call    p127_physmem_set_w3
-110+  A4AC DA 8B A6             jp      c,p127_physmem_fail_map
-111+  A4AF 16 A2                ld      d,0A2h
-112+  A4B1 CD E8 A7             call    p127_physmem_fill_pattern
-113+  A4B4 3A 17 A8             ld      a,(p127_physmem_page_a)
-114+  A4B7 CD D4 A7             call    p127_physmem_set_w3
-115+  A4BA DA 8B A6             jp      c,p127_physmem_fail_map
-116+  A4BD 16 11                ld      d,011h
-117+  A4BF CD FA A7             call    p127_physmem_verify_pattern
-118+  A4C2 DA 95 A6             jp      c,p127_physmem_fail_data
-119+  A4C5 3A 18 A8             ld      a,(p127_physmem_page_b)
-120+  A4C8 CD D4 A7             call    p127_physmem_set_w3
-121+  A4CB DA 8B A6             jp      c,p127_physmem_fail_map
-122+  A4CE 16 A2                ld      d,0A2h
-123+  A4D0 CD FA A7             call    p127_physmem_verify_pattern
-124+  A4D3 DA 95 A6             jp      c,p127_physmem_fail_data
-125+  A4D6 3A 17 A8             ld      a,(p127_physmem_page_a)
-126+  A4D9 CD D4 A7             call    p127_physmem_set_w3
-127+  A4DC DA 8B A6             jp      c,p127_physmem_fail_map
-128+  A4DF 16 11                ld      d,011h
-129+  A4E1 CD FA A7             call    p127_physmem_verify_pattern
-130+  A4E4 DA 95 A6             jp      c,p127_physmem_fail_data
-131+  A4E7
-132+  A4E7 3A 17 A8             ld      a,(p127_physmem_page_a)
-133+  A4EA CD D4 A7             call    p127_physmem_set_w3
-134+  A4ED DA 8B A6             jp      c,p127_physmem_fail_map
-135+  A4F0 16 37                ld      d,037h
-136+  A4F2 CD E8 A7             call    p127_physmem_fill_pattern
-137+  A4F5 3A 18 A8             ld      a,(p127_physmem_page_b)
-138+  A4F8 CD D4 A7             call    p127_physmem_set_w3
-139+  A4FB DA 8B A6             jp      c,p127_physmem_fail_map
-140+  A4FE 16 C8                ld      d,0C8h
-141+  A500 CD E8 A7             call    p127_physmem_fill_pattern
-142+  A503 3A 18 A8             ld      a,(p127_physmem_page_b)
-143+  A506 CD D4 A7             call    p127_physmem_set_w3
-144+  A509 DA 8B A6             jp      c,p127_physmem_fail_map
-145+  A50C 16 C8                ld      d,0C8h
-146+  A50E CD FA A7             call    p127_physmem_verify_pattern
-147+  A511 DA 95 A6             jp      c,p127_physmem_fail_data
-148+  A514 3A 17 A8             ld      a,(p127_physmem_page_a)
-149+  A517 CD D4 A7             call    p127_physmem_set_w3
-150+  A51A DA 8B A6             jp      c,p127_physmem_fail_map
-151+  A51D 16 37                ld      d,037h
-152+  A51F CD FA A7             call    p127_physmem_verify_pattern
-153+  A522 DA 95 A6             jp      c,p127_physmem_fail_data
-154+  A525 3A 18 A8             ld      a,(p127_physmem_page_b)
-155+  A528 CD D4 A7             call    p127_physmem_set_w3
-156+  A52B DA 8B A6             jp      c,p127_physmem_fail_map
-157+  A52E 16 C8                ld      d,0C8h
-158+  A530 CD FA A7             call    p127_physmem_verify_pattern
-159+  A533 DA 95 A6             jp      c,p127_physmem_fail_data
-160+  A536
-161+  A536 3A 17 A8             ld      a,(p127_physmem_page_a)
-162+  A539 CD D4 A7             call    p127_physmem_set_w3
-163+  A53C DA 8B A6             jp      c,p127_physmem_fail_map
-164+  A53F 16 5D                ld      d,05Dh
-165+  A541 CD E8 A7             call    p127_physmem_fill_pattern
-166+  A544 3A 18 A8             ld      a,(p127_physmem_page_b)
-167+  A547 CD D4 A7             call    p127_physmem_set_w3
-168+  A54A DA 8B A6             jp      c,p127_physmem_fail_map
-169+  A54D 16 E4                ld      d,0E4h
-170+  A54F CD E8 A7             call    p127_physmem_fill_pattern
-171+  A552 3A 17 A8             ld      a,(p127_physmem_page_a)
-172+  A555 CD D4 A7             call    p127_physmem_set_w3
-173+  A558 DA 8B A6             jp      c,p127_physmem_fail_map
-174+  A55B 16 5D                ld      d,05Dh
-175+  A55D CD FA A7             call    p127_physmem_verify_pattern
-176+  A560 DA 95 A6             jp      c,p127_physmem_fail_data
-177+  A563 3A 18 A8             ld      a,(p127_physmem_page_b)
-178+  A566 CD D4 A7             call    p127_physmem_set_w3
-179+  A569 DA 8B A6             jp      c,p127_physmem_fail_map
-180+  A56C 16 E4                ld      d,0E4h
-181+  A56E CD FA A7             call    p127_physmem_verify_pattern
-182+  A571 DA 95 A6             jp      c,p127_physmem_fail_data
-183+  A574 3A 17 A8             ld      a,(p127_physmem_page_a)
-184+  A577 CD D4 A7             call    p127_physmem_set_w3
-185+  A57A DA 8B A6             jp      c,p127_physmem_fail_map
-186+  A57D 16 5D                ld      d,05Dh
-187+  A57F CD FA A7             call    p127_physmem_verify_pattern
-188+  A582 DA 95 A6             jp      c,p127_physmem_fail_data
-189+  A585
-190+  A585 3A 17 A8             ld      a,(p127_physmem_page_a)
-191+  A588 CD D4 A7             call    p127_physmem_set_w3
-192+  A58B DA 8B A6             jp      c,p127_physmem_fail_map
-193+  A58E 16 83                ld      d,083h
-194+  A590 CD E8 A7             call    p127_physmem_fill_pattern
-195+  A593 3A 18 A8             ld      a,(p127_physmem_page_b)
-196+  A596 CD D4 A7             call    p127_physmem_set_w3
-197+  A599 DA 8B A6             jp      c,p127_physmem_fail_map
-198+  A59C 16 16                ld      d,016h
-199+  A59E CD E8 A7             call    p127_physmem_fill_pattern
-200+  A5A1 3A 18 A8             ld      a,(p127_physmem_page_b)
-201+  A5A4 CD D4 A7             call    p127_physmem_set_w3
-202+  A5A7 DA 8B A6             jp      c,p127_physmem_fail_map
-203+  A5AA 16 16                ld      d,016h
-204+  A5AC CD FA A7             call    p127_physmem_verify_pattern
-205+  A5AF DA 95 A6             jp      c,p127_physmem_fail_data
-206+  A5B2 3A 17 A8             ld      a,(p127_physmem_page_a)
-207+  A5B5 CD D4 A7             call    p127_physmem_set_w3
-208+  A5B8 DA 8B A6             jp      c,p127_physmem_fail_map
-209+  A5BB 16 83                ld      d,083h
-210+  A5BD CD FA A7             call    p127_physmem_verify_pattern
-211+  A5C0 DA 95 A6             jp      c,p127_physmem_fail_data
-212+  A5C3 3A 18 A8             ld      a,(p127_physmem_page_b)
-213+  A5C6 CD D4 A7             call    p127_physmem_set_w3
-214+  A5C9 DA 8B A6             jp      c,p127_physmem_fail_map
-215+  A5CC 16 16                ld      d,016h
-216+  A5CE CD FA A7             call    p127_physmem_verify_pattern
-217+  A5D1 DA 95 A6             jp      c,p127_physmem_fail_data
-218+  A5D4
-219+  A5D4                      ; Stage 2.19: exhaust the allocator into a private page-ID list.
-220+  A5D4                      ; The first two pages are already listed. Each new allocation is
-221+  A5D4                      ; checked against all prior IDs before it is appended.
-222+  A5D4              p127_physmem_alloc_more:
-223+  A5D4 3A 12 A8             ld      a,(p127_physmem_alloc_count)
-224+  A5D7 FE 40                cp      P127_PHYSMEM_MAX_PAGES
-225+  A5D9 30 2C                jr      nc,p127_physmem_alloc_complete
-226+  A5DB CD F7 6D             call    p127_mem_alloc
-227+  A5DE 38 27                jr      c,p127_physmem_alloc_complete
-228+  A5E0 32 1C A8             ld      (p127_physmem_candidate),a
-229+  A5E3 57                   ld      d,a
-230+  A5E4 3A 12 A8             ld      a,(p127_physmem_alloc_count)
-231+  A5E7 47                   ld      b,a
-232+  A5E8 21 1F A8             ld      hl,p127_physmem_page_list
-233+  A5EB              p127_physmem_duplicate_scan:
-234+  A5EB 7E                   ld      a,(hl)
-235+  A5EC BA                   cp      d
-236+  A5ED CA 9A A6             jp      z,p127_physmem_fail_duplicate
-237+  A5F0 23                   inc     hl
-238+  A5F1 10 F8                djnz    p127_physmem_duplicate_scan
-239+  A5F3 3A 12 A8             ld      a,(p127_physmem_alloc_count)
-240+  A5F6 5F                   ld      e,a
-241+  A5F7 16 00                ld      d,0
-242+  A5F9 21 1F A8             ld      hl,p127_physmem_page_list
-243+  A5FC 19                   add     hl,de
-244+  A5FD 3A 1C A8             ld      a,(p127_physmem_candidate)
-245+  A600 77                   ld      (hl),a
-246+  A601 21 12 A8             ld      hl,p127_physmem_alloc_count
-247+  A604 34                   inc     (hl)
-248+  A605 18 CD                jr      p127_physmem_alloc_more
-249+  A607
-250+  A607              p127_physmem_alloc_complete:
-251+  A607                      ; Current map has exactly seven protected pages and 57 allocatable.
-252+  A607 3A 12 A8             ld      a,(p127_physmem_alloc_count)
-253+  A60A FE 39                cp      57
-254+  A60C C2 9F A6             jp      nz,p127_physmem_fail_count
-255+  A60F CD 3D A7             call    p127_physmem_check_reserved
-256+  A612 DA A4 A6             jp      c,p127_physmem_fail_reserve
-257+  A615
-258+  A615                      ; First sweep: fill every allocated physical page with a unique
-259+  A615                      ; address-derived pattern whose seed includes its physical page ID.
-260+  A615 3A 12 A8             ld      a,(p127_physmem_alloc_count)
-261+  A618 32 1E A8             ld      (p127_physmem_scan_remaining),a
-262+  A61B 21 1F A8             ld      hl,p127_physmem_page_list
-263+  A61E              p127_physmem_full_fill_loop:
-264+  A61E 7E                   ld      a,(hl)
-265+  A61F 23                   inc     hl
-266+  A620 32 1D A8             ld      (p127_physmem_current_page),a
-267+  A623 CD D4 A7             call    p127_physmem_set_w3
-268+  A626 DA 8B A6             jp      c,p127_physmem_fail_map
-269+  A629 3A 1D A8             ld      a,(p127_physmem_current_page)
-270+  A62C EE 5A                xor     05Ah
-271+  A62E 57                   ld      d,a
-272+  A62F E5                   push    hl
-273+  A630 CD E8 A7             call    p127_physmem_fill_pattern
-274+  A633 E1                   pop     hl
-275+  A634 3A 1E A8             ld      a,(p127_physmem_scan_remaining)
-276+  A637 3D                   dec     a
-277+  A638 32 1E A8             ld      (p127_physmem_scan_remaining),a
-278+  A63B 20 E1                jr      nz,p127_physmem_full_fill_loop
-279+  A63D
-280+  A63D                      ; Reverse sweep verifies every page after all other pages have
-281+  A63D                      ; already been written. This catches aliases and lost page contents.
-282+  A63D 3A 12 A8             ld      a,(p127_physmem_alloc_count)
-283+  A640 5F                   ld      e,a
-284+  A641 16 00                ld      d,0
-285+  A643 21 1F A8             ld      hl,p127_physmem_page_list
-286+  A646 19                   add     hl,de
-287+  A647              p127_physmem_full_verify_loop:
-288+  A647 2B                   dec     hl
-289+  A648 7E                   ld      a,(hl)
-290+  A649 32 1D A8             ld      (p127_physmem_current_page),a
-291+  A64C CD D4 A7             call    p127_physmem_set_w3
-292+  A64F DA 8B A6             jp      c,p127_physmem_fail_map
-293+  A652 3A 1D A8             ld      a,(p127_physmem_current_page)
-294+  A655 EE 5A                xor     05Ah
-295+  A657 57                   ld      d,a
-296+  A658 E5                   push    hl
-297+  A659 CD FA A7             call    p127_physmem_verify_pattern
-298+  A65C E1                   pop     hl
-299+  A65D DA 95 A6             jp      c,p127_physmem_fail_data
-300+  A660 3A 1E A8             ld      a,(p127_physmem_scan_remaining)
-301+  A663                      ; Reinitialize the reverse counter on first entry.
-302+  A663 B7                   or      a
-303+  A664 20 03                jr      nz,p127_physmem_reverse_count_ready
-304+  A666 3A 12 A8             ld      a,(p127_physmem_alloc_count)
-305+  A669              p127_physmem_reverse_count_ready:
-306+  A669 3D                   dec     a
-307+  A66A 32 1E A8             ld      (p127_physmem_scan_remaining),a
-308+  A66D 20 D8                jr      nz,p127_physmem_full_verify_loop
-309+  A66F
-310+  A66F                      ; Verify the allocator still marks every listed page ALLOCATED.
-311+  A66F CD 7E A7             call    p127_physmem_check_allocated
-312+  A672 DA A9 A6             jp      c,p127_physmem_fail_state
-313+  A675 AF                   xor     a
-314+  A676 32 11 A8             ld      (p127_physmem_error),a
-315+  A679 C3 AE A6             jp      p127_physmem_cleanup
-316+  A67C
-317+  A67C              p127_physmem_fail_map_state:
-318+  A67C 3E 01                ld      a,1
-319+  A67E C3 AB A6             jp      p127_physmem_set_error
-320+  A681              p127_physmem_fail_alloc:
-321+  A681 3E 02                ld      a,2
-322+  A683 C3 AB A6             jp      p127_physmem_set_error
-323+  A686              p127_physmem_fail_lease:
-324+  A686 3E 03                ld      a,3
-325+  A688 C3 AB A6             jp      p127_physmem_set_error
-326+  A68B              p127_physmem_fail_map:
-327+  A68B 3E 04                ld      a,4
-328+  A68D C3 AB A6             jp      p127_physmem_set_error
-329+  A690              p127_physmem_fail_probe:
-330+  A690 3E 05                ld      a,5
-331+  A692 C3 AB A6             jp      p127_physmem_set_error
-332+  A695              p127_physmem_fail_data:
-333+  A695 3E 06                ld      a,6
-334+  A697 C3 AB A6             jp      p127_physmem_set_error
-335+  A69A              p127_physmem_fail_duplicate:
-336+  A69A 3E 07                ld      a,7
-337+  A69C C3 AB A6             jp      p127_physmem_set_error
-338+  A69F              p127_physmem_fail_count:
-339+  A69F 3E 08                ld      a,8
-340+  A6A1 C3 AB A6             jp      p127_physmem_set_error
-341+  A6A4              p127_physmem_fail_reserve:
-342+  A6A4 3E 09                ld      a,9
-343+  A6A6 C3 AB A6             jp      p127_physmem_set_error
-344+  A6A9              p127_physmem_fail_state:
-345+  A6A9 3E 0A                ld      a,10
-346+  A6AB              p127_physmem_set_error:
-347+  A6AB 32 11 A8             ld      (p127_physmem_error),a
-348+  A6AE
-349+  A6AE              p127_physmem_cleanup:
-350+  A6AE                      ; Always return W3 to P0 before releasing UI ownership.
-351+  A6AE 3A 15 A8             ld      a,(p127_physmem_mapped)
-352+  A6B1 B7                   or      a
-353+  A6B2 28 07                jr      z,p127_physmem_cleanup_saved
-354+  A6B4 AF                   xor     a
-355+  A6B5 CD D4 A7             call    p127_physmem_set_w3
-356+  A6B8 DA 36 A7             jp      c,p127_physmem_cleanup_error
-357+  A6BB              p127_physmem_cleanup_saved:
-358+  A6BB 3A 16 A8             ld      a,(p127_physmem_saved_valid)
-359+  A6BE B7                   or      a
-360+  A6BF 28 06                jr      z,p127_physmem_cleanup_release
-361+  A6C1 3A 1A A8             ld      a,(p127_physmem_saved_p0)
-362+  A6C4 32 00 C0             ld      (P127_PHYSMEM_WINDOW_BASE),a
-363+  A6C7
-364+  A6C7              p127_physmem_cleanup_release:
-365+  A6C7 3A 14 A8             ld      a,(p127_physmem_acquired)
-366+  A6CA B7                   or      a
-367+  A6CB 28 06                jr      z,p127_physmem_cleanup_resume
-368+  A6CD CD 05 69             call    p127_w3_handoff_release
-369+  A6D0 DA 36 A7             jp      c,p127_physmem_cleanup_error
-370+  A6D3              p127_physmem_cleanup_resume:
-371+  A6D3 3A 13 A8             ld      a,(p127_physmem_quiesced)
-372+  A6D6 B7                   or      a
-373+  A6D7 28 06                jr      z,p127_physmem_cleanup_free
-374+  A6D9 CD 19 69             call    p127_w3_resume
-375+  A6DC DA 36 A7             jp      c,p127_physmem_cleanup_error
-376+  A6DF
-377+  A6DF              p127_physmem_cleanup_free:
-378+  A6DF 3A 12 A8             ld      a,(p127_physmem_alloc_count)
-379+  A6E2 32 1E A8             ld      (p127_physmem_scan_remaining),a
-380+  A6E5 3A 12 A8             ld      a,(p127_physmem_alloc_count)
-381+  A6E8 5F                   ld      e,a
-382+  A6E9 16 00                ld      d,0
-383+  A6EB 21 1F A8             ld      hl,p127_physmem_page_list
-384+  A6EE 19                   add     hl,de
-385+  A6EF              p127_physmem_cleanup_free_loop:
-386+  A6EF 3A 1E A8             ld      a,(p127_physmem_scan_remaining)
-387+  A6F2 B7                   or      a
-388+  A6F3 28 13                jr      z,p127_physmem_cleanup_done
-389+  A6F5 2B                   dec     hl
-390+  A6F6 7E                   ld      a,(hl)
-391+  A6F7 E5                   push    hl
-392+  A6F8 CD 0D 6E             call    p127_mem_free
-393+  A6FB E1                   pop     hl
-394+  A6FC DA 36 A7             jp      c,p127_physmem_cleanup_error
-395+  A6FF 3A 1E A8             ld      a,(p127_physmem_scan_remaining)
-396+  A702 3D                   dec     a
-397+  A703 32 1E A8             ld      (p127_physmem_scan_remaining),a
-398+  A706 18 E7                jr      p127_physmem_cleanup_free_loop
-399+  A708              p127_physmem_cleanup_done:
-400+  A708                      ; Reallocation must return the same lowest free page and release it.
-401+  A708 3A 11 A8             ld      a,(p127_physmem_error)
-402+  A70B B7                   or      a
-403+  A70C 20 21                jr      nz,p127_physmem_cleanup_return
-404+  A70E CD F7 6D             call    p127_mem_alloc
-405+  A711 DA 36 A7             jp      c,p127_physmem_cleanup_error
-406+  A714 47                   ld      b,a
-407+  A715 3A 17 A8             ld      a,(p127_physmem_page_a)
-408+  A718 B8                   cp      b
-409+  A719 C2 36 A7             jp      nz,p127_physmem_cleanup_error
-410+  A71C 78                   ld      a,b
-411+  A71D CD 0D 6E             call    p127_mem_free
-412+  A720 DA 36 A7             jp      c,p127_physmem_cleanup_error
-413+  A723 CD 3D A7             call    p127_physmem_check_reserved
-414+  A726 DA 36 A7             jp      c,p127_physmem_cleanup_error
-415+  A729 CD 9D A7             call    p127_physmem_check_free_state
-416+  A72C DA 36 A7             jp      c,p127_physmem_cleanup_error
-417+  A72F              p127_physmem_cleanup_return:
-418+  A72F 3A 11 A8             ld      a,(p127_physmem_error)
-419+  A732 B7                   or      a
-420+  A733 C8                   ret     z
-421+  A734 37                   scf
-422+  A735 C9                   ret
-423+  A736
-424+  A736              p127_physmem_cleanup_error:
-425+  A736 3E FF                ld      a,0FFh
-426+  A738 32 11 A8             ld      (p127_physmem_error),a
-427+  A73B 37                   scf
-428+  A73C C9                   ret
-429+  A73D
-430+  A73D              ; Check the seven fixed reservation states: P0/P1/P2/P3/P4/P5/P7.
-431+  A73D              ; OUT carry=1 if any protected page is not RESERVED.
-432+  A73D              p127_physmem_check_reserved:
-433+  A73D 21 78 6E             ld      hl,p127_mem_page_state
-434+  A740 06 08                ld      b,8
-435+  A742 0E 00                ld      c,0
-436+  A744              p127_physmem_reserved_loop:
-437+  A744 79                   ld      a,c
-438+  A745 FE 06                cp      6
-439+  A747 28 2E                jr      z,p127_physmem_reserved_skip
-440+  A749 FE 07                cp      7
-441+  A74B 28 1A                jr      z,p127_physmem_reserved_check
-442+  A74D FE 00                cp      0
-443+  A74F 28 16                jr      z,p127_physmem_reserved_check
-444+  A751 FE 01                cp      1
-445+  A753 28 12                jr      z,p127_physmem_reserved_check
-446+  A755 FE 02                cp      2
-447+  A757 28 0E                jr      z,p127_physmem_reserved_check
-448+  A759 FE 03                cp      3
-449+  A75B 28 0A                jr      z,p127_physmem_reserved_check
-450+  A75D FE 04                cp      4
-451+  A75F 28 06                jr      z,p127_physmem_reserved_check
-452+  A761 FE 05                cp      5
-453+  A763 28 02                jr      z,p127_physmem_reserved_check
-454+  A765 18 10                jr      p127_physmem_reserved_skip
-455+  A767              p127_physmem_reserved_check:
-456+  A767 C5                   push    bc
-457+  A768 E5                   push    hl
-458+  A769 59                   ld      e,c
-459+  A76A 16 00                ld      d,0
-460+  A76C 21 78 6E             ld      hl,p127_mem_page_state
-461+  A76F 19                   add     hl,de
-462+  A770 7E                   ld      a,(hl)
-463+  A771 FE 01                cp      P127_MEM_RESERVED
-464+  A773 E1                   pop     hl
-465+  A774 C1                   pop     bc
-466+  A775 20 05                jr      nz,p127_physmem_reserved_fail
-467+  A777              p127_physmem_reserved_skip:
-468+  A777 0C                   inc     c
-469+  A778 10 CA                djnz    p127_physmem_reserved_loop
-470+  A77A B7                   or      a
-471+  A77B C9                   ret
-472+  A77C              p127_physmem_reserved_fail:
-473+  A77C 37                   scf
-474+  A77D C9                   ret
-475+  A77E
-476+  A77E              ; Every page in the private list must remain ALLOCATED during the sweep.
-477+  A77E              p127_physmem_check_allocated:
-478+  A77E 3A 12 A8             ld      a,(p127_physmem_alloc_count)
-479+  A781 47                   ld      b,a
-480+  A782 21 1F A8             ld      hl,p127_physmem_page_list
-481+  A785              p127_physmem_alloc_state_loop:
-482+  A785 7E                   ld      a,(hl)
-483+  A786 5F                   ld      e,a
-484+  A787 16 00                ld      d,0
-485+  A789 C5                   push    bc
-486+  A78A E5                   push    hl
-487+  A78B 21 78 6E             ld      hl,p127_mem_page_state
-488+  A78E 19                   add     hl,de
-489+  A78F 7E                   ld      a,(hl)
-490+  A790 FE 02                cp      P127_MEM_ALLOCATED
-491+  A792 E1                   pop     hl
-492+  A793 C1                   pop     bc
-493+  A794 20 05                jr      nz,p127_physmem_alloc_state_fail
-494+  A796 23                   inc     hl
-495+  A797 10 EC                djnz    p127_physmem_alloc_state_loop
-496+  A799 B7                   or      a
-497+  A79A C9                   ret
-498+  A79B              p127_physmem_alloc_state_fail:
-499+  A79B 37                   scf
-500+  A79C C9                   ret
-501+  A79D
-502+  A79D              ; After release, every non-reserved page must be FREE; reserved pages
-503+  A79D              ; are checked separately by p127_physmem_check_reserved.
-504+  A79D              p127_physmem_check_free_state:
-505+  A79D 21 78 6E             ld      hl,p127_mem_page_state
-506+  A7A0 06 40                ld      b,64
-507+  A7A2 0E 00                ld      c,0
-508+  A7A4              p127_physmem_free_state_loop:
-509+  A7A4 79                   ld      a,c
-510+  A7A5 FE 00                cp      0
-511+  A7A7 28 1E                jr      z,p127_physmem_free_state_reserved
-512+  A7A9 FE 01                cp      1
-513+  A7AB 28 1A                jr      z,p127_physmem_free_state_reserved
-514+  A7AD FE 02                cp      2
-515+  A7AF 28 16                jr      z,p127_physmem_free_state_reserved
-516+  A7B1 FE 03                cp      3
-517+  A7B3 28 12                jr      z,p127_physmem_free_state_reserved
-518+  A7B5 FE 04                cp      4
-519+  A7B7 28 0E                jr      z,p127_physmem_free_state_reserved
-520+  A7B9 FE 05                cp      5
-521+  A7BB 28 0A                jr      z,p127_physmem_free_state_reserved
-522+  A7BD FE 07                cp      7
-523+  A7BF 28 06                jr      z,p127_physmem_free_state_reserved
-524+  A7C1 7E                   ld      a,(hl)
-525+  A7C2 B7                   or      a
-526+  A7C3 20 0D                jr      nz,p127_physmem_free_state_fail
-527+  A7C5 18 05                jr      p127_physmem_free_state_next
-528+  A7C7              p127_physmem_free_state_reserved:
-529+  A7C7 7E                   ld      a,(hl)
-530+  A7C8 FE 01                cp      P127_MEM_RESERVED
-531+  A7CA 20 06                jr      nz,p127_physmem_free_state_fail
-532+  A7CC              p127_physmem_free_state_next:
-533+  A7CC 23                   inc     hl
-534+  A7CD 0C                   inc     c
-535+  A7CE 10 D4                djnz    p127_physmem_free_state_loop
-536+  A7D0 B7                   or      a
-537+  A7D1 C9                   ret
-538+  A7D2              p127_physmem_free_state_fail:
-539+  A7D2 37                   scf
-540+  A7D3 C9                   ret
-541+  A7D4
-542+  A7D4              ; IN A=physical RAM page ID. Program only W3 (#FFF7), never W0/W1/W2.
-543+  A7D4              ; D6=1 selects RAM, D7=0 selects the inverse D0-D5 page ID.
-544+  A7D4              p127_physmem_set_w3:
-545+  A7D4 32 19 A8             ld      (p127_physmem_page_arg),a
-546+  A7D7 CD CE 6E             call    p127_map_encode_page
-547+  A7DA D8                   ret     c
-548+  A7DB 01 F7 FF             ld      bc,P127_PHYSMEM_PAGE_PORT
-549+  A7DE ED 79                out     (c),a
-550+  A7E0 3A 19 A8             ld      a,(p127_physmem_page_arg)
-551+  A7E3 32 B1 70             ld      (p127_map_shadow+3),a
-552+  A7E6 B7                   or      a
-553+  A7E7 C9                   ret
-554+  A7E8
-555+  A7E8              ; IN D=pattern seed. Byte(address)=ROL(address_low) XOR address_high XOR D.
-556+  A7E8              ; The same address produces a different expected value at each seed.
-557+  A7E8              p127_physmem_fill_pattern:
-558+  A7E8 21 00 C0             ld      hl,P127_PHYSMEM_WINDOW_BASE
-559+  A7EB 01 00 40             ld      bc,P127_PHYSMEM_PAGE_SIZE
-560+  A7EE              .p127_physmem_fill_pattern_loop:
-561+  A7EE 7D                   ld      a,l
-562+  A7EF 07                   rlca
-563+  A7F0 AC                   xor     h
-564+  A7F1 AA                   xor     d
-565+  A7F2 77                   ld      (hl),a
-566+  A7F3 23                   inc     hl
-567+  A7F4 0B                   dec     bc
-568+  A7F5 78                   ld      a,b
-569+  A7F6 B1                   or      c
-570+  A7F7 20 F5                jr      nz,.p127_physmem_fill_pattern_loop
-571+  A7F9 C9                   ret
-572+  A7FA
-573+  A7FA              ; IN D=pattern seed. Verify all 16 KiB against the address-derived pattern.
-574+  A7FA              p127_physmem_verify_pattern:
-575+  A7FA 21 00 C0             ld      hl,P127_PHYSMEM_WINDOW_BASE
-576+  A7FD 01 00 40             ld      bc,P127_PHYSMEM_PAGE_SIZE
-577+  A800              .p127_physmem_verify_pattern_loop:
-578+  A800 7D                   ld      a,l
-579+  A801 07                   rlca
-580+  A802 AC                   xor     h
-581+  A803 AA                   xor     d
-582+  A804 BE                   cp      (hl)
-583+  A805 20 08                jr      nz,.p127_physmem_verify_pattern_fail
-584+  A807 23                   inc     hl
-585+  A808 0B                   dec     bc
-586+  A809 78                   ld      a,b
-587+  A80A B1                   or      c
-588+  A80B 20 F3                jr      nz,.p127_physmem_verify_pattern_loop
-589+  A80D B7                   or      a
-590+  A80E C9                   ret
-591+  A80F              .p127_physmem_verify_pattern_fail:
-592+  A80F 37                   scf
-593+  A810 C9                   ret
-594+  A811
-595+  A811              P127_PHYSMEM_MAX_PAGES EQU 64
-596+  A811 00           p127_physmem_error: db 0
-597+  A812 00           p127_physmem_alloc_count: db 0
-598+  A813 00           p127_physmem_quiesced: db 0
-599+  A814 00           p127_physmem_acquired: db 0
-600+  A815 00           p127_physmem_mapped: db 0
-601+  A816 00           p127_physmem_saved_valid: db 0
-602+  A817 00           p127_physmem_page_a: db 0
-603+  A818 00           p127_physmem_page_b: db 0
-604+  A819 00           p127_physmem_page_arg: db 0
-605+  A81A 00           p127_physmem_saved_p0: db 0
-606+  A81B 00           p127_physmem_probe: db 0
-607+  A81C 00           p127_physmem_candidate: db 0
-608+  A81D 00           p127_physmem_current_page: db 0
-609+  A81E 00           p127_physmem_scan_remaining: db 0
-610+  A81F 00 00 00...  p127_physmem_page_list: ds P127_PHYSMEM_MAX_PAGES,0
-611+  A85F
+ 22+  A3F2 3E 53                ld      a,'S'
+ 23+  A3F4 CD 02 A8             call    p127_physmem_trace
+ 24+  A3F7 AF                   xor     a
+ 25+  A3F8 32 C5 A8             ld      (p127_physmem_error),a
+ 26+  A3FB 32 C6 A8             ld      (p127_physmem_alloc_count),a
+ 27+  A3FE 32 C7 A8             ld      (p127_physmem_quiesced),a
+ 28+  A401 32 C8 A8             ld      (p127_physmem_acquired),a
+ 29+  A404 32 C9 A8             ld      (p127_physmem_mapped),a
+ 30+  A407 32 CA A8             ld      (p127_physmem_saved_valid),a
+ 31+  A40A
+ 32+  A40A                      ; The host/staging page must be the documented W3 page before entry.
+ 33+  A40A 3A B1 70             ld      a,(p127_map_shadow+3)
+ 34+  A40D B7                   or      a
+ 35+  A40E C2 A5 A6             jp      nz,p127_physmem_fail_map_state
+ 36+  A411
+ 37+  A411 CD F7 6D             call    p127_mem_alloc
+ 38+  A414 DA AA A6             jp      c,p127_physmem_fail_alloc
+ 39+  A417 32 CB A8             ld      (p127_physmem_page_a),a
+ 40+  A41A 32 D3 A8             ld      (p127_physmem_page_list),a
+ 41+  A41D 3E 01                ld      a,1
+ 42+  A41F 32 C6 A8             ld      (p127_physmem_alloc_count),a
+ 43+  A422
+ 44+  A422 CD F7 6D             call    p127_mem_alloc
+ 45+  A425 DA AA A6             jp      c,p127_physmem_fail_alloc
+ 46+  A428 32 CC A8             ld      (p127_physmem_page_b),a
+ 47+  A42B 32 D4 A8             ld      (p127_physmem_page_list+1),a
+ 48+  A42E 3E 02                ld      a,2
+ 49+  A430 32 C6 A8             ld      (p127_physmem_alloc_count),a
+ 50+  A433
+ 51+  A433 3A CB A8             ld      a,(p127_physmem_page_a)
+ 52+  A436 47                   ld      b,a
+ 53+  A437 3A CC A8             ld      a,(p127_physmem_page_b)
+ 54+  A43A B8                   cp      b
+ 55+  A43B CA AA A6             jp      z,p127_physmem_fail_alloc
+ 56+  A43E
+ 57+  A43E                      ; No UI routine may run while W3 is reassigned.
+ 58+  A43E CD D2 68             call    p127_w3_quiesce
+ 59+  A441 DA AF A6             jp      c,p127_physmem_fail_lease
+ 60+  A444 3E 01                ld      a,1
+ 61+  A446 32 C7 A8             ld      (p127_physmem_quiesced),a
+ 62+  A449 CD F1 68             call    p127_w3_handoff_acquire
+ 63+  A44C DA AF A6             jp      c,p127_physmem_fail_lease
+ 64+  A44F 3E 01                ld      a,1
+ 65+  A451 32 C8 A8             ld      (p127_physmem_acquired),a
+ 66+  A454
+ 67+  A454                      ; Preserve one byte from P0 for a non-destructive port-open probe.
+ 68+  A454 3A 00 C0             ld      a,(P127_PHYSMEM_WINDOW_BASE)
+ 69+  A457 32 CE A8             ld      (p127_physmem_saved_p0),a
+ 70+  A45A 2F                   cpl
+ 71+  A45B 32 CF A8             ld      (p127_physmem_probe),a
+ 72+  A45E 3E 01                ld      a,1
+ 73+  A460 32 CA A8             ld      (p127_physmem_saved_valid),a
+ 74+  A463
+ 75+  A463                      ; Select allocated page A and write one complemented probe byte.
+ 76+  A463 3A CB A8             ld      a,(p127_physmem_page_a)
+ 77+  A466 CD 88 A8             call    p127_physmem_set_w3
+ 78+  A469 DA B4 A6             jp      c,p127_physmem_fail_map
+ 79+  A46C 3E 01                ld      a,1
+ 80+  A46E 32 C9 A8             ld      (p127_physmem_mapped),a
+ 81+  A471 3A CF A8             ld      a,(p127_physmem_probe)
+ 82+  A474 32 00 C0             ld      (P127_PHYSMEM_WINDOW_BASE),a
+ 83+  A477
+ 84+  A477                      ; Return to P0. Its saved byte must be unchanged if the OUT worked.
+ 85+  A477 AF                   xor     a
+ 86+  A478 CD 88 A8             call    p127_physmem_set_w3
+ 87+  A47B DA B4 A6             jp      c,p127_physmem_fail_map
+ 88+  A47E 3A 00 C0             ld      a,(P127_PHYSMEM_WINDOW_BASE)
+ 89+  A481 47                   ld      b,a
+ 90+  A482 3A CE A8             ld      a,(p127_physmem_saved_p0)
+ 91+  A485 B8                   cp      b
+ 92+  A486 C2 B9 A6             jp      nz,p127_physmem_fail_probe
+ 93+  A489                      ; Re-select page A and verify that its probe byte persisted.
+ 94+  A489 3A CB A8             ld      a,(p127_physmem_page_a)
+ 95+  A48C CD 88 A8             call    p127_physmem_set_w3
+ 96+  A48F DA B4 A6             jp      c,p127_physmem_fail_map
+ 97+  A492 3A 00 C0             ld      a,(P127_PHYSMEM_WINDOW_BASE)
+ 98+  A495 47                   ld      b,a
+ 99+  A496 3A CF A8             ld      a,(p127_physmem_probe)
+100+  A499 B8                   cp      b
+101+  A49A C2 B9 A6             jp      nz,p127_physmem_fail_probe
+102+  A49D
+103+  A49D                      ; Stage 2.18: four address-sensitive pattern rounds. Every round
+104+  A49D                      ; fills both pages, then alternates W3 and verifies retention.
+105+  A49D 3A CB A8             ld      a,(p127_physmem_page_a)
+106+  A4A0 CD 88 A8             call    p127_physmem_set_w3
+107+  A4A3 DA B4 A6             jp      c,p127_physmem_fail_map
+108+  A4A6 16 11                ld      d,011h
+109+  A4A8 CD 9C A8             call    p127_physmem_fill_pattern
+110+  A4AB 3A CC A8             ld      a,(p127_physmem_page_b)
+111+  A4AE CD 88 A8             call    p127_physmem_set_w3
+112+  A4B1 DA B4 A6             jp      c,p127_physmem_fail_map
+113+  A4B4 16 A2                ld      d,0A2h
+114+  A4B6 CD 9C A8             call    p127_physmem_fill_pattern
+115+  A4B9 3A CB A8             ld      a,(p127_physmem_page_a)
+116+  A4BC CD 88 A8             call    p127_physmem_set_w3
+117+  A4BF DA B4 A6             jp      c,p127_physmem_fail_map
+118+  A4C2 16 11                ld      d,011h
+119+  A4C4 CD AE A8             call    p127_physmem_verify_pattern
+120+  A4C7 DA BE A6             jp      c,p127_physmem_fail_data
+121+  A4CA 3A CC A8             ld      a,(p127_physmem_page_b)
+122+  A4CD CD 88 A8             call    p127_physmem_set_w3
+123+  A4D0 DA B4 A6             jp      c,p127_physmem_fail_map
+124+  A4D3 16 A2                ld      d,0A2h
+125+  A4D5 CD AE A8             call    p127_physmem_verify_pattern
+126+  A4D8 DA BE A6             jp      c,p127_physmem_fail_data
+127+  A4DB 3A CB A8             ld      a,(p127_physmem_page_a)
+128+  A4DE CD 88 A8             call    p127_physmem_set_w3
+129+  A4E1 DA B4 A6             jp      c,p127_physmem_fail_map
+130+  A4E4 16 11                ld      d,011h
+131+  A4E6 CD AE A8             call    p127_physmem_verify_pattern
+132+  A4E9 DA BE A6             jp      c,p127_physmem_fail_data
+133+  A4EC
+134+  A4EC 3A CB A8             ld      a,(p127_physmem_page_a)
+135+  A4EF CD 88 A8             call    p127_physmem_set_w3
+136+  A4F2 DA B4 A6             jp      c,p127_physmem_fail_map
+137+  A4F5 16 37                ld      d,037h
+138+  A4F7 CD 9C A8             call    p127_physmem_fill_pattern
+139+  A4FA 3A CC A8             ld      a,(p127_physmem_page_b)
+140+  A4FD CD 88 A8             call    p127_physmem_set_w3
+141+  A500 DA B4 A6             jp      c,p127_physmem_fail_map
+142+  A503 16 C8                ld      d,0C8h
+143+  A505 CD 9C A8             call    p127_physmem_fill_pattern
+144+  A508 3A CC A8             ld      a,(p127_physmem_page_b)
+145+  A50B CD 88 A8             call    p127_physmem_set_w3
+146+  A50E DA B4 A6             jp      c,p127_physmem_fail_map
+147+  A511 16 C8                ld      d,0C8h
+148+  A513 CD AE A8             call    p127_physmem_verify_pattern
+149+  A516 DA BE A6             jp      c,p127_physmem_fail_data
+150+  A519 3A CB A8             ld      a,(p127_physmem_page_a)
+151+  A51C CD 88 A8             call    p127_physmem_set_w3
+152+  A51F DA B4 A6             jp      c,p127_physmem_fail_map
+153+  A522 16 37                ld      d,037h
+154+  A524 CD AE A8             call    p127_physmem_verify_pattern
+155+  A527 DA BE A6             jp      c,p127_physmem_fail_data
+156+  A52A 3A CC A8             ld      a,(p127_physmem_page_b)
+157+  A52D CD 88 A8             call    p127_physmem_set_w3
+158+  A530 DA B4 A6             jp      c,p127_physmem_fail_map
+159+  A533 16 C8                ld      d,0C8h
+160+  A535 CD AE A8             call    p127_physmem_verify_pattern
+161+  A538 DA BE A6             jp      c,p127_physmem_fail_data
+162+  A53B
+163+  A53B 3A CB A8             ld      a,(p127_physmem_page_a)
+164+  A53E CD 88 A8             call    p127_physmem_set_w3
+165+  A541 DA B4 A6             jp      c,p127_physmem_fail_map
+166+  A544 16 5D                ld      d,05Dh
+167+  A546 CD 9C A8             call    p127_physmem_fill_pattern
+168+  A549 3A CC A8             ld      a,(p127_physmem_page_b)
+169+  A54C CD 88 A8             call    p127_physmem_set_w3
+170+  A54F DA B4 A6             jp      c,p127_physmem_fail_map
+171+  A552 16 E4                ld      d,0E4h
+172+  A554 CD 9C A8             call    p127_physmem_fill_pattern
+173+  A557 3A CB A8             ld      a,(p127_physmem_page_a)
+174+  A55A CD 88 A8             call    p127_physmem_set_w3
+175+  A55D DA B4 A6             jp      c,p127_physmem_fail_map
+176+  A560 16 5D                ld      d,05Dh
+177+  A562 CD AE A8             call    p127_physmem_verify_pattern
+178+  A565 DA BE A6             jp      c,p127_physmem_fail_data
+179+  A568 3A CC A8             ld      a,(p127_physmem_page_b)
+180+  A56B CD 88 A8             call    p127_physmem_set_w3
+181+  A56E DA B4 A6             jp      c,p127_physmem_fail_map
+182+  A571 16 E4                ld      d,0E4h
+183+  A573 CD AE A8             call    p127_physmem_verify_pattern
+184+  A576 DA BE A6             jp      c,p127_physmem_fail_data
+185+  A579 3A CB A8             ld      a,(p127_physmem_page_a)
+186+  A57C CD 88 A8             call    p127_physmem_set_w3
+187+  A57F DA B4 A6             jp      c,p127_physmem_fail_map
+188+  A582 16 5D                ld      d,05Dh
+189+  A584 CD AE A8             call    p127_physmem_verify_pattern
+190+  A587 DA BE A6             jp      c,p127_physmem_fail_data
+191+  A58A
+192+  A58A 3A CB A8             ld      a,(p127_physmem_page_a)
+193+  A58D CD 88 A8             call    p127_physmem_set_w3
+194+  A590 DA B4 A6             jp      c,p127_physmem_fail_map
+195+  A593 16 83                ld      d,083h
+196+  A595 CD 9C A8             call    p127_physmem_fill_pattern
+197+  A598 3A CC A8             ld      a,(p127_physmem_page_b)
+198+  A59B CD 88 A8             call    p127_physmem_set_w3
+199+  A59E DA B4 A6             jp      c,p127_physmem_fail_map
+200+  A5A1 16 16                ld      d,016h
+201+  A5A3 CD 9C A8             call    p127_physmem_fill_pattern
+202+  A5A6 3A CC A8             ld      a,(p127_physmem_page_b)
+203+  A5A9 CD 88 A8             call    p127_physmem_set_w3
+204+  A5AC DA B4 A6             jp      c,p127_physmem_fail_map
+205+  A5AF 16 16                ld      d,016h
+206+  A5B1 CD AE A8             call    p127_physmem_verify_pattern
+207+  A5B4 DA BE A6             jp      c,p127_physmem_fail_data
+208+  A5B7 3A CB A8             ld      a,(p127_physmem_page_a)
+209+  A5BA CD 88 A8             call    p127_physmem_set_w3
+210+  A5BD DA B4 A6             jp      c,p127_physmem_fail_map
+211+  A5C0 16 83                ld      d,083h
+212+  A5C2 CD AE A8             call    p127_physmem_verify_pattern
+213+  A5C5 DA BE A6             jp      c,p127_physmem_fail_data
+214+  A5C8 3A CC A8             ld      a,(p127_physmem_page_b)
+215+  A5CB CD 88 A8             call    p127_physmem_set_w3
+216+  A5CE DA B4 A6             jp      c,p127_physmem_fail_map
+217+  A5D1 16 16                ld      d,016h
+218+  A5D3 CD AE A8             call    p127_physmem_verify_pattern
+219+  A5D6 DA BE A6             jp      c,p127_physmem_fail_data
+220+  A5D9
+221+  A5D9 3E 32                ld      a,'2'
+222+  A5DB CD 02 A8             call    p127_physmem_trace
+223+  A5DE
+224+  A5DE                      ; Stage 2.19: exhaust the allocator into a private page-ID list.
+225+  A5DE                      ; The first two pages are already listed. Each new allocation is
+226+  A5DE                      ; checked against all prior IDs before it is appended.
+227+  A5DE              p127_physmem_alloc_more:
+228+  A5DE 3A C6 A8             ld      a,(p127_physmem_alloc_count)
+229+  A5E1 FE 40                cp      P127_PHYSMEM_MAX_PAGES
+230+  A5E3 30 2C                jr      nc,p127_physmem_alloc_complete
+231+  A5E5 CD F7 6D             call    p127_mem_alloc
+232+  A5E8 38 27                jr      c,p127_physmem_alloc_complete
+233+  A5EA 32 D0 A8             ld      (p127_physmem_candidate),a
+234+  A5ED 57                   ld      d,a
+235+  A5EE 3A C6 A8             ld      a,(p127_physmem_alloc_count)
+236+  A5F1 47                   ld      b,a
+237+  A5F2 21 D3 A8             ld      hl,p127_physmem_page_list
+238+  A5F5              p127_physmem_duplicate_scan:
+239+  A5F5 7E                   ld      a,(hl)
+240+  A5F6 BA                   cp      d
+241+  A5F7 CA C3 A6             jp      z,p127_physmem_fail_duplicate
+242+  A5FA 23                   inc     hl
+243+  A5FB 10 F8                djnz    p127_physmem_duplicate_scan
+244+  A5FD 3A C6 A8             ld      a,(p127_physmem_alloc_count)
+245+  A600 5F                   ld      e,a
+246+  A601 16 00                ld      d,0
+247+  A603 21 D3 A8             ld      hl,p127_physmem_page_list
+248+  A606 19                   add     hl,de
+249+  A607 3A D0 A8             ld      a,(p127_physmem_candidate)
+250+  A60A 77                   ld      (hl),a
+251+  A60B 21 C6 A8             ld      hl,p127_physmem_alloc_count
+252+  A60E 34                   inc     (hl)
+253+  A60F 18 CD                jr      p127_physmem_alloc_more
+254+  A611
+255+  A611              p127_physmem_alloc_complete:
+256+  A611 3E 41                ld      a,'A'
+257+  A613 CD 02 A8             call    p127_physmem_trace
+258+  A616                      ; Current map has exactly seven protected pages and 57 allocatable.
+259+  A616 3A C6 A8             ld      a,(p127_physmem_alloc_count)
+260+  A619 FE 39                cp      57
+261+  A61B C2 C8 A6             jp      nz,p127_physmem_fail_count
+262+  A61E CD 6B A7             call    p127_physmem_check_reserved
+263+  A621 DA CD A6             jp      c,p127_physmem_fail_reserve
+264+  A624
+265+  A624                      ; First sweep: fill every allocated physical page with a unique
+266+  A624                      ; address-derived pattern whose seed includes its physical page ID.
+267+  A624 3A C6 A8             ld      a,(p127_physmem_alloc_count)
+268+  A627 32 D2 A8             ld      (p127_physmem_scan_remaining),a
+269+  A62A 21 D3 A8             ld      hl,p127_physmem_page_list
+270+  A62D              p127_physmem_full_fill_loop:
+271+  A62D 7E                   ld      a,(hl)
+272+  A62E 23                   inc     hl
+273+  A62F 32 D1 A8             ld      (p127_physmem_current_page),a
+274+  A632 3E 46                ld      a,'F'
+275+  A634 CD 08 A8             call    p127_physmem_trace_page
+276+  A637 3A D1 A8             ld      a,(p127_physmem_current_page)
+277+  A63A CD 88 A8             call    p127_physmem_set_w3
+278+  A63D DA B4 A6             jp      c,p127_physmem_fail_map
+279+  A640 3A D1 A8             ld      a,(p127_physmem_current_page)
+280+  A643 EE 5A                xor     05Ah
+281+  A645 57                   ld      d,a
+282+  A646 E5                   push    hl
+283+  A647 CD 9C A8             call    p127_physmem_fill_pattern
+284+  A64A E1                   pop     hl
+285+  A64B 3A D2 A8             ld      a,(p127_physmem_scan_remaining)
+286+  A64E 3D                   dec     a
+287+  A64F 32 D2 A8             ld      (p127_physmem_scan_remaining),a
+288+  A652 20 D9                jr      nz,p127_physmem_full_fill_loop
+289+  A654
+290+  A654 3E 46                ld      a,'F'
+291+  A656 CD 02 A8             call    p127_physmem_trace
+292+  A659
+293+  A659                      ; Reverse sweep verifies every page after all other pages have
+294+  A659                      ; already been written. This catches aliases and lost page contents.
+295+  A659 3A C6 A8             ld      a,(p127_physmem_alloc_count)
+296+  A65C 5F                   ld      e,a
+297+  A65D 16 00                ld      d,0
+298+  A65F 21 D3 A8             ld      hl,p127_physmem_page_list
+299+  A662 19                   add     hl,de
+300+  A663              p127_physmem_full_verify_loop:
+301+  A663 2B                   dec     hl
+302+  A664 7E                   ld      a,(hl)
+303+  A665 32 D1 A8             ld      (p127_physmem_current_page),a
+304+  A668 3E 56                ld      a,'V'
+305+  A66A CD 08 A8             call    p127_physmem_trace_page
+306+  A66D 3A D1 A8             ld      a,(p127_physmem_current_page)
+307+  A670 CD 88 A8             call    p127_physmem_set_w3
+308+  A673 DA B4 A6             jp      c,p127_physmem_fail_map
+309+  A676 3A D1 A8             ld      a,(p127_physmem_current_page)
+310+  A679 EE 5A                xor     05Ah
+311+  A67B 57                   ld      d,a
+312+  A67C E5                   push    hl
+313+  A67D CD AE A8             call    p127_physmem_verify_pattern
+314+  A680 E1                   pop     hl
+315+  A681 DA BE A6             jp      c,p127_physmem_fail_data
+316+  A684 3A D2 A8             ld      a,(p127_physmem_scan_remaining)
+317+  A687                      ; Reinitialize the reverse counter on first entry.
+318+  A687 B7                   or      a
+319+  A688 20 03                jr      nz,p127_physmem_reverse_count_ready
+320+  A68A 3A C6 A8             ld      a,(p127_physmem_alloc_count)
+321+  A68D              p127_physmem_reverse_count_ready:
+322+  A68D 3D                   dec     a
+323+  A68E 32 D2 A8             ld      (p127_physmem_scan_remaining),a
+324+  A691 20 D0                jr      nz,p127_physmem_full_verify_loop
+325+  A693
+326+  A693 3E 56                ld      a,'V'
+327+  A695 CD 02 A8             call    p127_physmem_trace
+328+  A698
+329+  A698                      ; Verify the allocator still marks every listed page ALLOCATED.
+330+  A698 CD AC A7             call    p127_physmem_check_allocated
+331+  A69B DA D2 A6             jp      c,p127_physmem_fail_state
+332+  A69E AF                   xor     a
+333+  A69F 32 C5 A8             ld      (p127_physmem_error),a
+334+  A6A2 C3 D7 A6             jp      p127_physmem_cleanup
+335+  A6A5
+336+  A6A5              p127_physmem_fail_map_state:
+337+  A6A5 3E 01                ld      a,1
+338+  A6A7 C3 D4 A6             jp      p127_physmem_set_error
+339+  A6AA              p127_physmem_fail_alloc:
+340+  A6AA 3E 02                ld      a,2
+341+  A6AC C3 D4 A6             jp      p127_physmem_set_error
+342+  A6AF              p127_physmem_fail_lease:
+343+  A6AF 3E 03                ld      a,3
+344+  A6B1 C3 D4 A6             jp      p127_physmem_set_error
+345+  A6B4              p127_physmem_fail_map:
+346+  A6B4 3E 04                ld      a,4
+347+  A6B6 C3 D4 A6             jp      p127_physmem_set_error
+348+  A6B9              p127_physmem_fail_probe:
+349+  A6B9 3E 05                ld      a,5
+350+  A6BB C3 D4 A6             jp      p127_physmem_set_error
+351+  A6BE              p127_physmem_fail_data:
+352+  A6BE 3E 06                ld      a,6
+353+  A6C0 C3 D4 A6             jp      p127_physmem_set_error
+354+  A6C3              p127_physmem_fail_duplicate:
+355+  A6C3 3E 07                ld      a,7
+356+  A6C5 C3 D4 A6             jp      p127_physmem_set_error
+357+  A6C8              p127_physmem_fail_count:
+358+  A6C8 3E 08                ld      a,8
+359+  A6CA C3 D4 A6             jp      p127_physmem_set_error
+360+  A6CD              p127_physmem_fail_reserve:
+361+  A6CD 3E 09                ld      a,9
+362+  A6CF C3 D4 A6             jp      p127_physmem_set_error
+363+  A6D2              p127_physmem_fail_state:
+364+  A6D2 3E 0A                ld      a,10
+365+  A6D4              p127_physmem_set_error:
+366+  A6D4 32 C5 A8             ld      (p127_physmem_error),a
+367+  A6D7
+368+  A6D7              p127_physmem_cleanup:
+369+  A6D7 3E 43                ld      a,'C'
+370+  A6D9 CD 02 A8             call    p127_physmem_trace
+371+  A6DC                      ; Always return W3 to P0 before releasing UI ownership.
+372+  A6DC 3A C9 A8             ld      a,(p127_physmem_mapped)
+373+  A6DF B7                   or      a
+374+  A6E0 28 07                jr      z,p127_physmem_cleanup_saved
+375+  A6E2 AF                   xor     a
+376+  A6E3 CD 88 A8             call    p127_physmem_set_w3
+377+  A6E6 DA 64 A7             jp      c,p127_physmem_cleanup_error
+378+  A6E9              p127_physmem_cleanup_saved:
+379+  A6E9 3A CA A8             ld      a,(p127_physmem_saved_valid)
+380+  A6EC B7                   or      a
+381+  A6ED 28 06                jr      z,p127_physmem_cleanup_release
+382+  A6EF 3A CE A8             ld      a,(p127_physmem_saved_p0)
+383+  A6F2 32 00 C0             ld      (P127_PHYSMEM_WINDOW_BASE),a
+384+  A6F5
+385+  A6F5              p127_physmem_cleanup_release:
+386+  A6F5 3A C8 A8             ld      a,(p127_physmem_acquired)
+387+  A6F8 B7                   or      a
+388+  A6F9 28 06                jr      z,p127_physmem_cleanup_resume
+389+  A6FB CD 05 69             call    p127_w3_handoff_release
+390+  A6FE DA 64 A7             jp      c,p127_physmem_cleanup_error
+391+  A701              p127_physmem_cleanup_resume:
+392+  A701 3A C7 A8             ld      a,(p127_physmem_quiesced)
+393+  A704 B7                   or      a
+394+  A705 28 06                jr      z,p127_physmem_cleanup_free
+395+  A707 CD 19 69             call    p127_w3_resume
+396+  A70A DA 64 A7             jp      c,p127_physmem_cleanup_error
+397+  A70D
+398+  A70D              p127_physmem_cleanup_free:
+399+  A70D 3A C6 A8             ld      a,(p127_physmem_alloc_count)
+400+  A710 32 D2 A8             ld      (p127_physmem_scan_remaining),a
+401+  A713 3A C6 A8             ld      a,(p127_physmem_alloc_count)
+402+  A716 5F                   ld      e,a
+403+  A717 16 00                ld      d,0
+404+  A719 21 D3 A8             ld      hl,p127_physmem_page_list
+405+  A71C 19                   add     hl,de
+406+  A71D              p127_physmem_cleanup_free_loop:
+407+  A71D 3A D2 A8             ld      a,(p127_physmem_scan_remaining)
+408+  A720 B7                   or      a
+409+  A721 28 13                jr      z,p127_physmem_cleanup_done
+410+  A723 2B                   dec     hl
+411+  A724 7E                   ld      a,(hl)
+412+  A725 E5                   push    hl
+413+  A726 CD 0D 6E             call    p127_mem_free
+414+  A729 E1                   pop     hl
+415+  A72A DA 64 A7             jp      c,p127_physmem_cleanup_error
+416+  A72D 3A D2 A8             ld      a,(p127_physmem_scan_remaining)
+417+  A730 3D                   dec     a
+418+  A731 32 D2 A8             ld      (p127_physmem_scan_remaining),a
+419+  A734 18 E7                jr      p127_physmem_cleanup_free_loop
+420+  A736              p127_physmem_cleanup_done:
+421+  A736                      ; Reallocation must return the same lowest free page and release it.
+422+  A736 3A C5 A8             ld      a,(p127_physmem_error)
+423+  A739 B7                   or      a
+424+  A73A 20 21                jr      nz,p127_physmem_cleanup_return
+425+  A73C CD F7 6D             call    p127_mem_alloc
+426+  A73F DA 64 A7             jp      c,p127_physmem_cleanup_error
+427+  A742 47                   ld      b,a
+428+  A743 3A CB A8             ld      a,(p127_physmem_page_a)
+429+  A746 B8                   cp      b
+430+  A747 C2 64 A7             jp      nz,p127_physmem_cleanup_error
+431+  A74A 78                   ld      a,b
+432+  A74B CD 0D 6E             call    p127_mem_free
+433+  A74E DA 64 A7             jp      c,p127_physmem_cleanup_error
+434+  A751 CD 6B A7             call    p127_physmem_check_reserved
+435+  A754 DA 64 A7             jp      c,p127_physmem_cleanup_error
+436+  A757 CD CB A7             call    p127_physmem_check_free_state
+437+  A75A DA 64 A7             jp      c,p127_physmem_cleanup_error
+438+  A75D              p127_physmem_cleanup_return:
+439+  A75D 3A C5 A8             ld      a,(p127_physmem_error)
+440+  A760 B7                   or      a
+441+  A761 C8                   ret     z
+442+  A762 37                   scf
+443+  A763 C9                   ret
+444+  A764
+445+  A764              p127_physmem_cleanup_error:
+446+  A764 3E FF                ld      a,0FFh
+447+  A766 32 C5 A8             ld      (p127_physmem_error),a
+448+  A769 37                   scf
+449+  A76A C9                   ret
+450+  A76B
+451+  A76B              ; Check the seven fixed reservation states: P0/P1/P2/P3/P4/P5/P7.
+452+  A76B              ; OUT carry=1 if any protected page is not RESERVED.
+453+  A76B              p127_physmem_check_reserved:
+454+  A76B 21 78 6E             ld      hl,p127_mem_page_state
+455+  A76E 06 08                ld      b,8
+456+  A770 0E 00                ld      c,0
+457+  A772              p127_physmem_reserved_loop:
+458+  A772 79                   ld      a,c
+459+  A773 FE 06                cp      6
+460+  A775 28 2E                jr      z,p127_physmem_reserved_skip
+461+  A777 FE 07                cp      7
+462+  A779 28 1A                jr      z,p127_physmem_reserved_check
+463+  A77B FE 00                cp      0
+464+  A77D 28 16                jr      z,p127_physmem_reserved_check
+465+  A77F FE 01                cp      1
+466+  A781 28 12                jr      z,p127_physmem_reserved_check
+467+  A783 FE 02                cp      2
+468+  A785 28 0E                jr      z,p127_physmem_reserved_check
+469+  A787 FE 03                cp      3
+470+  A789 28 0A                jr      z,p127_physmem_reserved_check
+471+  A78B FE 04                cp      4
+472+  A78D 28 06                jr      z,p127_physmem_reserved_check
+473+  A78F FE 05                cp      5
+474+  A791 28 02                jr      z,p127_physmem_reserved_check
+475+  A793 18 10                jr      p127_physmem_reserved_skip
+476+  A795              p127_physmem_reserved_check:
+477+  A795 C5                   push    bc
+478+  A796 E5                   push    hl
+479+  A797 59                   ld      e,c
+480+  A798 16 00                ld      d,0
+481+  A79A 21 78 6E             ld      hl,p127_mem_page_state
+482+  A79D 19                   add     hl,de
+483+  A79E 7E                   ld      a,(hl)
+484+  A79F FE 01                cp      P127_MEM_RESERVED
+485+  A7A1 E1                   pop     hl
+486+  A7A2 C1                   pop     bc
+487+  A7A3 20 05                jr      nz,p127_physmem_reserved_fail
+488+  A7A5              p127_physmem_reserved_skip:
+489+  A7A5 0C                   inc     c
+490+  A7A6 10 CA                djnz    p127_physmem_reserved_loop
+491+  A7A8 B7                   or      a
+492+  A7A9 C9                   ret
+493+  A7AA              p127_physmem_reserved_fail:
+494+  A7AA 37                   scf
+495+  A7AB C9                   ret
+496+  A7AC
+497+  A7AC              ; Every page in the private list must remain ALLOCATED during the sweep.
+498+  A7AC              p127_physmem_check_allocated:
+499+  A7AC 3A C6 A8             ld      a,(p127_physmem_alloc_count)
+500+  A7AF 47                   ld      b,a
+501+  A7B0 21 D3 A8             ld      hl,p127_physmem_page_list
+502+  A7B3              p127_physmem_alloc_state_loop:
+503+  A7B3 7E                   ld      a,(hl)
+504+  A7B4 5F                   ld      e,a
+505+  A7B5 16 00                ld      d,0
+506+  A7B7 C5                   push    bc
+507+  A7B8 E5                   push    hl
+508+  A7B9 21 78 6E             ld      hl,p127_mem_page_state
+509+  A7BC 19                   add     hl,de
+510+  A7BD 7E                   ld      a,(hl)
+511+  A7BE FE 02                cp      P127_MEM_ALLOCATED
+512+  A7C0 E1                   pop     hl
+513+  A7C1 C1                   pop     bc
+514+  A7C2 20 05                jr      nz,p127_physmem_alloc_state_fail
+515+  A7C4 23                   inc     hl
+516+  A7C5 10 EC                djnz    p127_physmem_alloc_state_loop
+517+  A7C7 B7                   or      a
+518+  A7C8 C9                   ret
+519+  A7C9              p127_physmem_alloc_state_fail:
+520+  A7C9 37                   scf
+521+  A7CA C9                   ret
+522+  A7CB
+523+  A7CB              ; After release, every non-reserved page must be FREE; reserved pages
+524+  A7CB              ; are checked separately by p127_physmem_check_reserved.
+525+  A7CB              p127_physmem_check_free_state:
+526+  A7CB 21 78 6E             ld      hl,p127_mem_page_state
+527+  A7CE 06 40                ld      b,64
+528+  A7D0 0E 00                ld      c,0
+529+  A7D2              p127_physmem_free_state_loop:
+530+  A7D2 79                   ld      a,c
+531+  A7D3 FE 00                cp      0
+532+  A7D5 28 1E                jr      z,p127_physmem_free_state_reserved
+533+  A7D7 FE 01                cp      1
+534+  A7D9 28 1A                jr      z,p127_physmem_free_state_reserved
+535+  A7DB FE 02                cp      2
+536+  A7DD 28 16                jr      z,p127_physmem_free_state_reserved
+537+  A7DF FE 03                cp      3
+538+  A7E1 28 12                jr      z,p127_physmem_free_state_reserved
+539+  A7E3 FE 04                cp      4
+540+  A7E5 28 0E                jr      z,p127_physmem_free_state_reserved
+541+  A7E7 FE 05                cp      5
+542+  A7E9 28 0A                jr      z,p127_physmem_free_state_reserved
+543+  A7EB FE 07                cp      7
+544+  A7ED 28 06                jr      z,p127_physmem_free_state_reserved
+545+  A7EF 7E                   ld      a,(hl)
+546+  A7F0 B7                   or      a
+547+  A7F1 20 0D                jr      nz,p127_physmem_free_state_fail
+548+  A7F3 18 05                jr      p127_physmem_free_state_next
+549+  A7F5              p127_physmem_free_state_reserved:
+550+  A7F5 7E                   ld      a,(hl)
+551+  A7F6 FE 01                cp      P127_MEM_RESERVED
+552+  A7F8 20 06                jr      nz,p127_physmem_free_state_fail
+553+  A7FA              p127_physmem_free_state_next:
+554+  A7FA 23                   inc     hl
+555+  A7FB 0C                   inc     c
+556+  A7FC 10 D4                djnz    p127_physmem_free_state_loop
+557+  A7FE B7                   or      a
+558+  A7FF C9                   ret
+559+  A800              p127_physmem_free_state_fail:
+560+  A800 37                   scf
+561+  A801 C9                   ret
+562+  A802
+563+  A802              ; Emit one printable phase marker directly on the established #EF debug port.
+564+  A802              ; This remains available while the UI is quiesced and W3 is leased.
+565+  A802              p127_physmem_trace:
+566+  A802 01 EF 00             ld      bc,00EFh
+567+  A805 ED 79                out     (c),a
+568+  A807 C9                   ret
+569+  A808
+570+  A808              ; Emit progress for each physical page while the UI is quiesced.
+571+  A808              ; A='F' prints FILL PAGE ID=xx; A='V' prints VERIFY PAGE ID=xx.
+572+  A808              ; Preserve every register because the caller owns the page-list cursor.
+573+  A808              p127_physmem_trace_page:
+574+  A808 F5                   push    af
+575+  A809 C5                   push    bc
+576+  A80A D5                   push    de
+577+  A80B E5                   push    hl
+578+  A80C FE 46                cp      'F'
+579+  A80E 20 05                jr      nz,p127_physmem_trace_page_verify
+580+  A810 21 5A A8             ld      hl,p127_physmem_trace_fill_text
+581+  A813 18 03                jr      p127_physmem_trace_page_text
+582+  A815              p127_physmem_trace_page_verify:
+583+  A815 21 68 A8             ld      hl,p127_physmem_trace_verify_text
+584+  A818              p127_physmem_trace_page_text:
+585+  A818 7E                   ld      a,(hl)
+586+  A819 B7                   or      a
+587+  A81A 28 08                jr      z,p127_physmem_trace_page_value
+588+  A81C 23                   inc     hl
+589+  A81D E5                   push    hl
+590+  A81E CD 54 A8             call    p127_physmem_trace_char
+591+  A821 E1                   pop     hl
+592+  A822 18 F4                jr      p127_physmem_trace_page_text
+593+  A824              p127_physmem_trace_page_value:
+594+  A824 3A D1 A8             ld      a,(p127_physmem_current_page)
+595+  A827 CD 39 A8             call    p127_physmem_trace_hex8
+596+  A82A 3E 0D                ld      a,13
+597+  A82C CD 54 A8             call    p127_physmem_trace_char
+598+  A82F 3E 0A                ld      a,10
+599+  A831 CD 54 A8             call    p127_physmem_trace_char
+600+  A834 E1                   pop     hl
+601+  A835 D1                   pop     de
+602+  A836 C1                   pop     bc
+603+  A837 F1                   pop     af
+604+  A838 C9                   ret
+605+  A839
+606+  A839              p127_physmem_trace_hex8:
+607+  A839 F5                   push    af
+608+  A83A E6 F0                and     0F0h
+609+  A83C 0F                   rrca
+610+  A83D 0F                   rrca
+611+  A83E 0F                   rrca
+612+  A83F 0F                   rrca
+613+  A840 CD 49 A8             call    p127_physmem_trace_nibble
+614+  A843 F1                   pop     af
+615+  A844 E6 0F                and     00Fh
+616+  A846 C3 49 A8             jp      p127_physmem_trace_nibble
+617+  A849
+618+  A849              p127_physmem_trace_nibble:
+619+  A849 5F                   ld      e,a
+620+  A84A 16 00                ld      d,0
+621+  A84C 21 78 A8             ld      hl,p127_physmem_trace_hex_table
+622+  A84F 19                   add     hl,de
+623+  A850 7E                   ld      a,(hl)
+624+  A851 C3 54 A8             jp      p127_physmem_trace_char
+625+  A854
+626+  A854              p127_physmem_trace_char:
+627+  A854 01 EF 00             ld      bc,00EFh
+628+  A857 ED 79                out     (c),a
+629+  A859 C9                   ret
+630+  A85A
+631+  A85A              p127_physmem_trace_fill_text:
+632+  A85A 46 49 4C 4C          db      "FILL PAGE ID=",0
+632+  A85E 20 50 41 47
+632+  A862 45 20 49 44
+632+  A866 3D 00
+633+  A868              p127_physmem_trace_verify_text:
+634+  A868 56 45 52 49          db      "VERIFY PAGE ID=",0
+634+  A86C 46 59 20 50
+634+  A870 41 47 45 20
+634+  A874 49 44 3D 00
+635+  A878              p127_physmem_trace_hex_table:
+636+  A878 30 31 32 33          db      "0123456789ABCDEF"
+636+  A87C 34 35 36 37
+636+  A880 38 39 41 42
+636+  A884 43 44 45 46
+637+  A888
+638+  A888              ; IN A=physical RAM page ID. Program only W3 (#FFF7), never W0/W1/W2.
+639+  A888              ; D6=1 selects RAM, D7=0 selects the inverse D0-D5 page ID.
+640+  A888              p127_physmem_set_w3:
+641+  A888 32 CD A8             ld      (p127_physmem_page_arg),a
+642+  A88B CD CE 6E             call    p127_map_encode_page
+643+  A88E D8                   ret     c
+644+  A88F 01 F7 FF             ld      bc,P127_PHYSMEM_PAGE_PORT
+645+  A892 ED 79                out     (c),a
+646+  A894 3A CD A8             ld      a,(p127_physmem_page_arg)
+647+  A897 32 B1 70             ld      (p127_map_shadow+3),a
+648+  A89A B7                   or      a
+649+  A89B C9                   ret
+650+  A89C
+651+  A89C              ; IN D=pattern seed. Byte(address)=ROL(address_low) XOR address_high XOR D.
+652+  A89C              ; The same address produces a different expected value at each seed.
+653+  A89C              p127_physmem_fill_pattern:
+654+  A89C 21 00 C0             ld      hl,P127_PHYSMEM_WINDOW_BASE
+655+  A89F 01 00 40             ld      bc,P127_PHYSMEM_PAGE_SIZE
+656+  A8A2              .p127_physmem_fill_pattern_loop:
+657+  A8A2 7D                   ld      a,l
+658+  A8A3 07                   rlca
+659+  A8A4 AC                   xor     h
+660+  A8A5 AA                   xor     d
+661+  A8A6 77                   ld      (hl),a
+662+  A8A7 23                   inc     hl
+663+  A8A8 0B                   dec     bc
+664+  A8A9 78                   ld      a,b
+665+  A8AA B1                   or      c
+666+  A8AB 20 F5                jr      nz,.p127_physmem_fill_pattern_loop
+667+  A8AD C9                   ret
+668+  A8AE
+669+  A8AE              ; IN D=pattern seed. Verify all 16 KiB against the address-derived pattern.
+670+  A8AE              p127_physmem_verify_pattern:
+671+  A8AE 21 00 C0             ld      hl,P127_PHYSMEM_WINDOW_BASE
+672+  A8B1 01 00 40             ld      bc,P127_PHYSMEM_PAGE_SIZE
+673+  A8B4              .p127_physmem_verify_pattern_loop:
+674+  A8B4 7D                   ld      a,l
+675+  A8B5 07                   rlca
+676+  A8B6 AC                   xor     h
+677+  A8B7 AA                   xor     d
+678+  A8B8 BE                   cp      (hl)
+679+  A8B9 20 08                jr      nz,.p127_physmem_verify_pattern_fail
+680+  A8BB 23                   inc     hl
+681+  A8BC 0B                   dec     bc
+682+  A8BD 78                   ld      a,b
+683+  A8BE B1                   or      c
+684+  A8BF 20 F3                jr      nz,.p127_physmem_verify_pattern_loop
+685+  A8C1 B7                   or      a
+686+  A8C2 C9                   ret
+687+  A8C3              .p127_physmem_verify_pattern_fail:
+688+  A8C3 37                   scf
+689+  A8C4 C9                   ret
+690+  A8C5
+691+  A8C5              P127_PHYSMEM_MAX_PAGES EQU 64
+692+  A8C5 00           p127_physmem_error: db 0
+693+  A8C6 00           p127_physmem_alloc_count: db 0
+694+  A8C7 00           p127_physmem_quiesced: db 0
+695+  A8C8 00           p127_physmem_acquired: db 0
+696+  A8C9 00           p127_physmem_mapped: db 0
+697+  A8CA 00           p127_physmem_saved_valid: db 0
+698+  A8CB 00           p127_physmem_page_a: db 0
+699+  A8CC 00           p127_physmem_page_b: db 0
+700+  A8CD 00           p127_physmem_page_arg: db 0
+701+  A8CE 00           p127_physmem_saved_p0: db 0
+702+  A8CF 00           p127_physmem_probe: db 0
+703+  A8D0 00           p127_physmem_candidate: db 0
+704+  A8D1 00           p127_physmem_current_page: db 0
+705+  A8D2 00           p127_physmem_scan_remaining: db 0
+706+  A8D3 00 00 00...  p127_physmem_page_list: ds P127_PHYSMEM_MAX_PAGES,0
+707+  A913
 # file closed: p127_physmem.asm
- 94   A85F              p127_image_end:
- 95   A85F                      ASSERT p127_image_end <= #B000
- 96   A85F                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_image_end-P127_LOAD_ADDRESS
- 97   A85F
+ 94   A913              p127_image_end:
+ 95   A913                      ASSERT p127_image_end <= #B000
+ 96   A913                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_image_end-P127_LOAD_ADDRESS
+ 97   A913
 # file closed: main.asm
