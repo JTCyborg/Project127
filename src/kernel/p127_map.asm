@@ -86,90 +86,90 @@ p127_map_get_shadow:
 p127_map_selftest:
         ld      a,0
         call    p127_map_encode_page
-        jr      c,p127_map_test_fail
+        jp      c,p127_map_test_fail
         cp      07Fh
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,1
         call    p127_map_encode_page
-        jr      c,p127_map_test_fail
+        jp      c,p127_map_test_fail
         cp      07Eh
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,3
         call    p127_map_encode_page
-        jr      c,p127_map_test_fail
+        jp      c,p127_map_test_fail
         cp      07Ch
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,5
         call    p127_map_encode_page
-        jr      c,p127_map_test_fail
+        jp      c,p127_map_test_fail
         cp      07Ah
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,7
         call    p127_map_encode_page
-        jr      c,p127_map_test_fail
+        jp      c,p127_map_test_fail
         cp      078h
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,63
         call    p127_map_encode_page
-        jr      c,p127_map_test_fail
+        jp      c,p127_map_test_fail
         cp      040h
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,64
         call    p127_map_encode_page
-        jr      nc,p127_map_test_fail
+        jp      nc,p127_map_test_fail
 
         ld      a,0
         call    p127_map_window_port
-        jr      c,p127_map_test_fail
+        jp      c,p127_map_test_fail
         ld      de,03FF7h
         or      a
         sbc     hl,de
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,1
         call    p127_map_window_port
-        jr      c,p127_map_test_fail
+        jp      c,p127_map_test_fail
         ld      de,07FF7h
         or      a
         sbc     hl,de
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,2
         call    p127_map_window_port
-        jr      c,p127_map_test_fail
+        jp      c,p127_map_test_fail
         ld      de,0BFF7h
         or      a
         sbc     hl,de
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,3
         call    p127_map_window_port
-        jr      c,p127_map_test_fail
+        jp      c,p127_map_test_fail
         ld      de,0FFF7h
         or      a
         sbc     hl,de
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,4
         call    p127_map_window_port
-        jr      nc,p127_map_test_fail
+        jp      nc,p127_map_test_fail
 
         call    p127_map_init
         ld      a,0
         call    p127_map_get_shadow
         cp      P127_MAP_ROM
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,1
         call    p127_map_get_shadow
         cp      5
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,2
         call    p127_map_get_shadow
         cp      2
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,3
         call    p127_map_get_shadow
         cp      0
-        jr      nz,p127_map_test_fail
+        jp      nz,p127_map_test_fail
         ld      a,4
         call    p127_map_get_shadow
-        jr      nc,p127_map_test_fail
+        jp      nc,p127_map_test_fail
         or      a
         ret
 

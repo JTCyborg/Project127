@@ -61,7 +61,7 @@ p127_start:
         ; Stage 2.4: pure software mapper model; hardware OUT remains disabled.
         call    p127_map_init
         call    p127_map_selftest
-        jr      c,p127_map_failed
+        jp      c,p127_map_failed
         ld      hl,p127_msg_map_pass
         call    p127_puts
         jr      p127_idle
