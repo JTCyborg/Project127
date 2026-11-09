@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.4**  
-Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; software mapper model and handoff guard v0.2.2 accepted by user runtime test; physical bank switching not yet enabled**  
+Scenario revision: **0.8.5**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model and handoff guard v0.2.2 accepted by user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -248,3 +248,14 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Boot module advanced to v0.5.3 and now reports `RESIDENT STACK PROBE PASS; OUT DISABLED` or `RESIDENT STACK PROBE FAIL`.
 - No physical `OUT`, remap, or stack-in-another-physical-page operation is introduced. A future remap trampoline still requires a separately reserved resident code page and a stack page that is independent of whichever window is targeted; the current all-protected bootstrap map is not eligible for remapping.
 - Build and emulator runtime verification are pending user confirmation.
+
+
+### 2026-11-09 — Runtime acceptance: resident stack handoff probe v0.1.0
+
+- User rebuilt and ran the Project127 image containing commit `5160e3b`.
+- The supplied #EF runtime log reached `[P127] RESIDENT STACK PROBE PASS; OUT DISABLED`, followed by `HANDOFF GUARD TEST PASS; OUT DISABLED` and `MAP MODEL TEST PASS; OUT DISABLED`.
+- Stage 2.6 resident stack probe v0.1.0 is accepted in the emulator. The reported pass confirms the probe's bounded scratch-stack exercise, nested CALL/PUSH/POP checks, sentinel/canary checks and return to the saved stack frame as implemented by the self-test.
+- This is a same-window stack-pointer transition: W2/P2 remains mapped. It does not prove a stack backed by an independent physical page, safe remapping of any window, physical page-port writes, interrupt-mode/IFF restoration, or rollback after a bank change.
+- The boot test is entered with interrupts disabled; the probe leaves them disabled and does not modify IM or interrupt vectors.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.5.
+- Next: define and reserve a genuinely independent resident execution/data/stack region, then validate interrupt-entry and return conventions. Keep physical page switching disabled until the trampoline, stack and rollback path are independent of the target window and have explicit runtime coverage.
