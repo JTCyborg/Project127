@@ -1,6 +1,6 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.13.0
+; Version: P127_ATM_HOST v0.14.0
 ; ATM handle pin/unpin reference counting.
 ; =========================================================================
 
@@ -53,6 +53,10 @@ p127_host_entry:
         call    P127_ATM_Video_SelfTest
         jp      c,p127_video_host_fail_handler
         ld      hl,p127_host_video_ok
+        call    p127_host_debug_string
+        call    P127_ATM_Video_BufferSelfTest
+        jp      c,p127_video_host_fail_handler
+        ld      hl,p127_host_video_buffers_ok
         call    p127_host_debug_string
         call    P127_DebugConsole_Init
         ld      a,1
@@ -230,7 +234,7 @@ p127_host_debug_string:
 
 p127_host_console_ready: db 0
 p127_host_banner:
-        db "[P127] ATM HOST ENTRY v0.13.0",13,10
+        db "[P127] ATM HOST ENTRY v0.14.0",13,10
         db "[P127] TR-DOS BOOT OK",13,10
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
 p127_host_range_ok:
