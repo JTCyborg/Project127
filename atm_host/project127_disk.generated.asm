@@ -30,6 +30,8 @@
         INCLUDE "atm_host/p127_screen_console.asm"
         ORG #A400
         INCLUDE "drivers/atm/atm_storage_nemo.asm"
+        ORG #A800
+        INCLUDE "drivers/atm/atm_fat16.asm"
         SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_storage_end-P127_HOST_LOAD_ADDRESS
 
         PAGE 0
