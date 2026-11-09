@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.31**  
+Scenario revision: **0.8.32**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -44,7 +44,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.1 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
-| `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract, exhaustive readiness-mask/prerequisite batch test, P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
+| `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract; 16-check exhaustive readiness-mask/prerequisite batch runtime accepted; P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
 | `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership and software rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel modules |
 ## Stage 1 — physical page-state manager 0.2.0
@@ -504,3 +504,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Therefore this batch deliberately tests only the software readiness/ownership contract. It does not synthesize an asynchronous interrupt, invent a vector byte, emulate an interrupt source, or claim acknowledgement/EOI behavior. No IM 1/IM 2, EI, I-register write, P4 physical mapping or page-port OUT is introduced.
 - Scenario revision 0.8.31. Build and emulator runtime verification are pending the user's single batch run; no successful assembly or runtime acceptance is claimed.
 - Next research gate: inspect the exact Unreal Speccy source/revision used by the user and trace its ATM INT assertion, vector-bus response and source-clear behavior. Only then can a real source/vector test be added.
+
+
+### 2026-11-09 — Stage 2.16 runtime acceptance: consolidated IRQ contract batch
+
+- User supplied the complete #EF startup log from the v0.5.0 IRQ batch. It reports `IRQ BATCH 16-CHECK PASS; SOURCE UNRESOLVED; IM/EI/OUT DISABLED`.
+- Stage 2.16 software-only batch is runtime accepted. The run also reports PASS for IRQ frame round-trip, IRQ table-slot preflight, IRQ mask/vector contract, resident trampoline/window, handoff guard and mapper model.
+- The batch validates the software readiness gate and rejection/restoration paths only. It does not establish an ATM interrupt source, vector-bus byte, acknowledge/EOI sequence, interrupt timing, asynchronous entry, or actual IM1/IM2 behavior.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.32.
+- Next: trace the exact Unreal Speccy revision used for Project127 and the ATM Turbo 2+ interrupt implementation in its source. Record the source assertion, vector response and clear/acknowledge behavior before adding any asynchronous IRQ test. Keep IM, EI and physical page-port OUT disabled.
+- Build is not independently verified in this environment; the user's runtime log confirms that the tested image executed the batch successfully.
