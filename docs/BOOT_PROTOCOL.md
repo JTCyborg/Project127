@@ -2,13 +2,13 @@
 
 The generated 640 KiB TR-DOS image contains two files:
 
-- `BOOT` — tokenized Spectrum BASIC loader.
+- `boot` — tokenized Spectrum BASIC loader.
 - `P127BOOT` — assembled Z80 host entry loaded at #6000.
 
 At the TR-DOS prompt, execute:
 
 ~~~text
-RUN "BOOT"
+RUN "boot"
 ~~~
 
 The BASIC program executes `CLEAR 24575`, loads `P127BOOT` as CODE at
