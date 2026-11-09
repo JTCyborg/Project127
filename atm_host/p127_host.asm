@@ -46,6 +46,10 @@ p127_host_entry:
         jp      c,p127_host_pin_fail
         ld      hl,p127_host_pin_ok
         call    p127_host_debug_string
+        call    p127_trdos_catalog_selftest
+        jp      c,p127_host_trdos_fail
+        ld      hl,p127_host_trdos_ok
+        call    p127_host_debug_string
         call    P127_DebugConsole_Init
         ld      a,1
         ld      (p127_host_console_ready),a
@@ -55,6 +59,17 @@ p127_host_entry:
 p127_host_handle_ops_fail:
         ld      d,a
         ld      hl,p127_host_handle_ops_error
+        call    p127_host_debug_string
+        ld      a,d
+        call    p127_host_debug_hex_byte
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
+        jp      p127_host_idle
+p127_host_trdos_fail:
+        ld      d,a
+        ld      hl,p127_host_trdos_error
         call    p127_host_debug_string
         ld      a,d
         call    p127_host_debug_hex_byte
@@ -225,6 +240,10 @@ p127_host_scatter_ok:
         db "[P127] ATM SCATTER HANDLE SELFTEST PASS",13,10,0
 p127_host_handle_ops_ok:
         db "[P127] ATM HANDLE OPS SELFTEST PASS",13,10,0
+p127_host_trdos_ok:
+        db "[P127] TR-DOS CATALOG CORE SELFTEST PASS",13,10,0
+p127_host_trdos_error:
+        db "[P127] TR-DOS CATALOG CORE SELFTEST FAIL STEP=0x",0
 p127_host_pin_ok:
         db "[P127] ATM HANDLE PIN/UNPIN SELFTEST PASS",13,10,0
 p127_host_pin_error:
@@ -255,7 +274,6 @@ p127_host_diag_capacity:
         db " CAPACITY=",0
 
         INCLUDE "drivers/atm/atm_memory_backend.asm"
-
 
 p127_host_program_end:
         ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
