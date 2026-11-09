@@ -380,7 +380,8 @@ atm_mem_ops_selftest::
         add     hl,de
         ld      (atm_mem_work_offset),hl
         ld      hl,(atm_mem_test_destination+2)
-        adc     hl,0
+        ld      de,0
+        adc     hl,de
         ld      (atm_mem_work_offset+2),hl
         call    atm_mem_map_work_offset
         jp      c,atm_mem_ops_test_fail_06
