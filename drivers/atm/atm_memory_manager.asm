@@ -188,7 +188,10 @@ atm_mem_alloc_mark:
         ld      a,(atm_mem_pages_needed)
         ld      (hl),a
         inc     hl
+        ; LDIR copies from HL to DE: preserve the caller's length in the
+        ; allocation record, not the other way around.
         ld      de,atm_mem_request_length
+        ex      de,hl
         ld      bc,4
         ldir
 
