@@ -1,13 +1,13 @@
 ; ============================================================================
 ; Project127 — resident-window contract / software preflight
-; Module version: 0.2.0
+; Module version: 0.3.0
 ; Defines the only first-stage remap candidate without touching hardware.
 ; W1/P5 owns resident execution+data; W2/P2 owns resident stack/control.
 ; W3 is the only candidate target and may be used only after UI quiescence.
 ; W0 is ROM. No OUT instruction is permitted here.
 ; ============================================================================
 P127_RESIDENT_VERSION_MAJOR EQU 0
-P127_RESIDENT_VERSION_MINOR EQU 2
+P127_RESIDENT_VERSION_MINOR EQU 3
 P127_RESIDENT_VERSION_PATCH EQU 0
 
 P127_RESIDENT_CODE_WINDOW  EQU 1
@@ -240,6 +240,101 @@ p127_w3_test_fail:
         scf
         ret
 
+; Save/restore the complete software W3 ownership tuple.
+; Snapshot and rollback are RAM-only; they never touch page registers.
+p127_w3_snapshot:
+        ld      a,(p127_w3_state)
+        ld      (p127_w3_saved_state),a
+        ld      a,(p127_w3_owner)
+        ld      (p127_w3_saved_owner),a
+        ld      a,(p127_w3_busy)
+        ld      (p127_w3_saved_busy),a
+        or      a
+        ret
+
+p127_w3_rollback:
+        ld      a,(p127_w3_saved_state)
+        ld      (p127_w3_state),a
+        ld      a,(p127_w3_saved_owner)
+        ld      (p127_w3_owner),a
+        ld      a,(p127_w3_saved_busy)
+        ld      (p127_w3_busy),a
+        or      a
+        ret
+
+; Recovery tests: reject a competing acquire, preserve a busy UI when
+; quiesce is refused, roll back a partial HANDOFF acquire, reject a
+; transition from HANDOFF, then resume and prove UI admission works again.
+p127_w3_recovery_selftest:
+        call    p127_w3_init
+
+        ; Acquisition from UI_ACTIVE/UI must fail without mutating state.
+        call    p127_w3_snapshot
+        call    p127_w3_handoff_acquire
+        jp      nc,p127_w3_recovery_fail
+        call    p127_w3_rollback
+        ld      a,(p127_w3_state)
+        cp      P127_W3_STATE_UI_ACTIVE
+        jp      nz,p127_w3_recovery_fail
+        ld      a,(p127_w3_owner)
+        cp      P127_W3_OWNER_UI
+        jp      nz,p127_w3_recovery_fail
+
+        ; A busy UI cannot quiesce; rollback must retain the active lease.
+        call    p127_w3_ui_enter
+        jp      c,p127_w3_recovery_fail
+        call    p127_w3_snapshot
+        call    p127_w3_quiesce
+        jp      nc,p127_w3_recovery_fail
+        call    p127_w3_rollback
+        ld      a,(p127_w3_state)
+        cp      P127_W3_STATE_UI_ACTIVE
+        jp      nz,p127_w3_recovery_fail
+        ld      a,(p127_w3_owner)
+        cp      P127_W3_OWNER_UI
+        jp      nz,p127_w3_recovery_fail
+        ld      a,(p127_w3_busy)
+        cp      1
+        jp      nz,p127_w3_recovery_fail
+        call    p127_w3_ui_leave
+
+        ; Quiesce, snapshot, acquire HANDOFF, reject an invalid transition,
+        ; then restore the complete pre-acquire state.
+        call    p127_w3_quiesce
+        jp      c,p127_w3_recovery_fail
+        call    p127_w3_snapshot
+        call    p127_w3_handoff_acquire
+        jp      c,p127_w3_recovery_fail
+        call    p127_w3_quiesce
+        jp      nc,p127_w3_recovery_fail
+        call    p127_w3_rollback
+        ld      a,(p127_w3_state)
+        cp      P127_W3_STATE_QUIESCED
+        jp      nz,p127_w3_recovery_fail
+        ld      a,(p127_w3_owner)
+        cp      P127_W3_OWNER_NONE
+        jp      nz,p127_w3_recovery_fail
+        ld      a,(p127_w3_busy)
+        or      a
+        jp      nz,p127_w3_recovery_fail
+
+        ; Recovery must leave the UI usable, not merely restore bytes.
+        call    p127_w3_resume
+        jp      c,p127_w3_recovery_fail
+        call    p127_w3_ui_enter
+        jp      c,p127_w3_recovery_fail
+        call    p127_w3_ui_leave
+        or      a
+        ret
+
+p127_w3_recovery_fail:
+        call    p127_w3_init
+        scf
+        ret
+
 p127_w3_state: db 0
 p127_w3_owner: db 0
 p127_w3_busy: db 0
+p127_w3_saved_state: db 0
+p127_w3_saved_owner: db 0
+p127_w3_saved_busy: db 0
