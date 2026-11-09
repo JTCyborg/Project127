@@ -77,11 +77,11 @@
  64+  608D CD 43 99             call    P127_RTC_Startup
  65+  6090 CD 00 A4             call    P127_Storage_Startup
  66+  6093 38 08                jr      c,p127_host_storage_unavailable
- 67+  6095 21 9B A7             ld      hl,p127_storage_log_ready
+ 67+  6095 21 9D A7             ld      hl,p127_storage_log_ready
  68+  6098 CD D9 61             call    p127_host_debug_string
  69+  609B 18 06                jr      p127_host_storage_done
  70+  609D              p127_host_storage_unavailable:
- 71+  609D 21 C5 A7             ld      hl,p127_storage_log_missing
+ 71+  609D 21 C7 A7             ld      hl,p127_storage_log_missing
  72+  60A0 CD D9 61             call    p127_host_debug_string
  73+  60A3              p127_host_storage_done:
  74+  60A3 21 BC 99             ld      hl,p127_host_ui_ready
@@ -5045,32 +5045,32 @@
  28+  A400
  29+  A400              P127_Storage_Startup:
  30+  A400 AF                   xor     a
- 31+  A401 32 91 A5             ld      (p127_storage_available),a
+ 31+  A401 32 93 A5             ld      (p127_storage_available),a
  32+  A404 3E E0                ld      a,#E0                 ; master, LBA mode
  33+  A406 01 D0 00             ld      bc,P127_NEMO_DRIVE_HEAD
  34+  A409 ED 79                out     (c),a
- 35+  A40B CD F6 A4             call    p127_storage_wait_ready
+ 35+  A40B CD F7 A4             call    p127_storage_wait_ready
  36+  A40E D8                   ret     c
  37+  A40F 3E EC                ld      a,#EC                 ; IDENTIFY DEVICE
  38+  A411 01 F0 00             ld      bc,P127_NEMO_STATUS_CMD
  39+  A414 ED 79                out     (c),a
- 40+  A416 CD 11 A5             call    p127_storage_wait_drq
+ 40+  A416 CD 13 A5             call    p127_storage_wait_drq
  41+  A419 D8                   ret     c
- 42+  A41A DD 21 9B A5          ld      ix,p127_storage_identify
- 43+  A41E CD 47 A5             call    p127_storage_read_256_words
+ 42+  A41A DD 21 9D A5          ld      ix,p127_storage_identify
+ 43+  A41E CD 49 A5             call    p127_storage_read_256_words
  44+  A421 D8                   ret     c
- 45+  A422 CD 2C A5             call    p127_storage_wait_complete
+ 45+  A422 CD 2E A5             call    p127_storage_wait_complete
  46+  A425 D8                   ret     c
  47+  A426
  48+  A426                      ; Word 49 bit 9 must advertise LBA support.
- 49+  A426 3A FE A5             ld      a,(p127_storage_identify+99)
+ 49+  A426 3A 00 A6             ld      a,(p127_storage_identify+99)
  50+  A429 CB 4F                bit     1,a
  51+  A42B 28 20                jr      z,p127_storage_no_lba
  52+  A42D                      ; LBA28 capacity is words 60..61 (little-endian).
- 53+  A42D 2A 13 A6             ld      hl,(p127_storage_identify+120)
- 54+  A430 ED 5B 15 A6          ld      de,(p127_storage_identify+122)
- 55+  A434 22 97 A5             ld      (p127_storage_capacity),hl
- 56+  A437 ED 53 99 A5          ld      (p127_storage_capacity+2),de
+ 53+  A42D 2A 15 A6             ld      hl,(p127_storage_identify+120)
+ 54+  A430 ED 5B 17 A6          ld      de,(p127_storage_identify+122)
+ 55+  A434 22 99 A5             ld      (p127_storage_capacity),hl
+ 56+  A437 ED 53 9B A5          ld      (p127_storage_capacity+2),de
  57+  A43B 7C                   ld      a,h
  58+  A43C B5                   or      l
  59+  A43D B2                   or      d
@@ -5081,7 +5081,7 @@
  64+  A442 E6 F0                and     #F0
  65+  A444 20 07                jr      nz,p127_storage_no_lba
  66+  A446 3E 01                ld      a,1
- 67+  A448 32 91 A5             ld      (p127_storage_available),a
+ 67+  A448 32 93 A5             ld      (p127_storage_available),a
  68+  A44B AF                   xor     a
  69+  A44C C9                   ret
  70+  A44D              p127_storage_no_lba:
@@ -5094,8 +5094,8 @@
  77+  A451 7A                   ld      a,d
  78+  A452 E6 F0                and     #F0
  79+  A454 20 09                jr      nz,p127_storage_bad_lba
- 80+  A456 22 93 A5             ld      (p127_storage_lba),hl
- 81+  A459 ED 53 95 A5          ld      (p127_storage_lba+2),de
+ 80+  A456 22 95 A5             ld      (p127_storage_lba),hl
+ 81+  A459 ED 53 97 A5          ld      (p127_storage_lba+2),de
  82+  A45D B7                   or      a
  83+  A45E C9                   ret
  84+  A45F              p127_storage_bad_lba:
@@ -5110,225 +5110,223 @@
  93+  A467              P127_Storage_WriteSector:
  94+  A467 3E 30                ld      a,#30
  95+  A469              p127_storage_rw_sector:
- 96+  A469 32 92 A5             ld      (p127_storage_command),a
- 97+  A46C CD AA A4             call    p127_storage_validate_request
+ 96+  A469 32 94 A5             ld      (p127_storage_command),a
+ 97+  A46C CD AB A4             call    p127_storage_validate_request
  98+  A46F D8                   ret     c
- 99+  A470 CD CC A4             call    p127_storage_program_lba
+ 99+  A470 CD CD A4             call    p127_storage_program_lba
 100+  A473 D8                   ret     c
-101+  A474 3A 92 A5             ld      a,(p127_storage_command)
+101+  A474 3A 94 A5             ld      a,(p127_storage_command)
 102+  A477 01 F0 00             ld      bc,P127_NEMO_STATUS_CMD
 103+  A47A ED 79                out     (c),a
-104+  A47C CD 11 A5             call    p127_storage_wait_drq
+104+  A47C CD 13 A5             call    p127_storage_wait_drq
 105+  A47F D8                   ret     c
-106+  A480 3A 92 A5             ld      a,(p127_storage_command)
+106+  A480 3A 94 A5             ld      a,(p127_storage_command)
 107+  A483 FE 20                cp      #20
 108+  A485 28 0A                jr      z,p127_storage_read_data
-109+  A487 CD 65 A5             call    p127_storage_write_256_words
+109+  A487 CD 67 A5             call    p127_storage_write_256_words
 110+  A48A 38 0D                jr      c,p127_storage_rw_done
-111+  A48C CD 2C A5             call    p127_storage_wait_complete
+111+  A48C CD 2E A5             call    p127_storage_wait_complete
 112+  A48F 18 08                jr      p127_storage_rw_done
 113+  A491              p127_storage_read_data:
-114+  A491 CD 47 A5             call    p127_storage_read_256_words
+114+  A491 CD 49 A5             call    p127_storage_read_256_words
 115+  A494 38 03                jr      c,p127_storage_rw_done
-116+  A496 CD 2C A5             call    p127_storage_wait_complete
+116+  A496 CD 2E A5             call    p127_storage_wait_complete
 117+  A499              p127_storage_rw_done:
 118+  A499 C9                   ret
 119+  A49A
 120+  A49A              P127_Storage_Flush:
-121+  A49A 3A 91 A5             ld      a,(p127_storage_available)
+121+  A49A 3A 93 A5             ld      a,(p127_storage_available)
 122+  A49D B7                   or      a
-atm_storage_nemo.asm(123): error: [JR] Target out of range (+229)
-123+  A49E 28 00                jr      z,p127_storage_not_ready
-124+  A4A0 3E E7                ld      a,#E7                 ; FLUSH CACHE
-125+  A4A2 01 F0 00             ld      bc,P127_NEMO_STATUS_CMD
-126+  A4A5 ED 79                out     (c),a
-127+  A4A7 C3 2C A5             jp      p127_storage_wait_complete
-128+  A4AA
-129+  A4AA              p127_storage_validate_request:
-130+  A4AA 3A 91 A5             ld      a,(p127_storage_available)
-131+  A4AD B7                   or      a
-atm_storage_nemo.asm(132): error: [JR] Target out of range (+213)
-132+  A4AE 28 00                jr      z,p127_storage_not_ready
-133+  A4B0                      ; Unsigned 32-bit compare: high word first, then low word.
-134+  A4B0 2A 95 A5             ld      hl,(p127_storage_lba+2)
-135+  A4B3 ED 5B 99 A5          ld      de,(p127_storage_capacity+2)
-136+  A4B7 B7                   or      a
-137+  A4B8 ED 52                sbc     hl,de
-138+  A4BA 38 0E                jr      c,p127_storage_lba_valid
-139+  A4BC 20 A1                jr      nz,p127_storage_bad_lba
-140+  A4BE 2A 93 A5             ld      hl,(p127_storage_lba)
-141+  A4C1 ED 5B 97 A5          ld      de,(p127_storage_capacity)
-142+  A4C5 B7                   or      a
-143+  A4C6 ED 52                sbc     hl,de
-144+  A4C8 30 95                jr      nc,p127_storage_bad_lba
-145+  A4CA              p127_storage_lba_valid:
-146+  A4CA B7                   or      a
-147+  A4CB C9                   ret
-148+  A4CC
-149+  A4CC              p127_storage_program_lba:
-150+  A4CC 3E 01                ld      a,1
-151+  A4CE 01 50 00             ld      bc,P127_NEMO_SECTOR_COUNT
-152+  A4D1 ED 79                out     (c),a
-153+  A4D3 2A 93 A5             ld      hl,(p127_storage_lba)
-154+  A4D6 7D                   ld      a,l
-155+  A4D7 01 70 00             ld      bc,P127_NEMO_LBA_LOW
-156+  A4DA ED 79                out     (c),a
-157+  A4DC 7C                   ld      a,h
-158+  A4DD 01 90 00             ld      bc,P127_NEMO_LBA_MID
-159+  A4E0 ED 79                out     (c),a
-160+  A4E2 2A 95 A5             ld      hl,(p127_storage_lba+2)
-161+  A4E5 7D                   ld      a,l
-162+  A4E6 01 B0 00             ld      bc,P127_NEMO_LBA_HIGH
-163+  A4E9 ED 79                out     (c),a
-164+  A4EB 7C                   ld      a,h
-165+  A4EC E6 0F                and     #0F
-166+  A4EE F6 E0                or      #E0
-167+  A4F0 01 D0 00             ld      bc,P127_NEMO_DRIVE_HEAD
-168+  A4F3 ED 79                out     (c),a
-169+  A4F5 C9                   ret
-170+  A4F6
-171+  A4F6              p127_storage_wait_ready:
-172+  A4F6 11 FF FF             ld      de,P127_NEMO_WAIT_LIMIT
-173+  A4F9              .ready:
-174+  A4F9 01 F0 00             ld      bc,P127_NEMO_STATUS_CMD
-175+  A4FC ED 78                in      a,(c)
-176+  A4FE CB 7F                bit     7,a
-177+  A500 20 08                jr      nz,.tick
-178+  A502 CB 47                bit     0,a
-atm_storage_nemo.asm(179): error: [JR] Target out of range (+131)
-179+  A504 20 00                jr      nz,p127_storage_ata_error
-180+  A506 CB 77                bit     6,a
-181+  A508 20 79                jr      nz,p127_storage_ok
-182+  A50A              .tick:
-183+  A50A 1B                   dec     de
-184+  A50B 7A                   ld      a,d
-185+  A50C B3                   or      e
-186+  A50D 20 EA                jr      nz,.ready
-187+  A50F 18 7C                jr      p127_storage_timeout
-188+  A511
-189+  A511              p127_storage_wait_drq:
-190+  A511 11 FF FF             ld      de,P127_NEMO_WAIT_LIMIT
-191+  A514              .drq:
-192+  A514 01 F0 00             ld      bc,P127_NEMO_STATUS_CMD
-193+  A517 ED 78                in      a,(c)
-194+  A519 CB 7F                bit     7,a
-195+  A51B 20 08                jr      nz,.tick
-196+  A51D CB 47                bit     0,a
-197+  A51F 20 68                jr      nz,p127_storage_ata_error
-198+  A521 CB 5F                bit     3,a
-199+  A523 20 5E                jr      nz,p127_storage_ok
-200+  A525              .tick:
-201+  A525 1B                   dec     de
-202+  A526 7A                   ld      a,d
-203+  A527 B3                   or      e
-204+  A528 20 EA                jr      nz,.drq
-205+  A52A 18 61                jr      p127_storage_timeout
-206+  A52C
-207+  A52C              p127_storage_wait_complete:
-208+  A52C 11 FF FF             ld      de,P127_NEMO_WAIT_LIMIT
-209+  A52F              .complete:
-210+  A52F 01 F0 00             ld      bc,P127_NEMO_STATUS_CMD
-211+  A532 ED 78                in      a,(c)
-212+  A534 CB 7F                bit     7,a
-213+  A536 20 08                jr      nz,.tick
-214+  A538 CB 47                bit     0,a
-215+  A53A 20 4D                jr      nz,p127_storage_ata_error
-216+  A53C CB 5F                bit     3,a
-217+  A53E 28 43                jr      z,p127_storage_ok
-218+  A540              .tick:
-219+  A540 1B                   dec     de
-220+  A541 7A                   ld      a,d
-221+  A542 B3                   or      e
-222+  A543 20 EA                jr      nz,.complete
-223+  A545 18 46                jr      p127_storage_timeout
-224+  A547
-225+  A547              p127_storage_read_256_words:
-226+  A547 11 00 01             ld      de,256
-227+  A54A              .read_word:
-228+  A54A 01 10 00             ld      bc,P127_NEMO_DATA_LO
-229+  A54D ED 78                in      a,(c)
-230+  A54F DD 77 00             ld      (ix+0),a
-231+  A552 DD 23                inc     ix
-232+  A554 01 11 00             ld      bc,P127_NEMO_DATA_HI
-233+  A557 ED 78                in      a,(c)
-234+  A559 DD 77 00             ld      (ix+0),a
-235+  A55C DD 23                inc     ix
-236+  A55E 1B                   dec     de
-237+  A55F 7A                   ld      a,d
-238+  A560 B3                   or      e
-239+  A561 20 E7                jr      nz,.read_word
-240+  A563 B7                   or      a
-241+  A564 C9                   ret
-242+  A565
-243+  A565              p127_storage_write_256_words:
-244+  A565 11 00 01             ld      de,256
-245+  A568              .write_word:
-246+  A568 DD 7E 00             ld      a,(ix+0)
-247+  A56B 01 10 00             ld      bc,P127_NEMO_DATA_LO
-248+  A56E ED 79                out     (c),a
-249+  A570 DD 23                inc     ix
-250+  A572 DD 7E 00             ld      a,(ix+0)
-251+  A575 01 11 00             ld      bc,P127_NEMO_DATA_HI
-252+  A578 ED 79                out     (c),a
-253+  A57A DD 23                inc     ix
-254+  A57C 1B                   dec     de
-255+  A57D 7A                   ld      a,d
-256+  A57E B3                   or      e
-257+  A57F 20 E7                jr      nz,.write_word
-258+  A581 B7                   or      a
-259+  A582 C9                   ret
-260+  A583
-261+  A583              p127_storage_ok:
-262+  A583 AF                   xor     a
-263+  A584 C9                   ret
-264+  A585              p127_storage_not_ready:
-265+  A585 3E 01                ld      a,1
-266+  A587 37                   scf
-267+  A588 C9                   ret
-268+  A589              p127_storage_ata_error:
-269+  A589 3E 02                ld      a,2
-270+  A58B 37                   scf
-271+  A58C C9                   ret
-272+  A58D              p127_storage_timeout:
-273+  A58D 3E 03                ld      a,3
-274+  A58F 37                   scf
-275+  A590 C9                   ret
-276+  A591
-277+  A591 00           p127_storage_available: db 0
-278+  A592 00           p127_storage_command:   db 0
-279+  A593 00 00 00 00  p127_storage_lba:       dd 0
-280+  A597 00 00 00 00  p127_storage_capacity:  dd 0
-281+  A59B 00 00 00...  p127_storage_identify:  defs 512,0
-282+  A79B              p127_storage_log_ready:
-283+  A79B 5B 50 31 32          db "[P127] HDD NEMO IDE LBA28 IDENTIFY PASS",13,10,0
-283+  A79F 37 5D 20 48
-283+  A7A3 44 44 20 4E
-283+  A7A7 45 4D 4F 20
-283+  A7AB 49 44 45 20
-283+  A7AF 4C 42 41 32
-283+  A7B3 38 20 49 44
-283+  A7B7 45 4E 54 49
-283+  A7BB 46 59 20 50
-283+  A7BF 41 53 53 0D
-283+  A7C3 0A 00
-284+  A7C5              p127_storage_log_missing:
-285+  A7C5 5B 50 31 32          db "[P127] HDD NEMO IDE NOT AVAILABLE",13,10,0
-285+  A7C9 37 5D 20 48
-285+  A7CD 44 44 20 4E
-285+  A7D1 45 4D 4F 20
-285+  A7D5 49 44 45 20
-285+  A7D9 4E 4F 54 20
-285+  A7DD 41 56 41 49
-285+  A7E1 4C 41 42 4C
-285+  A7E5 45 0D 0A 00
-286+  A7E9              p127_storage_end:
-287+  A7E9                      ASSERT p127_storage_end <= #C000
-288+  A7E9
+123+  A49E CA 87 A5             jp      z,p127_storage_not_ready
+124+  A4A1 3E E7                ld      a,#E7                 ; FLUSH CACHE
+125+  A4A3 01 F0 00             ld      bc,P127_NEMO_STATUS_CMD
+126+  A4A6 ED 79                out     (c),a
+127+  A4A8 C3 2E A5             jp      p127_storage_wait_complete
+128+  A4AB
+129+  A4AB              p127_storage_validate_request:
+130+  A4AB 3A 93 A5             ld      a,(p127_storage_available)
+131+  A4AE B7                   or      a
+atm_storage_nemo.asm(132): error: [JR] Target out of range (+214)
+132+  A4AF 28 00                jr      z,p127_storage_not_ready
+133+  A4B1                      ; Unsigned 32-bit compare: high word first, then low word.
+134+  A4B1 2A 97 A5             ld      hl,(p127_storage_lba+2)
+135+  A4B4 ED 5B 9B A5          ld      de,(p127_storage_capacity+2)
+136+  A4B8 B7                   or      a
+137+  A4B9 ED 52                sbc     hl,de
+138+  A4BB 38 0E                jr      c,p127_storage_lba_valid
+139+  A4BD 20 A0                jr      nz,p127_storage_bad_lba
+140+  A4BF 2A 95 A5             ld      hl,(p127_storage_lba)
+141+  A4C2 ED 5B 99 A5          ld      de,(p127_storage_capacity)
+142+  A4C6 B7                   or      a
+143+  A4C7 ED 52                sbc     hl,de
+144+  A4C9 30 94                jr      nc,p127_storage_bad_lba
+145+  A4CB              p127_storage_lba_valid:
+146+  A4CB B7                   or      a
+147+  A4CC C9                   ret
+148+  A4CD
+149+  A4CD              p127_storage_program_lba:
+150+  A4CD 3E 01                ld      a,1
+151+  A4CF 01 50 00             ld      bc,P127_NEMO_SECTOR_COUNT
+152+  A4D2 ED 79                out     (c),a
+153+  A4D4 2A 95 A5             ld      hl,(p127_storage_lba)
+154+  A4D7 7D                   ld      a,l
+155+  A4D8 01 70 00             ld      bc,P127_NEMO_LBA_LOW
+156+  A4DB ED 79                out     (c),a
+157+  A4DD 7C                   ld      a,h
+158+  A4DE 01 90 00             ld      bc,P127_NEMO_LBA_MID
+159+  A4E1 ED 79                out     (c),a
+160+  A4E3 2A 97 A5             ld      hl,(p127_storage_lba+2)
+161+  A4E6 7D                   ld      a,l
+162+  A4E7 01 B0 00             ld      bc,P127_NEMO_LBA_HIGH
+163+  A4EA ED 79                out     (c),a
+164+  A4EC 7C                   ld      a,h
+165+  A4ED E6 0F                and     #0F
+166+  A4EF F6 E0                or      #E0
+167+  A4F1 01 D0 00             ld      bc,P127_NEMO_DRIVE_HEAD
+168+  A4F4 ED 79                out     (c),a
+169+  A4F6 C9                   ret
+170+  A4F7
+171+  A4F7              p127_storage_wait_ready:
+172+  A4F7 11 FF FF             ld      de,P127_NEMO_WAIT_LIMIT
+173+  A4FA              .ready:
+174+  A4FA 01 F0 00             ld      bc,P127_NEMO_STATUS_CMD
+175+  A4FD ED 78                in      a,(c)
+176+  A4FF CB 7F                bit     7,a
+177+  A501 20 09                jr      nz,.tick
+178+  A503 CB 47                bit     0,a
+179+  A505 C2 8B A5             jp      nz,p127_storage_ata_error
+180+  A508 CB 77                bit     6,a
+181+  A50A 20 79                jr      nz,p127_storage_ok
+182+  A50C              .tick:
+183+  A50C 1B                   dec     de
+184+  A50D 7A                   ld      a,d
+185+  A50E B3                   or      e
+186+  A50F 20 E9                jr      nz,.ready
+187+  A511 18 7C                jr      p127_storage_timeout
+188+  A513
+189+  A513              p127_storage_wait_drq:
+190+  A513 11 FF FF             ld      de,P127_NEMO_WAIT_LIMIT
+191+  A516              .drq:
+192+  A516 01 F0 00             ld      bc,P127_NEMO_STATUS_CMD
+193+  A519 ED 78                in      a,(c)
+194+  A51B CB 7F                bit     7,a
+195+  A51D 20 08                jr      nz,.tick
+196+  A51F CB 47                bit     0,a
+197+  A521 20 68                jr      nz,p127_storage_ata_error
+198+  A523 CB 5F                bit     3,a
+199+  A525 20 5E                jr      nz,p127_storage_ok
+200+  A527              .tick:
+201+  A527 1B                   dec     de
+202+  A528 7A                   ld      a,d
+203+  A529 B3                   or      e
+204+  A52A 20 EA                jr      nz,.drq
+205+  A52C 18 61                jr      p127_storage_timeout
+206+  A52E
+207+  A52E              p127_storage_wait_complete:
+208+  A52E 11 FF FF             ld      de,P127_NEMO_WAIT_LIMIT
+209+  A531              .complete:
+210+  A531 01 F0 00             ld      bc,P127_NEMO_STATUS_CMD
+211+  A534 ED 78                in      a,(c)
+212+  A536 CB 7F                bit     7,a
+213+  A538 20 08                jr      nz,.tick
+214+  A53A CB 47                bit     0,a
+215+  A53C 20 4D                jr      nz,p127_storage_ata_error
+216+  A53E CB 5F                bit     3,a
+217+  A540 28 43                jr      z,p127_storage_ok
+218+  A542              .tick:
+219+  A542 1B                   dec     de
+220+  A543 7A                   ld      a,d
+221+  A544 B3                   or      e
+222+  A545 20 EA                jr      nz,.complete
+223+  A547 18 46                jr      p127_storage_timeout
+224+  A549
+225+  A549              p127_storage_read_256_words:
+226+  A549 11 00 01             ld      de,256
+227+  A54C              .read_word:
+228+  A54C 01 10 00             ld      bc,P127_NEMO_DATA_LO
+229+  A54F ED 78                in      a,(c)
+230+  A551 DD 77 00             ld      (ix+0),a
+231+  A554 DD 23                inc     ix
+232+  A556 01 11 00             ld      bc,P127_NEMO_DATA_HI
+233+  A559 ED 78                in      a,(c)
+234+  A55B DD 77 00             ld      (ix+0),a
+235+  A55E DD 23                inc     ix
+236+  A560 1B                   dec     de
+237+  A561 7A                   ld      a,d
+238+  A562 B3                   or      e
+239+  A563 20 E7                jr      nz,.read_word
+240+  A565 B7                   or      a
+241+  A566 C9                   ret
+242+  A567
+243+  A567              p127_storage_write_256_words:
+244+  A567 11 00 01             ld      de,256
+245+  A56A              .write_word:
+246+  A56A DD 7E 00             ld      a,(ix+0)
+247+  A56D 01 10 00             ld      bc,P127_NEMO_DATA_LO
+248+  A570 ED 79                out     (c),a
+249+  A572 DD 23                inc     ix
+250+  A574 DD 7E 00             ld      a,(ix+0)
+251+  A577 01 11 00             ld      bc,P127_NEMO_DATA_HI
+252+  A57A ED 79                out     (c),a
+253+  A57C DD 23                inc     ix
+254+  A57E 1B                   dec     de
+255+  A57F 7A                   ld      a,d
+256+  A580 B3                   or      e
+257+  A581 20 E7                jr      nz,.write_word
+258+  A583 B7                   or      a
+259+  A584 C9                   ret
+260+  A585
+261+  A585              p127_storage_ok:
+262+  A585 AF                   xor     a
+263+  A586 C9                   ret
+264+  A587              p127_storage_not_ready:
+265+  A587 3E 01                ld      a,1
+266+  A589 37                   scf
+267+  A58A C9                   ret
+268+  A58B              p127_storage_ata_error:
+269+  A58B 3E 02                ld      a,2
+270+  A58D 37                   scf
+271+  A58E C9                   ret
+272+  A58F              p127_storage_timeout:
+273+  A58F 3E 03                ld      a,3
+274+  A591 37                   scf
+275+  A592 C9                   ret
+276+  A593
+277+  A593 00           p127_storage_available: db 0
+278+  A594 00           p127_storage_command:   db 0
+279+  A595 00 00 00 00  p127_storage_lba:       dd 0
+280+  A599 00 00 00 00  p127_storage_capacity:  dd 0
+281+  A59D 00 00 00...  p127_storage_identify:  defs 512,0
+282+  A79D              p127_storage_log_ready:
+283+  A79D 5B 50 31 32          db "[P127] HDD NEMO IDE LBA28 IDENTIFY PASS",13,10,0
+283+  A7A1 37 5D 20 48
+283+  A7A5 44 44 20 4E
+283+  A7A9 45 4D 4F 20
+283+  A7AD 49 44 45 20
+283+  A7B1 4C 42 41 32
+283+  A7B5 38 20 49 44
+283+  A7B9 45 4E 54 49
+283+  A7BD 46 59 20 50
+283+  A7C1 41 53 53 0D
+283+  A7C5 0A 00
+284+  A7C7              p127_storage_log_missing:
+285+  A7C7 5B 50 31 32          db "[P127] HDD NEMO IDE NOT AVAILABLE",13,10,0
+285+  A7CB 37 5D 20 48
+285+  A7CF 44 44 20 4E
+285+  A7D3 45 4D 4F 20
+285+  A7D7 49 44 45 20
+285+  A7DB 4E 4F 54 20
+285+  A7DF 41 56 41 49
+285+  A7E3 4C 41 42 4C
+285+  A7E7 45 0D 0A 00
+286+  A7EB              p127_storage_end:
+287+  A7EB                      ASSERT p127_storage_end <= #C000
+288+  A7EB
 # file closed: atm_storage_nemo.asm
- 33   A7E9                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_storage_end-P127_HOST_LOAD_ADDRESS
- 34   A7E9
- 35   A7E9                      PAGE 0
- 36   A7E9                      ORG #E000
+ 33   A7EB                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_storage_end-P127_HOST_LOAD_ADDRESS
+ 34   A7EB
+ 35   A7EB                      PAGE 0
+ 36   A7EB                      ORG #E000
  37   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
 # file opened: boot_loader.generated.asm
   1+  E000              ; =========================================================================
@@ -5936,44 +5934,44 @@ Value    Label
 0x98EF   P127_RTC_ValidateTime
 0x0100 X P127_RTC_VERSION
 0x9A72   P127_RTC_WaitUIP
-0xA589   p127_storage_ata_error
-0xA591   p127_storage_available
+0xA58B   p127_storage_ata_error
+0xA593   p127_storage_available
 0xA45F   p127_storage_bad_lba
-0xA597   p127_storage_capacity
-0xA592   p127_storage_command
-0xA7E9   p127_storage_end
+0xA599   p127_storage_capacity
+0xA594   p127_storage_command
+0xA7EB   p127_storage_end
 0xA49A X P127_Storage_Flush
-0xA59B   p127_storage_identify
-0xA593   p127_storage_lba
-0xA4CA   p127_storage_lba_valid
-0xA7C5   p127_storage_log_missing
-0xA79B   p127_storage_log_ready
+0xA59D   p127_storage_identify
+0xA595   p127_storage_lba
+0xA4CB   p127_storage_lba_valid
+0xA7C7   p127_storage_log_missing
+0xA79D   p127_storage_log_ready
 0xA44D   p127_storage_no_lba
-0xA585   p127_storage_not_ready
-0xA583   p127_storage_ok
-0xA4CC   p127_storage_program_lba
-0xA547   p127_storage_read_256_words
-0xA54A   p127_storage_read_256_words.read_word
+0xA587   p127_storage_not_ready
+0xA585   p127_storage_ok
+0xA4CD   p127_storage_program_lba
+0xA549   p127_storage_read_256_words
+0xA54C   p127_storage_read_256_words.read_word
 0xA491   p127_storage_read_data
 0xA463 X P127_Storage_ReadSector
 0xA499   p127_storage_rw_done
 0xA469   p127_storage_rw_sector
 0xA451 X P127_Storage_SetLBA
 0xA400   P127_Storage_Startup
-0xA58D   p127_storage_timeout
-0xA4AA   p127_storage_validate_request
+0xA58F   p127_storage_timeout
+0xA4AB   p127_storage_validate_request
 0x0100 X P127_STORAGE_VERSION
-0xA52C   p127_storage_wait_complete
-0xA52F   p127_storage_wait_complete.complete
-0xA540   p127_storage_wait_complete.tick
-0xA511   p127_storage_wait_drq
-0xA514   p127_storage_wait_drq.drq
-0xA525   p127_storage_wait_drq.tick
-0xA4F6   p127_storage_wait_ready
-0xA4F9   p127_storage_wait_ready.ready
-0xA50A   p127_storage_wait_ready.tick
-0xA565   p127_storage_write_256_words
-0xA568   p127_storage_write_256_words.write_word
+0xA52E   p127_storage_wait_complete
+0xA531   p127_storage_wait_complete.complete
+0xA542   p127_storage_wait_complete.tick
+0xA513   p127_storage_wait_drq
+0xA516   p127_storage_wait_drq.drq
+0xA527   p127_storage_wait_drq.tick
+0xA4F7   p127_storage_wait_ready
+0xA4FA   p127_storage_wait_ready.ready
+0xA50C   p127_storage_wait_ready.tick
+0xA567   p127_storage_write_256_words
+0xA56A   p127_storage_write_256_words.write_word
 0xA467 X P127_Storage_WriteSector
 0x8019   p127_trdos_catalog_bad_length
 0x8000   p127_trdos_catalog_begin
