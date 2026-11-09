@@ -8,7 +8,7 @@
 ;       video/kernel reservations are deliberately supplied by later map code.
 ; ============================================================================
 P127_MEM_VERSION_MAJOR EQU 0
-P127_MEM_VERSION_MINOR EQU 1
+P127_MEM_VERSION_MINOR EQU 2
 P127_MEM_VERSION_PATCH EQU 0
 P127_MEM_PAGE_COUNT    EQU 64
 P127_MEM_PAGE_SIZE     EQU 04000h
