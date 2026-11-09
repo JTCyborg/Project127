@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.6.5
+; Project127 — boot stage 0.6.6
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -110,6 +110,12 @@ p127_start:
         call    p127_irq_context_selftest
         jp      c,p127_irq_failed
         ld      hl,p127_msg_irq_context_pass
+        call    p127_puts
+        ; Stage 2.16: one batch exhausts all readiness masks and rejection
+        ; paths. ATM source/vector/acknowledge behavior remains unresolved.
+        call    p127_irq_batch_selftest
+        jp      c,p127_irq_failed
+        ld      hl,p127_msg_irq_batch_pass
         call    p127_puts
         ld      hl,p127_msg_irq_page_pass
         call    p127_puts
@@ -267,6 +273,8 @@ p127_msg_w3_recovery_fail:
         db      "[P127] W3 ROLLBACK/RECOVERY FAIL",13,10,0
 p127_msg_irq_context_pass:
         db "[P127] IRQ FRAME ROUNDTRIP PASS; VECTOR DISABLED",13,10,0
+p127_msg_irq_batch_pass:
+        db "[P127] IRQ BATCH 16-CHECK PASS; SOURCE UNRESOLVED; IM/EI/OUT DISABLED",13,10,0
 p127_msg_irq_pass:
         db "[P127] IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED",13,10,0
 p127_msg_irq_fail:

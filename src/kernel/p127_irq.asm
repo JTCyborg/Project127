@@ -1,11 +1,11 @@
 ; ============================================================================
 ; Project127 — interrupt safety contract / preflight
-; Module version: 0.4.1
+; Module version: 0.5.0
 ; This is deliberately a DI-only bootstrap contract, not an IRQ dispatcher.
 ; No EI, IM instruction, vector write, or hardware page OUT is permitted.
 ; ============================================================================
 P127_IRQ_VERSION_MAJOR EQU 0
-P127_IRQ_VERSION_MINOR EQU 3
+P127_IRQ_VERSION_MINOR EQU 5
 P127_IRQ_VERSION_PATCH EQU 0
 P127_IRQ_MASKED EQU 1
 P127_IRQ_VECTOR_NONE EQU 0
@@ -108,6 +108,88 @@ p127_irq_gate_selftest:
         call    p127_irq_enable_preflight
         jp      c,p127_irq_test_fail
         call    p127_irq_init
+        call    p127_irq_enable_preflight
+        jp      nc,p127_irq_test_fail
+        or      a
+        ret
+
+; Stage 2.16 batch: exhaust the complete 3-bit readiness mask and all
+; prerequisite failure paths in one boot. This is a software contract test:
+; it does not model or claim an ATM interrupt source/vector/acknowledge cycle.
+; On success the real boot tuple is restored to DI + no owner + no mode.
+p127_irq_batch_selftest:
+        call    p127_irq_init
+        call    p127_irq_validate
+        jp      c,p127_irq_test_fail
+
+        ; Exhaust all eight combinations of VECTOR/MAP/HANDLER readiness.
+        ; A nonzero synthetic owner/mode is supplied only for this gate test.
+        ld      a,1
+        ld      (p127_irq_vector_owner),a
+        ld      (p127_irq_mode_policy),a
+        ld      b,0
+p127_irq_batch_mask_loop:
+        ld      a,b
+        ld      (p127_irq_ready_flags),a
+        call    p127_irq_enable_preflight
+        jp      nc,p127_irq_batch_mask_open
+        ld      a,b
+        cp      P127_IRQ_READY_ALL
+        jp      z,p127_irq_test_fail
+        jr      p127_irq_batch_mask_next
+p127_irq_batch_mask_open:
+        ld      a,b
+        cp      P127_IRQ_READY_ALL
+        jp      nz,p127_irq_test_fail
+p127_irq_batch_mask_next:
+        inc     b
+        ld      a,b
+        cp      8
+        jr      nz,p127_irq_batch_mask_loop
+
+        ; All readiness bits without vector ownership must remain closed.
+        ld      a,P127_IRQ_READY_ALL
+        ld      (p127_irq_ready_flags),a
+        xor     a
+        ld      (p127_irq_vector_owner),a
+        ld      a,1
+        ld      (p127_irq_mode_policy),a
+        call    p127_irq_enable_preflight
+        jp      nc,p127_irq_test_fail
+
+        ; All readiness bits without a selected policy must remain closed.
+        ld      a,1
+        ld      (p127_irq_vector_owner),a
+        xor     a
+        ld      (p127_irq_mode_policy),a
+        call    p127_irq_enable_preflight
+        jp      nc,p127_irq_test_fail
+
+        ; Contract validator must reject each forbidden boot-state mutation.
+        call    p127_irq_init
+        xor     a
+        ld      (p127_irq_mask_state),a
+        call    p127_irq_validate
+        jp      nc,p127_irq_test_fail
+
+        ld      a,P127_IRQ_MASKED
+        ld      (p127_irq_mask_state),a
+        ld      a,1
+        ld      (p127_irq_vector_owner),a
+        call    p127_irq_validate
+        jp      nc,p127_irq_test_fail
+
+        xor     a
+        ld      (p127_irq_vector_owner),a
+        ld      a,1
+        ld      (p127_irq_mode_policy),a
+        call    p127_irq_validate
+        jp      nc,p127_irq_test_fail
+
+        ; Restore and verify the actual safe boot state; gate remains closed.
+        call    p127_irq_init
+        call    p127_irq_validate
+        jp      c,p127_irq_test_fail
         call    p127_irq_enable_preflight
         jp      nc,p127_irq_test_fail
         or      a

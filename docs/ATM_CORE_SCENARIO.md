@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.30**  
+Scenario revision: **0.8.31**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -39,12 +39,12 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.6.5 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/boot/p127_boot.asm` | 0.6.6 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; reserves video P1/P3/P5/P7, bootstrap P0/P2 and future IRQ table P4 |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.1 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
-| `src/kernel/p127_irq.asm` | 0.4.1 | DI-only contract, closed readiness gate, P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
+| `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract, exhaustive readiness-mask/prerequisite batch test, P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
 | `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership and software rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel modules |
 ## Stage 1 — physical page-state manager 0.2.0
@@ -494,3 +494,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Stage 2.15 synthetic IRQ frame save/restore v0.4.1 is accepted at runtime: primary/alternate register-bank round-trip test and IFF2-disabled guard passed in the user's emulator run.
 - Acceptance is limited to the synchronous CALL-based frame test. It does not validate asynchronous interrupt entry, interrupt-source acknowledgement, vector-bus behavior, IM1/IM2, P4 physical mapping, or EI. Hardware IRQ remains disabled and physical mapper OUT remains disabled.
 - Scenario revision 0.8.30. No source module version change.
+
+
+### 2026-11-09 — Stage 2.16: consolidated IRQ contract batch v0.5.0
+
+- Advanced `src/kernel/p127_irq.asm` to v0.5.0 and `src/boot/p127_boot.asm` to v0.6.6. Boot now runs one consolidated IRQ batch after the existing register-frame round-trip test.
+- The batch performs 16 checks in one startup: initial safe-state validation; all eight combinations of the three readiness bits; rejection when vector ownership is absent; rejection when the mode policy is absent; rejection of an unmasked state, guessed vector ownership and guessed mode policy; then restoration and validation of the real DI/no-owner/no-mode boot tuple. It emits `IRQ BATCH 16-CHECK PASS; SOURCE UNRESOLVED; IM/EI/OUT DISABLED`.
+- Project112 `112/src/main.asm` was inspected: it explicitly enters DI during initialization and implements ATM video/keyboard handling, but provides no ATM Z80 IRQ source, vector-bus, acknowledge or EOI contract. It is not valid evidence for an IRQ vector or acknowledgement policy.
+- Therefore this batch deliberately tests only the software readiness/ownership contract. It does not synthesize an asynchronous interrupt, invent a vector byte, emulate an interrupt source, or claim acknowledgement/EOI behavior. No IM 1/IM 2, EI, I-register write, P4 physical mapping or page-port OUT is introduced.
+- Scenario revision 0.8.31. Build and emulator runtime verification are pending the user's single batch run; no successful assembly or runtime acceptance is claimed.
+- Next research gate: inspect the exact Unreal Speccy source/revision used by the user and trace its ATM INT assertion, vector-bus response and source-clear behavior. Only then can a real source/vector test be added.
