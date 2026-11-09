@@ -1,7 +1,7 @@
 ; ============================================================================
 ; Project127 ATM-native debug console, ported from Project126
 ; Source: Project126/atm_host/p126_screen_console.asm
-; Module version: 0.1.2
+; Module version: 0.1.3
 ; ATM Turbo 2+ RG6 80x25; upper 12 rows status, lower 13 rows scrolling log.
 ; Every displayed debug character and static UI label is mirrored to #EF.
 ; Resident placement: #A000, in the Project126 host display window.

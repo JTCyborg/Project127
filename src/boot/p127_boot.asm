@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.7.9
+; Project127 — boot stage 0.7.10
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -174,6 +174,13 @@ p127_start:
         call    p127_as_copy_selftest
         jp      c,p127_as_copy_failed
         ld      hl,p127_msg_as_copy_pass
+        call    p127_puts
+        ; Stage 7.1: read and dump the live TR-DOS directory via ROM #3D13.
+        call    p127_trdos_directory
+        jp      c,p127_trdos_failed
+        jp      p127_idle
+p127_trdos_failed:
+        ld      hl,p127_msg_trdos_failed
         call    p127_puts
         jp      p127_idle
 p127_as_copy_failed:
@@ -401,6 +408,8 @@ p127_msg_as_span_fail:
         db      "[P127] LOGICAL SPAN PREFLIGHT FAIL",13,10,0
 p127_msg_as_copy_pass:
         db      "[P127] LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED",13,10,0
+p127_msg_trdos_failed:
+        db      "[P127] TR-DOS DIRECTORY SERVICE FAILED",13,10,0
 p127_msg_as_copy_fail:
         db      "[P127] LOGICAL SPAN COPY TEST FAIL",13,10,0
 p127_msg_as_copy_phase:
@@ -474,6 +483,7 @@ p127_msg_trampoline_preflight_fail:
         INCLUDE "src/kernel/p127_as_copy.asm"
         INCLUDE "src/kernel/p127_map.asm"
         INCLUDE "src/kernel/p127_handoff.asm"
+        INCLUDE "src/kernel/p127_trdos.asm"
 
 p127_end:
         ASSERT  p127_entry = P127_LOAD_ADDRESS
