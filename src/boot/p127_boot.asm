@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.7.2
+; Project127 — boot stage 0.7.3
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -70,6 +70,8 @@ p127_start:
         call    p127_mem_selftest
         jp      c,p127_mem_failed
         ld      hl,p127_msg_mem_pass
+        call    p127_puts
+        ld      hl,p127_msg_mem_negative_pass
         call    p127_puts
 
         ; Stage 2.4: pure software mapper model; hardware OUT remains disabled.
@@ -298,6 +300,8 @@ p127_msg_mem_map_fail:
         db      "[P127] VIDEO RAM RESERVE FAIL", 13, 10, 0
 p127_msg_mem_pass:
         db      "[P127] MEM PAGE TEST PASS", 13, 10, 0
+p127_msg_mem_negative_pass:
+        db      "[P127] MEM NEGATIVE-PATH TEST PASS; DOUBLE-FREE/RANGE/RESERVE GUARDED",13,10,0
 p127_msg_mem_fail:
         db      "[P127] MEM PAGE TEST FAIL", 13, 10, 0
 p127_msg_map_txn_pass:

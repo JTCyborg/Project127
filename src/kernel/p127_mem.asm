@@ -1,6 +1,6 @@
 ; ============================================================================
 ; Project127 ATM Core — physical page-state manager
-; Module version: 0.4.1
+; Module version: 0.4.2
 ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
 ;      free A=page, C=invalid/not allocated.
 ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
@@ -10,7 +10,7 @@
 ; ============================================================================
 P127_MEM_VERSION_MAJOR EQU 0
 P127_MEM_VERSION_MINOR EQU 4
-P127_MEM_VERSION_PATCH EQU 1
+P127_MEM_VERSION_PATCH EQU 2
 P127_MEM_PAGE_COUNT    EQU 64
 P127_MEM_PAGE_SIZE     EQU 04000h
 P127_MEM_FREE          EQU 0
@@ -191,6 +191,39 @@ p127_mem_selftest:
         ld      a,(p127_mem_test_page)
         cp      b
         jr      nz,p127_mem_test_fail
+        ld      a,b
+        call    p127_mem_free
+        ret     c
+
+        ; Reject a second free of the same page (double-free protection).
+        ld      a,(p127_mem_test_page)
+        call    p127_mem_free
+        jp      nc,p127_mem_test_fail
+
+        ; Reject physical page ID 64, immediately beyond the 0..63 map.
+        ld      a,P127_MEM_PAGE_COUNT
+        call    p127_mem_free
+        jp      nc,p127_mem_test_fail
+
+        ; Existing video reservation must reject an overlapping reservation.
+        ld      a,1
+        ld      b,1
+        call    p127_mem_reserve
+        jp      nc,p127_mem_test_fail
+
+        ; A range extending beyond the final physical page must be rejected.
+        ld      a,63
+        ld      b,2
+        call    p127_mem_reserve
+        jp      nc,p127_mem_test_fail
+
+        ; Rejected operations must not consume or corrupt the released page.
+        call    p127_mem_alloc
+        jp      c,p127_mem_test_fail
+        ld      b,a
+        ld      a,(p127_mem_test_page)
+        cp      b
+        jp      nz,p127_mem_test_fail
         ld      a,b
         call    p127_mem_free
         ret

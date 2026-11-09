@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.48**  
+Scenario revision: **0.8.49**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -39,8 +39,8 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.7.1 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
-| `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; Stage 2.19 validates full allocator exhaustion/reuse and reserved-page invariants through physical-memory batch |
+| `src/boot/p127_boot.asm` | 0.7.3 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/kernel/p127_mem.asm` | 0.4.2 | Software page-state manager; full allocator sweep plus negative-path checks for double-free, invalid page ID, overlapping reserve and out-of-range reserve |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -673,3 +673,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Added a fixed-row probe at row 4: `VIDEO MAP: RG6 ALT P7/P3 ACTIVE`. It is emitted through the normal `BIOS_DebugConsole_PrintAt` path immediately after video reinitialization, before the page-ID replay. Existing fixed result rows 2 and 3 and the scrolling `W3 FILL` / `W3 VERIFY` replay remain.
 - The probe is a runtime visibility test, not a claimed pass: the user must rebuild and confirm the row appears on the ATM screen. If #EF contains the probe but the screen does not, the next diagnosis must compare the emulator's active display-bank fetch with the P7/P3 CPU mapping; do not add speculative writes to other pages.
 - No W0/W1/W2 general-purpose remapping, DMA, IM/EI enablement, or IRQ source changes. Build and emulator runtime verification have not been run here.
+
+
+### 2026-11-09 — Stage 2.24: allocator negative-path regression tests
+
+- Advanced `src/kernel/p127_mem.asm` to v0.4.2 and `src/boot/p127_boot.asm` to v0.7.3.
+- Extended the existing software allocator self-test with explicit rejection checks for: double-free of a page, page ID 64 (outside the 0..63 physical map), reservation overlapping an already reserved video page, and a reservation range extending beyond page 63.
+- After the rejected operations, the test allocates again and verifies first-fit returns the same released page, then frees it. This checks that invalid operations did not consume or corrupt allocator state.
+- Added a separate #EF/UI marker: `MEM NEGATIVE-PATH TEST PASS; DOUBLE-FREE/RANGE/RESERVE GUARDED`.
+- Scope is software page-state accounting only. No hardware page-port writes, W0/W1/W2 mapping, DMA, IRQ activation, IM or EI are added. Existing Stage 2.23 video reinitialization and screen replay remain unchanged.
+- Acceptance criteria: user build must pass; startup log must contain both `MEM PAGE TEST PASS` and the new negative-path marker. Build and emulator runtime verification have not been run in this environment.
