@@ -158,12 +158,16 @@ p127_video_map:
         ret
 
 p127_video_restore:
+        ; BC is caller-visible in ReadCell: B returns the attribute.
+        ; Preserve it while restoring the ATM page registers.
+        push bc
         ld a,P127_ATM_VIDEO_HOST_PAGE5
         ld bc,#7FF7
         out (c),a
         ld a,P127_ATM_VIDEO_HOST_PAGE0
         ld bc,#FFF7
         out (c),a
+        pop bc
         ret
 
 P127_ATM_Video_Clear::
