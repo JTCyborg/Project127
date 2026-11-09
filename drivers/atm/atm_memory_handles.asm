@@ -275,24 +275,21 @@ atm_mem_scatter_selftest::
         ld      a,(hl)
         or      b
         jp      z,atm_mem_scatter_test_fail
-        ld      hl,(atm_mem_scatter_test_first)
+        ld      hl,atm_mem_scatter_test_first
         ld      de,(atm_mem_scatter_test_vector)
-        ld      a,(de)
-        cp      l
-        jp      nz,atm_mem_scatter_test_offsets_distinct
         inc     de
-        ld      a,(de)
-        cp      h
-        jp      nz,atm_mem_scatter_test_offsets_distinct
-        ld      hl,(atm_mem_scatter_test_first+2)
         inc     de
-        ld      a,(de)
-        cp      l
-        jp      nz,atm_mem_scatter_test_offsets_distinct
         inc     de
+        inc     de
+        ld      b,4
+atm_mem_scatter_test_compare_offsets:
         ld      a,(de)
-        cp      h
-        jp      z,atm_mem_scatter_test_fail
+        cp      (hl)
+        jp      nz,atm_mem_scatter_test_offsets_distinct
+        inc     hl
+        inc     de
+        djnz    atm_mem_scatter_test_compare_offsets
+        jp      atm_mem_scatter_test_fail
 atm_mem_scatter_test_offsets_distinct:
         ld      a,(atm_mem_scatter_test_handle)
         call    atm_mem_scatter_free
