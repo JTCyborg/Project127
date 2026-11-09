@@ -259,8 +259,8 @@
   7++ 623A              ; atm_mem_validate_range: carry clear iff offset+length is in 1 MiB
   8++ 623A              ; atm_mem_range_selftest: carry clear iff all arithmetic boundary tests pass
   9++ 623A              ;
- 10++ 623A              ; ALLOC/FREE and fixed-window page mapping are implemented.
- 11++ 623A              ; Byte READ/WRITE/FILL/COPY and multi-extent handles remain future work.
+ 10++ 623A              ; ALLOC/FREE and UINT32 byte READ/WRITE/FILL/COPY are implemented.
+ 11++ 623A              ; Operations use a bytewise single-aperture engine; multi-extent handles remain future work.
  12++ 623A
  13++ 623A                      INCLUDE "drivers/shared/p127_memory_core.inc"
 # file opened: p127_memory_core.inc
@@ -520,7 +520,7 @@
 148++ 63DE              atm_mem_capabilities:
 149++ 63DE 50 31 32 37          db      "P127"
 150++ 63E2 01 00                db      P127_ABI_MAJOR,P127_ABI_MINOR
-151++ 63E4 07                   db      #07                 ; range + page-map + alloc/free
+151++ 63E4 0F                   db      #0F                 ; range + page-map + alloc/free + byte operations
 152++ 63E5 00                   db      0
 153++ 63E6 00 00 10 00          db      #00,#00,#10,#00
 154++ 63EA 00 80 0E 00          db      #00,#80,#0E,#00     ; 58 pages = 0x000E8000 bytes allocatable
@@ -1165,18 +1165,333 @@
 629+++6920 00 00 00...          defs 8,0
 630+++6928
 # file closed: atm_memory_manager.asm
-158++ 6928
+158++ 6928                      INCLUDE "drivers/atm/atm_memory_ops.asm"
+# file opened: atm_memory_ops.asm
+  1+++6928              ; =========================================================================
+  2+++6928              ; Project127 ATM byte-range operations.
+  3+++6928              ;
+  4+++6928              ; Safe single-aperture engine:
+  5+++6928              ;   - only CPU window 3 ($C000-$FFFF) is remapped;
+  6+++6928              ;   - host code remains in window 1, stack in window 2;
+  7+++6928              ;   - the byte scratch and descriptors live with the host image;
+  8+++6928              ;   - no caller-visible 16 KiB limit.
+  9+++6928              ;
+ 10+++6928              ; Public descriptors (UINT32 little-endian):
+ 11+++6928              ;   atm_mem_source_offset, atm_mem_destination_offset, atm_mem_op_length
+ 12+++6928              ; READ/WRITE use the same validated physical copy primitive.
+ 13+++6928              ; COPY is memmove-safe (backward when destination > source).
+ 14+++6928              ; FILL uses atm_mem_fill_value.
+ 15+++6928              ; Carry clear = complete operation; carry set = rejected request.
+ 16+++6928              ; =========================================================================
+ 17+++6928
+ 18+++6928              atm_mem_read:
+ 18+++6928
+ 19+++6928 C3 2E 69             jp      atm_mem_copy
+ 20+++692B
+ 21+++692B              atm_mem_write:
+ 21+++692B
+ 22+++692B C3 2E 69             jp      atm_mem_copy
+ 23+++692E
+ 24+++692E              ; COPY: source -> destination, with memmove overlap semantics.
+ 25+++692E              atm_mem_copy:
+ 25+++692E
+ 26+++692E CD 16 6A             call    atm_mem_validate_pair
+ 27+++6931 D8                   ret     c
+ 28+++6932 21 34 6B             ld      hl,atm_mem_source_offset
+ 29+++6935 11 40 6B             ld      de,atm_mem_source_cursor
+ 30+++6938 01 04 00             ld      bc,4
+ 31+++693B ED B0                ldir
+ 32+++693D 21 38 6B             ld      hl,atm_mem_destination_offset
+ 33+++6940 11 44 6B             ld      de,atm_mem_destination_cursor
+ 34+++6943 01 04 00             ld      bc,4
+ 35+++6946 ED B0                ldir
+ 36+++6948 21 3C 6B             ld      hl,atm_mem_op_length
+ 37+++694B 11 48 6B             ld      de,atm_mem_remaining
+ 38+++694E 01 04 00             ld      bc,4
+ 39+++6951 ED B0                ldir
+ 40+++6953 CD 69 6A             call    atm_mem_remaining_is_zero
+ 41+++6956 C8                   ret     z
+ 42+++6957 CD 49 6A             call    atm_mem_destination_after_source
+ 43+++695A D2 A8 69             jp      nc,atm_mem_copy_forward
+ 44+++695D
+ 45+++695D                      ; Backward copy: move both cursors to their last byte.
+ 46+++695D 2A 40 6B             ld      hl,(atm_mem_source_cursor)
+ 47+++6960 ED 5B 3C 6B          ld      de,(atm_mem_op_length)
+ 48+++6964 19                   add     hl,de
+ 49+++6965 22 40 6B             ld      (atm_mem_source_cursor),hl
+ 50+++6968 2A 42 6B             ld      hl,(atm_mem_source_cursor+2)
+ 51+++696B ED 5B 3E 6B          ld      de,(atm_mem_op_length+2)
+ 52+++696F ED 5A                adc     hl,de
+ 53+++6971 22 42 6B             ld      (atm_mem_source_cursor+2),hl
+ 54+++6974 CD F5 6A             call    atm_mem_source_dec
+ 55+++6977 2A 44 6B             ld      hl,(atm_mem_destination_cursor)
+ 56+++697A ED 5B 3C 6B          ld      de,(atm_mem_op_length)
+ 57+++697E 19                   add     hl,de
+ 58+++697F 22 44 6B             ld      (atm_mem_destination_cursor),hl
+ 59+++6982 2A 46 6B             ld      hl,(atm_mem_destination_cursor+2)
+ 60+++6985 ED 5B 3E 6B          ld      de,(atm_mem_op_length+2)
+ 61+++6989 ED 5A                adc     hl,de
+ 62+++698B 22 46 6B             ld      (atm_mem_destination_cursor+2),hl
+ 63+++698E CD 0A 6B             call    atm_mem_destination_dec
+ 64+++6991
+ 65+++6991              atm_mem_copy_backward_loop:
+ 66+++6991 CD 7C 6A             call    atm_mem_copy_one
+ 67+++6994 D8                   ret     c
+ 68+++6995 CD F5 6A             call    atm_mem_source_dec
+ 69+++6998 CD 0A 6B             call    atm_mem_destination_dec
+ 70+++699B CD 1F 6B             call    atm_mem_length_dec
+ 71+++699E CD 69 6A             call    atm_mem_remaining_is_zero
+ 72+++69A1 20 EE                jr      nz,atm_mem_copy_backward_loop
+ 73+++69A3 CD A4 6A             call    atm_mem_restore_window3
+ 74+++69A6 B7                   or      a
+ 75+++69A7 C9                   ret
+ 76+++69A8
+ 77+++69A8              atm_mem_copy_forward:
+ 78+++69A8              atm_mem_copy_forward_loop:
+ 79+++69A8 CD 7C 6A             call    atm_mem_copy_one
+ 80+++69AB D8                   ret     c
+ 81+++69AC CD D1 6A             call    atm_mem_source_inc
+ 82+++69AF CD E3 6A             call    atm_mem_destination_inc
+ 83+++69B2 CD 1F 6B             call    atm_mem_length_dec
+ 84+++69B5 CD 69 6A             call    atm_mem_remaining_is_zero
+ 85+++69B8 20 EE                jr      nz,atm_mem_copy_forward_loop
+ 86+++69BA CD A4 6A             call    atm_mem_restore_window3
+ 87+++69BD B7                   or      a
+ 88+++69BE C9                   ret
+ 89+++69BF
+ 90+++69BF              ; FILL: destination range is validated in full before the first write.
+ 91+++69BF              atm_mem_fill:
+ 91+++69BF
+ 92+++69BF 21 38 6B             ld      hl,atm_mem_destination_offset
+ 93+++69C2 11 86 67             ld      de,atm_mem_request_offset
+ 94+++69C5 01 04 00             ld      bc,4
+ 95+++69C8 ED B0                ldir
+ 96+++69CA 21 3C 6B             ld      hl,atm_mem_op_length
+ 97+++69CD 11 8A 67             ld      de,atm_mem_request_length
+ 98+++69D0 01 04 00             ld      bc,4
+ 99+++69D3 ED B0                ldir
+100+++69D5 CD 32 64             call    atm_mem_validate_request
+101+++69D8 D8                   ret     c
+102+++69D9 21 38 6B             ld      hl,atm_mem_destination_offset
+103+++69DC 11 44 6B             ld      de,atm_mem_destination_cursor
+104+++69DF 01 04 00             ld      bc,4
+105+++69E2 ED B0                ldir
+106+++69E4 21 3C 6B             ld      hl,atm_mem_op_length
+107+++69E7 11 48 6B             ld      de,atm_mem_remaining
+108+++69EA 01 04 00             ld      bc,4
+109+++69ED ED B0                ldir
+110+++69EF CD 69 6A             call    atm_mem_remaining_is_zero
+111+++69F2 C8                   ret     z
+112+++69F3              atm_mem_fill_loop:
+113+++69F3 21 44 6B             ld      hl,atm_mem_destination_cursor
+114+++69F6 11 4C 6B             ld      de,atm_mem_work_offset
+115+++69F9 01 04 00             ld      bc,4
+116+++69FC ED B0                ldir
+117+++69FE CD A9 6A             call    atm_mem_map_work_offset
+118+++6A01 D8                   ret     c
+119+++6A02 3A 50 6B             ld      a,(atm_mem_fill_value)
+120+++6A05 77                   ld      (hl),a
+121+++6A06 CD E3 6A             call    atm_mem_destination_inc
+122+++6A09 CD 1F 6B             call    atm_mem_length_dec
+123+++6A0C CD 69 6A             call    atm_mem_remaining_is_zero
+124+++6A0F 20 E2                jr      nz,atm_mem_fill_loop
+125+++6A11 CD A4 6A             call    atm_mem_restore_window3
+126+++6A14 B7                   or      a
+127+++6A15 C9                   ret
+128+++6A16
+129+++6A16              ; Validate both complete ranges before modifying either range.
+130+++6A16              atm_mem_validate_pair:
+131+++6A16 21 34 6B             ld      hl,atm_mem_source_offset
+132+++6A19 11 86 67             ld      de,atm_mem_request_offset
+133+++6A1C 01 04 00             ld      bc,4
+134+++6A1F ED B0                ldir
+135+++6A21 21 3C 6B             ld      hl,atm_mem_op_length
+136+++6A24 11 8A 67             ld      de,atm_mem_request_length
+137+++6A27 01 04 00             ld      bc,4
+138+++6A2A ED B0                ldir
+139+++6A2C CD 32 64             call    atm_mem_validate_request
+140+++6A2F D8                   ret     c
+141+++6A30 21 38 6B             ld      hl,atm_mem_destination_offset
+142+++6A33 11 86 67             ld      de,atm_mem_request_offset
+143+++6A36 01 04 00             ld      bc,4
+144+++6A39 ED B0                ldir
+145+++6A3B 21 3C 6B             ld      hl,atm_mem_op_length
+146+++6A3E 11 8A 67             ld      de,atm_mem_request_length
+147+++6A41 01 04 00             ld      bc,4
+148+++6A44 ED B0                ldir
+149+++6A46 C3 32 64             jp      atm_mem_validate_request
+150+++6A49
+151+++6A49              ; Carry clear if destination <= source; carry set if destination > source.
+152+++6A49              atm_mem_destination_after_source:
+153+++6A49 2A 46 6B             ld      hl,(atm_mem_destination_cursor+2)
+154+++6A4C ED 5B 36 6B          ld      de,(atm_mem_source_offset+2)
+155+++6A50 B7                   or      a
+156+++6A51 ED 52                sbc     hl,de
+157+++6A53 38 12                jr      c,atm_mem_destination_not_after
+158+++6A55 20 0E                jr      nz,atm_mem_destination_is_after
+159+++6A57 2A 44 6B             ld      hl,(atm_mem_destination_cursor)
+160+++6A5A ED 5B 34 6B          ld      de,(atm_mem_source_offset)
+161+++6A5E B7                   or      a
+162+++6A5F ED 52                sbc     hl,de
+163+++6A61 38 04                jr      c,atm_mem_destination_not_after
+164+++6A63 28 02                jr      z,atm_mem_destination_not_after
+165+++6A65              atm_mem_destination_is_after:
+166+++6A65 37                   scf
+167+++6A66 C9                   ret
+168+++6A67              atm_mem_destination_not_after:
+169+++6A67 B7                   or      a
+170+++6A68 C9                   ret
+171+++6A69
+172+++6A69              ; Z iff all four bytes of operation length are zero.
+173+++6A69              atm_mem_remaining_is_zero:
+174+++6A69 3A 48 6B             ld      a,(atm_mem_remaining)
+175+++6A6C 47                   ld      b,a
+176+++6A6D 3A 49 6B             ld      a,(atm_mem_remaining+1)
+177+++6A70 B0                   or      b
+178+++6A71 47                   ld      b,a
+179+++6A72 3A 4A 6B             ld      a,(atm_mem_remaining+2)
+180+++6A75 B0                   or      b
+181+++6A76 47                   ld      b,a
+182+++6A77 3A 4B 6B             ld      a,(atm_mem_remaining+3)
+183+++6A7A B0                   or      b
+184+++6A7B C9                   ret
+185+++6A7C
+186+++6A7C              ; Copy one byte through the only aperture that this runtime owns.
+187+++6A7C              atm_mem_copy_one:
+188+++6A7C 21 40 6B             ld      hl,atm_mem_source_cursor
+189+++6A7F 11 4C 6B             ld      de,atm_mem_work_offset
+190+++6A82 01 04 00             ld      bc,4
+191+++6A85 ED B0                ldir
+192+++6A87 CD A9 6A             call    atm_mem_map_work_offset
+193+++6A8A D8                   ret     c
+194+++6A8B 7E                   ld      a,(hl)
+195+++6A8C 32 51 6B             ld      (atm_mem_copy_byte),a
+196+++6A8F 21 44 6B             ld      hl,atm_mem_destination_cursor
+197+++6A92 11 4C 6B             ld      de,atm_mem_work_offset
+198+++6A95 01 04 00             ld      bc,4
+199+++6A98 ED B0                ldir
+200+++6A9A CD A9 6A             call    atm_mem_map_work_offset
+201+++6A9D D8                   ret     c
+202+++6A9E 3A 51 6B             ld      a,(atm_mem_copy_byte)
+203+++6AA1 77                   ld      (hl),a
+204+++6AA2 B7                   or      a
+205+++6AA3 C9                   ret
+206+++6AA4
+207+++6AA4              ; Restore the Project112 runtime mapping: CPU window 3 -> physical page 1.
+208+++6AA4              atm_mem_restore_window3:
+209+++6AA4 3E 01                ld      a,1
+210+++6AA6 C3 1F 64             jp      atm_mem_map_page
+211+++6AA9
+212+++6AA9              ; Map atm_mem_work_offset into window 3 and return its CPU address in HL.
+213+++6AA9              ; Physical page = (offset >> 14); in-range validation guarantees 0..63.
+214+++6AA9              atm_mem_map_work_offset:
+215+++6AA9 3A 4E 6B             ld      a,(atm_mem_work_offset+2)
+216+++6AAC 87                   add     a,a
+217+++6AAD 87                   add     a,a
+218+++6AAE 47                   ld      b,a
+219+++6AAF 3A 4D 6B             ld      a,(atm_mem_work_offset+1)
+220+++6AB2 CB 3F                srl     a
+221+++6AB4 CB 3F                srl     a
+222+++6AB6 CB 3F                srl     a
+223+++6AB8 CB 3F                srl     a
+224+++6ABA CB 3F                srl     a
+225+++6ABC CB 3F                srl     a
+226+++6ABE B0                   or      b
+227+++6ABF CD 1F 64             call    atm_mem_map_page
+228+++6AC2 D8                   ret     c
+229+++6AC3 3A 4D 6B             ld      a,(atm_mem_work_offset+1)
+230+++6AC6 E6 3F                and     #3F
+231+++6AC8 F6 C0                or      #C0
+232+++6ACA 67                   ld      h,a
+233+++6ACB 3A 4C 6B             ld      a,(atm_mem_work_offset)
+234+++6ACE 6F                   ld      l,a
+235+++6ACF B7                   or      a
+236+++6AD0 C9                   ret
+237+++6AD1
+238+++6AD1              atm_mem_source_inc:
+239+++6AD1 2A 40 6B             ld      hl,(atm_mem_source_cursor)
+240+++6AD4 23                   inc     hl
+241+++6AD5 22 40 6B             ld      (atm_mem_source_cursor),hl
+242+++6AD8 7C                   ld      a,h
+243+++6AD9 B5                   or      l
+244+++6ADA C0                   ret     nz
+245+++6ADB 2A 42 6B             ld      hl,(atm_mem_source_cursor+2)
+246+++6ADE 23                   inc     hl
+247+++6ADF 22 42 6B             ld      (atm_mem_source_cursor+2),hl
+248+++6AE2 C9                   ret
+249+++6AE3
+250+++6AE3              atm_mem_destination_inc:
+251+++6AE3 2A 44 6B             ld      hl,(atm_mem_destination_cursor)
+252+++6AE6 23                   inc     hl
+253+++6AE7 22 44 6B             ld      (atm_mem_destination_cursor),hl
+254+++6AEA 7C                   ld      a,h
+255+++6AEB B5                   or      l
+256+++6AEC C0                   ret     nz
+257+++6AED 2A 46 6B             ld      hl,(atm_mem_destination_cursor+2)
+258+++6AF0 23                   inc     hl
+259+++6AF1 22 46 6B             ld      (atm_mem_destination_cursor+2),hl
+260+++6AF4 C9                   ret
+261+++6AF5
+262+++6AF5              atm_mem_source_dec:
+263+++6AF5 2A 40 6B             ld      hl,(atm_mem_source_cursor)
+264+++6AF8 11 01 00             ld      de,1
+265+++6AFB B7                   or      a
+266+++6AFC ED 52                sbc     hl,de
+267+++6AFE 22 40 6B             ld      (atm_mem_source_cursor),hl
+268+++6B01 D0                   ret     nc
+269+++6B02 2A 42 6B             ld      hl,(atm_mem_source_cursor+2)
+270+++6B05 2B                   dec     hl
+271+++6B06 22 42 6B             ld      (atm_mem_source_cursor+2),hl
+272+++6B09 C9                   ret
+273+++6B0A
+274+++6B0A              atm_mem_destination_dec:
+275+++6B0A 2A 44 6B             ld      hl,(atm_mem_destination_cursor)
+276+++6B0D 11 01 00             ld      de,1
+277+++6B10 B7                   or      a
+278+++6B11 ED 52                sbc     hl,de
+279+++6B13 22 44 6B             ld      (atm_mem_destination_cursor),hl
+280+++6B16 D0                   ret     nc
+281+++6B17 2A 46 6B             ld      hl,(atm_mem_destination_cursor+2)
+282+++6B1A 2B                   dec     hl
+283+++6B1B 22 46 6B             ld      (atm_mem_destination_cursor+2),hl
+284+++6B1E C9                   ret
+285+++6B1F
+286+++6B1F              atm_mem_length_dec:
+287+++6B1F 2A 48 6B             ld      hl,(atm_mem_remaining)
+288+++6B22 11 01 00             ld      de,1
+289+++6B25 B7                   or      a
+290+++6B26 ED 52                sbc     hl,de
+291+++6B28 22 48 6B             ld      (atm_mem_remaining),hl
+292+++6B2B D0                   ret     nc
+293+++6B2C 2A 4A 6B             ld      hl,(atm_mem_remaining+2)
+294+++6B2F 2B                   dec     hl
+295+++6B30 22 4A 6B             ld      (atm_mem_remaining+2),hl
+296+++6B33 C9                   ret
+297+++6B34
+298+++6B34              ; Caller descriptors and private cursors/scratch.
+299+++6B34 00 00 00 00  atm_mem_source_offset:       defs 4,0
+300+++6B38 00 00 00 00  atm_mem_destination_offset:  defs 4,0
+301+++6B3C 00 00 00 00  atm_mem_op_length:           defs 4,0
+302+++6B40 00 00 00 00  atm_mem_source_cursor:       defs 4,0
+303+++6B44 00 00 00 00  atm_mem_destination_cursor:  defs 4,0
+304+++6B48 00 00 00 00  atm_mem_remaining:           defs 4,0
+305+++6B4C 00 00 00 00  atm_mem_work_offset:         defs 4,0
+306+++6B50 00           atm_mem_fill_value:          db 0
+307+++6B51 00           atm_mem_copy_byte:           db 0
+308+++6B52
+# file closed: atm_memory_ops.asm
+159++ 6B52
 # file closed: atm_memory_backend.asm
-164+  6928
-165+  6928              p127_host_program_end:
-166+  6928                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
-167+  6928                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
-168+  6928
+164+  6B52
+165+  6B52              p127_host_program_end:
+166+  6B52                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
+167+  6B52                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
+168+  6B52
 # file closed: p127_host.asm
- 12   6928                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
- 13   6928
- 14   6928                      PAGE 0
- 15   6928                      ORG #E000
+ 12   6B52                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
+ 13   6B52
+ 14   6B52                      PAGE 0
+ 15   6B52                      ORG #E000
  16   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
 # file opened: boot_loader.generated.asm
   1+  E000              ; =========================================================================
@@ -1387,6 +1702,22 @@ Value    Label
 0x6784   atm_mem_allocator_selftest_fail
 0x6793   atm_mem_candidate
 0x63DE   atm_mem_capabilities
+0x692E   atm_mem_copy
+0x6991   atm_mem_copy_backward_loop
+0x6B51   atm_mem_copy_byte
+0x69A8   atm_mem_copy_forward
+0x69A8   atm_mem_copy_forward_loop
+0x6A7C   atm_mem_copy_one
+0x6A49   atm_mem_destination_after_source
+0x6B44   atm_mem_destination_cursor
+0x6B0A   atm_mem_destination_dec
+0x6AE3   atm_mem_destination_inc
+0x6A65   atm_mem_destination_is_after
+0x6A67   atm_mem_destination_not_after
+0x6B38   atm_mem_destination_offset
+0x69BF X atm_mem_fill
+0x69F3   atm_mem_fill_loop
+0x6B50   atm_mem_fill_value
 0x6535   atm_mem_free
 0x65D3   atm_mem_free_check
 0x65EC   atm_mem_free_clear
@@ -1404,8 +1735,11 @@ Value    Label
 0x65CB   atm_mem_free_record_found
 0x65BF   atm_mem_free_record_mismatch
 0x63F0   atm_mem_init
-0x641F X atm_mem_map_page
+0x6B1F   atm_mem_length_dec
+0x641F   atm_mem_map_page
 0x6430   atm_mem_map_page_invalid
+0x6AA9   atm_mem_map_work_offset
+0x6B3C   atm_mem_op_length
 0x640E   atm_mem_open_shadow_ports
 0x66A3   atm_mem_page_alloc_test_loop
 0x66A7   atm_mem_page_alloc_test_ready
@@ -1425,10 +1759,14 @@ Value    Label
 0x6792   atm_mem_pages_needed
 0x62DC X atm_mem_query_caps
 0x62F2   atm_mem_range_selftest
+0x6928 X atm_mem_read
 0x6795   atm_mem_record_ptr
+0x6B48   atm_mem_remaining
+0x6A69   atm_mem_remaining_is_zero
 0x678A   atm_mem_request_length
 0x6786   atm_mem_request_offset
 0x6918   atm_mem_reserved_bitmap
+0x6AA4   atm_mem_restore_window3
 0x678E   atm_mem_result_offset
 0x63DC   atm_mem_selftest_fail
 0x63C2   atm_mem_selftest_fail_1
@@ -1439,9 +1777,16 @@ Value    Label
 0x63D6   atm_mem_selftest_fail_6
 0x63DA   atm_mem_selftest_fail_7
 0x641E   atm_mem_shadow_ports_opened
+0x6B40   atm_mem_source_cursor
+0x6AF5   atm_mem_source_dec
+0x6AD1   atm_mem_source_inc
+0x6B34   atm_mem_source_offset
 0x62D8   atm_mem_test4_length_snapshot
+0x6A16   atm_mem_validate_pair
 0x62E0   atm_mem_validate_range
 0x6432   atm_mem_validate_request
+0x6B4C   atm_mem_work_offset
+0x692B X atm_mem_write
 0x0040   ATM_PAGE_COUNT
 0xFFF7   ATM_PAGE_PORT_WINDOW3
 0x000E X ATM_PAGE_SHIFT
@@ -1489,7 +1834,7 @@ Value    Label
 0x6000   P127_HOST_LOAD_ADDRESS
 0x61C5   p127_host_memory_init_error
 0x6030   p127_host_memory_init_fail
-0x6928 X p127_host_program_end
+0x6B52 X p127_host_program_end
 0x6000   p127_host_program_start
 0x61E3   p127_host_range_error
 0x6055   p127_host_range_fail
