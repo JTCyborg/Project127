@@ -97,6 +97,14 @@ atm_mem_fill::
         ldir
         call    atm_mem_validate_request
         ret     c
+        ld      hl,atm_mem_destination_offset
+        ld      de,atm_mem_destination_cursor
+        ld      bc,4
+        ldir
+        ld      hl,atm_mem_op_length
+        ld      de,atm_mem_remaining
+        ld      bc,4
+        ldir
         call    atm_mem_remaining_is_zero
         ret     z
 atm_mem_fill_loop:
@@ -160,15 +168,15 @@ atm_mem_destination_not_after:
 
 ; Z iff all four bytes of operation length are zero.
 atm_mem_remaining_is_zero:
-        ld      a,(atm_mem_op_length)
+        ld      a,(atm_mem_remaining)
         ld      b,a
-        ld      a,(atm_mem_op_length+1)
+        ld      a,(atm_mem_remaining+1)
         or      b
         ld      b,a
-        ld      a,(atm_mem_op_length+2)
+        ld      a,(atm_mem_remaining+2)
         or      b
         ld      b,a
-        ld      a,(atm_mem_op_length+3)
+        ld      a,(atm_mem_remaining+3)
         or      b
         ret
 
