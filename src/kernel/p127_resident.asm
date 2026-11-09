@@ -1,13 +1,13 @@
 ; ============================================================================
 ; Project127 — resident-window contract / software preflight
-; Module version: 0.1.0
+; Module version: 0.2.0
 ; Defines the only first-stage remap candidate without touching hardware.
 ; W1/P5 owns resident execution+data; W2/P2 owns resident stack/control.
 ; W3 is the only candidate target and may be used only after UI quiescence.
 ; W0 is ROM. No OUT instruction is permitted here.
 ; ============================================================================
 P127_RESIDENT_VERSION_MAJOR EQU 0
-P127_RESIDENT_VERSION_MINOR EQU 1
+P127_RESIDENT_VERSION_MINOR EQU 2
 P127_RESIDENT_VERSION_PATCH EQU 0
 
 P127_RESIDENT_CODE_WINDOW  EQU 1
@@ -108,3 +108,138 @@ p127_resident_arg_stack:
 p127_resident_arg_flags:
         db      0
 p127_resident_end:
+
+
+; W3 ownership / UI quiesce state machine. Software only; no page OUT.
+P127_W3_STATE_UI_ACTIVE EQU 1
+P127_W3_STATE_QUIESCED EQU 2
+P127_W3_OWNER_UI EQU 1
+P127_W3_OWNER_NONE EQU 0
+P127_W3_OWNER_HANDOFF EQU 2
+
+p127_w3_init:
+        ld      a,P127_W3_STATE_UI_ACTIVE
+        ld      (p127_w3_state),a
+        ld      a,P127_W3_OWNER_UI
+        ld      (p127_w3_owner),a
+        xor     a
+        ld      (p127_w3_busy),a
+        or      a
+        ret
+
+p127_w3_ui_enter:
+        ld      a,(p127_w3_state)
+        cp      P127_W3_STATE_UI_ACTIVE
+        jr      nz,p127_w3_reject
+        ld      a,(p127_w3_owner)
+        cp      P127_W3_OWNER_UI
+        jr      nz,p127_w3_reject
+        ld      a,(p127_w3_busy)
+        or      a
+        jr      nz,p127_w3_reject
+        ld      a,1
+        ld      (p127_w3_busy),a
+        or      a
+        ret
+
+p127_w3_ui_leave:
+        xor     a
+        ld      (p127_w3_busy),a
+        ret
+
+p127_w3_quiesce:
+        ld      a,(p127_w3_state)
+        cp      P127_W3_STATE_UI_ACTIVE
+        jr      nz,p127_w3_reject
+        ld      a,(p127_w3_owner)
+        cp      P127_W3_OWNER_UI
+        jr      nz,p127_w3_reject
+        ld      a,(p127_w3_busy)
+        or      a
+        jr      nz,p127_w3_reject
+        ld      a,P127_W3_STATE_QUIESCED
+        ld      (p127_w3_state),a
+        xor     a
+        ld      (p127_w3_owner),a
+        or      a
+        ret
+
+p127_w3_handoff_acquire:
+        ld      a,(p127_w3_state)
+        cp      P127_W3_STATE_QUIESCED
+        jr      nz,p127_w3_reject
+        ld      a,(p127_w3_owner)
+        or      a
+        jr      nz,p127_w3_reject
+        ld      a,P127_W3_OWNER_HANDOFF
+        ld      (p127_w3_owner),a
+        or      a
+        ret
+
+p127_w3_handoff_release:
+        ld      a,(p127_w3_state)
+        cp      P127_W3_STATE_QUIESCED
+        jr      nz,p127_w3_reject
+        ld      a,(p127_w3_owner)
+        cp      P127_W3_OWNER_HANDOFF
+        jr      nz,p127_w3_reject
+        xor     a
+        ld      (p127_w3_owner),a
+        or      a
+        ret
+
+p127_w3_resume:
+        ld      a,(p127_w3_state)
+        cp      P127_W3_STATE_QUIESCED
+        jr      nz,p127_w3_reject
+        ld      a,(p127_w3_owner)
+        or      a
+        jr      nz,p127_w3_reject
+        ld      a,P127_W3_OWNER_UI
+        ld      (p127_w3_owner),a
+        ld      a,P127_W3_STATE_UI_ACTIVE
+        ld      (p127_w3_state),a
+        or      a
+        ret
+
+p127_w3_reject:
+        scf
+        ret
+
+p127_w3_selftest:
+        call    p127_w3_init
+        call    p127_w3_ui_enter
+        jp      c,p127_w3_test_fail
+        call    p127_w3_quiesce
+        jp      nc,p127_w3_test_fail
+        call    p127_w3_ui_leave
+        call    p127_w3_quiesce
+        jp      c,p127_w3_test_fail
+        call    p127_w3_ui_enter
+        jp      nc,p127_w3_test_fail
+        call    p127_w3_handoff_acquire
+        jp      c,p127_w3_test_fail
+        call    p127_w3_quiesce
+        jp      nc,p127_w3_test_fail
+        call    p127_w3_ui_enter
+        jp      nc,p127_w3_test_fail
+        call    p127_w3_handoff_release
+        jp      c,p127_w3_test_fail
+        call    p127_w3_resume
+        jp      c,p127_w3_test_fail
+        call    p127_w3_resume
+        jp      nc,p127_w3_test_fail
+        call    p127_w3_ui_enter
+        jp      c,p127_w3_test_fail
+        call    p127_w3_ui_leave
+        or      a
+        ret
+
+p127_w3_test_fail:
+        call    p127_w3_init
+        scf
+        ret
+
+p127_w3_state: db 0
+p127_w3_owner: db 0
+p127_w3_busy: db 0
