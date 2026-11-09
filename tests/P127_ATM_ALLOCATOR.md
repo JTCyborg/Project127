@@ -35,3 +35,18 @@ Project112-proven TR-DOS ROM trampoline before the mapper is used.
 - Total allocatable capacity is 0x000E8000 bytes. Because this first allocator
   is contiguous, its largest single run is 56 pages (0x000E0000 bytes).
 - READ/WRITE/FILL/COPY, multi-extent handles and DMA are not implemented yet.
+
+
+## Scatter-handle PIN/UNPIN acceptance test (v0.10.0)
+
+- PIN and UNPIN take an opaque handle ID in A and return carry clear only on
+  success.
+- PIN increments an 8-bit reference count; overflow is rejected.
+- UNPIN decrements a nonzero reference count; underflow is rejected.
+- FREE checks the count before releasing any extent. A pinned handle remains
+  fully allocated and usable when FREE is rejected.
+- Initialization clears handle records and pin counts.
+- Runtime test allocates a one-byte handle, pins twice, proves FREE is rejected
+  without changing the count, unpins once and proves FREE is still rejected,
+  unpins the final reference, rejects an extra UNPIN, then frees successfully.
+- Expected log: `[P127] ATM HANDLE PIN/UNPIN SELFTEST PASS`.

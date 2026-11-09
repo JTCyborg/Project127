@@ -35,6 +35,17 @@ atm_mem_init::
         ld      de,atm_mem_alloc_table+1
         ld      bc,383
         ldir
+        ; Reset opaque scatter handles and their reference counts.
+        ld      hl,atm_mem_scatter_handles
+        ld      (hl),a
+        ld      de,atm_mem_scatter_handles+1
+        ld      bc,ATM_SCATTER_HANDLE_COUNT*6-1
+        ldir
+        ld      hl,atm_mem_scatter_pin_counts
+        ld      (hl),a
+        ld      de,atm_mem_scatter_pin_counts+1
+        ld      bc,ATM_SCATTER_HANDLE_COUNT-1
+        ldir
         ; Open the ATM shadow-port decoder using the proven Project112 ROM
         ; trampoline. This is required before writes to #FFF7.
         call    atm_mem_open_shadow_ports

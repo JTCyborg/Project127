@@ -1,7 +1,7 @@
 # Project127 — low-level foundation
 
-**Revision:** 0.5  
-**Status:** architecture baseline; ATM range core, contiguous allocator and byte-range operations pass runtime self-tests.  
+**Revision:** 0.6  
+**Status:** ATM memory foundation through scatter handles and handle PIN/UNPIN implemented; runtime-confirmed through v0.9.1 for memory/handle operations. PIN/UNPIN awaits the v0.10.0 runtime acceptance log.  
 **Scope:** ATM Turbo 2+ Z80 firmware, NeoGS Z80 firmware, their shared memory/transport ABI, and the later 8086 emulator.
 
 ## 1. Non-negotiable design rule
@@ -158,8 +158,7 @@ seven zero bytes. The remaining 58 pages (0x000E8000 bytes) are eligible for
 allocation. The first allocator implementation returns contiguous runs of
 physical pages and returns a 32-bit byte offset; it does not expose page
 numbers to callers. A 16 KiB+1 allocation is covered by the runtime allocator
-self-test. The first scatter-handle allocator milestone is implemented, but handle-based
-data access is not yet available.
+self-test. The scatter-handle allocator and handle-relative READ/WRITE/FILL/COPY are implemented and runtime-confirmed. Handle PIN/UNPIN is implemented in v0.10.0; its new runtime test must pass before it is considered verified.
 
 ## 10. ATM memory-operation ABI decision
 
@@ -227,15 +226,22 @@ same-handle overlapping COPY, and rejects an out-of-range request. This test
 is an acceptance gate; implementation correctness is not considered proven
 until its PASS line is observed on the ATM runtime.
 
-## 11. Implementation order
+## 11. Implementation order and frozen milestone
 
-1. Add handle-based logical READ/WRITE/FILL/COPY over the private scatter
-   extent vectors, then replace bytewise transfers with page-bounded blocks.
-2. Implement the NeoGS memory backend and reserve its firmware/stack/IRQ/DMA
-   regions before advertising allocatable capacity.
-3. Implement shared DMA streaming and capability negotiation.
-4. Implement module packer/loader/linker relocation and far-call runtime.
-5. Run the acceptance tests without the x86 emulator.
-6. Only then add the 8086 CPU and guest memory/device models.
+The ATM backend milestone v0.9.1 is runtime-confirmed: range core, page allocator,
+physical byte operations, scatter allocation, and handle READ/WRITE/FILL/COPY
+all report PASS. The next v0.10.0 gate adds reference-counted PIN/UNPIN and
+requires its dedicated runtime self-test to pass.
+
+After that gate, the next integration phase is the host platform layer requested
+for Project127: TR-DOS service integration, ATM video service, RTC service,
+HDD/block-device service, and speaker/audio output driver. These are host-side
+services; NeoGS external I/O continues to be mediated only by ATM/DMA.
+
+The broader foundation work remains: NeoGS 4 MiB memory backend, shared DMA
+streaming/capability negotiation, module packer/loader/linker relocation and
+far-call runtime, and the cross-device acceptance tests. The 8086 emulator
+starts only after the required platform and memory/transport foundations are
+validated.
 
 Project126's fixed 16 KiB overlay/module layout is a historical reference only. It is not the Project127 implementation template.

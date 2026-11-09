@@ -93,6 +93,15 @@ atm_mem_scatter_alloc_loop:
         cp      b
         jp      nz,atm_mem_scatter_alloc_loop
 
+        ; A newly published handle always starts unpinned.
+        ld      a,(atm_mem_scatter_handle)
+        dec     a
+        ld      hl,atm_mem_scatter_pin_counts
+        ld      e,a
+        ld      d,0
+        add     hl,de
+        xor     a
+        ld      (hl),a
         ld      hl,(atm_mem_scatter_record)
         ld      a,(atm_mem_scatter_handle)
         ld      (hl),a
@@ -177,6 +186,23 @@ atm_mem_scatter_free_record_ready:
         ld      a,(hl)
         or      a
         jp      z,atm_mem_scatter_fail
+        ; A pinned object cannot be freed: reject before releasing any extent.
+        ld      a,(atm_mem_scatter_handle)
+        call    atm_mem_scatter_pin_count
+        jp      c,atm_mem_scatter_fail
+        or      a
+        jp      nz,atm_mem_scatter_fail
+        ld      a,(atm_mem_scatter_handle)
+        dec     a
+        ld      hl,atm_mem_scatter_handles
+        ld      de,6
+        or      a
+        jp      z,atm_mem_scatter_free_record_ready
+atm_mem_scatter_free_record_reseek:
+        add     hl,de
+        dec     a
+        jp      nz,atm_mem_scatter_free_record_reseek
+atm_mem_scatter_free_record_ready:
         inc     hl
         ld      a,(hl)
         ld      (atm_mem_scatter_rollback_count),a
@@ -226,6 +252,132 @@ atm_mem_scatter_clear_ready:
         xor     a
         ld      (hl),a
         or      a
+        ret
+
+; PIN/UNPIN reference-count a live logical handle (A=handle id).
+; PIN fails on invalid handles or counter overflow; UNPIN fails at zero.
+; FREE checks this count before touching any physical extent.
+atm_mem_scatter_pin::
+        call    atm_mem_scatter_pin_count
+        ret     c
+        cp      #FF
+        jp      z,atm_mem_scatter_pin_fail
+        ld      hl,(atm_mem_scatter_pin_ptr)
+        inc     (hl)
+        or      a
+        ret
+
+atm_mem_scatter_unpin::
+        call    atm_mem_scatter_pin_count
+        ret     c
+        or      a
+        jp      z,atm_mem_scatter_pin_fail
+        ld      hl,(atm_mem_scatter_pin_ptr)
+        dec     (hl)
+        or      a
+        ret
+
+; A=handle id. Returns A=pin count, HL=counter address; carry on invalid id.
+atm_mem_scatter_pin_count:
+        or      a
+        jp      z,atm_mem_scatter_pin_fail
+        cp      ATM_SCATTER_HANDLE_COUNT+1
+        jp      nc,atm_mem_scatter_pin_fail
+        ld      (atm_mem_scatter_pin_id),a
+        dec     a
+        ld      hl,atm_mem_scatter_pin_counts
+        ld      e,a
+        ld      d,0
+        add     hl,de
+        ld      (atm_mem_scatter_pin_ptr),hl
+        ld      a,(atm_mem_scatter_pin_id)
+        dec     a
+        ld      hl,atm_mem_scatter_handles
+        ld      de,6
+        or      a
+        jp      z,atm_mem_scatter_pin_record_ready
+atm_mem_scatter_pin_record_step:
+        add     hl,de
+        dec     a
+        jp      nz,atm_mem_scatter_pin_record_step
+atm_mem_scatter_pin_record_ready:
+        ld      a,(hl)
+        ld      b,a
+        ld      a,(atm_mem_scatter_pin_id)
+        cp      b
+        jp      nz,atm_mem_scatter_pin_fail
+        ld      hl,(atm_mem_scatter_pin_ptr)
+        ld      a,(hl)
+        or      a
+        ret
+atm_mem_scatter_pin_fail:
+        scf
+        ret
+
+; Runtime test: nested pins prevent FREE until every reference is released.
+atm_mem_scatter_pin_selftest::
+        ld      a,1
+        ld      (atm_mem_scatter_pin_test_stage),a
+        ld      hl,1
+        ld      (atm_mem_request_length),hl
+        ld      hl,0
+        ld      (atm_mem_request_length+2),hl
+        call    atm_mem_scatter_alloc
+        jp      c,atm_mem_scatter_pin_test_fail
+        ld      (atm_mem_scatter_pin_test_handle),a
+
+        ld      a,2
+        ld      (atm_mem_scatter_pin_test_stage),a
+        ld      a,(atm_mem_scatter_pin_test_handle)
+        call    atm_mem_scatter_pin
+        jp      c,atm_mem_scatter_pin_test_fail
+        ld      a,(atm_mem_scatter_pin_test_handle)
+        call    atm_mem_scatter_pin
+        jp      c,atm_mem_scatter_pin_test_fail
+
+        ; First FREE must be rejected and leave the complete handle intact.
+        ld      a,3
+        ld      (atm_mem_scatter_pin_test_stage),a
+        ld      a,(atm_mem_scatter_pin_test_handle)
+        call    atm_mem_scatter_free
+        jp      nc,atm_mem_scatter_pin_test_fail
+        ld      a,(atm_mem_scatter_pin_test_handle)
+        call    atm_mem_scatter_pin_count
+        jp      c,atm_mem_scatter_pin_test_fail
+        cp      2
+        jp      nz,atm_mem_scatter_pin_test_fail
+
+        ld      a,4
+        ld      (atm_mem_scatter_pin_test_stage),a
+        ld      a,(atm_mem_scatter_pin_test_handle)
+        call    atm_mem_scatter_unpin
+        jp      c,atm_mem_scatter_pin_test_fail
+        ld      a,(atm_mem_scatter_pin_test_handle)
+        call    atm_mem_scatter_free
+        jp      nc,atm_mem_scatter_pin_test_fail
+
+        ld      a,5
+        ld      (atm_mem_scatter_pin_test_stage),a
+        ld      a,(atm_mem_scatter_pin_test_handle)
+        call    atm_mem_scatter_unpin
+        jp      c,atm_mem_scatter_pin_test_fail
+        ld      a,(atm_mem_scatter_pin_test_handle)
+        call    atm_mem_scatter_unpin
+        jp      nc,atm_mem_scatter_pin_test_fail
+
+        ld      a,6
+        ld      (atm_mem_scatter_pin_test_stage),a
+        ld      a,(atm_mem_scatter_pin_test_handle)
+        call    atm_mem_scatter_free
+        jp      c,atm_mem_scatter_pin_test_fail
+        ld      a,0
+        call    atm_mem_scatter_pin
+        jp      nc,atm_mem_scatter_pin_test_fail
+        xor     a
+        ret
+atm_mem_scatter_pin_test_fail:
+        ld      a,(atm_mem_scatter_pin_test_stage)
+        scf
         ret
 
 ; Smoke test verifies an object spanning two private extent records.
@@ -354,5 +506,10 @@ atm_mem_scatter_test_first:      defs 4,0
 atm_mem_scatter_record:          dw 0
 atm_mem_scatter_vector:          dw 0
 atm_mem_scatter_length:          defs 4,0
+atm_mem_scatter_pin_id:           db 0
+atm_mem_scatter_pin_ptr:          dw 0
+atm_mem_scatter_pin_test_handle:  db 0
+atm_mem_scatter_pin_test_stage:   db 0
+atm_mem_scatter_pin_counts:       defs ATM_SCATTER_HANDLE_COUNT,0
 atm_mem_scatter_handles:         defs ATM_SCATTER_HANDLE_COUNT*6,0
 atm_mem_scatter_extents:         defs ATM_SCATTER_HANDLE_COUNT*ATM_SCATTER_MAX_EXTENTS*4,0
