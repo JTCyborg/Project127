@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.68**  
+Scenario revision: **0.8.69**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -874,3 +874,11 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Boot integration runs this test only after the physical sweep and guarded W3 lease API test have completed. New expected marker: `LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED`.
 - Failure semantics remain explicit: a preflight failure makes no destination writes; a runtime mapping failure after one or more completed chunks may leave a destination prefix changed, with `p127_as_copy_completed` reporting the exact count. A W3 restore failure leaves the existing lease state retryable via `p127_physmem_w3_end`.
 - A long conditional branch to the copy-loop completion path uses an absolute JP; module patch version is 0.1.1. SjASMPlus build and Unreal Speccy runtime verification of this implementation are pending the user's rebuild. Stage 6.3 is implemented in source, not yet runtime-accepted.
+
+
+### 2026-11-09 — Stage 6.3 failure localization instrumentation
+
+- User's first runtime attempt reached the new `LOGICAL SPAN COPY TEST FAIL` marker after all earlier memory, allocator, physical W3 sweep and guarded lease checks passed. The summary marker alone did not identify which copy self-test phase failed.
+- Added a self-test phase byte to `p127_as_copy.asm` v0.1.2: 01 setup/allocation/binding, 02 zero-length boundary, 03 overlap rejection, 04 unmapped-destination preflight, 05 source seeding, 06 actual cross-page copy, 07 destination verification. The existing API error byte and completed-byte count are also emitted on failure.
+- Boot diagnostics now print `COPY PHASE`, `ERROR`, and the 32-bit `DONE` count after the failure marker. This is diagnostic instrumentation only; it does not change mapping, copy, lease, interrupt or allocator behavior.
+- The next user runtime log is required to identify the failing instruction path before changing transfer semantics. Stage 6.3 remains implemented but not runtime-accepted. No independent SjASMPlus or Unreal Speccy run is claimed.
