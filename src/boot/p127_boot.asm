@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.5.5
+; Project127 — boot stage 0.5.6
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -184,6 +184,10 @@ p127_msg_handoff_pass:
         db      "[P127] HANDOFF GUARD TEST PASS; OUT DISABLED",13,10,0
 p127_msg_handoff_fail:
         db      "[P127] HANDOFF GUARD TEST FAIL",13,10,0
+p127_msg_w3_pass:
+        db      "[P127] UI QUIESCE/W3 OWNERSHIP PASS; OUT DISABLED",13,10,0
+p127_msg_w3_fail:
+        db      "[P127] UI QUIESCE/W3 OWNERSHIP FAIL",13,10,0
 
         INCLUDE "src/kernel/p127_mem.asm"
         INCLUDE "src/kernel/p127_map.asm"
