@@ -42,7 +42,7 @@ p127_host_entry:
 p127_host_scatter_fail:
         ld      hl,p127_host_scatter_error
         call    p127_host_debug_string
-        jr      p127_host_idle
+        jp      p127_host_idle
 p127_host_ops_fail:
         ld      d,a
         ld      hl,p127_host_ops_error
@@ -53,11 +53,11 @@ p127_host_ops_fail:
         call    p127_host_debug_char
         ld      a,10
         call    p127_host_debug_char
-        jr      p127_host_idle
+        jp      p127_host_idle
 p127_host_memory_init_fail:
         ld      hl,p127_host_memory_init_error
         call    p127_host_debug_string
-        jr      p127_host_idle
+        jp      p127_host_idle
 p127_host_allocator_fail:
         ld      d,a
         ld      hl,p127_host_allocator_error
@@ -70,7 +70,7 @@ p127_host_allocator_fail:
         call    p127_host_debug_char
         ld      a,10
         call    p127_host_debug_char
-        jr      p127_host_idle
+        jp      p127_host_idle
 p127_host_range_fail:
         ld      d,a
         ld      hl,p127_host_range_error
@@ -107,7 +107,7 @@ p127_host_range_fail:
         call    p127_host_debug_char
 p127_host_idle:
         halt
-        jr      p127_host_idle
+        jp      p127_host_idle
 
 p127_host_debug_char:
         ld      bc,#00EF
