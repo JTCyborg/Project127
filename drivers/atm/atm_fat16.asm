@@ -115,22 +115,31 @@ p127_fat16_fat_count_ok:
         add     hl,de
         ld      (p127_fat16_fat_lba),hl
         ld      hl,(p127_fat16_partition_lba+2)
-        adc     hl,0
+        ld      de,0
+        adc     hl,de
         ld      (p127_fat16_fat_lba+2),hl
 
         ; ROOT_LBA = FAT_LBA + (FAT_count * sectors_per_FAT).
         ld      hl,(p127_fat16_fat_lba)
         ld      de,(p127_fat16_sectors_per_fat)
         add     hl,de
-        ld      a,(p127_fat16_fat_count)
-        cp      2
-        jp      nz,p127_fat16_one_fat
-        add     hl,de
-p127_fat16_one_fat:
         ld      (p127_fat16_root_lba),hl
         ld      hl,(p127_fat16_fat_lba+2)
-        adc     hl,0
+        ld      de,0
+        adc     hl,de
         ld      (p127_fat16_root_lba+2),hl
+        ld      a,(p127_fat16_fat_count)
+        cp      2
+        jp      nz,p127_fat16_root_lba_ready
+        ld      hl,(p127_fat16_root_lba)
+        ld      de,(p127_fat16_sectors_per_fat)
+        add     hl,de
+        ld      (p127_fat16_root_lba),hl
+        ld      hl,(p127_fat16_root_lba+2)
+        ld      de,0
+        adc     hl,de
+        ld      (p127_fat16_root_lba+2),hl
+p127_fat16_root_lba_ready:
 
         ; Root directory sectors = ceil(root_entries / 16).
         ld      hl,(p127_fat16_root_entries)
@@ -152,7 +161,8 @@ p127_fat16_one_fat:
         add     hl,de
         ld      (p127_fat16_data_lba),hl
         ld      hl,(p127_fat16_root_lba+2)
-        adc     hl,0
+        ld      de,0
+        adc     hl,de
         ld      (p127_fat16_data_lba+2),hl
 
         ld      a,1
@@ -175,7 +185,8 @@ P127_FAT16_ReadRootSector:
         add     hl,de
         ld      (p127_fat16_io_lba),hl
         ld      hl,(p127_fat16_root_lba+2)
-        adc     hl,0
+        ld      de,0
+        adc     hl,de
         ld      (p127_fat16_io_lba+2),hl
         jp      p127_fat16_read_lba
 
