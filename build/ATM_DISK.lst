@@ -59,7 +59,7 @@
  46+  6058 DA AE 60             jp      c,p127_host_pin_fail
  47+  605B 21 69 63             ld      hl,p127_host_pin_ok
  48+  605E CD AB 61             call    p127_host_debug_string
- 49+  6061 CD A1 80             call    p127_trdos_catalog_selftest
+ 49+  6061 CD A5 80             call    p127_trdos_catalog_selftest
  50+  6064 DA 96 60             jp      c,p127_host_trdos_fail
  51+  6067 21 0D 63             ld      hl,p127_host_trdos_ok
  52+  606A CD AB 61             call    p127_host_debug_string
@@ -3125,11 +3125,11 @@
  15+  8000
  16+  8000              p127_trdos_catalog_begin:
  16+  8000
- 17+  8000 22 F7 80             ld (p127_trdos_dir_base),hl
- 18+  8003 ED 43 F9 80          ld (p127_trdos_dir_length),bc
+ 17+  8000 22 FB 80             ld (p127_trdos_dir_base),hl
+ 18+  8003 ED 43 FD 80          ld (p127_trdos_dir_length),bc
  19+  8007 AF                   xor a
- 20+  8008 32 FB 80             ld (p127_trdos_dir_index),a
- 21+  800B 32 FC 80             ld (p127_trdos_dir_error),a
+ 20+  8008 32 FF 80             ld (p127_trdos_dir_index),a
+ 21+  800B 32 00 81             ld (p127_trdos_dir_error),a
  22+  800E 78                   ld a,b
  23+  800F FE 08                cp 8
  24+  8011 38 06                jr c,p127_trdos_catalog_bad_length
@@ -3139,7 +3139,7 @@
  28+  8017 28 07                jr z,p127_trdos_catalog_length_ok
  29+  8019              p127_trdos_catalog_bad_length:
  30+  8019 3E 01                ld a,1
- 31+  801B 32 FC 80             ld (p127_trdos_dir_error),a
+ 31+  801B 32 00 81             ld (p127_trdos_dir_error),a
  32+  801E 37                   scf
  33+  801F C9                   ret
  34+  8020              p127_trdos_catalog_length_ok:
@@ -3150,13 +3150,13 @@
  39+  8022              ; Carry set with A=0 means end; A=1 means malformed input.
  40+  8022              p127_trdos_catalog_next:
  40+  8022
- 41+  8022 3A FC 80             ld a,(p127_trdos_dir_error)
+ 41+  8022 3A 00 81             ld a,(p127_trdos_dir_error)
  42+  8025 B7                   or a
- 43+  8026 20 50                jr nz,p127_trdos_catalog_next_error
+ 43+  8026 20 54                jr nz,p127_trdos_catalog_next_error
  44+  8028              p127_trdos_catalog_next_loop:
- 45+  8028 3A FB 80             ld a,(p127_trdos_dir_index)
+ 45+  8028 3A FF 80             ld a,(p127_trdos_dir_index)
  46+  802B FE 80                cp P127_TRDOS_DIR_ENTRIES
- 47+  802D 30 46                jr nc,p127_trdos_catalog_next_end
+ 47+  802D 30 4A                jr nc,p127_trdos_catalog_next_end
  48+  802F                      ; offset=index*16
  49+  802F 6F                   ld l,a
  50+  8030 26 00                ld h,0
@@ -3164,156 +3164,159 @@
  52+  8033 29                   add hl,hl
  53+  8034 29                   add hl,hl
  54+  8035 29                   add hl,hl
- 55+  8036 ED 5B F7 80          ld de,(p127_trdos_dir_base)
+ 55+  8036 ED 5B FB 80          ld de,(p127_trdos_dir_base)
  56+  803A 19                   add hl,de
  57+  803B 7E                   ld a,(hl)
  58+  803C B7                   or a
- 59+  803D 28 2D                jr z,p127_trdos_catalog_skip
+ 59+  803D 28 31                jr z,p127_trdos_catalog_skip
  60+  803F FE 01                cp 1
- 61+  8041 28 29                jr z,p127_trdos_catalog_skip
+ 61+  8041 28 2D                jr z,p127_trdos_catalog_skip
  62+  8043                      ; A live entry must have a supported TR-DOS file type byte.
  63+  8043 E5                   push hl
  64+  8044 11 08 00             ld de,8
  65+  8047 19                   add hl,de
  66+  8048 7E                   ld a,(hl)
  67+  8049 FE 42                cp 'B'
- 68+  804B 28 14                jr z,p127_trdos_catalog_type_ok
+ 68+  804B 28 18                jr z,p127_trdos_catalog_type_ok
  69+  804D FE 43                cp 'C'
- 70+  804F 28 10                jr z,p127_trdos_catalog_type_ok
- 71+  8051 FE 23                cp '#'
- 72+  8053 28 0C                jr z,p127_trdos_catalog_type_ok
- 73+  8055 FE 24                cp '$'
- 74+  8057 28 08                jr z,p127_trdos_catalog_type_ok
- 75+  8059 E1                   pop hl
- 76+  805A 3E 02                ld a,2
- 77+  805C 32 FC 80             ld (p127_trdos_dir_error),a
- 78+  805F 18 17                jr p127_trdos_catalog_next_error
- 79+  8061              p127_trdos_catalog_type_ok:
- 80+  8061 E1                   pop hl
- 81+  8062 3A FB 80             ld a,(p127_trdos_dir_index)
- 82+  8065 3C                   inc a
- 83+  8066 32 FB 80             ld (p127_trdos_dir_index),a
- 84+  8069 3D                   dec a
- 85+  806A B7                   or a
- 86+  806B C9                   ret
- 87+  806C              p127_trdos_catalog_skip:
- 88+  806C 3A FB 80             ld a,(p127_trdos_dir_index)
- 89+  806F 3C                   inc a
- 90+  8070 32 FB 80             ld (p127_trdos_dir_index),a
- 91+  8073 18 B3                jr p127_trdos_catalog_next_loop
- 92+  8075              p127_trdos_catalog_next_end:
- 93+  8075 AF                   xor a
- 94+  8076 37                   scf
- 95+  8077 C9                   ret
- 96+  8078              p127_trdos_catalog_next_error:
- 97+  8078 3A FC 80             ld a,(p127_trdos_dir_error)
- 98+  807B 37                   scf
- 99+  807C C9                   ret
-100+  807D
-101+  807D              ; Count all live records, preserving iterator-independent directory base.
-102+  807D              p127_trdos_catalog_count:
-102+  807D
-103+  807D 2A F7 80             ld hl,(p127_trdos_dir_base)
-104+  8080 01 00 08             ld bc,P127_TRDOS_DIR_BYTES
-105+  8083 CD 00 80             call p127_trdos_catalog_begin
-106+  8086 D8                   ret c
-107+  8087 01 00 00             ld bc,0
-108+  808A              p127_trdos_catalog_count_loop:
-109+  808A C5                   push bc
-110+  808B CD 22 80             call p127_trdos_catalog_next
-111+  808E C1                   pop bc
-112+  808F 38 03                jr c,p127_trdos_catalog_count_done
-113+  8091 03                   inc bc
-114+  8092 18 F6                jr p127_trdos_catalog_count_loop
-115+  8094              p127_trdos_catalog_count_done:
-116+  8094 3A FC 80             ld a,(p127_trdos_dir_error)
-117+  8097 B7                   or a
-118+  8098 20 02                jr nz,p127_trdos_catalog_count_error
-119+  809A B7                   or a
-120+  809B C9                   ret
-121+  809C              p127_trdos_catalog_count_error:
-122+  809C 3A FC 80             ld a,(p127_trdos_dir_error)
-123+  809F 37                   scf
-124+  80A0 C9                   ret
-125+  80A1
-126+  80A1              ; Synthetic test: one free, one deleted, two live records, final boundary.
-127+  80A1              p127_trdos_catalog_selftest:
-127+  80A1
-128+  80A1 21 FD 80             ld hl,p127_trdos_test_directory
-129+  80A4 01 00 08             ld bc,P127_TRDOS_DIR_BYTES
-130+  80A7 CD 00 80             call p127_trdos_catalog_begin
-131+  80AA 38 33                jr c,p127_trdos_test_fail_1
-132+  80AC CD 7D 80             call p127_trdos_catalog_count
-133+  80AF 38 32                jr c,p127_trdos_test_fail_2
-134+  80B1 78                   ld a,b
-135+  80B2 B7                   or a
-136+  80B3 20 32                jr nz,p127_trdos_test_fail_3
-137+  80B5 79                   ld a,c
-138+  80B6 FE 02                cp 2
-139+  80B8 20 2D                jr nz,p127_trdos_test_fail_3
-140+  80BA                      ; First live record must be directory index 2.
-141+  80BA 21 FD 80             ld hl,p127_trdos_test_directory
-142+  80BD 01 00 08             ld bc,P127_TRDOS_DIR_BYTES
-143+  80C0 CD 00 80             call p127_trdos_catalog_begin
-144+  80C3 CD 22 80             call p127_trdos_catalog_next
-145+  80C6 38 23                jr c,p127_trdos_test_fail_4
-146+  80C8 FE 02                cp 2
-147+  80CA 20 1F                jr nz,p127_trdos_test_fail_4
-148+  80CC                      ; Next live record must be index 127 (last directory slot).
-149+  80CC CD 22 80             call p127_trdos_catalog_next
-150+  80CF 38 1E                jr c,p127_trdos_test_fail_5
-151+  80D1 FE 7F                cp 127
-152+  80D3 20 1A                jr nz,p127_trdos_test_fail_5
-153+  80D5 CD 22 80             call p127_trdos_catalog_next
-154+  80D8 30 19                jr nc,p127_trdos_test_fail_6
-155+  80DA B7                   or a
-156+  80DB 20 16                jr nz,p127_trdos_test_fail_6
-157+  80DD AF                   xor a
-158+  80DE C9                   ret
-159+  80DF 3E 01        p127_trdos_test_fail_1: ld a,1
-160+  80E1 18 12                jr p127_trdos_test_fail
-161+  80E3 3E 02        p127_trdos_test_fail_2: ld a,2
-162+  80E5 18 0E                jr p127_trdos_test_fail
-163+  80E7 3E 03        p127_trdos_test_fail_3: ld a,3
-164+  80E9 18 0A                jr p127_trdos_test_fail
-165+  80EB 3E 04        p127_trdos_test_fail_4: ld a,4
-166+  80ED 18 06                jr p127_trdos_test_fail
-167+  80EF 3E 05        p127_trdos_test_fail_5: ld a,5
-168+  80F1 18 02                jr p127_trdos_test_fail
-169+  80F3 3E 06        p127_trdos_test_fail_6: ld a,6
-170+  80F5              p127_trdos_test_fail:
-171+  80F5 37                   scf
-172+  80F6 C9                   ret
-173+  80F7
-174+  80F7 00 00        p127_trdos_dir_base: dw 0
-175+  80F9 00 00        p127_trdos_dir_length: dw 0
-176+  80FB 00           p127_trdos_dir_index: db 0
-177+  80FC 00           p127_trdos_dir_error: db 0
-178+  80FD              p127_trdos_test_directory:
-179+  80FD 00 00 00...          defs P127_TRDOS_DIR_BYTES,0
-180+  88FD                      ; Entry 2: file "TEST    B", one sector.
-181+  88FD                      org p127_trdos_test_directory+2*P127_TRDOS_ENTRY_SIZE
-182+  811D 54 45 53 54          db "TEST    ",'B',0,0,1,1,0
-182+  8121 20 20 20 20
-182+  8125 42 00 00 01
-182+  8129 01 00
-183+  812B 00 00 00...          defs 5,0
-184+  8130                      ; Entry 127: file "LAST    C", 512-byte CODE.
-185+  8130                      org p127_trdos_test_directory+127*P127_TRDOS_ENTRY_SIZE
-186+  88ED 4C 41 53 54          db "LAST    ",'C',0,0,0,2,0
-186+  88F1 20 20 20 20
-186+  88F5 43 00 00 00
-186+  88F9 02 00
-187+  88FB 00 00 00...          defs 5,0
-188+  8900              p127_trdos_test_directory_end:
-atm_trdos_service.asm(189): error: [ASSERT] Assertion failed:  p127_trdos_test_directory_end-p127_trdos_test_directory=P127_TRDOS_DIR_BYTES
-189+  8900                      ASSERT p127_trdos_test_directory_end-p127_trdos_test_directory=P127_TRDOS_DIR_BYTES
-190+  8900
+ 70+  804F 28 14                jr z,p127_trdos_catalog_type_ok
+ 71+  8051 FE 44                cp 'D'
+ 72+  8053 28 10                jr z,p127_trdos_catalog_type_ok
+ 73+  8055 FE 23                cp '#'
+ 74+  8057 28 0C                jr z,p127_trdos_catalog_type_ok
+ 75+  8059 FE 24                cp '$'
+ 76+  805B 28 08                jr z,p127_trdos_catalog_type_ok
+ 77+  805D E1                   pop hl
+ 78+  805E 3E 02                ld a,2
+ 79+  8060 32 00 81             ld (p127_trdos_dir_error),a
+ 80+  8063 18 17                jr p127_trdos_catalog_next_error
+ 81+  8065              p127_trdos_catalog_type_ok:
+ 82+  8065 E1                   pop hl
+ 83+  8066 3A FF 80             ld a,(p127_trdos_dir_index)
+ 84+  8069 3C                   inc a
+ 85+  806A 32 FF 80             ld (p127_trdos_dir_index),a
+ 86+  806D 3D                   dec a
+ 87+  806E B7                   or a
+ 88+  806F C9                   ret
+ 89+  8070              p127_trdos_catalog_skip:
+ 90+  8070 3A FF 80             ld a,(p127_trdos_dir_index)
+ 91+  8073 3C                   inc a
+ 92+  8074 32 FF 80             ld (p127_trdos_dir_index),a
+ 93+  8077 18 AF                jr p127_trdos_catalog_next_loop
+ 94+  8079              p127_trdos_catalog_next_end:
+ 95+  8079 AF                   xor a
+ 96+  807A 37                   scf
+ 97+  807B C9                   ret
+ 98+  807C              p127_trdos_catalog_next_error:
+ 99+  807C 3A 00 81             ld a,(p127_trdos_dir_error)
+100+  807F 37                   scf
+101+  8080 C9                   ret
+102+  8081
+103+  8081              ; Count all live records, preserving iterator-independent directory base.
+104+  8081              p127_trdos_catalog_count:
+104+  8081
+105+  8081 2A FB 80             ld hl,(p127_trdos_dir_base)
+106+  8084 01 00 08             ld bc,P127_TRDOS_DIR_BYTES
+107+  8087 CD 00 80             call p127_trdos_catalog_begin
+108+  808A D8                   ret c
+109+  808B 01 00 00             ld bc,0
+110+  808E              p127_trdos_catalog_count_loop:
+111+  808E C5                   push bc
+112+  808F CD 22 80             call p127_trdos_catalog_next
+113+  8092 C1                   pop bc
+114+  8093 38 03                jr c,p127_trdos_catalog_count_done
+115+  8095 03                   inc bc
+116+  8096 18 F6                jr p127_trdos_catalog_count_loop
+117+  8098              p127_trdos_catalog_count_done:
+118+  8098 3A 00 81             ld a,(p127_trdos_dir_error)
+119+  809B B7                   or a
+120+  809C 20 02                jr nz,p127_trdos_catalog_count_error
+121+  809E B7                   or a
+122+  809F C9                   ret
+123+  80A0              p127_trdos_catalog_count_error:
+124+  80A0 3A 00 81             ld a,(p127_trdos_dir_error)
+125+  80A3 37                   scf
+126+  80A4 C9                   ret
+127+  80A5
+128+  80A5              ; Synthetic test: one free, one deleted, two live records, final boundary.
+129+  80A5              p127_trdos_catalog_selftest:
+129+  80A5
+130+  80A5 21 01 81             ld hl,p127_trdos_test_directory
+131+  80A8 01 00 08             ld bc,P127_TRDOS_DIR_BYTES
+132+  80AB CD 00 80             call p127_trdos_catalog_begin
+133+  80AE 38 33                jr c,p127_trdos_test_fail_1
+134+  80B0 CD 81 80             call p127_trdos_catalog_count
+135+  80B3 38 32                jr c,p127_trdos_test_fail_2
+136+  80B5 78                   ld a,b
+137+  80B6 B7                   or a
+138+  80B7 20 32                jr nz,p127_trdos_test_fail_3
+139+  80B9 79                   ld a,c
+140+  80BA FE 02                cp 2
+141+  80BC 20 2D                jr nz,p127_trdos_test_fail_3
+142+  80BE                      ; First live record must be directory index 2.
+143+  80BE 21 01 81             ld hl,p127_trdos_test_directory
+144+  80C1 01 00 08             ld bc,P127_TRDOS_DIR_BYTES
+145+  80C4 CD 00 80             call p127_trdos_catalog_begin
+146+  80C7 CD 22 80             call p127_trdos_catalog_next
+147+  80CA 38 23                jr c,p127_trdos_test_fail_4
+148+  80CC FE 02                cp 2
+149+  80CE 20 1F                jr nz,p127_trdos_test_fail_4
+150+  80D0                      ; Next live record must be index 127 (last directory slot).
+151+  80D0 CD 22 80             call p127_trdos_catalog_next
+152+  80D3 38 1E                jr c,p127_trdos_test_fail_5
+153+  80D5 FE 7F                cp 127
+154+  80D7 20 1A                jr nz,p127_trdos_test_fail_5
+155+  80D9 CD 22 80             call p127_trdos_catalog_next
+156+  80DC 30 19                jr nc,p127_trdos_test_fail_6
+157+  80DE B7                   or a
+158+  80DF 20 16                jr nz,p127_trdos_test_fail_6
+159+  80E1 AF                   xor a
+160+  80E2 C9                   ret
+161+  80E3 3E 01        p127_trdos_test_fail_1: ld a,1
+162+  80E5 18 12                jr p127_trdos_test_fail
+163+  80E7 3E 02        p127_trdos_test_fail_2: ld a,2
+164+  80E9 18 0E                jr p127_trdos_test_fail
+165+  80EB 3E 03        p127_trdos_test_fail_3: ld a,3
+166+  80ED 18 0A                jr p127_trdos_test_fail
+167+  80EF 3E 04        p127_trdos_test_fail_4: ld a,4
+168+  80F1 18 06                jr p127_trdos_test_fail
+169+  80F3 3E 05        p127_trdos_test_fail_5: ld a,5
+170+  80F5 18 02                jr p127_trdos_test_fail
+171+  80F7 3E 06        p127_trdos_test_fail_6: ld a,6
+172+  80F9              p127_trdos_test_fail:
+173+  80F9 37                   scf
+174+  80FA C9                   ret
+175+  80FB
+176+  80FB 00 00        p127_trdos_dir_base: dw 0
+177+  80FD 00 00        p127_trdos_dir_length: dw 0
+178+  80FF 00           p127_trdos_dir_index: db 0
+179+  8100 00           p127_trdos_dir_error: db 0
+180+  8101              p127_trdos_test_directory:
+181+  8101                      ; Slots 0-1 are free; slot 2 is a one-sector BASIC file.
+182+  8101 00 00 00...          defs 2*P127_TRDOS_ENTRY_SIZE,0
+183+  8121 54 45 53 54          db "TEST    ",'B',0,0,1,1,0
+183+  8125 20 20 20 20
+183+  8129 42 00 00 01
+183+  812D 01 00
+184+  812F 00 00 00...          defs 5,0
+185+  8134                      ; Slots 3-126 are free; slot 127 is a 512-byte CODE file.
+186+  8134 00 00 00...          defs (P127_TRDOS_DIR_ENTRIES-3-1)*P127_TRDOS_ENTRY_SIZE,0
+187+  88F4 4C 41 53 54          db "LAST    ",'C',0,0,0,2,0
+187+  88F8 20 20 20 20
+187+  88FC 43 00 00 00
+187+  8900 02 00
+188+  8902 00 00 00...          defs 5,0
+189+  8907              p127_trdos_test_directory_end:
+190+  8907              p127_trdos_service_end:
+atm_trdos_service.asm(191): error: [ASSERT] Assertion failed:  p127_trdos_test_directory_end-p127_trdos_test_directory=P127_TRDOS_DIR_BYTES
+191+  8907                      ASSERT p127_trdos_test_directory_end-p127_trdos_test_directory=P127_TRDOS_DIR_BYTES
+192+  8907                      ASSERT p127_trdos_service_end<=#A000
+193+  8907
 # file closed: atm_trdos_service.asm
- 17   8900
- 18   8900                      ; Keep the proven single-file TR-DOS boot path.
- 19   8900                      PAGE 0
- 20   8900                      ORG #A000
+ 17   8907
+ 18   8907                      ; Keep the proven single-file TR-DOS boot path.
+ 19   8907                      PAGE 0
+ 20   8907                      ORG #A000
  21   A000                      INCLUDE "atm_host/p127_screen_console.asm"
 # file opened: p127_screen_console.asm
   1+  A000              ; =========================================================================
@@ -4243,34 +4246,35 @@ Value    Label
 0x6582   p127_range_valid
 0x8019   p127_trdos_catalog_bad_length
 0x8000   p127_trdos_catalog_begin
-0x807D   p127_trdos_catalog_count
-0x8094   p127_trdos_catalog_count_done
-0x809C   p127_trdos_catalog_count_error
-0x808A   p127_trdos_catalog_count_loop
+0x8081   p127_trdos_catalog_count
+0x8098   p127_trdos_catalog_count_done
+0x80A0   p127_trdos_catalog_count_error
+0x808E   p127_trdos_catalog_count_loop
 0x8020   p127_trdos_catalog_length_ok
 0x8022   p127_trdos_catalog_next
-0x8075   p127_trdos_catalog_next_end
-0x8078   p127_trdos_catalog_next_error
+0x8079   p127_trdos_catalog_next_end
+0x807C   p127_trdos_catalog_next_error
 0x8028   p127_trdos_catalog_next_loop
-0x80A1   p127_trdos_catalog_selftest
-0x806C   p127_trdos_catalog_skip
-0x8061   p127_trdos_catalog_type_ok
-0x80F7   p127_trdos_dir_base
+0x80A5   p127_trdos_catalog_selftest
+0x8070   p127_trdos_catalog_skip
+0x8065   p127_trdos_catalog_type_ok
+0x80FB   p127_trdos_dir_base
 0x0800   P127_TRDOS_DIR_BYTES
 0x0080   P127_TRDOS_DIR_ENTRIES
-0x80FC   p127_trdos_dir_error
-0x80FB   p127_trdos_dir_index
-0x80F9   p127_trdos_dir_length
+0x8100   p127_trdos_dir_error
+0x80FF   p127_trdos_dir_index
+0x80FD   p127_trdos_dir_length
 0x0010   P127_TRDOS_ENTRY_SIZE
-0x80FD   p127_trdos_test_directory
-0x8900   p127_trdos_test_directory_end
-0x80F5   p127_trdos_test_fail
-0x80DF   p127_trdos_test_fail_1
-0x80E3   p127_trdos_test_fail_2
-0x80E7   p127_trdos_test_fail_3
-0x80EB   p127_trdos_test_fail_4
-0x80EF   p127_trdos_test_fail_5
-0x80F3   p127_trdos_test_fail_6
+0x8907   p127_trdos_service_end
+0x8101   p127_trdos_test_directory
+0x8907   p127_trdos_test_directory_end
+0x80F9   p127_trdos_test_fail
+0x80E3   p127_trdos_test_fail_1
+0x80E7   p127_trdos_test_fail_2
+0x80EB   p127_trdos_test_fail_3
+0x80EF   p127_trdos_test_fail_4
+0x80F3   p127_trdos_test_fail_5
+0x80F7   p127_trdos_test_fail_6
 0xA260   p127_ui0
 0xA28B   p127_ui1
 0xA2B0   p127_ui2
