@@ -22,6 +22,23 @@ P127_FAT16_ERR_MBR       EQU 20
 P127_FAT16_ERR_PARTITION EQU 21
 P127_FAT16_ERR_BPB       EQU 22
 
+; Combined storage + filesystem startup is kept outside the 8 KiB host image.
+P127_StorageAndFAT16_Startup:
+        call    P127_Storage_Startup
+        jr      c,p127_fat16_storage_missing
+        ld      hl,p127_storage_log_ready
+        call    p127_host_debug_string
+        call    P127_FAT16_Mount
+        jr      c,p127_fat16_mount_missing
+        ld      hl,p127_fat16_log_mounted
+        jp      p127_host_debug_string
+p127_fat16_storage_missing:
+        ld      hl,p127_storage_log_missing
+        jp      p127_host_debug_string
+p127_fat16_mount_missing:
+        ld      hl,p127_fat16_log_failed
+        jp      p127_host_debug_string
+
 P127_FAT16_Mount:
         xor     a
         ld      (p127_fat16_available),a
