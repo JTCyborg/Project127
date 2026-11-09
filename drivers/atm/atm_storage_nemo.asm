@@ -31,11 +31,13 @@ P127_Storage_Startup:
         ld      (p127_storage_available),a
         ld      hl,p127_storage_log_select
         call    p127_host_debug_string
+        ld      hl,p127_storage_log_wait_ready
+        call    p127_host_debug_string
+        ; Match the proven Project127/0 sequence: select Master and poll
+        ; immediately. Do not run console/debug code between these operations.
         ld      a,#E0                 ; master, LBA mode
         ld      bc,P127_NEMO_DRIVE_HEAD
         out     (c),a
-        ld      hl,p127_storage_log_wait_ready
-        call    p127_host_debug_string
         call    p127_storage_wait_ready
         ret     c
         ld      hl,p127_storage_log_ready_status
