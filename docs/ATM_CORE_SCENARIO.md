@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.40**  
+Scenario revision: **0.8.42**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -45,7 +45,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
 | `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract; 16-check exhaustive readiness-mask/prerequisite batch runtime accepted; P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
-| `src/kernel/p127_physmem.asm` | 0.3.2 | Full free-page allocation/uniqueness sweep; per-page address-pattern fill/reverse verification; allocator state/reservation/reuse checks; W3/P0 recovery |
+| `src/kernel/p127_physmem.asm` | 0.3.4 | Full free-page allocation/uniqueness sweep; per-page address-pattern fill/reverse verification; allocator state/reservation/reuse checks; W3/P0 recovery |
 | `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership and software rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel modules |
 ## Stage 1 — physical page-state manager 0.2.0
@@ -599,3 +599,19 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Replaced every boot error-handler branch to `p127_idle` with absolute `JP`. This avoids future range regressions as diagnostics grow and does not alter the failure destinations or runtime test sequence.
 - Boot module advanced from v0.7.0 to v0.7.1; scenario revision advanced to 0.8.40. No memory-test or allocator behavior changed.
 - This is a source-level correction only. SjASMPlus build and emulator runtime verification remain pending the user's rebuild.
+
+
+### 2026-11-09 — Stage 2.19 execution trace markers v0.3.3
+
+- User runtime log passes all boot diagnostics through `MAP MODEL TEST PASS` but does not return from `p127_physmem_batch_selftest`. The last visible line alone cannot distinguish a slow full-page sweep from a loop/control-flow fault.
+- Added single-character phase markers sent directly to the established debug port `#EF`, which remains available while the UI is quiesced and W3 is leased: `S`=physical batch entered, `2`=two-page Stage 2.18 tests completed, `A`=allocator exhaustion/list completed, `F`=57-page fill sweep completed, `V`=reverse verification completed, `C`=cleanup entered.
+- Physical-memory module advanced to v0.3.3; scenario revision 0.8.41. No test pattern, page mapping, allocator, or cleanup semantics changed. These markers are diagnostic only and intentionally avoid calling UI routines while W3 ownership is held.
+- Build/runtime verification pending. The next #EF log's last marker will localize the stalled phase.
+
+
+### 2026-11-09 — Stage 2.19 per-page progress output v0.3.4
+
+- Added a readable #EF progress line immediately before each page operation in the exhaustive physical W3 sweep: `FILL PAGE ID=xx` for the fill pass and `VERIFY PAGE ID=xx` for the reverse verification pass. The page ID is printed as two hexadecimal digits.
+- The progress routine preserves AF/BC/DE/HL so it cannot corrupt the page-list traversal or pattern seed. Output is sent directly to the already established debug port while UI ownership is quiesced; it does not invoke UI/BIOS console code.
+- Physical-memory module advanced to v0.3.4; scenario revision 0.8.42. Existing phase markers remain. No mapping, test-pattern, allocation or cleanup behavior changed.
+- Expected output is 57 FILL lines followed by 57 VERIFY lines, followed by the existing completion marker. Build and emulator verification are pending.
