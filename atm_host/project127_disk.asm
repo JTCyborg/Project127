@@ -8,13 +8,12 @@
         EMPTYTRD "disk_A.trd"
 
         PAGE 0
-        ORG P127_HOST_LOAD_ADDRESS
         INCLUDE "atm_host/p127_host.asm"
         SAVETRD "disk_A.trd", "P127HOST.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
 
         PAGE 0
         ORG #E000
         INCLUDE "atm_host/boot_loader.generated.asm"
-        SAVETRD "disk_A.trd", "BOOT.B", BASIC_START, BASIC_END-BASIC_START
+        SAVETRD "disk_A.trd", "boot.B", BASIC_START, BASIC_END-BASIC_START
 
         PAGE 0
