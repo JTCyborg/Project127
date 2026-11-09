@@ -57,6 +57,7 @@ p127_host_entry:
         call    P127_DebugConsole_Init
         ld      a,1
         ld      (p127_host_console_ready),a
+        call    P127_RTC_Startup
         ld      hl,p127_host_ui_ready
         call    p127_host_debug_string
         jp      p127_host_idle
@@ -228,8 +229,6 @@ p127_host_debug_string:
         jr      .debug_serial
 
 p127_host_console_ready: db 0
-p127_host_ui_ready:
-        db "[P127] PROJECT126-STYLE HOST CONSOLE READY",13,10,0
 p127_host_banner:
         db "[P127] ATM HOST ENTRY v0.11.0",13,10
         db "[P127] TR-DOS BOOT OK",13,10
