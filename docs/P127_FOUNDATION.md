@@ -132,14 +132,39 @@ The foundation is not considered complete until the following pass independently
 
 Test output must include project name, firmware build ID, ABI version, test size, source/destination offsets, CRC, and PASS/FAIL.
 
-## 9. Implementation order
+## 9. ATM Turbo 2+ physical page map (verified source baseline)
 
-1. Freeze this memory/module/DMA ABI.
-2. Implement ATM memory backend and its allocator/stream primitives.
-3. Implement NeoGS memory backend and its allocator/stream primitives.
-4. Implement shared DMA streaming and capability negotiation.
-5. Implement module packer/loader/linker relocation and far-call runtime.
-6. Run the acceptance tests without the x86 emulator.
-7. Only then add the 8086 CPU and guest memory/device models.
+ATM2+ exposes 64 physical 16 KiB RAM pages. The memory dispatcher at the
+shadow port family #3FF7/#7FF7/#BFF7/#FFF7 selects which page is visible in
+CPU windows 0..3. D0-D5 are the inverted page number, D6 selects RAM, and
+D7=0 selects the fixed dispatcher page number. The page number is therefore
+an internal backend detail; public requests remain 32-bit byte offsets and
+lengths.
+
+The current ATM runtime reserves physical pages:
+- 0: active system/BASIC memory map;
+- 1 and 5: Project112 ATM video planes;
+- 3 and 7: alternate ZX video pages selected through the ZX-128 screen bit;
+- 2: Project127 host stack and stable transfer/runtime window.
+
+The current host image is loaded in the page-5 window, so page 5 is reserved
+for both host code and video use. The reserved bitmap is #AF followed by
+seven zero bytes. The remaining 58 pages (0x000E8000 bytes) are eligible for
+allocation. The first allocator implementation returns contiguous runs of
+physical pages and returns a 32-bit byte offset; it does not expose page
+numbers to callers. A 16 KiB+1 allocation is covered by the runtime allocator
+self-test. Multi-extent handles and byte READ/WRITE/FILL/COPY are not yet
+advertised as implemented.
+
+## 10. Implementation order
+
+1. Extend the ATM contiguous allocator to multi-extent handles and implement
+   READ/WRITE/FILL/COPY with internal physical-page chunking.
+2. Implement the NeoGS memory backend and reserve its firmware/stack/IRQ/DMA
+   regions before advertising allocatable capacity.
+3. Implement shared DMA streaming and capability negotiation.
+4. Implement module packer/loader/linker relocation and far-call runtime.
+5. Run the acceptance tests without the x86 emulator.
+6. Only then add the 8086 CPU and guest memory/device models.
 
 Project126's fixed 16 KiB overlay/module layout is a historical reference only. It is not the Project127 implementation template.

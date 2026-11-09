@@ -149,8 +149,10 @@ atm_mem_selftest_fail:
 atm_mem_capabilities:
         db      "P127"
         db      P127_ABI_MAJOR,P127_ABI_MINOR
-        db      0
+        db      #07                 ; range + page-map + alloc/free
         db      0
         db      #00,#00,#10,#00
-        db      #00,#00,#00,#00
+        db      #00,#80,#0E,#00     ; 58 pages = 0x000E8000 bytes allocatable
         db      P127_MEM_CAPS_SIZE,0
+
+        INCLUDE "drivers/atm/atm_memory_manager.asm"
