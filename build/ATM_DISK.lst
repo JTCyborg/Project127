@@ -63,9 +63,9 @@
  50+  6064 DA A5 60             jp      c,p127_host_trdos_fail
  51+  6067 21 EF 62             ld      hl,p127_host_trdos_ok
  52+  606A CD BA 61             call    p127_host_debug_string
- 53+  606D CD 31 91             call    P127_ATM_Video_SelfTest
- 54+  6070 DA 3D 92             jp      c,p127_video_host_fail_handler
- 55+  6073 21 D6 91             ld      hl,p127_host_video_ok
+ 53+  606D CD 33 91             call    P127_ATM_Video_SelfTest
+ 54+  6070 DA 3F 92             jp      c,p127_video_host_fail_handler
+ 55+  6073 21 D8 91             ld      hl,p127_host_video_ok
  56+  6076 CD BA 61             call    p127_host_debug_string
  57+  6079 CD 00 A0             call    P127_DebugConsole_Init
  58+  607C 3E 01                ld      a,1
@@ -3346,15 +3346,15 @@
  35+  900B              ; D=row, E=column. Returns HL=offset from text-plane base.
  36+  900B              P127_ATM_Video_CalcOffset:
  37+  900B 7B                   ld a,e
- 38+  900C 32 CF 91             ld (p127_video_column),a
+ 38+  900C 32 D1 91             ld (p127_video_column),a
  39+  900F 7A                   ld a,d
- 40+  9010 32 CE 91             ld (p127_video_row),a
+ 40+  9010 32 D0 91             ld (p127_video_row),a
  41+  9013 FE 19                cp P127_ATM_VIDEO_ROWS
  42+  9015 30 22                jr nc,p127_video_bad_coordinate
- 43+  9017 3A CF 91             ld a,(p127_video_column)
+ 43+  9017 3A D1 91             ld a,(p127_video_column)
  44+  901A FE 50                cp P127_ATM_VIDEO_COLUMNS
  45+  901C 30 1B                jr nc,p127_video_bad_coordinate
- 46+  901E 3A CE 91             ld a,(p127_video_row)
+ 46+  901E 3A D0 91             ld a,(p127_video_row)
  47+  9021 6F                   ld l,a
  48+  9022 26 00                ld h,0
  49+  9024 29                   add hl,hl
@@ -3365,7 +3365,7 @@
  54+  9029 29                   add hl,hl
  55+  902A 11 C0 01             ld de,#01C0
  56+  902D 19                   add hl,de
- 57+  902E 3A CF 91             ld a,(p127_video_column)
+ 57+  902E 3A D1 91             ld a,(p127_video_column)
  58+  9031 CB 3F                srl a
  59+  9033 5F                   ld e,a
  60+  9034 16 00                ld d,0
@@ -3385,38 +3385,38 @@
  73+  9040              ; D=row, E=column, A=character, B=attribute.
  74+  9040              P127_ATM_Video_WriteCellEx:
  74+  9040
- 75+  9040 32 D0 91             ld (p127_video_character),a
+ 75+  9040 32 D2 91             ld (p127_video_character),a
  76+  9043 78                   ld a,b
- 77+  9044 32 D1 91             ld (p127_video_attribute),a
+ 77+  9044 32 D3 91             ld (p127_video_attribute),a
  78+  9047 CD 0B 90             call P127_ATM_Video_CalcOffset
  79+  904A D8                   ret c
- 80+  904B 22 D2 91             ld (p127_video_offset),hl
+ 80+  904B 22 D4 91             ld (p127_video_offset),hl
  81+  904E CD D0 90             call p127_video_map
- 82+  9051 3A CF 91             ld a,(p127_video_column)
+ 82+  9051 3A D1 91             ld a,(p127_video_column)
  83+  9054 E6 01                and 1
  84+  9056 20 18                jr nz,p127_video_write_odd
- 85+  9058 2A D2 91             ld hl,(p127_video_offset)
+ 85+  9058 2A D4 91             ld hl,(p127_video_offset)
  86+  905B 11 00 40             ld de,#4000
  87+  905E 19                   add hl,de
- 88+  905F 3A D0 91             ld a,(p127_video_character)
+ 88+  905F 3A D2 91             ld a,(p127_video_character)
  89+  9062 77                   ld (hl),a
- 90+  9063 2A D2 91             ld hl,(p127_video_offset)
+ 90+  9063 2A D4 91             ld hl,(p127_video_offset)
  91+  9066 11 00 E0             ld de,#E000
  92+  9069 19                   add hl,de
- 93+  906A 3A D1 91             ld a,(p127_video_attribute)
+ 93+  906A 3A D3 91             ld a,(p127_video_attribute)
  94+  906D 77                   ld (hl),a
  95+  906E 18 17                jr p127_video_write_restore
  96+  9070              p127_video_write_odd:
- 97+  9070 2A D2 91             ld hl,(p127_video_offset)
+ 97+  9070 2A D4 91             ld hl,(p127_video_offset)
  98+  9073 11 00 60             ld de,#6000
  99+  9076 19                   add hl,de
-100+  9077 3A D0 91             ld a,(p127_video_character)
+100+  9077 3A D2 91             ld a,(p127_video_character)
 101+  907A 77                   ld (hl),a
-102+  907B 2A D2 91             ld hl,(p127_video_offset)
+102+  907B 2A D4 91             ld hl,(p127_video_offset)
 103+  907E 11 00 C0             ld de,#C000
 104+  9081 19                   add hl,de
 105+  9082 23                   inc hl
-106+  9083 3A D1 91             ld a,(p127_video_attribute)
+106+  9083 3A D3 91             ld a,(p127_video_attribute)
 107+  9086 77                   ld (hl),a
 108+  9087              p127_video_write_restore:
 109+  9087 CD DF 90             call p127_video_restore
@@ -3428,29 +3428,29 @@
 114+  908C
 115+  908C CD 0B 90             call P127_ATM_Video_CalcOffset
 116+  908F D8                   ret c
-117+  9090 22 D2 91             ld (p127_video_offset),hl
+117+  9090 22 D4 91             ld (p127_video_offset),hl
 118+  9093 CD D0 90             call p127_video_map
-119+  9096 3A CF 91             ld a,(p127_video_column)
+119+  9096 3A D1 91             ld a,(p127_video_column)
 120+  9099 E6 01                and 1
 121+  909B 20 16                jr nz,p127_video_read_odd
-122+  909D 2A D2 91             ld hl,(p127_video_offset)
+122+  909D 2A D4 91             ld hl,(p127_video_offset)
 123+  90A0 11 00 40             ld de,#4000
 124+  90A3 19                   add hl,de
 125+  90A4 7E                   ld a,(hl)
-126+  90A5 32 D0 91             ld (p127_video_character),a
-127+  90A8 2A D2 91             ld hl,(p127_video_offset)
+126+  90A5 32 D2 91             ld (p127_video_character),a
+127+  90A8 2A D4 91             ld hl,(p127_video_offset)
 128+  90AB 11 00 E0             ld de,#E000
 129+  90AE 19                   add hl,de
 130+  90AF 7E                   ld a,(hl)
 131+  90B0 47                   ld b,a
 132+  90B1 18 15                jr p127_video_read_restore
 133+  90B3              p127_video_read_odd:
-134+  90B3 2A D2 91             ld hl,(p127_video_offset)
+134+  90B3 2A D4 91             ld hl,(p127_video_offset)
 135+  90B6 11 00 60             ld de,#6000
 136+  90B9 19                   add hl,de
 137+  90BA 7E                   ld a,(hl)
-138+  90BB 32 D0 91             ld (p127_video_character),a
-139+  90BE 2A D2 91             ld hl,(p127_video_offset)
+138+  90BB 32 D2 91             ld (p127_video_character),a
+139+  90BE 2A D4 91             ld hl,(p127_video_offset)
 140+  90C1 11 00 C0             ld de,#C000
 141+  90C4 19                   add hl,de
 142+  90C5 23                   inc hl
@@ -3458,7 +3458,7 @@
 144+  90C7 47                   ld b,a
 145+  90C8              p127_video_read_restore:
 146+  90C8 CD DF 90             call p127_video_restore
-147+  90CB 3A D0 91             ld a,(p127_video_character)
+147+  90CB 3A D2 91             ld a,(p127_video_character)
 148+  90CE B7                   or a
 149+  90CF C9                   ret
 150+  90D0
@@ -3472,194 +3472,198 @@
 158+  90DE C9                   ret
 159+  90DF
 160+  90DF              p127_video_restore:
-161+  90DF 3E 7A                ld a,P127_ATM_VIDEO_HOST_PAGE5
-162+  90E1 01 F7 7F             ld bc,#7FF7
-163+  90E4 ED 79                out (c),a
-164+  90E6 3E 7F                ld a,P127_ATM_VIDEO_HOST_PAGE0
-165+  90E8 01 F7 FF             ld bc,#FFF7
-166+  90EB ED 79                out (c),a
-167+  90ED C9                   ret
-168+  90EE
-169+  90EE              P127_ATM_Video_Clear:
-169+  90EE
-170+  90EE F5                   push af
-171+  90EF C5                   push bc
-172+  90F0 D5                   push de
-173+  90F1 E5                   push hl
-174+  90F2 CD D0 90             call p127_video_map
-175+  90F5 21 C0 41             ld hl,#41C0
-176+  90F8 11 C1 41             ld de,#41C1
-177+  90FB 36 20                ld (hl),32
-178+  90FD 01 3F 06             ld bc,#063F
-179+  9100 ED B0                ldir
-180+  9102 21 C0 61             ld hl,#61C0
-181+  9105 11 C1 61             ld de,#61C1
-182+  9108 36 20                ld (hl),32
-183+  910A 01 3F 06             ld bc,#063F
-184+  910D ED B0                ldir
-185+  910F 21 C0 E1             ld hl,#E1C0
-186+  9112 11 C1 E1             ld de,#E1C1
-187+  9115 36 44                ld (hl),P127_ATM_VIDEO_DEFAULT_ATTR
-188+  9117 01 3F 06             ld bc,#063F
-189+  911A ED B0                ldir
-190+  911C 21 C1 C1             ld hl,#C1C1
-191+  911F 11 C2 C1             ld de,#C1C2
-192+  9122 36 44                ld (hl),P127_ATM_VIDEO_DEFAULT_ATTR
-193+  9124 01 3F 06             ld bc,#063F
-194+  9127 ED B0                ldir
-195+  9129 CD DF 90             call p127_video_restore
-196+  912C E1                   pop hl
-197+  912D D1                   pop de
-198+  912E C1                   pop bc
-199+  912F F1                   pop af
-200+  9130 C9                   ret
-201+  9131
-202+  9131              ; Runtime test of both character/attribute parity layouts. Original cells are
-203+  9131              ; restored before returning, including when a readback comparison fails.
-204+  9131              P127_ATM_Video_SelfTest:
-204+  9131
-205+  9131 16 00                ld d,0
-206+  9133 1E 00                ld e,0
-207+  9135 CD 8C 90             call P127_ATM_Video_ReadCell
-208+  9138 38 69                jr c,p127_video_test_fail_1
-209+  913A 32 D4 91             ld (p127_video_saved_char),a
-210+  913D 78                   ld a,b
-211+  913E 32 D5 91             ld (p127_video_saved_attr),a
-212+  9141 16 00                ld d,0
-213+  9143 1E 00                ld e,0
-214+  9145 3E 51                ld a,#51
-215+  9147 06 2A                ld b,#2A
-216+  9149 CD 40 90             call P127_ATM_Video_WriteCellEx
-217+  914C 38 55                jr c,p127_video_test_fail_1
-218+  914E 16 00                ld d,0
-219+  9150 1E 00                ld e,0
-220+  9152 CD 8C 90             call P127_ATM_Video_ReadCell
-221+  9155 38 49                jr c,p127_video_test_restore_0_fail
-222+  9157 FE 51                cp #51
-223+  9159 20 45                jr nz,p127_video_test_restore_0_fail
-224+  915B 78                   ld a,b
-225+  915C FE 2A                cp #2A
-226+  915E 20 40                jr nz,p127_video_test_restore_0_fail
-227+  9160 CD B2 91             call p127_video_restore_cell_0
-228+  9163
-229+  9163 16 18                ld d,24
-230+  9165 1E 4F                ld e,79
-231+  9167 CD 8C 90             call P127_ATM_Video_ReadCell
-232+  916A 38 3E                jr c,p127_video_test_fail_2
-233+  916C 32 D4 91             ld (p127_video_saved_char),a
-234+  916F 78                   ld a,b
-235+  9170 32 D5 91             ld (p127_video_saved_attr),a
-236+  9173 16 18                ld d,24
-237+  9175 1E 4F                ld e,79
-238+  9177 3E A6                ld a,#A6
-239+  9179 06 35                ld b,#35
-240+  917B CD 40 90             call P127_ATM_Video_WriteCellEx
-241+  917E 38 2A                jr c,p127_video_test_fail_2
-242+  9180 16 18                ld d,24
-243+  9182 1E 4F                ld e,79
-244+  9184 CD 8C 90             call P127_ATM_Video_ReadCell
-245+  9187 38 1E                jr c,p127_video_test_restore_1_fail
-246+  9189 FE A6                cp #A6
-247+  918B 20 1A                jr nz,p127_video_test_restore_1_fail
-248+  918D 78                   ld a,b
-249+  918E FE 35                cp #35
-250+  9190 20 15                jr nz,p127_video_test_restore_1_fail
-251+  9192 CD C0 91             call p127_video_restore_cell_1
-252+  9195
-253+  9195 16 19                ld d,25
-254+  9197 1E 00                ld e,0
-255+  9199 CD 0B 90             call P127_ATM_Video_CalcOffset
-256+  919C 30 10                jr nc,p127_video_test_fail_3
-257+  919E AF                   xor a
-258+  919F C9                   ret
-259+  91A0
-260+  91A0              p127_video_test_restore_0_fail:
-261+  91A0 CD B2 91             call p127_video_restore_cell_0
-262+  91A3              p127_video_test_fail_1:
-263+  91A3 3E 01                ld a,1
-264+  91A5 18 09                jr p127_video_test_fail
-265+  91A7              p127_video_test_restore_1_fail:
-266+  91A7 CD C0 91             call p127_video_restore_cell_1
-267+  91AA              p127_video_test_fail_2:
-268+  91AA 3E 02                ld a,2
-269+  91AC 18 02                jr p127_video_test_fail
-270+  91AE              p127_video_test_fail_3:
-271+  91AE 3E 03                ld a,3
-272+  91B0              p127_video_test_fail:
-273+  91B0 37                   scf
-274+  91B1 C9                   ret
-275+  91B2
-276+  91B2              p127_video_restore_cell_0:
-277+  91B2 16 00                ld d,0
-278+  91B4 1E 00                ld e,0
-279+  91B6 3A D5 91             ld a,(p127_video_saved_attr)
-280+  91B9 47                   ld b,a
-281+  91BA 3A D4 91             ld a,(p127_video_saved_char)
-282+  91BD C3 40 90             jp P127_ATM_Video_WriteCellEx
-283+  91C0
-284+  91C0              p127_video_restore_cell_1:
-285+  91C0 16 18                ld d,24
-286+  91C2 1E 4F                ld e,79
-287+  91C4 3A D5 91             ld a,(p127_video_saved_attr)
-288+  91C7 47                   ld b,a
-289+  91C8 3A D4 91             ld a,(p127_video_saved_char)
-290+  91CB C3 40 90             jp P127_ATM_Video_WriteCellEx
-291+  91CE
-292+  91CE 00           p127_video_row:          db 0
-293+  91CF 00           p127_video_column:       db 0
-294+  91D0 00           p127_video_character:    db 0
-295+  91D1 00           p127_video_attribute:    db 0
-296+  91D2 00 00        p127_video_offset:       dw 0
-297+  91D4 00           p127_video_saved_char:   db 0
-298+  91D5 00           p127_video_saved_attr:   db 0
-299+  91D6              p127_host_video_ok:
-300+  91D6 5B 50 31 32          db "[P127] ATM NATIVE VIDEO CORE v0.2.0 SELFTEST PASS",13,10,0
-300+  91DA 37 5D 20 41
-300+  91DE 54 4D 20 4E
-300+  91E2 41 54 49 56
-300+  91E6 45 20 56 49
-300+  91EA 44 45 4F 20
-300+  91EE 43 4F 52 45
-300+  91F2 20 76 30 2E
-300+  91F6 32 2E 30 20
-300+  91FA 53 45 4C 46
-300+  91FE 54 45 53 54
-300+  9202 20 50 41 53
-300+  9206 53 0D 0A 00
-301+  920A              p127_host_video_error:
-302+  920A 5B 50 31 32          db "[P127] ATM NATIVE VIDEO CORE SELFTEST FAIL STEP=0x",0
-302+  920E 37 5D 20 41
-302+  9212 54 4D 20 4E
-302+  9216 41 54 49 56
-302+  921A 45 20 56 49
-302+  921E 44 45 4F 20
-302+  9222 43 4F 52 45
-302+  9226 20 53 45 4C
-302+  922A 46 54 45 53
-302+  922E 54 20 46 41
-302+  9232 49 4C 20 53
-302+  9236 54 45 50 3D
-302+  923A 30 78 00
-303+  923D
-304+  923D              p127_video_host_fail_handler:
-305+  923D 57                   ld d,a
-306+  923E 21 0A 92             ld hl,p127_host_video_error
-307+  9241 CD BA 61             call p127_host_debug_string
-308+  9244 7A                   ld a,d
-309+  9245 CD A0 61             call p127_host_debug_hex_byte
-310+  9248 3E 0D                ld a,13
-311+  924A CD 86 61             call p127_host_debug_char
-312+  924D 3E 0A                ld a,10
-313+  924F CD 86 61             call p127_host_debug_char
-314+  9252 C3 82 61             jp p127_host_idle
-315+  9255
-316+  9255              p127_atm_video_service_end:
-317+  9255                      ASSERT p127_atm_video_service_end<=#9400
-318+  9255
+161+  90DF                      ; BC is caller-visible in ReadCell: B returns the attribute.
+162+  90DF                      ; Preserve it while restoring the ATM page registers.
+163+  90DF C5                   push bc
+164+  90E0 3E 7A                ld a,P127_ATM_VIDEO_HOST_PAGE5
+165+  90E2 01 F7 7F             ld bc,#7FF7
+166+  90E5 ED 79                out (c),a
+167+  90E7 3E 7F                ld a,P127_ATM_VIDEO_HOST_PAGE0
+168+  90E9 01 F7 FF             ld bc,#FFF7
+169+  90EC ED 79                out (c),a
+170+  90EE C1                   pop bc
+171+  90EF C9                   ret
+172+  90F0
+173+  90F0              P127_ATM_Video_Clear:
+173+  90F0
+174+  90F0 F5                   push af
+175+  90F1 C5                   push bc
+176+  90F2 D5                   push de
+177+  90F3 E5                   push hl
+178+  90F4 CD D0 90             call p127_video_map
+179+  90F7 21 C0 41             ld hl,#41C0
+180+  90FA 11 C1 41             ld de,#41C1
+181+  90FD 36 20                ld (hl),32
+182+  90FF 01 3F 06             ld bc,#063F
+183+  9102 ED B0                ldir
+184+  9104 21 C0 61             ld hl,#61C0
+185+  9107 11 C1 61             ld de,#61C1
+186+  910A 36 20                ld (hl),32
+187+  910C 01 3F 06             ld bc,#063F
+188+  910F ED B0                ldir
+189+  9111 21 C0 E1             ld hl,#E1C0
+190+  9114 11 C1 E1             ld de,#E1C1
+191+  9117 36 44                ld (hl),P127_ATM_VIDEO_DEFAULT_ATTR
+192+  9119 01 3F 06             ld bc,#063F
+193+  911C ED B0                ldir
+194+  911E 21 C1 C1             ld hl,#C1C1
+195+  9121 11 C2 C1             ld de,#C1C2
+196+  9124 36 44                ld (hl),P127_ATM_VIDEO_DEFAULT_ATTR
+197+  9126 01 3F 06             ld bc,#063F
+198+  9129 ED B0                ldir
+199+  912B CD DF 90             call p127_video_restore
+200+  912E E1                   pop hl
+201+  912F D1                   pop de
+202+  9130 C1                   pop bc
+203+  9131 F1                   pop af
+204+  9132 C9                   ret
+205+  9133
+206+  9133              ; Runtime test of both character/attribute parity layouts. Original cells are
+207+  9133              ; restored before returning, including when a readback comparison fails.
+208+  9133              P127_ATM_Video_SelfTest:
+208+  9133
+209+  9133 16 00                ld d,0
+210+  9135 1E 00                ld e,0
+211+  9137 CD 8C 90             call P127_ATM_Video_ReadCell
+212+  913A 38 69                jr c,p127_video_test_fail_1
+213+  913C 32 D6 91             ld (p127_video_saved_char),a
+214+  913F 78                   ld a,b
+215+  9140 32 D7 91             ld (p127_video_saved_attr),a
+216+  9143 16 00                ld d,0
+217+  9145 1E 00                ld e,0
+218+  9147 3E 51                ld a,#51
+219+  9149 06 2A                ld b,#2A
+220+  914B CD 40 90             call P127_ATM_Video_WriteCellEx
+221+  914E 38 55                jr c,p127_video_test_fail_1
+222+  9150 16 00                ld d,0
+223+  9152 1E 00                ld e,0
+224+  9154 CD 8C 90             call P127_ATM_Video_ReadCell
+225+  9157 38 49                jr c,p127_video_test_restore_0_fail
+226+  9159 FE 51                cp #51
+227+  915B 20 45                jr nz,p127_video_test_restore_0_fail
+228+  915D 78                   ld a,b
+229+  915E FE 2A                cp #2A
+230+  9160 20 40                jr nz,p127_video_test_restore_0_fail
+231+  9162 CD B4 91             call p127_video_restore_cell_0
+232+  9165
+233+  9165 16 18                ld d,24
+234+  9167 1E 4F                ld e,79
+235+  9169 CD 8C 90             call P127_ATM_Video_ReadCell
+236+  916C 38 3E                jr c,p127_video_test_fail_2
+237+  916E 32 D6 91             ld (p127_video_saved_char),a
+238+  9171 78                   ld a,b
+239+  9172 32 D7 91             ld (p127_video_saved_attr),a
+240+  9175 16 18                ld d,24
+241+  9177 1E 4F                ld e,79
+242+  9179 3E A6                ld a,#A6
+243+  917B 06 35                ld b,#35
+244+  917D CD 40 90             call P127_ATM_Video_WriteCellEx
+245+  9180 38 2A                jr c,p127_video_test_fail_2
+246+  9182 16 18                ld d,24
+247+  9184 1E 4F                ld e,79
+248+  9186 CD 8C 90             call P127_ATM_Video_ReadCell
+249+  9189 38 1E                jr c,p127_video_test_restore_1_fail
+250+  918B FE A6                cp #A6
+251+  918D 20 1A                jr nz,p127_video_test_restore_1_fail
+252+  918F 78                   ld a,b
+253+  9190 FE 35                cp #35
+254+  9192 20 15                jr nz,p127_video_test_restore_1_fail
+255+  9194 CD C2 91             call p127_video_restore_cell_1
+256+  9197
+257+  9197 16 19                ld d,25
+258+  9199 1E 00                ld e,0
+259+  919B CD 0B 90             call P127_ATM_Video_CalcOffset
+260+  919E 30 10                jr nc,p127_video_test_fail_3
+261+  91A0 AF                   xor a
+262+  91A1 C9                   ret
+263+  91A2
+264+  91A2              p127_video_test_restore_0_fail:
+265+  91A2 CD B4 91             call p127_video_restore_cell_0
+266+  91A5              p127_video_test_fail_1:
+267+  91A5 3E 01                ld a,1
+268+  91A7 18 09                jr p127_video_test_fail
+269+  91A9              p127_video_test_restore_1_fail:
+270+  91A9 CD C2 91             call p127_video_restore_cell_1
+271+  91AC              p127_video_test_fail_2:
+272+  91AC 3E 02                ld a,2
+273+  91AE 18 02                jr p127_video_test_fail
+274+  91B0              p127_video_test_fail_3:
+275+  91B0 3E 03                ld a,3
+276+  91B2              p127_video_test_fail:
+277+  91B2 37                   scf
+278+  91B3 C9                   ret
+279+  91B4
+280+  91B4              p127_video_restore_cell_0:
+281+  91B4 16 00                ld d,0
+282+  91B6 1E 00                ld e,0
+283+  91B8 3A D7 91             ld a,(p127_video_saved_attr)
+284+  91BB 47                   ld b,a
+285+  91BC 3A D6 91             ld a,(p127_video_saved_char)
+286+  91BF C3 40 90             jp P127_ATM_Video_WriteCellEx
+287+  91C2
+288+  91C2              p127_video_restore_cell_1:
+289+  91C2 16 18                ld d,24
+290+  91C4 1E 4F                ld e,79
+291+  91C6 3A D7 91             ld a,(p127_video_saved_attr)
+292+  91C9 47                   ld b,a
+293+  91CA 3A D6 91             ld a,(p127_video_saved_char)
+294+  91CD C3 40 90             jp P127_ATM_Video_WriteCellEx
+295+  91D0
+296+  91D0 00           p127_video_row:          db 0
+297+  91D1 00           p127_video_column:       db 0
+298+  91D2 00           p127_video_character:    db 0
+299+  91D3 00           p127_video_attribute:    db 0
+300+  91D4 00 00        p127_video_offset:       dw 0
+301+  91D6 00           p127_video_saved_char:   db 0
+302+  91D7 00           p127_video_saved_attr:   db 0
+303+  91D8              p127_host_video_ok:
+304+  91D8 5B 50 31 32          db "[P127] ATM NATIVE VIDEO CORE v0.2.0 SELFTEST PASS",13,10,0
+304+  91DC 37 5D 20 41
+304+  91E0 54 4D 20 4E
+304+  91E4 41 54 49 56
+304+  91E8 45 20 56 49
+304+  91EC 44 45 4F 20
+304+  91F0 43 4F 52 45
+304+  91F4 20 76 30 2E
+304+  91F8 32 2E 30 20
+304+  91FC 53 45 4C 46
+304+  9200 54 45 53 54
+304+  9204 20 50 41 53
+304+  9208 53 0D 0A 00
+305+  920C              p127_host_video_error:
+306+  920C 5B 50 31 32          db "[P127] ATM NATIVE VIDEO CORE SELFTEST FAIL STEP=0x",0
+306+  9210 37 5D 20 41
+306+  9214 54 4D 20 4E
+306+  9218 41 54 49 56
+306+  921C 45 20 56 49
+306+  9220 44 45 4F 20
+306+  9224 43 4F 52 45
+306+  9228 20 53 45 4C
+306+  922C 46 54 45 53
+306+  9230 54 20 46 41
+306+  9234 49 4C 20 53
+306+  9238 54 45 50 3D
+306+  923C 30 78 00
+307+  923F
+308+  923F              p127_video_host_fail_handler:
+309+  923F 57                   ld d,a
+310+  9240 21 0C 92             ld hl,p127_host_video_error
+311+  9243 CD BA 61             call p127_host_debug_string
+312+  9246 7A                   ld a,d
+313+  9247 CD A0 61             call p127_host_debug_hex_byte
+314+  924A 3E 0D                ld a,13
+315+  924C CD 86 61             call p127_host_debug_char
+316+  924F 3E 0A                ld a,10
+317+  9251 CD 86 61             call p127_host_debug_char
+318+  9254 C3 82 61             jp p127_host_idle
+319+  9257
+320+  9257              p127_atm_video_service_end:
+321+  9257                      ASSERT p127_atm_video_service_end<=#9400
+322+  9257
 # file closed: atm_video_service.asm
- 22   9255
- 23   9255                      ; Keep the RTC in its own non-overlapping range after the v0.2 video core.
- 24   9255                      ORG #9400
+ 22   9257
+ 23   9257                      ; Keep the RTC in its own non-overlapping range after the v0.2 video core.
+ 24   9257                      ORG #9400
  25   9400                      INCLUDE "drivers/atm/atm_rtc_service.asm"
 # file opened: atm_rtc_service.asm
   1+  9400              ; =========================================================================
@@ -5063,7 +5067,7 @@ Value    Label
 0x0001   P127_ABI_MAJOR
 0x0000   P127_ABI_MINOR
 0x900B   P127_ATM_Video_CalcOffset
-0x90EE X P127_ATM_Video_Clear
+0x90F0 X P127_ATM_Video_Clear
 0x0050   P127_ATM_VIDEO_COLUMNS
 0x0044   P127_ATM_VIDEO_DEFAULT_ATTR
 0x0FA0   P127_ATM_VIDEO_FRAME_BYTES
@@ -5075,8 +5079,8 @@ Value    Label
 0x9000 X P127_ATM_Video_Query
 0x908C   P127_ATM_Video_ReadCell
 0x0019   P127_ATM_VIDEO_ROWS
-0x9131   P127_ATM_Video_SelfTest
-0x9255   p127_atm_video_service_end
+0x9133   P127_ATM_Video_SelfTest
+0x9257   p127_atm_video_service_end
 0x0200 X P127_ATM_VIDEO_VERSION
 0x903B X P127_ATM_Video_WriteCell
 0x9040   P127_ATM_Video_WriteCellEx
@@ -5162,8 +5166,8 @@ Value    Label
 0x60A5   p127_host_trdos_fail
 0x62EF   p127_host_trdos_ok
 0x95BC   p127_host_ui_ready
-0x920A   p127_host_video_error
-0x91D6   p127_host_video_ok
+0x920C   p127_host_video_error
+0x91D8   p127_host_video_ok
 0x0012   P127_MEM_CAPS_SIZE
 0x6570   p127_range_capacity
 0x64DA   p127_range_check
@@ -5281,29 +5285,29 @@ Value    Label
 0xA312   p127_ui4
 0xA340   p127_ui5
 0xA376   p127_ui6
-0x91D1   p127_video_attribute
+0x91D3   p127_video_attribute
 0x9039   p127_video_bad_coordinate
-0x91D0   p127_video_character
-0x91CF   p127_video_column
-0x923D   p127_video_host_fail_handler
+0x91D2   p127_video_character
+0x91D1   p127_video_column
+0x923F   p127_video_host_fail_handler
 0x90D0   p127_video_map
-0x91D2   p127_video_offset
+0x91D4   p127_video_offset
 0x007C   P127_VIDEO_PAGE3
 0x0078   P127_VIDEO_PAGE7
 0x90B3   p127_video_read_odd
 0x90C8   p127_video_read_restore
 0x90DF   p127_video_restore
-0x91B2   p127_video_restore_cell_0
-0x91C0   p127_video_restore_cell_1
-0x91CE   p127_video_row
-0x91D5   p127_video_saved_attr
-0x91D4   p127_video_saved_char
-0x91B0   p127_video_test_fail
-0x91A3   p127_video_test_fail_1
-0x91AA   p127_video_test_fail_2
-0x91AE   p127_video_test_fail_3
-0x91A0   p127_video_test_restore_0_fail
-0x91A7   p127_video_test_restore_1_fail
+0x91B4   p127_video_restore_cell_0
+0x91C2   p127_video_restore_cell_1
+0x91D0   p127_video_row
+0x91D7   p127_video_saved_attr
+0x91D6   p127_video_saved_char
+0x91B2   p127_video_test_fail
+0x91A5   p127_video_test_fail_1
+0x91AC   p127_video_test_fail_2
+0x91B0   p127_video_test_fail_3
+0x91A2   p127_video_test_restore_0_fail
+0x91A9   p127_video_test_restore_1_fail
 0x9070   p127_video_write_odd
 0x9087   p127_video_write_restore
 0x00F9   RANDOMIZE
