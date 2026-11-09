@@ -100,7 +100,7 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--code", required=True, type=Path)
     p.add_argument("--output", required=True, type=Path)
-    p.add_argument("--label", default="PROJECT127")
+    p.add_argument("--label", default="P127DISK")
     a = p.parse_args()
     code = a.code.read_bytes()
     image = build_trd(code, a.label)
