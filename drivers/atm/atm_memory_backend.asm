@@ -7,8 +7,8 @@
 ; atm_mem_validate_range: carry clear iff offset+length is in 1 MiB
 ; atm_mem_range_selftest: carry clear iff all arithmetic boundary tests pass
 ;
-; ALLOC/FREE and fixed-window page mapping are implemented.
-; Byte READ/WRITE/FILL/COPY and multi-extent handles remain future work.
+; ALLOC/FREE and UINT32 byte READ/WRITE/FILL/COPY are implemented.
+; Operations use a bytewise single-aperture engine; multi-extent handles remain future work.
 
         INCLUDE "drivers/shared/p127_memory_core.inc"
 
@@ -148,10 +148,11 @@ atm_mem_selftest_fail:
 atm_mem_capabilities:
         db      "P127"
         db      P127_ABI_MAJOR,P127_ABI_MINOR
-        db      #07                 ; range + page-map + alloc/free
+        db      #0F                 ; range + page-map + alloc/free + byte operations
         db      0
         db      #00,#00,#10,#00
         db      #00,#80,#0E,#00     ; 58 pages = 0x000E8000 bytes allocatable
         db      P127_MEM_CAPS_SIZE,0
 
         INCLUDE "drivers/atm/atm_memory_manager.asm"
+        INCLUDE "drivers/atm/atm_memory_ops.asm"
