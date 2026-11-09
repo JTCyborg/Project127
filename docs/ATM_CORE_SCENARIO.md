@@ -39,7 +39,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.3.0 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
+| `src/boot/p127_boot.asm` | 0.4.1 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
 | `src/kernel/p127_mem.asm` | 0.3.0 | Software page-state manager; reserves video pages 1,3,5,7 plus active bootstrap pages 0,2; no hardware mapping yet |
 | `src/ui/p127_console.asm` | 0.1.1 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF; duplicate routine and JR range errors fixed |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
