@@ -31,12 +31,10 @@ LINE10_END:
         DB      0, 11
         DW      LINE11_END-LINE11
 LINE11:
+        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "80", 34, ":"
+        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "49", 34, ":"
         DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "50", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "31", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "32", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "37", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "50", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "55", 34, ":"
+        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "55", 34, ":
         DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "32", 34, ":"
         DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "83", 34, ":"
         DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "84", 34, ":"
