@@ -285,8 +285,6 @@ p127_host_diag_length:
 p127_host_diag_capacity:
         db " CAPACITY=",0
 
-        INCLUDE "drivers/atm/atm_memory_backend.asm"
-
 p127_host_program_end:
         ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
         ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
