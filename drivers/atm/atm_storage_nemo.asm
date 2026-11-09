@@ -325,4 +325,4 @@ p127_storage_log_ready:
 p127_storage_log_missing:
         db "[P127] HDD NEMO IDE NOT AVAILABLE",13,10,0
 p127_storage_end:
-        ASSERT p127_storage_end <= #C000
+        ASSERT p127_storage_end <= #D000

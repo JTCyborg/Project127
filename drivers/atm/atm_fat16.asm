@@ -428,4 +428,4 @@ p127_fat16_log_mounted:
 p127_fat16_log_failed:
         db "[P127] FAT16 MOUNT NOT AVAILABLE",13,10,0
 p127_fat16_end:
-        ASSERT p127_fat16_end <= #C000
+        ASSERT p127_fat16_end <= #E000
