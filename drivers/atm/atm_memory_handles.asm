@@ -253,15 +253,14 @@ atm_mem_scatter_selftest::
         inc     hl
         or      (hl)
         jp      z,atm_mem_scatter_test_fail
+        ; Read extent[0] from vector base (not base+4).
         ld      hl,(atm_mem_scatter_test_vector)
-        ld      de,4
-        add     hl,de
         ld      de,atm_mem_scatter_test_first
         ld      bc,4
         ldir
+
+        ; Extent[1] must be nonzero and distinct from extent[0].
         ld      hl,(atm_mem_scatter_test_vector)
-        ld      de,4
-        add     hl,de
         ld      de,4
         add     hl,de
         ld      a,(hl)
@@ -276,6 +275,22 @@ atm_mem_scatter_selftest::
         ld      a,(hl)
         or      b
         jp      z,atm_mem_scatter_test_fail
+        ld      hl,atm_mem_scatter_test_first
+        ld      de,(atm_mem_scatter_test_vector)
+        inc     de
+        inc     de
+        inc     de
+        inc     de
+        ld      b,4
+atm_mem_scatter_test_compare_offsets:
+        ld      a,(de)
+        cp      (hl)
+        jp      nz,atm_mem_scatter_test_offsets_distinct
+        inc     hl
+        inc     de
+        djnz    atm_mem_scatter_test_compare_offsets
+        jp      atm_mem_scatter_test_fail
+atm_mem_scatter_test_offsets_distinct:
         ld      a,(atm_mem_scatter_test_handle)
         call    atm_mem_scatter_free
         ret
