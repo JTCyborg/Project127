@@ -30,7 +30,7 @@ p127_map_init:
 ; OUT: A=7Fh-page; carry=1 for invalid page.
 p127_map_encode_page:
         cp      64
-        jr      nc,p127_map_invalid
+        jp      nc,p127_map_invalid
         ld      b,a
         ld      a,07Fh
         sub     b
