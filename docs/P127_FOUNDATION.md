@@ -1,7 +1,7 @@
 # Project127 — low-level foundation
 
-**Revision:** 0.6  
-**Status:** ATM memory foundation through scatter handles and handle PIN/UNPIN implemented; runtime-confirmed through v0.9.1 for memory/handle operations. PIN/UNPIN awaits the v0.10.0 runtime acceptance log.  
+**Revision:** 0.7  
+**Status:** ATM memory, video, and RTC services runtime-confirmed. Nemo IDE LBA28 backend added in host v0.15.0; physical-device IDENTIFY remains to be confirmed on hardware/emulator.  
 **Scope:** ATM Turbo 2+ Z80 firmware, NeoGS Z80 firmware, their shared memory/transport ABI, and the later 8086 emulator.
 
 ## 1. Non-negotiable design rule
