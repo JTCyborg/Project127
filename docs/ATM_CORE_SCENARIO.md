@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.72**  
+Scenario revision: **0.8.73**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -28,7 +28,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | **SOFTWARE PREFLIGHT + MAP TRANSACTION RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0, P4 table-slot preflight v0.3.0, map transaction v0.3.0 | Implement resident interrupt-entry/return and controlled physical W3 mapping. Physical remap remains blocked; independent physical stack backing and IFF/IM/vector handling are not proven. |
 | 6 — Managed program address space | **STAGE 6.1/6.2/6.3 PASS (user runtime log)** | 4 MiB logical page table; complete source/destination preflight; non-overlapping copy; 64-byte resident bounce buffer; page-boundary chunking through guarded W3 lease; exact completed-byte count and explicit partial-write semantics. Cross-page copy and W3 restoration runtime-accepted. |
-| 7 — TR-DOS and filesystem services | **AUDIT COMPLETE; IMPLEMENTATION NEXT** | Preserve BASIC/BOOT0 loader; design a read-only directory/file service over the existing TR-DOS boot medium, with managed-address-space transfers and no assumptions about physical contiguity. Project126 catalog/browser and legacy filesystem routines are references, not drop-in modules. |
+| 7 — TR-DOS and filesystem services | **STAGE 7.1 IMPLEMENTED; RUNTIME TEST PENDING** | Read track 0 directory sectors 1–8 through TR-DOS ROM #3D13 into the reserved P0 snapshot at #C800; enumerate live B/C/D/# entries and mirror names/type/sector metadata to the ATM debug console and #EF. Read-only; no file-data reads or writes. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
 | 9 — RTC and input | PLANNED | DS12887/SMUC and keyboard/input host services. |
 | 10 — Physical storage | PLANNED | Nemo IDE/SMUC IDENTIFY, READ, WRITE, FLUSH with LBA and RAM bounds checks. |
@@ -896,6 +896,18 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 ### 2026-11-09 — Stage 6.3 runtime acceptance: logical cross-page copy v0.1.3
 
 ### 2026-11-09 — Stage 6 checkpoint and Stage 7 TR-DOS audit
+
+### 2026-11-09 — Stage 7.1: live TR-DOS directory read and debug dump v0.1.0
+
+- Added `src/kernel/p127_trdos.asm` v0.1.0 and integrated it into the Stage2 image. Boot module version advances to `p127_boot.asm` v0.7.10; ATM console module version advances to v0.1.3 (no UI behavior change, version synchronization only).
+- After the existing Stage 6.3 self-test passes, startup calls the read-only directory service. It reads exactly eight 256-byte sectors from track 0 through the TR-DOS ROM entry `#3D13`, using the Project126-verified convention `D=0`, `E=0..7`, `B=1`, `C=5`. The ROM's error bytes `#5D0F/#5D10` are captured and reported.
+- The 2 KiB directory snapshot is placed at `#C800` in the already reserved host/staging physical page P0. The routine saves the caller stack, switches the TR-DOS read operation to the established scratch stack at `#BFFF`, and restores the original stack and main/alternate register sets before returning.
+- The dump scans all 128 sixteen-byte slots. Entries with first byte `00h` or `01h` are skipped; types `B`, `C`, `D` and `#` are displayed. Each line prints the eight-byte name, type, sector count, and raw starting track/sector fields. The total live-entry count is printed last.
+- All text is sent through the existing `p127_puts`/`p127_put_char` path, so the output is mirrored both to the ATM-native debug console and port `#EF`. The BASIC loader and BOOT0 entry sequence are unchanged.
+- Scope is deliberately read-only: no file-data sectors, no disk writes, no direct controller-port implementation, no DMA, no IRQ/IM/EI changes, and no new page-port OUT. This stage reports directory metadata only; it does not yet validate extents against the disk geometry or load selected files.
+- Expected runtime markers: `[TRDOS] DIRECTORY READ BEGIN`, `[TRDOS] DIRECTORY READ OK; 8 SECTORS / 2048 BYTES`, one `[TRDOS]` line per live file, `[TRDOS] FILE COUNT=NN`, and `[TRDOS] DIRECTORY DUMP COMPLETE`. On read failure it prints both ROM error bytes and `[P127] TR-DOS DIRECTORY SERVICE FAILED`.
+- SjASMPlus and Unreal Speccy were not run here. Stage 7.1 is source-implemented but awaits the user's rebuild/runtime log; the ROM read convention is adapted from Project126's existing directory reader.
+
 
 - Fixed the development checkpoint at commit `ae4674442e437f3249eeb7384c29b7c92cd45083`: Stage 6.1, 6.2 and 6.3 are runtime-accepted from the user's #EF log. The verified scope includes logical page translation, full-span preflight, cross-page copy and W3=P0/UI restoration. This does not establish live IRQ, IM/EI, DMA, arbitrary workload safety or memmove semantics.
 - Re-audited the Project127 boot contract: the single SjASMPlus image contains `boot.B` and `P127BOOT.C`; BASIC uses the established `RANDOMIZE USR 15619 : REM : LOAD "P127BOOT" CODE 24576` sequence and enters Stage2 at `#6000`. This path is a compatibility boundary and must remain unchanged.
