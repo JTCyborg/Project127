@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.64**  
+Scenario revision: **0.8.65**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -27,7 +27,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 3 — UINT32 memory/range API and program arena | **STAGE 3.1/3.2/3.3/3.4 PASS (user runtime log)** | UINT32 half-open range validation plus a map-derived top-down arena. Current reservations yield P8..P63 (56 pages); LIFO release; no physical mapping or byte-granular ABI. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | **SOFTWARE PREFLIGHT + MAP TRANSACTION RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0, P4 table-slot preflight v0.3.0, map transaction v0.3.0 | Implement resident interrupt-entry/return and controlled physical W3 mapping. Physical remap remains blocked; independent physical stack backing and IFF/IM/vector handling are not proven. |
-| 6 — Managed program address space | **STAGE 6.1 PASS; STAGE 6.2 IMPLEMENTED (runtime pending)** | 4 MiB logical page table; 32-bit span preflight verifies every logical page touched, including cross-page spans and unmapped gaps. No byte transfer or hardware remap. |
+| 6 — Managed program address space | **STAGE 6.1 PASS; STAGE 6.2 PASS (user runtime accepted)** | 4 MiB logical page table; 32-bit span preflight verifies every logical page touched, including cross-page spans and unmapped gaps. No byte transfer or hardware remap. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
 | 9 — RTC and input | PLANNED | DS12887/SMUC and keyboard/input host services. |
@@ -45,7 +45,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | `src/kernel/p127_arena.asm` | 0.1.2 | Map-derived highest contiguous FREE run; bounded allocation and LIFO release; accounting only, no mapping |
 | `src/kernel/p127_layout.asm` | 0.1.0 | Runtime accepted: reports actual linked Stage2 size; validates #6000..#A000 and P5/P2 reservations |
 | `src/kernel/p127_as.asm` | 0.1.0 | 4 MiB logical page table; binds only allocator-owned pages; translates logical byte addresses to physical page + offset; software-only |
-| `src/kernel/p127_as_span.asm` | 0.1.0 | UINT32 logical-span preflight; validates end-exclusive 4 MiB bounds and every mapped page touched; no data transfer or mapping |
+| `src/kernel/p127_as_span.asm` | 0.1.0 | Runtime accepted: UINT32 logical-span preflight; validates end-exclusive 4 MiB bounds and every mapped page touched; no data transfer or mapping |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -839,3 +839,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Integrated after Stage 6.1. Boot module advanced to v0.7.8; scenario revision 0.8.64.
 - Strict scope: metadata-only preflight. No byte copy/fill/read/write, physical pointer, W3 remap, page-port OUT, DMA, IRQ, IM or EI. The guarded W3 lease remains the only exercised physical mapping path.
 - Build and Unreal Speccy runtime verification are pending the user's rebuild. No assembler/emulator run is claimed in this environment.
+
+
+### 2026-11-09 — Stage 6.2 runtime acceptance: managed logical span preflight v0.1.0
+
+- User supplied the complete #EF startup log from the rebuilt Project127 image. It reports `LOGICAL SPAN PREFLIGHT PASS; NO COPY/MAP/OUT`; Stage 6.2 is accepted on this runtime evidence.
+- The self-test accepts a two-byte span crossing the mapped logical-page boundary `0x3FFF/0x4000`, rejects a span crossing from mapped page 1 into unmapped page 2, accepts a zero-length span at exactly 4 MiB, and rejects a non-empty span starting at 4 MiB.
+- The log also confirms the integrated Stage 6.1 logical page-table translation test and prior memory/allocator, map transaction, resident-window, W3 recovery and IRQ preflight regressions remain passing. Physical sweep reports 57/57 free pages verified; W3 is restored to P0 and UI remains active.
+- Acceptance is limited to logical metadata validation. No byte copy/read/write, physical pointer, page-port OUT, DMA, IRQ activation, IM or EI is exercised or authorized. The guarded W3 lease remains the only physical mapping path; IRQ source remains unresolved.
+- This acceptance is based on the user's supplied emulator log. No independent SjASMPlus build or emulator run was performed here.
+- Stage 6.3 may now be designed as a separate implementation: actual logical-span transfer must preflight the complete source and destination before the first write, process page-boundary chunks under the guarded W3 lease, and define cleanup/recovery for every failure path. Do not begin that transfer until its ownership and partial-write semantics are explicit.
