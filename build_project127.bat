@@ -48,7 +48,7 @@ echo.
 echo [BUILD] SUCCESS
 for %%F in ("disk_A.trd") do echo [BUILD] IMAGE_BYTES=%%~zF
 echo [BUILD] Open disk_A.trd in Unreal Speccy.
-echo [BUILD] At TR-DOS prompt run: RUN "BOOT"
+echo [BUILD] At TR-DOS prompt run: RUN "boot"
 echo.
 pause
 exit /b 0
