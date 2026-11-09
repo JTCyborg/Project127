@@ -53,6 +53,7 @@ LINE20:
         DB      RANDOMIZE
         DB      USR, "15619", $0E, 0, 0
         DW      15619
+        DB      0
         DB      $3A, OUT_CMD
         DB      "239", $0E, $00, $00, $EF, $00, $00
         DB      ","
