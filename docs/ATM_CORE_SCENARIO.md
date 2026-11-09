@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.61**  
+Scenario revision: **0.8.62**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -44,6 +44,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | `src/kernel/p127_range.asm` | 0.1.2 | UINT32 end-exclusive physical range validator; 1 MiB bounds/overflow self-test; arithmetic only, no mapping or memory access |
 | `src/kernel/p127_arena.asm` | 0.1.2 | Map-derived highest contiguous FREE run; bounded allocation and LIFO release; accounting only, no mapping |
 | `src/kernel/p127_layout.asm` | 0.1.0 | Runtime accepted: reports actual linked Stage2 size; validates #6000..#A000 and P5/P2 reservations |
+| `src/kernel/p127_as.asm` | 0.1.0 | 4 MiB logical page table; binds only allocator-owned pages; translates logical byte addresses to physical page + offset; software-only |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -803,3 +804,14 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Stage 3.4 is accepted from the user's supplied runtime evidence. The same run repeats the map-derived arena test and exhaustive W3 sweep: 57/57 free pages verified, W3 restored to P0, UI active, and guarded allocator/W3 lease API PASS.
 - No source module changed in this acceptance update. Scenario revision advanced to 0.8.61. The assembler/emulator were not independently run here; acceptance is based on the user's #EF log.
 - Scope remains unchanged: no kernel relocation, no managed program loader, no unrestricted page mapping, no DMA, and no IRQ/IM/EI activation. Physical page switching remains bounded by the guarded W3 lease protocol.
+
+
+### 2026-11-09 — Stage 6.1: managed logical page table and translation model v0.1.0
+
+- Added `src/kernel/p127_as.asm` with a 256-entry logical page table. Each entry represents one 16 KiB logical page, giving a 4 MiB logical address range (`0x000000..0x3FFFFF`) independent of the 1 MiB physical ATM RAM.
+- `p127_as_bind` accepts only physical pages already marked ALLOCATED by `p127_mem`; it rejects a logical slot already in use and rejects mapping one physical page into multiple logical slots. `p127_as_unbind` removes metadata only and does not free the physical page.
+- `p127_as_translate` accepts a 32-bit little-endian logical byte address and returns its mapped physical page ID plus the 14-bit in-page offset. Unmapped addresses and addresses at or above 4 MiB are rejected.
+- Startup regression allocates two physical pages, binds adjacent logical pages, checks translation at `0x3FFF` and `0x4000`, rejects duplicate physical aliasing, rejects an unmapped page and the 4 MiB boundary, then unbinds and releases both pages. Expected marker: `LOGICAL PAGE TABLE/BOUNDARY TRANSLATION PASS; NO MAP/OUT`.
+- Integrated after the arena self-test. `src/boot/p127_boot.asm` advances to v0.7.7; scenario revision 0.8.62.
+- Strict scope: software translation table only. No physical-byte read/write, cross-page copy, ATM window switching, additional page-port OUT, DMA, IRQ or IM/EI activation. The caller must unbind before releasing a physical page. Cross-page transfer and loader/process ownership are subsequent work.
+- Build and Unreal Speccy runtime verification are pending the user's rebuild; no independent assembler/emulator run is claimed.
