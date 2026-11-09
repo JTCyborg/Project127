@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.4.0**  
-Status: **Stage 1 committed; ATM video-page reservations implemented; runtime acceptance pending**  
+Scenario revision: **0.5.0**  
+Status: **Project126 console port integrated; build and emulator acceptance pending**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -41,6 +41,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 |---|---:|---|
 | `src/boot/p127_boot.asm` | 0.3.0 | Original BOOT0 sequence retained; runs Stage 1 smoke test |
 | `src/kernel/p127_mem.asm` | 0.2.0 | Software page-state manager; reserves verified video pages 1,3,5,7; no hardware mapping yet |
+| `src/ui/p127_console.asm` | 0.1.0 | Project126 ATM RG6 80×25 interface; screen/log output mirrored to #EF |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel module |
 
 ## Stage 1 — physical page-state manager 0.2.0
@@ -93,3 +94,14 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - `src/kernel/p127_mem.asm` advanced to v0.2.0. Boot logs the reservation result and tests that reserved pages cannot be freed.
 - Still not implemented: actual low-memory kernel relocation, ROM-window mapping, kernel-end discovery, top-down program arena, and hardware page switching. These require the Stage 2 memory-map transition and must not be inferred from the video page IDs.
 - Build/emulator verification remains pending; expected log includes `[P127] VIDEO RAM RESERVED P1,P3,P5,P7` before the allocator self-test.
+
+
+### 2026-11-09 — Stage 2.2: Project126 ATM console port v0.1.0
+
+- Ported the required console renderer from `Project126/atm_host/p126_screen_console.asm` into `src/ui/p127_console.asm`.
+- Retained ATM Turbo 2+ RG6 text mode, 80×25 layout, upper 12-row status panel, lower 13-row scrolling log, video-page map/restore and host-page preservation.
+- UI module is placed at `#A000`; the existing BOOT0 code remains at `#6000` with its existing `#A000` upper bound. `P127BOOT.C` now contains the image from `#6000` through the end of the console, with an assembler bound at `#B000` to leave stack headroom below `#BFFF`.
+- Console startup occurs after the original BOOT0 diagnostics. The `p127_puts` sink routes subsequent diagnostic characters through `BIOS_DebugConsole_PrintChar`.
+- `BIOS_DebugConsole_PrintChar` emits each character to `#EF`; `BIOS_DebugConsole_PrintAt` mirrors static status-panel characters and appends CR/LF. The visible status panel and scrolling log are therefore also represented in the port log.
+- Module versions: `src/boot/p127_boot.asm` 0.4.0; `src/ui/p127_console.asm` 0.1.0; scenario 0.5.0.
+- Build and Unreal Speccy runtime acceptance have not yet been run; ATM shadow-port setup and page mapping require target verification.

@@ -80,9 +80,16 @@ l30_end:
 basic_loader_end:
 
         SAVETRD "disk_A.trd","boot.B",basic_loader,basic_loader_end-basic_loader,10
-        SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_end-P127_LOAD_ADDRESS
 
         ASSERT  p127_entry = #6000
         ASSERT  p127_end > p127_entry
         ASSERT  p127_end <= #A000
         ASSERT  basic_loader_end > basic_loader
+
+; Project126 ATM console extension in the next resident memory window.
+        PAGE 0
+        ORG #A000
+        INCLUDE "src/ui/p127_console.asm"
+p127_image_end:
+        ASSERT p127_image_end <= #B000
+        SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_image_end-P127_LOAD_ADDRESS

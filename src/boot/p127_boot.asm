@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.3
+; Project127 — boot stage 0.4
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -34,6 +34,13 @@ p127_start:
         ld      hl, p127_msg_pass
         call    p127_puts
 
+        ; Initialize Project126's ATM-native debug console after BOOT0.
+        call    p127_ui_init
+        ld      a,1
+        ld      (p127_ui_ready),a
+        ld      hl,p127_msg_ui_ready
+        call    p127_puts
+
         ; Stage 1/2: software page accounting plus verified ATM video reserves.
         call    p127_mem_init
         ld      hl,p127_msg_mem_init
@@ -62,16 +69,28 @@ p127_idle:
 ; Input: HL -> zero-terminated string.
 ; Clobbers AF, BC, HL. Preserves caller's stack frame.
 p127_puts:
-        ld      a, (hl)
+        ld      a,(hl)
         or      a
         ret     z
         inc     hl
         push    hl
-        ld      bc, P127_DEBUG_PORT
-        out     (c), a
+        push    af
+        ld      a,(p127_ui_ready)
+        or      a
+        jr      z,p127_puts_ef
+        pop     af
+        call    BIOS_DebugConsole_PrintChar
+        pop     hl
+        jr      p127_puts
+p127_puts_ef:
+        pop     af
+        ld      bc,P127_DEBUG_PORT
+        out     (c),a
         pop     hl
         jr      p127_puts
 
+p127_ui_ready: db 0
+p127_msg_ui_ready: db "[P127] UI READY; ALL DEBUG OUTPUT MIRRORED TO EF",13,10,0
 p127_msg_entry:
         db      "[P127] S2 ENTRY @6000", 13, 10, 0
 p127_msg_stack:
