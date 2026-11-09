@@ -1,25 +1,36 @@
 ; ============================================================================
 ; Project127 TR-DOS directory reader
-; Module version: 0.1.0
+; Module version: 0.1.2
 ; Reads track 0 sectors 1..8 via the documented TR-DOS ROM entry #3D13.
 ; Directory snapshot: 128 * 16 bytes at #C800 (reserved host/staging page P0).
 ; Read-only: no file-data reads, writes, DMA, IM/EI or raw paging OUT.
 ; ============================================================================
 P127_TRDOS_VERSION_MAJOR EQU 0
 P127_TRDOS_VERSION_MINOR EQU 1
-P127_TRDOS_VERSION_PATCH EQU 0
+P127_TRDOS_VERSION_PATCH EQU 2
 P127_TRDOS_DIRECTORY_BUFFER EQU 0C800h
+; Separate from the live caller stack at #BFFF and handoff probe stack #B800.
+; The 240-byte usable interval #B700..#B7EF is below the handoff canary.
+P127_TRDOS_SCRATCH_STACK_TOP EQU 0B7F0h
 P127_TRDOS_DIRECTORY_BYTES EQU 0800h
 P127_TRDOS_ENTRY_COUNT EQU 128
 P127_TRDOS_ENTRY_SIZE EQU 16
 
 ; Public entry. Returns carry set on sector-read error.
 ; Output is mirrored by p127_puts/p127_put_char to the visible console and #EF.
-p127_trdos_directory:
+; Called immediately after the Project126-compatible legacy mapping
+; setup, before p127_ui_init changes the ROM/video/shadow-port state.
+p127_trdos_preload:
         ld      hl,p127_trdos_msg_begin
         call    p127_puts
         call    p127_trdos_read_directory
-        jr      c,p127_trdos_directory_read_error
+        ret
+
+; Report the already-preloaded directory through the ATM console and #EF.
+p127_trdos_directory:
+        ld      a,(p127_trdos_read_failed)
+        or      a
+        jr      nz,p127_trdos_directory_read_error
 
         ld      hl,p127_trdos_msg_read_ok
         call    p127_puts
@@ -47,7 +58,7 @@ p127_trdos_directory_read_error:
 
 ; Read exactly eight 256-byte directory sectors. The TR-DOS ROM routine
 ; accepts a zero-based sector in E and internally selects physical sector E+1.
-; Its scratch stack is isolated at #BFFF; the caller's live stack is restored.
+; Its scratch stack is isolated at #B7F0; the caller's live stack is restored.
 p127_trdos_read_directory:
         push    af
         push    bc
@@ -65,7 +76,7 @@ p127_trdos_read_directory:
         ex      af,af'
 
         ld      (p127_trdos_saved_sp),sp
-        ld      sp,0BFFFh
+        ld      sp,P127_TRDOS_SCRATCH_STACK_TOP
         xor     a
         ld      (p127_trdos_io_error),a
         ld      (p127_trdos_io_status),a
@@ -86,7 +97,29 @@ p127_trdos_read_sector:
         xor     a
         ld      (05D0Fh),a
         ld      (05D10h),a
+
+        ; Raw #EF markers bracket the ROM call. They deliberately bypass the
+        ; ATM UI/W3 lease so a non-returning DOS/controller path is observable.
+        ld      bc,00EFh
+        ld      a,'R'
+        out     (c),a
+        ld      a,(p127_trdos_sector_index)
+        add     a,'0'
+        out     (c),a
+        ld      b,1
+        ld      c,5
         call    03D13h
+
+        ld      bc,00EFh
+        ld      a,'r'
+        out     (c),a
+        ld      a,(p127_trdos_sector_index)
+        add     a,'0'
+        out     (c),a
+        ld      a,13
+        out     (c),a
+        ld      a,10
+        out     (c),a
 
         ld      a,(05D0Fh)
         ld      (p127_trdos_io_error),a
