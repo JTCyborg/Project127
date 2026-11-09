@@ -34,6 +34,7 @@ def build_trd(code, label="P127DISK"):
         raise ValueError("Disk label must be at most 8 ASCII characters")
     image = bytearray(IMAGE_SIZE)
     track, sector, count, used = 1, 0, 0, 0
+
     def add(name, kind, p1, p2, payload):
         nonlocal track, sector, count, used
         nsec = (len(payload) + SECTOR - 1) // SECTOR
@@ -46,17 +47,18 @@ def build_trd(code, label="P127DISK"):
             t, s = divmod(absolute, SPT)
             pos = offset(t, s)
             image[pos:pos + SECTOR] = padded[i * SECTOR:(i + 1) * SECTOR]
-        e = bytearray(16)
-        e[:8] = name.encode("ascii").ljust(8, b" ")
-        e[8] = kind
-        e[9:11], e[11:13] = le16(p1), le16(p2)
-        e[13], e[14], e[15] = nsec, ss, st
-        image[count * 16:(count + 1) * 16] = e
+        entry = bytearray(16)
+        entry[:8] = name.encode("ascii").ljust(8, b" ")
+        entry[8] = kind
+        entry[9:11], entry[11:13] = le16(p1), le16(p2)
+        entry[13], entry[14], entry[15] = nsec, ss, st
+        image[count * 16:(count + 1) * 16] = entry
         track, sector = divmod(st * SPT + ss + nsec, SPT)
         count += 1
         used += nsec
+
     basic, basic_len = basic_loader()
-    add("BOOT", ord("B"), basic_len, basic_len, basic)
+    add("boot", ord("B"), basic_len, basic_len, basic)
     add("P127BOOT", ord("C"), LOAD_ADDRESS, len(code), code)
     info = offset(0, 8)
     image[info + 225] = sector
@@ -78,8 +80,8 @@ def verify_trd(image, expected_code=None):
     if image[info + 227] != 0x16 or image[info + 228] != 2 or image[info + 231] != 0x10:
         raise ValueError("Invalid TR-DOS disk descriptor")
     boot, code = image[:16], image[16:32]
-    if boot[:9] != b"BOOT    B" or code[:9] != b"P127BOOTC":
-        raise ValueError("Invalid boot directory entries")
+    if boot[:9] != b"boot    B" or code[:9] != b"P127BOOTC":
+        raise ValueError("Invalid boot directory entry (expected 'boot    B')")
     if int.from_bytes(code[9:11], "little") != LOAD_ADDRESS:
         raise ValueError("Wrong P127BOOT load address")
     if expected_code is not None:
@@ -97,19 +99,20 @@ def verify_trd(image, expected_code=None):
             raise ValueError("BASIC loader token missing")
 
 def main():
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--code", required=True, type=Path)
-    p.add_argument("--output", required=True, type=Path)
-    p.add_argument("--label", default="P127DISK")
-    a = p.parse_args()
-    code = a.code.read_bytes()
-    image = build_trd(code, a.label)
-    a.output.parent.mkdir(parents=True, exist_ok=True)
-    a.output.write_bytes(image)
-    verify_trd(a.output.read_bytes(), code)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--code", required=True, type=Path)
+    parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--label", default="P127DISK")
+    args = parser.parse_args()
+    code = args.code.read_bytes()
+    image = build_trd(code, args.label)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_bytes(image)
+    verify_trd(args.output.read_bytes(), code)
     print("[P127 TRD] FORMAT=80T_DOUBLE_SIDED")
     print(f"[P127 TRD] FILES=2 CODE_BYTES={len(code)} IMAGE_BYTES={len(image)}")
-    print(f"[P127 TRD] OUTPUT={a.output}")
+    print("[P127 TRD] BOOT_FILENAME=boot TYPE=B")
+    print(f"[P127 TRD] OUTPUT={args.output}")
     print("[P127 TRD] VERIFY OK")
 
 if __name__ == "__main__":
