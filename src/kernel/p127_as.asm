@@ -109,6 +109,10 @@ p127_as_translate:
         ld      a,c
         rrca
         rrca
+        rrca
+        rrca
+        rrca
+        rrca
         and     003h
         ld      b,a
         ld      a,(p127_as_address+2)
