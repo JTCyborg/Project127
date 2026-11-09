@@ -56,7 +56,7 @@ atm_mem_shadow_ports_opened:
 ; The ATM dispatcher uses inverted D0-D5, D6=1 (RAM), D7=0 (fixed page).
 atm_mem_map_page::
         cp      ATM_PAGE_COUNT
-        jr      nc,atm_mem_map_page_invalid
+        jp      nc,atm_mem_map_page_invalid
         cpl
         and     #3F
         or      #40
@@ -101,7 +101,7 @@ atm_mem_pages_for_length:
         ld      a,(atm_mem_request_length+1)
         and     #3F
         or      c
-        jr      z,atm_mem_pages_exact
+        jp      z,atm_mem_pages_exact
         inc     b
 atm_mem_pages_exact:
         ld      a,b
@@ -123,12 +123,12 @@ atm_mem_alloc::
         ld      b,a
         ld      a,(atm_mem_request_length+3)
         or      b
-        jr      z,atm_mem_alloc_fail
+        jp      z,atm_mem_alloc_fail
         call    atm_mem_validate_request
-        jr      c,atm_mem_alloc_fail
+        jp      c,atm_mem_alloc_fail
         call    atm_mem_pages_for_length
         or      a
-        jr      z,atm_mem_alloc_fail
+        jp      z,atm_mem_alloc_fail
         ld      (atm_mem_pages_needed),a
 
         ; Reserve a bookkeeping slot before searching for physical pages.
@@ -153,19 +153,19 @@ atm_mem_alloc_slot_found:
 atm_mem_alloc_candidate:
         ld      a,(atm_mem_candidate)
         cp      ATM_PAGE_COUNT
-        jr      nc,atm_mem_alloc_fail
+        jp      nc,atm_mem_alloc_fail
         ld      b,a
         ld      a,(atm_mem_pages_needed)
         ld      c,a
 atm_mem_alloc_scan:
         ld      a,b
         cp      ATM_PAGE_COUNT
-        jr      nc,atm_mem_alloc_next_candidate
+        jp      nc,atm_mem_alloc_next_candidate
         call    atm_mem_page_is_free
-        jr      nz,atm_mem_alloc_next_candidate
+        jp      nz,atm_mem_alloc_next_candidate
         inc     b
         dec     c
-        jr      nz,atm_mem_alloc_scan
+        jp      nz,atm_mem_alloc_scan
 
         ; Entire run is free. Mark all pages allocated.
         ld      a,(atm_mem_candidate)
@@ -178,7 +178,7 @@ atm_mem_alloc_mark:
         call    atm_mem_page_set_allocated
         inc     b
         dec     c
-        jr      nz,atm_mem_alloc_mark
+        jp      nz,atm_mem_alloc_mark
 
         ; Record exact allocation identity: start page, page count, byte length.
         ld      hl,(atm_mem_record_ptr)
@@ -216,7 +216,7 @@ atm_mem_alloc_next_candidate:
         ld      a,(atm_mem_candidate)
         inc     a
         ld      (atm_mem_candidate),a
-        jr      atm_mem_alloc_candidate
+        jp      atm_mem_alloc_candidate
 
 atm_mem_alloc_fail:
         scf
@@ -227,13 +227,13 @@ atm_mem_alloc_fail:
 atm_mem_free::
         ld      a,(atm_mem_request_offset)
         or      a
-        jr      nz,atm_mem_free_fail
+        jp      nz,atm_mem_free_fail
         ld      a,(atm_mem_request_offset+3)
         or      a
-        jr      nz,atm_mem_free_fail
+        jp      nz,atm_mem_free_fail
         ld      a,(atm_mem_request_offset+1)
         and     #3F
-        jr      nz,atm_mem_free_fail
+        jp      nz,atm_mem_free_fail
         ld      a,(atm_mem_request_length)
         ld      b,a
         ld      a,(atm_mem_request_length+1)
@@ -244,9 +244,9 @@ atm_mem_free::
         ld      b,a
         ld      a,(atm_mem_request_length+3)
         or      b
-        jr      z,atm_mem_free_fail
+        jp      z,atm_mem_free_fail
         call    atm_mem_validate_request
-        jr      c,atm_mem_free_fail
+        jp      c,atm_mem_free_fail
 
         ; Page index = (offset >> 14).
         ld      a,(atm_mem_request_offset+2)
@@ -270,39 +270,39 @@ atm_mem_free::
 atm_mem_free_find_record:
         ld      a,(hl)
         or      a
-        jr      z,atm_mem_free_next_record
+        jp      z,atm_mem_free_next_record
         ld      d,a
         ld      a,(atm_mem_alloc_start)
         cp      d
-        jr      nz,atm_mem_free_next_record
+        jp      nz,atm_mem_free_next_record
         push    hl
         inc     hl
         inc     hl
         ld      de,atm_mem_request_length
         ld      a,(de)
         cp      (hl)
-        jr      nz,atm_mem_free_record_mismatch
+        jp      nz,atm_mem_free_record_mismatch
         inc     de
         inc     hl
         ld      a,(de)
         cp      (hl)
-        jr      nz,atm_mem_free_record_mismatch
+        jp      nz,atm_mem_free_record_mismatch
         inc     de
         inc     hl
         ld      a,(de)
         cp      (hl)
-        jr      nz,atm_mem_free_record_mismatch
+        jp      nz,atm_mem_free_record_mismatch
         inc     de
         inc     hl
         ld      a,(de)
         cp      (hl)
-        jr      nz,atm_mem_free_record_mismatch
+        jp      nz,atm_mem_free_record_mismatch
         pop     hl
         ld      (atm_mem_record_ptr),hl
         inc     hl
         ld      a,(hl)
         ld      (atm_mem_pages_needed),a
-        jr      atm_mem_free_record_found
+        jp      atm_mem_free_record_found
 atm_mem_free_record_mismatch:
         pop     hl
 atm_mem_free_next_record:
@@ -311,7 +311,7 @@ atm_mem_free_next_record:
         add     hl,de
         pop     bc
         djnz    atm_mem_free_find_record
-        jr      atm_mem_free_fail
+        jp      atm_mem_free_fail
 atm_mem_free_record_found:
 
         ; Validate every page before changing any bitmap bit.
@@ -322,12 +322,12 @@ atm_mem_free_record_found:
 atm_mem_free_check:
         ld      a,b
         cp      ATM_PAGE_COUNT
-        jr      nc,atm_mem_free_fail
+        jp      nc,atm_mem_free_fail
         call    atm_mem_page_is_allocated
-        jr      z,atm_mem_free_fail
+        jp      z,atm_mem_free_fail
         inc     b
         dec     c
-        jr      nz,atm_mem_free_check
+        jp      nz,atm_mem_free_check
 
         ld      a,(atm_mem_alloc_start)
         ld      b,a
@@ -338,7 +338,7 @@ atm_mem_free_clear:
         call    atm_mem_page_clear_allocated
         inc     b
         dec     c
-        jr      nz,atm_mem_free_clear
+        jp      nz,atm_mem_free_clear
         ; Release the exact allocation record only after all page bits clear.
         ld      hl,(atm_mem_record_ptr)
         xor     a
@@ -364,7 +364,7 @@ atm_mem_page_is_free:
         ld      e,1
         ld      a,b
         or      a
-        jr      z,atm_mem_page_free_mask_ready
+        jp      z,atm_mem_page_free_mask_ready
 atm_mem_page_free_mask_loop:
         sla     e
         djnz    atm_mem_page_free_mask_loop
@@ -376,7 +376,7 @@ atm_mem_page_free_mask_ready:
         add     hl,bc
         ld      a,(hl)
         and     e
-        jr      nz,atm_mem_page_used
+        jp      nz,atm_mem_page_used
         ld      hl,atm_mem_allocated_bitmap
         add     hl,bc
         ld      a,(hl)
@@ -403,7 +403,7 @@ atm_mem_page_set_allocated:
         ld      e,1
         ld      a,b
         or      a
-        jr      z,atm_mem_page_set_mask_ready
+        jp      z,atm_mem_page_set_mask_ready
 atm_mem_page_set_mask_loop:
         sla     e
         djnz    atm_mem_page_set_mask_loop
@@ -435,7 +435,7 @@ atm_mem_page_is_allocated:
         ld      e,1
         ld      a,b
         or      a
-        jr      z,atm_mem_page_alloc_test_ready
+        jp      z,atm_mem_page_alloc_test_ready
 atm_mem_page_alloc_test_loop:
         sla     e
         djnz    atm_mem_page_alloc_test_loop
@@ -464,7 +464,7 @@ atm_mem_page_clear_allocated:
         ld      e,1
         ld      a,b
         or      a
-        jr      z,atm_mem_page_clear_mask_ready
+        jp      z,atm_mem_page_clear_mask_ready
 atm_mem_page_clear_mask_loop:
         sla     e
         djnz    atm_mem_page_clear_mask_loop
@@ -491,44 +491,44 @@ atm_mem_allocator_selftest::
         ld      hl,0
         ld      (atm_mem_request_length+2),hl
         call    atm_mem_alloc
-        jr      c,atm_mem_allocator_selftest_fail
+        jp      c,atm_mem_allocator_selftest_fail
         ld      a,(atm_mem_result_offset)
         or      a
-        jr      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_selftest_fail
         ld      a,(atm_mem_result_offset+1)
         or      a
-        jr      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_selftest_fail
         ld      a,(atm_mem_result_offset+2)
         cp      2
-        jr      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_selftest_fail
         ld      a,(atm_mem_result_offset+3)
         or      a
-        jr      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_selftest_fail
         ld      hl,(atm_mem_result_offset)
         ld      (atm_mem_request_offset),hl
         ld      hl,(atm_mem_result_offset+2)
         ld      (atm_mem_request_offset+2),hl
         call    atm_mem_free
-        jr      c,atm_mem_allocator_selftest_fail
+        jp      c,atm_mem_allocator_selftest_fail
 
         ld      hl,1
         ld      (atm_mem_request_length),hl
         ld      hl,0
         ld      (atm_mem_request_length+2),hl
         call    atm_mem_alloc
-        jr      c,atm_mem_allocator_selftest_fail
+        jp      c,atm_mem_allocator_selftest_fail
         ld      a,(atm_mem_result_offset)
         or      a
-        jr      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_selftest_fail
         ld      a,(atm_mem_result_offset+1)
         or      a
-        jr      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_selftest_fail
         ld      a,(atm_mem_result_offset+2)
         cp      1
-        jr      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_selftest_fail
         ld      a,(atm_mem_result_offset+3)
         or      a
-        jr      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_selftest_fail
         ld      hl,(atm_mem_result_offset)
         ld      (atm_mem_request_offset),hl
         ld      hl,(atm_mem_result_offset+2)

@@ -1,7 +1,7 @@
 # Project127 — low-level foundation
 
-**Revision:** 0.1  
-**Status:** architecture baseline; implementation is the next milestone.  
+**Revision:** 0.2  
+**Status:** architecture baseline plus initial ATM physical-page allocator.  
 **Scope:** ATM Turbo 2+ Z80 firmware, NeoGS Z80 firmware, their shared memory/transport ABI, and the later 8086 emulator.
 
 ## 1. Non-negotiable design rule
@@ -113,6 +113,11 @@ Boot code must not assume a fixed number of free pages or a fixed DMA chunk size
 - maximum single DMA aperture chunk;
 - supported module format and relocation types;
 - firmware build ID.
+
+Capability flags are currently defined as bit 0 = range validation, bit 1 =
+ATM fixed-window page mapping, and bit 2 = ATM contiguous ALLOC/FREE. The ATM
+capability record reports 58 allocatable pages (0x000E8000 bytes). These flags
+do not imply READ/WRITE/FILL/COPY or DMA support.
 
 The two sides negotiate compatible ABI versions before loading modules or sending service traffic. Incompatible versions fail explicitly; they do not silently fall back to a 16 KiB-only mode.
 
