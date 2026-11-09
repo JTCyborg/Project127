@@ -20,7 +20,6 @@ L10:
         DB      CLEAR
         DB      "24575",$0E,0,0
         DW      24575
-        DB      0
         DB      $0D
 L10_END:
 
