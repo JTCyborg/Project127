@@ -68,6 +68,8 @@ p127_trdos_catalog_next_loop:
         jr z,p127_trdos_catalog_type_ok
         cp 'C'
         jr z,p127_trdos_catalog_type_ok
+        cp 'D'
+        jr z,p127_trdos_catalog_type_ok
         cp '#'
         jr z,p127_trdos_catalog_type_ok
         cp '$'
@@ -176,14 +178,15 @@ p127_trdos_dir_length: dw 0
 p127_trdos_dir_index: db 0
 p127_trdos_dir_error: db 0
 p127_trdos_test_directory:
-        defs P127_TRDOS_DIR_BYTES,0
-        ; Entry 2: file "TEST    B", one sector.
-        org p127_trdos_test_directory+2*P127_TRDOS_ENTRY_SIZE
+        ; Slots 0-1 are free; slot 2 is a one-sector BASIC file.
+        defs 2*P127_TRDOS_ENTRY_SIZE,0
         db "TEST    ",'B',0,0,1,1,0
         defs 5,0
-        ; Entry 127: file "LAST    C", 512-byte CODE.
-        org p127_trdos_test_directory+127*P127_TRDOS_ENTRY_SIZE
+        ; Slots 3-126 are free; slot 127 is a 512-byte CODE file.
+        defs (P127_TRDOS_DIR_ENTRIES-3-1)*P127_TRDOS_ENTRY_SIZE,0
         db "LAST    ",'C',0,0,0,2,0
         defs 5,0
 p127_trdos_test_directory_end:
+p127_trdos_service_end:
         ASSERT p127_trdos_test_directory_end-p127_trdos_test_directory=P127_TRDOS_DIR_BYTES
+        ASSERT p127_trdos_service_end<=#A000
