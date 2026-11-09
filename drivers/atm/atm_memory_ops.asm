@@ -151,13 +151,13 @@ atm_mem_validate_pair:
 ; Carry clear if destination <= source; carry set if destination > source.
 atm_mem_destination_after_source:
         ld      hl,(atm_mem_destination_cursor+2)
-        ld      de,(atm_mem_source_offset+2)
+        ld      de,(atm_mem_source_cursor+2)
         or      a
         sbc     hl,de
         jr      c,atm_mem_destination_not_after
         jr      nz,atm_mem_destination_is_after
         ld      hl,(atm_mem_destination_cursor)
-        ld      de,(atm_mem_source_offset)
+        ld      de,(atm_mem_source_cursor)
         or      a
         sbc     hl,de
         jr      c,atm_mem_destination_not_after
@@ -305,3 +305,197 @@ atm_mem_remaining:           defs 4,0
 atm_mem_work_offset:         defs 4,0
 atm_mem_fill_value:          db 0
 atm_mem_copy_byte:           db 0
+
+
+; =========================================================================
+; ATM byte-operation runtime self-test.
+; Exercises 0x4001-byte FILL/COPY across a 16 KiB page boundary, verifies
+; both ends of the second page, then tests overlapping backward COPY.
+; =========================================================================
+atm_mem_ops_selftest::
+        ld      hl,#4001
+        ld      (atm_mem_request_length),hl
+        ld      hl,0
+        ld      (atm_mem_request_length+2),hl
+        call    atm_mem_alloc
+        jp      c,atm_mem_ops_test_fail_01
+        ld      hl,(atm_mem_result_offset)
+        ld      (atm_mem_test_source),hl
+        ld      hl,(atm_mem_result_offset+2)
+        ld      (atm_mem_test_source+2),hl
+
+        ld      hl,#4001
+        ld      (atm_mem_request_length),hl
+        ld      hl,0
+        ld      (atm_mem_request_length+2),hl
+        call    atm_mem_alloc
+        jp      c,atm_mem_ops_test_fail_02
+        ld      hl,(atm_mem_result_offset)
+        ld      (atm_mem_test_destination),hl
+        ld      hl,(atm_mem_result_offset+2)
+        ld      (atm_mem_test_destination+2),hl
+
+        ld      hl,(atm_mem_test_source)
+        ld      (atm_mem_destination_offset),hl
+        ld      hl,(atm_mem_test_source+2)
+        ld      (atm_mem_destination_offset+2),hl
+        ld      hl,#4001
+        ld      (atm_mem_op_length),hl
+        ld      hl,0
+        ld      (atm_mem_op_length+2),hl
+        ld      a,#A5
+        ld      (atm_mem_fill_value),a
+        call    atm_mem_fill
+        jp      c,atm_mem_ops_test_fail_03
+
+        ld      hl,(atm_mem_test_source)
+        ld      (atm_mem_source_offset),hl
+        ld      hl,(atm_mem_test_source+2)
+        ld      (atm_mem_source_offset+2),hl
+        ld      hl,(atm_mem_test_destination)
+        ld      (atm_mem_destination_offset),hl
+        ld      hl,(atm_mem_test_destination+2)
+        ld      (atm_mem_destination_offset+2),hl
+        ld      hl,#4001
+        ld      (atm_mem_op_length),hl
+        ld      hl,0
+        ld      (atm_mem_op_length+2),hl
+        call    atm_mem_copy
+        jp      c,atm_mem_ops_test_fail_04
+
+        ; Verify first byte at destination.
+        ld      hl,(atm_mem_test_destination)
+        ld      (atm_mem_work_offset),hl
+        ld      hl,(atm_mem_test_destination+2)
+        ld      (atm_mem_work_offset+2),hl
+        call    atm_mem_map_work_offset
+        jp      c,atm_mem_ops_test_fail_05
+        ld      a,(hl)
+        cp      #A5
+        jp      nz,atm_mem_ops_test_fail_05
+
+        ; Verify byte at destination + #4000 (first byte of next page).
+        ld      hl,(atm_mem_test_destination)
+        ld      de,#4000
+        add     hl,de
+        ld      (atm_mem_work_offset),hl
+        ld      hl,(atm_mem_test_destination+2)
+        adc     hl,0
+        ld      (atm_mem_work_offset+2),hl
+        call    atm_mem_map_work_offset
+        jp      c,atm_mem_ops_test_fail_06
+        ld      a,(hl)
+        cp      #A5
+        jp      nz,atm_mem_ops_test_fail_06
+
+        ; Seed five distinct bytes at source start.
+        ld      hl,(atm_mem_test_source)
+        ld      (atm_mem_work_offset),hl
+        ld      hl,(atm_mem_test_source+2)
+        ld      (atm_mem_work_offset+2),hl
+        call    atm_mem_map_work_offset
+        jp      c,atm_mem_ops_test_fail_07
+        ld      (hl),#11
+        inc     hl
+        ld      (hl),#22
+        inc     hl
+        ld      (hl),#33
+        inc     hl
+        ld      (hl),#44
+        inc     hl
+        ld      (hl),#55
+
+        ; Overlap: source -> source+1, length 4. Must copy backward.
+        ld      hl,(atm_mem_test_source)
+        ld      (atm_mem_source_offset),hl
+        ld      de,1
+        add     hl,de
+        ld      (atm_mem_destination_offset),hl
+        ld      hl,(atm_mem_test_source+2)
+        ld      (atm_mem_source_offset+2),hl
+        adc     hl,0
+        ld      (atm_mem_destination_offset+2),hl
+        ld      hl,4
+        ld      (atm_mem_op_length),hl
+        ld      hl,0
+        ld      (atm_mem_op_length+2),hl
+        call    atm_mem_copy
+        jp      c,atm_mem_ops_test_fail_08
+
+        ; Verify resulting bytes: 11 11 22 33 44.
+        ld      hl,(atm_mem_test_source)
+        ld      (atm_mem_work_offset),hl
+        ld      hl,(atm_mem_test_source+2)
+        ld      (atm_mem_work_offset+2),hl
+        call    atm_mem_map_work_offset
+        jp      c,atm_mem_ops_test_fail_09
+        ld      a,(hl)
+        cp      #11
+        jp      nz,atm_mem_ops_test_fail_09
+        inc     hl
+        ld      a,(hl)
+        cp      #11
+        jp      nz,atm_mem_ops_test_fail_09
+        inc     hl
+        ld      a,(hl)
+        cp      #22
+        jp      nz,atm_mem_ops_test_fail_09
+        inc     hl
+        ld      a,(hl)
+        cp      #33
+        jp      nz,atm_mem_ops_test_fail_09
+        inc     hl
+        ld      a,(hl)
+        cp      #44
+        jp      nz,atm_mem_ops_test_fail_09
+
+        ; Free second allocation.
+        ld      hl,(atm_mem_test_destination)
+        ld      (atm_mem_request_offset),hl
+        ld      hl,(atm_mem_test_destination+2)
+        ld      (atm_mem_request_offset+2),hl
+        ld      hl,#4001
+        ld      (atm_mem_request_length),hl
+        ld      hl,0
+        ld      (atm_mem_request_length+2),hl
+        call    atm_mem_free
+        jp      c,atm_mem_ops_test_fail_10
+
+        ; Free first allocation.
+        ld      hl,(atm_mem_test_source)
+        ld      (atm_mem_request_offset),hl
+        ld      hl,(atm_mem_test_source+2)
+        ld      (atm_mem_request_offset+2),hl
+        ld      hl,#4001
+        ld      (atm_mem_request_length),hl
+        ld      hl,0
+        ld      (atm_mem_request_length+2),hl
+        call    atm_mem_free
+        ret
+
+atm_mem_ops_test_fail_01: ld a,1
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_02: ld a,2
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_03: ld a,3
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_04: ld a,4
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_05: ld a,5
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_06: ld a,6
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_07: ld a,7
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_08: ld a,8
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_09: ld a,9
+        jr atm_mem_ops_test_fail
+atm_mem_ops_test_fail_10:
+        ld a,10
+atm_mem_ops_test_fail:
+        scf
+        ret
+
+atm_mem_test_source:      defs 4,0
+atm_mem_test_destination: defs 4,0
