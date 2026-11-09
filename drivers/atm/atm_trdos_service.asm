@@ -173,6 +173,171 @@ p127_trdos_test_fail:
         scf
         ret
 
+
+; -------------------------------------------------------------------------
+; Read and dump the real TR-DOS catalog of drive A.
+; Uses the proven TR-DOS ROM gateway at #3D13 and the canonical 8-sector
+; catalog buffer at #C800. This is a read-only operation.
+; -------------------------------------------------------------------------
+P127_TRDOS_DumpCatalog::
+        ld      hl,p127_trdos_log_read
+        call    p127_host_debug_string
+        xor     a
+        ld      (#5D19),a
+        ld      (#5CF6),a
+        ld      (#5CF8),a
+        ld      (#5CF9),a
+        ld      (#5D09),a
+        ld      (#5D19),a
+        ld      bc,1
+        call    P127_TRDOS_ExecuteCommand
+        ; Read track 0, sectors 0..7 into the proven catalog buffer.
+        ld      bc,#0005
+        ld      de,0
+        ld      hl,#C800
+        call    P127_TRDOS_ExecuteCommand
+        ; Wait for the TR-DOS command-active flag to clear, bounded.
+        ld      de,#FFFF
+p127_trdos_wait_done:
+        ld      a,(#5D11)
+        or      a
+        jr      z,p127_trdos_catalog_read_done
+        dec     de
+        ld      a,d
+        or      e
+        jr      nz,p127_trdos_wait_done
+        call    P127_Console_Restore
+        ld      hl,p127_trdos_log_timeout
+        jp      p127_host_debug_string
+p127_trdos_catalog_read_done:
+        call    P127_Console_Restore
+        ld      hl,#C800
+        ld      bc,P127_TRDOS_DIR_BYTES
+        call    p127_trdos_catalog_begin
+        jr      c,p127_trdos_catalog_dump_error
+        ld      hl,p127_trdos_log_header
+        call    p127_host_debug_string
+p127_trdos_catalog_dump_next:
+        call    p127_trdos_catalog_next
+        jr      c,p127_trdos_catalog_dump_end
+        ld      (p127_trdos_dump_entry),hl
+        call    p127_trdos_format_entry
+        ld      hl,p127_trdos_log_file
+        call    p127_host_debug_string
+        ld      hl,p127_trdos_dump_name
+        call    p127_host_debug_string
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
+        jr      p127_trdos_catalog_dump_next
+p127_trdos_catalog_dump_end:
+        or      a
+        jr      nz,p127_trdos_catalog_dump_error
+        ld      hl,p127_trdos_log_pass
+        jp      p127_host_debug_string
+p127_trdos_catalog_dump_error:
+        ld      hl,p127_trdos_log_fail
+        jp      p127_host_debug_string
+
+; HL points to a validated 16-byte TR-DOS descriptor.
+; Output: p127_trdos_dump_name = trimmed 8-char name + '.' + type.
+p127_trdos_format_entry:
+        ld      (p127_trdos_dump_entry),hl
+        ld      de,p127_trdos_dump_name
+        ld      b,8
+p127_trdos_format_name:
+        ld      a,(hl)
+        inc     hl
+        cp      ' '
+        jr      z,p127_trdos_format_name_next
+        ld      (de),a
+        inc     de
+p127_trdos_format_name_next:
+        djnz    p127_trdos_format_name
+        ld      a,'.'
+        ld      (de),a
+        inc     de
+        ld      hl,(p127_trdos_dump_entry)
+        ld      bc,8
+        add     hl,bc
+        ld      a,(hl)
+        ld      (de),a
+        inc     de
+        xor     a
+        ld      (de),a
+        ret
+
+; TR-DOS command gateway, ported from Project127/0/disk.asm.
+; Input: BC, DE, HL command parameters. Preserves caller register context.
+P127_TRDOS_ExecuteCommand:
+        ld      (p127_trdos_save_bc),bc
+        ld      (p127_trdos_save_de),de
+        ld      (p127_trdos_save_hl),hl
+        push    af
+        push    ix
+        push    iy
+        exx
+        push    bc
+        push    de
+        push    hl
+        exx
+        ex      af,af'
+        push    af
+        ex      af,af'
+        push    bc
+        ld      a,#10
+        ld      bc,#7FFD
+        out     (c),a
+        pop     bc
+        xor     a
+        ld      (#5D11),a
+        ld      iy,#5C3A
+        ld      (p127_trdos_saved_sp),sp
+        ld      sp,#FFFF
+        ld      bc,(p127_trdos_save_bc)
+        ld      de,(p127_trdos_save_de)
+        ld      hl,(p127_trdos_save_hl)
+        di
+        call    #3D13
+        di
+        ld      sp,(p127_trdos_saved_sp)
+        xor     a
+        ld      (#5D11),a
+        ld      (#5C48),a
+        push    bc
+        ld      a,#10
+        ld      bc,#7FFD
+        out     (c),a
+        ld      (#5C3B),a
+        pop     bc
+        ex      af,af'
+        pop     af
+        ex      af,af'
+        exx
+        pop     hl
+        pop     de
+        pop     bc
+        exx
+        pop     iy
+        pop     ix
+        pop     af
+        ret
+
+
+p127_trdos_dump_entry: dw 0
+p127_trdos_save_bc: dw 0
+p127_trdos_save_de: dw 0
+p127_trdos_save_hl: dw 0
+p127_trdos_saved_sp: dw 0
+p127_trdos_dump_name: defs 16,0
+p127_trdos_log_read: db "[P127] TRDOS CATALOG READ A:",13,10,0
+p127_trdos_log_header: db "[P127] TRDOS FILE LIST",13,10,0
+p127_trdos_log_file: db "[P127] TRDOS FILE ",0
+p127_trdos_log_pass: db "[P127] TRDOS CATALOG READ PASS",13,10,0
+p127_trdos_log_fail: db "[P127] TRDOS CATALOG READ FAIL",13,10,0
+p127_trdos_log_timeout: db "[P127] TRDOS CATALOG READ TIMEOUT",13,10,0
+
 p127_trdos_dir_base: dw 0
 p127_trdos_dir_length: dw 0
 p127_trdos_dir_index: db 0

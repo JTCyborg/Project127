@@ -33,7 +33,8 @@ P127_StorageAndFAT16_Startup:
         call    P127_FAT16_Mount
         jr      c,p127_fat16_mount_missing
         ld      hl,p127_fat16_log_mounted
-        jp      p127_host_debug_string
+        call    p127_host_debug_string
+        jp      P127_FAT16_DumpRootDirectory
 p127_fat16_storage_missing:
         ld      hl,p127_storage_log_missing
         jp      p127_host_debug_string
@@ -230,6 +231,179 @@ p127_fat16_bad_bpb:
         ld      a,P127_FAT16_ERR_BPB
         scf
         ret
+
+
+; -------------------------------------------------------------------------
+; Dump the complete FAT16 root directory, reading every root sector.
+; Read-only; stops at the first 00h entry and caps output at 32 names.
+; -------------------------------------------------------------------------
+P127_FAT16_DumpRootDirectory:
+        ld      hl,p127_fat16_log_list_start
+        call    p127_host_debug_string
+        xor     a
+        ld      (p127_fat16_scan_sector),a
+        ld      (p127_fat16_scan_sector+1),a
+        ld      (p127_fat16_dump_count),a
+p127_fat16_dump_sector:
+        ld      hl,(p127_fat16_scan_sector)
+        ld      de,(p127_fat16_root_sectors)
+        or      a
+        sbc     hl,de
+        jr      nc,p127_fat16_dump_pass
+        ld      hl,(p127_fat16_scan_sector)
+        call    P127_FAT16_ReadRootSector
+        jr      c,p127_fat16_dump_read_fail
+        xor     a
+        ld      (p127_fat16_entry_index),a
+p127_fat16_dump_entry:
+        ld      a,(p127_fat16_entry_index)
+        ld      l,a
+        ld      h,0
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        add     hl,hl
+        ld      de,p127_fat16_sector_buffer
+        add     hl,de
+        push    hl
+        pop     ix
+        ld      a,(ix+0)
+        or      a
+        jr      z,p127_fat16_dump_pass
+        cp      #E5
+        jr      z,p127_fat16_dump_skip
+        cp      '.'
+        jr      z,p127_fat16_dump_skip
+        ld      a,(ix+11)
+        cp      #0F
+        jr      z,p127_fat16_dump_skip
+        and     #08
+        jr      nz,p127_fat16_dump_skip
+        call    p127_fat16_format_entry
+        ld      hl,p127_fat16_log_file
+        call    p127_host_debug_string
+        ld      hl,p127_fat16_dump_name
+        call    p127_host_debug_string
+        ld      a,13
+        call    p127_host_debug_char
+        ld      a,10
+        call    p127_host_debug_char
+        ld      a,(p127_fat16_dump_count)
+        inc     a
+        ld      (p127_fat16_dump_count),a
+        cp      32
+        jr      nc,p127_fat16_dump_truncated
+p127_fat16_dump_skip:
+        ld      a,(p127_fat16_entry_index)
+        inc     a
+        ld      (p127_fat16_entry_index),a
+        cp      16
+        jr      c,p127_fat16_dump_entry
+        ld      hl,(p127_fat16_scan_sector)
+        inc     hl
+        ld      (p127_fat16_scan_sector),hl
+        jr      p127_fat16_dump_sector
+p127_fat16_dump_pass:
+        ld      hl,p127_fat16_log_list_pass
+        jp      p127_host_debug_string
+p127_fat16_dump_truncated:
+        ld      hl,p127_fat16_log_list_truncated
+        jp      p127_host_debug_string
+p127_fat16_dump_read_fail:
+        ld      hl,p127_fat16_log_list_read_fail
+        jp      p127_host_debug_string
+
+; IX points to one 32-byte FAT16 directory entry.
+; Formats trimmed 8.3 names and appends " <DIR>" for directories.
+p127_fat16_format_entry:
+        push    ix
+        pop     hl
+        ld      (p127_fat16_entry_ptr),hl
+        ld      de,p127_fat16_dump_name
+        ld      b,8
+p127_fat16_format_base:
+        ld      a,(hl)
+        inc     hl
+        cp      ' '
+        jr      z,p127_fat16_format_base_next
+        ld      (de),a
+        inc     de
+p127_fat16_format_base_next:
+        djnz    p127_fat16_format_base
+        ld      hl,(p127_fat16_entry_ptr)
+        ld      bc,8
+        add     hl,bc
+        ld      b,3
+        ld      a,0
+p127_fat16_check_ext:
+        ld      c,(hl)
+        inc     hl
+        ld      a,c
+        cp      ' '
+        jr      z,p127_fat16_check_ext_next
+        ld      a,1
+p127_fat16_check_ext_next:
+        djnz    p127_fat16_check_ext
+        or      a
+        jr      z,p127_fat16_format_attr
+        ld      a,'.'
+        ld      (de),a
+        inc     de
+        ld      hl,(p127_fat16_entry_ptr)
+        ld      bc,8
+        add     hl,bc
+        ld      b,3
+p127_fat16_format_ext:
+        ld      a,(hl)
+        inc     hl
+        cp      ' '
+        jr      z,p127_fat16_format_ext_next
+        ld      (de),a
+        inc     de
+p127_fat16_format_ext_next:
+        djnz    p127_fat16_format_ext
+p127_fat16_format_attr:
+        ld      hl,(p127_fat16_entry_ptr)
+        ld      bc,11
+        add     hl,bc
+        ld      a,(hl)
+        and     #10
+        jr      z,p127_fat16_format_close
+        ld      a,' '
+        ld      (de),a
+        inc     de
+        ld      a,'<'
+        ld      (de),a
+        inc     de
+        ld      a,'D'
+        ld      (de),a
+        inc     de
+        ld      a,'I'
+        ld      (de),a
+        inc     de
+        ld      a,'R'
+        ld      (de),a
+        inc     de
+        ld      a,'>'
+        ld      (de),a
+        inc     de
+p127_fat16_format_close:
+        xor     a
+        ld      (de),a
+        ret
+
+
+p127_fat16_scan_sector: dw 0
+p127_fat16_dump_count: db 0
+p127_fat16_entry_index: db 0
+p127_fat16_entry_ptr: dw 0
+p127_fat16_dump_name: defs 20,0
+p127_fat16_log_list_start: db "[P127] HDD FAT16 ROOT DIRECTORY",13,10,0
+p127_fat16_log_file: db "[P127] HDD FILE ",0
+p127_fat16_log_list_pass: db "[P127] HDD ROOT DIRECTORY READ PASS",13,10,0
+p127_fat16_log_list_truncated: db "[P127] HDD ROOT LIST TRUNCATED AT 32 ENTRIES",13,10,0
+p127_fat16_log_list_read_fail: db "[P127] HDD ROOT DIRECTORY SECTOR READ FAIL",13,10,0
 
 p127_fat16_available:       db 0
 p127_fat16_sectors_per_cluster: db 0
