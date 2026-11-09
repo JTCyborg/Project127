@@ -10,8 +10,12 @@
         PAGE 0
         INCLUDE "atm_host/p127_host.asm"
 
-        ; Keep the proven single-file TR-DOS boot path. The console code is
-        ; placed at A000h and included in the same contiguous CODE image.
+        ; TR-DOS catalog core at 8000h; UI remains at A000h.
+        PAGE 0
+        ORG #8000
+        INCLUDE "drivers/atm/atm_trdos_service.asm"
+
+        ; Keep the proven single-file TR-DOS boot path.
         PAGE 0
         ORG #A000
         INCLUDE "atm_host/p127_screen_console.asm"
