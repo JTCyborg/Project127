@@ -5,7 +5,7 @@ from pathlib import Path
 SECTOR, SPT, TRACKS = 256, 16, 160
 IMAGE_SIZE = SECTOR * SPT * TRACKS
 LOAD_ADDRESS = 0x6000
-TOK_CLEAR, TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR = 0xFD, 0xEF, 0xAF, 0xF9, 0xC0
+TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR = 0xEF, 0xAF, 0xF9, 0xC0
 
 def le16(n):
     if not 0 <= n <= 0xFFFF:
@@ -13,9 +13,11 @@ def le16(n):
     return bytes((n & 255, n >> 8))
 
 def basic_loader():
-    body = (bytes([TOK_CLEAR]) + b" 24575:" + bytes([TOK_LOAD]) +
-            b' "P127BOOT" ' + bytes([TOK_CODE]) + b" 24576:" +
-            bytes([TOK_RANDOMIZE]) + b" " + bytes([TOK_USR]) + b" 24576")
+    # Do not issue CLEAR: the TR-DOS BASIC workspace can reject a lowered
+    # RAMTOP before the loader starts. The code is loaded at 6000h.
+    body = (bytes([TOK_LOAD]) + b' "P127BOOT" ' + bytes([TOK_CODE]) +
+            b" 24576:" + bytes([TOK_RANDOMIZE]) + b" " +
+            bytes([TOK_USR]) + b" 24576")
     line = bytes([0, 10]) + le16(len(body) + 1) + body + b"\x0d"
     area = line + b"\x80"
     return area + b"\xaa\x0a\x00", len(area)
@@ -94,9 +96,11 @@ def verify_trd(image, expected_code=None):
     basic = image[pos:pos + n + 3]
     if not basic.endswith(b"\x80\xaa\x0a\x00"):
         raise ValueError("Invalid BASIC/TR-DOS run-line terminator")
-    for token in (TOK_CLEAR, TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR):
+    for token in (TOK_LOAD, TOK_CODE, TOK_RANDOMIZE, TOK_USR):
         if token not in basic:
             raise ValueError("BASIC loader token missing")
+    if 0xFD in basic:
+        raise ValueError("BASIC loader must not execute CLEAR/RAMTOP")
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -112,6 +116,7 @@ def main():
     print("[P127 TRD] FORMAT=80T_DOUBLE_SIDED")
     print(f"[P127 TRD] FILES=2 CODE_BYTES={len(code)} IMAGE_BYTES={len(image)}")
     print("[P127 TRD] BOOT_FILENAME=boot TYPE=B")
+    print("[P127 TRD] BASIC_RAMTOP=UNCHANGED")
     print(f"[P127 TRD] OUTPUT={args.output}")
     print("[P127 TRD] VERIFY OK")
 
