@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.5.8
+; Project127 — boot stage 0.5.9
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -83,6 +83,12 @@ p127_start:
         jp      c,p127_w3_recovery_failed
         ld      hl,p127_msg_w3_recovery_pass
         call    p127_puts
+        ; Stage 2.10: verify the resident trampoline's real linked placement,
+        ; resident data placement, live W2 stack and DI-only entry contract.
+        call    p127_resident_trampoline_preflight
+        jp      c,p127_trampoline_preflight_failed
+        ld      hl,p127_msg_trampoline_preflight_pass
+        call    p127_puts
         ld      hl,p127_msg_resident_pass
         call    p127_puts
         ld      hl,p127_msg_handoff_pass
@@ -100,6 +106,10 @@ p127_w3_failed:
         jr      p127_idle
 p127_w3_recovery_failed:
         ld      hl,p127_msg_w3_recovery_fail
+        call    p127_puts
+        jr      p127_idle
+p127_trampoline_preflight_failed:
+        ld      hl,p127_msg_trampoline_preflight_fail
         call    p127_puts
         jr      p127_idle
 p127_resident_failed:
@@ -201,11 +211,17 @@ p127_msg_w3_recovery_pass:
         db      "[P127] W3 ROLLBACK/RECOVERY PASS; OUT DISABLED",13,10,0
 p127_msg_w3_recovery_fail:
         db      "[P127] W3 ROLLBACK/RECOVERY FAIL",13,10,0
+p127_msg_trampoline_preflight_pass:
+        db      "[P127] RESIDENT TRAMPOLINE PREFLIGHT PASS; OUT DISABLED",13,10,0
+p127_msg_trampoline_preflight_fail:
+        db      "[P127] RESIDENT TRAMPOLINE PREFLIGHT FAIL",13,10,0
 
+; Keep the remap-critical code/data at the start of the Stage2 image so it
+; remains inside W1/P5. The preflight below verifies the actual linked bounds.
+        INCLUDE "src/kernel/p127_resident.asm"
         INCLUDE "src/kernel/p127_mem.asm"
         INCLUDE "src/kernel/p127_map.asm"
         INCLUDE "src/kernel/p127_handoff.asm"
-        INCLUDE "src/kernel/p127_resident.asm"
 
 p127_end:
         ASSERT  p127_entry = P127_LOAD_ADDRESS

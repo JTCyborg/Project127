@@ -1,14 +1,20 @@
 ; ============================================================================
 ; Project127 — resident-window contract / software preflight
-; Module version: 0.3.0
+; Module version: 0.4.0
 ; Defines the only first-stage remap candidate without touching hardware.
 ; W1/P5 owns resident execution+data; W2/P2 owns resident stack/control.
 ; W3 is the only candidate target and may be used only after UI quiescence.
 ; W0 is ROM. No OUT instruction is permitted here.
 ; ============================================================================
 P127_RESIDENT_VERSION_MAJOR EQU 0
-P127_RESIDENT_VERSION_MINOR EQU 3
+P127_RESIDENT_VERSION_MINOR EQU 4
 P127_RESIDENT_VERSION_PATCH EQU 0
+
+; The remap-critical resident module is deliberately placed first after the
+; Stage2 boot body. W1/P5 is the fixed execution/data window; W2/P2 is the
+; fixed stack window; W3 is the only target. This preflight checks the linked
+; addresses and current live stack at runtime. It performs no page OUT.
+p127_resident_start:
 
 P127_RESIDENT_CODE_WINDOW  EQU 1
 P127_RESIDENT_CODE_PAGE    EQU 5
@@ -107,7 +113,6 @@ p127_resident_arg_stack:
         db      0
 p127_resident_arg_flags:
         db      0
-p127_resident_end:
 
 
 ; W3 ownership / UI quiesce state machine. Software only; no page OUT.
@@ -338,3 +343,65 @@ p127_w3_busy: db 0
 p127_w3_saved_state: db 0
 p127_w3_saved_owner: db 0
 p127_w3_saved_busy: db 0
+
+
+; ---------------------------------------------------------------------------
+; Stage 2.10 — real-address resident trampoline preflight (software only).
+; Requires DI on entry; DI is asserted again and interrupts remain disabled.
+; Z80 does not provide a general instruction to read/restore prior IFF1, so
+; this entry contract intentionally does not attempt an EI/IFF round trip.
+; W1 is #4000-#7FFF; W2 is #8000-#BFFF. The linked resident module must fit
+; wholly in W1, all resident state is inside that module, and the live stack
+; must be in W2. No page register is written.
+p127_resident_trampoline_preflight:
+        di
+        ; Linked code and data must remain wholly inside the fixed W1 window.
+        ld      hl,p127_resident_start
+        ld      de,06000h
+        or      a
+        sbc     hl,de
+        jp      c,p127_resident_trampoline_fail
+
+        ld      hl,p127_resident_end
+        ld      de,08000h
+        or      a
+        sbc     hl,de
+        jp      nc,p127_resident_trampoline_fail
+
+        ; Representative mutable state must be within the resident module.
+        ld      hl,p127_w3_state
+        ld      de,p127_resident_start
+        or      a
+        sbc     hl,de
+        jp      c,p127_resident_trampoline_fail
+
+        ld      hl,p127_w3_state
+        ld      de,p127_resident_end
+        or      a
+        sbc     hl,de
+        jp      nc,p127_resident_trampoline_fail
+
+        ; CALL has already pushed its return address. The live stack must
+        ; still be within W2, independent of W3's mapping.
+        ld      hl,0
+        add     hl,sp
+        ld      de,0B000h
+        or      a
+        sbc     hl,de
+        jp      c,p127_resident_trampoline_fail
+
+        ld      hl,0
+        add     hl,sp
+        ld      de,0C000h
+        or      a
+        sbc     hl,de
+        jp      nc,p127_resident_trampoline_fail
+
+        or      a
+        ret
+
+p127_resident_trampoline_fail:
+        scf
+        ret
+
+p127_resident_end:
