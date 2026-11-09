@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.76**  
+Scenario revision: **0.8.77**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -30,7 +30,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 6 — Managed program address space | **STAGE 6.1/6.2/6.3 PASS (user runtime log)** | 4 MiB logical page table; complete source/destination preflight; non-overlapping copy; 64-byte resident bounce buffer; page-boundary chunking through guarded W3 lease; exact completed-byte count and explicit partial-write semantics. Cross-page copy and W3 restoration runtime-accepted. |
 | 7 — TR-DOS and filesystem services | **STAGE 7.1 PASS (user runtime accepted, 2026-11-10)** | Project126 legacy pre-video mapping; isolated ROM scratch stack; read track 0 sectors 1–8; parse/report the P0 #C800 snapshot after UI initialization. User log confirms R0/r0 through R7/r7, 8 sectors / 2048 bytes, 2 entries and DIRECTORY DUMP COMPLETE. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
-| 9 — RTC and input | **RTC SOURCE AUDIT NEXT** | Port the proven Project126 ATM Turbo 2+ RTC read path after confirming which physical backend is active in the target runtime; preserve keyboard protocol and existing port ownership. |
+| 9 — RTC and input | **STAGE 9.1 IMPLEMENTED; RUNTIME PENDING** | Read-only DS12887 probe/read API. GLUK primary, SMUC fallback; UIP-bounded stable snapshot; BCD/binary and 12/24-hour conversion; restore ATM DOSEN/RG6 after GLUK access. Keyboard and live clock refresh remain deferred. |
 | 10 — Physical storage | PLANNED | Nemo IDE/SMUC IDENTIFY, READ, WRITE, FLUSH with LBA and RAM bounds checks. |
 | 11 — Audio and timer/events | PLANNED | Speaker/audio, timer, interrupt dispatch and event queues. |
 | 12 — Integration/acceptance | PLANNED | Multi-page program, context-switch, video coexistence, storage and peripheral regression suite. |
@@ -957,3 +957,14 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Stage 6.3 logical cross-page copy, W3=P0/UI restoration, guarded allocator and the preceding memory/map/IRQ preflight checks remain PASS as shown in the same user log. IM/EI and live IRQ source/acknowledge remain disabled/unresolved.
 - Checkpoint scenario revision: 0.8.76. Source behavior is unchanged in this checkpoint. The next work item is an audit/port of the existing Project126 RTC path; no RTC source is changed by this acceptance commit.
 - The latest fetched `main` head before this commit was `a48cb40ae1b0a53809340cd9d90a631a1f700540`; the commit is based on that exact head. SjASMPlus and Unreal Speccy were not run here.
+
+
+### 2026-11-10 — Stage 9.1 DS12887 RTC read service v0.1.0
+
+- Audited Project126's active `125/zx_main/main.asm`: startup calls `DS12887_PROBE` after `p126_atm_video_init`, and `READ_CURRENT_TIME` is the timestamp API. The active backend is `125/zx_main/ds12887_rtc.asm`; the equivalent host-side driver documents the required display restoration after GLUK access.
+- Ported the Project126 DS12887 read-only register model into `src/kernel/p127_rtc.asm` v0.1.0. It probes native GLUK first (`#EFF7`, index `#DFF7`, data `#BFF7`) and retries through SMUC (`#FFBA/#DFBA`) if the native status signature is invalid. It writes no RTC time or control registers.
+- Probe validates Status D VRT and Status A divider state, waits for UIP to clear with a bounded 256-poll loop, reads seconds/minutes/hours/seconds and retries a rollover up to four times. Conversion follows Status B (BCD/binary and 12/24-hour mode).
+- Added public `p127_rtc_read_current` API and ASCII output buffers `p127_rtc_hour`, `p127_rtc_minute`, `p127_rtc_second`. Boot performs one probe/read after UI initialization and reports the result through the existing console/#EF path.
+- Critical ATM integration: Project126 host RTC close sequence restores permanent DOSEN/RG6 by re-entering TR-DOS service `#0177` with `#C6`. Project127's console did not yet contain this helper, so `p126_atm_restore_dosen` was added to `p127_console.asm` v0.1.4 and is called after native GLUK access. A plain `EFF7=0` without this restoration would close the active shadow/DOSEN path.
+- No keyboard protocol, IRQ, IM/EI, DMA, page-map API, TR-DOS directory reader or disk write behavior was changed. Stage 9.1 awaits user rebuild/runtime evidence; no assembly or emulator run is claimed.
+- Scenario revision: 0.8.77. Previous accepted Stage 7.1 checkpoint: `483de1593eb86daa8970bd9b184b74aeaad22a54`.
