@@ -20,6 +20,7 @@ ATM_PAGE_COUNT          EQU 64
 ATM_PAGE_SHIFT          EQU 14
 ATM_PAGE_SIZE           EQU #4000
 ATM_PAGE_PORT_WINDOW3   EQU #FFF7
+ATM_ALLOCATION_SLOTS     EQU 64
 
 atm_mem_init::
         ; Clear allocations from a previous initialization.
@@ -124,6 +125,23 @@ atm_mem_alloc::
         or      a
         jr      z,atm_mem_alloc_fail
         ld      (atm_mem_pages_needed),a
+
+        ; Reserve a bookkeeping slot before searching for physical pages.
+        ld      hl,atm_mem_alloc_table
+        ld      b,ATM_ALLOCATION_SLOTS
+atm_mem_alloc_find_slot:
+        ld      a,(hl)
+        or      a
+        jp      z,atm_mem_alloc_slot_found
+        push    bc
+        ld      de,6
+        add     hl,de
+        pop     bc
+        djnz    atm_mem_alloc_find_slot
+        jp      atm_mem_alloc_fail
+atm_mem_alloc_slot_found:
+        ld      (atm_mem_record_ptr),hl
+
         xor     a
         ld      (atm_mem_candidate),a
 
@@ -156,6 +174,18 @@ atm_mem_alloc_mark:
         inc     b
         dec     c
         jr      nz,atm_mem_alloc_mark
+
+        ; Record exact allocation identity: start page, page count, byte length.
+        ld      hl,(atm_mem_record_ptr)
+        ld      a,(atm_mem_alloc_start)
+        ld      (hl),a
+        inc     hl
+        ld      a,(atm_mem_pages_needed)
+        ld      (hl),a
+        inc     hl
+        ld      de,atm_mem_request_length
+        ld      bc,4
+        ldir
 
         ; Convert page index to a 32-bit byte offset (page << 14).
         ld      a,(atm_mem_alloc_start)
@@ -212,8 +242,6 @@ atm_mem_free::
         jr      z,atm_mem_free_fail
         call    atm_mem_validate_request
         jr      c,atm_mem_free_fail
-        call    atm_mem_pages_for_length
-        ld      (atm_mem_pages_needed),a
 
         ; Page index = (offset >> 14).
         ld      a,(atm_mem_request_offset+2)
@@ -230,6 +258,56 @@ atm_mem_free::
         and     3
         or      b
         ld      (atm_mem_alloc_start),a
+
+        ; Require an exact base+length match in the allocation table.
+        ld      hl,atm_mem_alloc_table
+        ld      b,ATM_ALLOCATION_SLOTS
+atm_mem_free_find_record:
+        ld      a,(hl)
+        or      a
+        jr      z,atm_mem_free_next_record
+        ld      d,a
+        ld      a,(atm_mem_alloc_start)
+        cp      d
+        jr      nz,atm_mem_free_next_record
+        push    hl
+        inc     hl
+        inc     hl
+        ld      de,atm_mem_request_length
+        ld      a,(de)
+        cp      (hl)
+        jr      nz,atm_mem_free_record_mismatch
+        inc     de
+        inc     hl
+        ld      a,(de)
+        cp      (hl)
+        jr      nz,atm_mem_free_record_mismatch
+        inc     de
+        inc     hl
+        ld      a,(de)
+        cp      (hl)
+        jr      nz,atm_mem_free_record_mismatch
+        inc     de
+        inc     hl
+        ld      a,(de)
+        cp      (hl)
+        jr      nz,atm_mem_free_record_mismatch
+        pop     hl
+        ld      (atm_mem_record_ptr),hl
+        inc     hl
+        ld      a,(hl)
+        ld      (atm_mem_pages_needed),a
+        jr      atm_mem_free_record_found
+atm_mem_free_record_mismatch:
+        pop     hl
+atm_mem_free_next_record:
+        push    bc
+        ld      de,6
+        add     hl,de
+        pop     bc
+        djnz    atm_mem_free_find_record
+        jr      atm_mem_free_fail
+atm_mem_free_record_found:
 
         ; Validate every page before changing any bitmap bit.
         ld      b,a
@@ -255,6 +333,10 @@ atm_mem_free_clear:
         inc     b
         dec     c
         jr      nz,atm_mem_free_clear
+        ; Release the exact allocation record only after all page bits clear.
+        ld      hl,(atm_mem_record_ptr)
+        xor     a
+        ld      (hl),a
         or      a
         ret
 
@@ -458,6 +540,9 @@ atm_mem_result_offset:      defs 4,0
 atm_mem_pages_needed:       db 0
 atm_mem_candidate:          db 0
 atm_mem_alloc_start:        db 0
+atm_mem_record_ptr:         dw 0
+; 64 records * 6 bytes: start page, page count, exact UINT32 byte length.
+atm_mem_alloc_table:        defs 384,0
 
 ; Page 0,1,2,3,5,7 are reserved: $AF in bitmap byte zero.
 atm_mem_reserved_bitmap:
