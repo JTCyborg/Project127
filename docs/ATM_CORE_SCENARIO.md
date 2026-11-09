@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.54**  
+Scenario revision: **0.8.55**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -24,7 +24,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 0 — Bootstrap baseline | **PASS (baseline)** | BASIC `boot.B` loads `P127BOOT.C` at #6000; original four BOOT0 diagnostic lines retained. |
 | 1 — Physical page-state manager | **PASS (runtime accepted)** | 64-entry page-state table; video and active boot-map reservations; allocate/free/reallocate smoke test. |
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
-| 3 — UINT32 memory/range API | **STAGE 3.1 IMPLEMENTED — BUILD/RUNTIME PENDING** | UINT32 half-open range validation against the 1 MiB physical limit, including addition overflow, exact-end and zero-length semantics. Top-down arena, reservations/collision checks and cross-page copy/fill/compare remain pending. |
+| 3 — UINT32 memory/range API | **STAGE 3.1 PASS (user build + runtime accepted)** | UINT32 half-open range validation against the 1 MiB physical limit, including addition overflow, exact-end and zero-length semantics. Top-down arena, reservations/collision checks and cross-page copy/fill/compare remain pending. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | **SOFTWARE PREFLIGHT + MAP TRANSACTION RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0, P4 table-slot preflight v0.3.0, map transaction v0.3.0 | Implement resident interrupt-entry/return and controlled physical W3 mapping. Physical remap remains blocked; independent physical stack backing and IFF/IM/vector handling are not proven. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
@@ -731,3 +731,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Reworked each byte of the 32-bit addition to load the length byte through DE into B, load the start byte through HL, then use `ADD A,B` / `ADC A,B`. The carry flag remains live across the pointer increments, so the four-byte addition and overflow detection retain their intended semantics.
 - Documented the validator's clobbers as AF, B, DE and HL. API inputs, output carry convention, range semantics, boundary tests and memory-map restrictions are unchanged.
 - Advanced `src/kernel/p127_range.asm` from v0.1.1 to v0.1.2; scenario revision 0.8.54. This is a source-level assembler correction only. Build and emulator runtime verification remain pending the user's rebuild.
+
+
+### 2026-11-09 — Stage 3.1 runtime acceptance: UINT32 physical range API v0.1.2
+
+- User supplied the complete startup #EF log from the rebuilt Project127 image. It contains `UINT32 RANGE 1MB BOUNDS TEST PASS; NO MAP/OUT`, confirming that the integrated Stage 3.1 regression suite returned successfully.
+- The accepted suite covers zero-length at zero, the final physical byte, one-byte overrun, the complete `[0, 1 MiB)` range, zero-length exactly at 1 MiB, one byte starting at the limit, and UINT32 addition overflow. The source implementation is `src/kernel/p127_range.asm` v0.1.2.
+- The same run also repeats the earlier page-state and allocator negative-path tests, mapper transaction/rollback, resident stack/window and W3 ownership/recovery guards, IRQ preflights, full 57-page W3 fill/reverse-verify sweep, P0 restoration and guarded W3 lease API. The log explicitly reports `PHYSICAL RAM: 57/57 FREE PAGES VERIFIED`, `W3: P0 RESTORED | UI ACTIVE | IM/EI DISABLED`, and the final physical sweep and allocator API PASS markers.
+- Stage 3.1 is accepted from the user's supplied build/runtime evidence. This is not an independent assembler/emulator run by the assistant. The range validator remains arithmetic/accounting only: it performs no physical page mapping, no extra page-port OUT, no DMA, and no IRQ/IM/EI activation.
+- Stage 3.2 top-down program arena is still not implemented. Before coding it, the exact low-kernel placement/end and all physical reservations must be derived and validated; no fixed guessed kernel size or collision with video/boot/IRQ reservations is allowed.
