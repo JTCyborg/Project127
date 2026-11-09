@@ -114,10 +114,10 @@ Boot code must not assume a fixed number of free pages or a fixed DMA chunk size
 - supported module format and relocation types;
 - firmware build ID.
 
-Capability flags are currently defined as bit 0 = range validation, bit 1 =
-ATM fixed-window page mapping, and bit 2 = ATM contiguous ALLOC/FREE. The ATM
-capability record reports 58 allocatable pages (0x000E8000 bytes). These flags
-do not imply READ/WRITE/FILL/COPY or DMA support.
+Capability flags are defined as bit 0 = range validation, bit 1 = ATM
+fixed-window page mapping, bit 2 = ATM contiguous ALLOC/FREE, and bit 3 =
+ATM byte READ/WRITE/FILL/COPY. The ATM capability record reports 58
+allocatable pages (0x000E8000 bytes). DMA is not implied by these flags.
 
 The two sides negotiate compatible ABI versions before loading modules or sending service traffic. Incompatible versions fail explicitly; they do not silently fall back to a 16 KiB-only mode.
 
@@ -204,9 +204,17 @@ transport layer and is not implied by these names.
 This decision deliberately avoids a 16-bit caller-buffer ceiling and avoids
 mapping over the active host code or stack. It also means READ/WRITE must not
 be implemented by blindly copying through the currently mapped CPU window.
-The implementation must provide a safe backend copy engine (using a dedicated
-reserved staging area or a verified multi-window mapping) before advertising
-these operation capability bits.
+The initial ATM backend provides a safe single-aperture bytewise engine: it
+remaps only CPU window 3 ($C000-$FFFF), while the host image remains in window
+1 and the host stack remains in window 2. Each byte is read into host-resident
+scratch before the destination page is mapped. This is deliberately simple
+and slow; it avoids remapping the active code or stack and has no 16 KiB
+request limit. READ/WRITE/COPY validate both complete ranges before the first
+write; FILL validates its complete destination first. COPY uses backward
+traversal whenever destination > source, which is safe for both overlapping
+and non-overlapping ranges. The request descriptors remain unchanged; private
+32-bit cursors are used during execution. The current implementation is a
+bytewise physical-range primitive, not yet an ownership-checked handle API.
 
 ## 11. Implementation order
 

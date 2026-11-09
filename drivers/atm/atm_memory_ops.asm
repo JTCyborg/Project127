@@ -25,29 +25,41 @@ atm_mem_write::
 atm_mem_copy::
         call    atm_mem_validate_pair
         ret     c
-        call    atm_mem_op_length_is_zero
+        ld      hl,atm_mem_source_offset
+        ld      de,atm_mem_source_cursor
+        ld      bc,4
+        ldir
+        ld      hl,atm_mem_destination_offset
+        ld      de,atm_mem_destination_cursor
+        ld      bc,4
+        ldir
+        ld      hl,atm_mem_op_length
+        ld      de,atm_mem_remaining
+        ld      bc,4
+        ldir
+        call    atm_mem_remaining_is_zero
         ret     z
         call    atm_mem_destination_after_source
-        jp      c,atm_mem_copy_forward
+        jp      nc,atm_mem_copy_forward
 
         ; Backward copy: move both cursors to their last byte.
-        ld      hl,(atm_mem_source_offset)
+        ld      hl,(atm_mem_source_cursor)
         ld      de,(atm_mem_op_length)
         add     hl,de
-        ld      (atm_mem_source_offset),hl
-        ld      hl,(atm_mem_source_offset+2)
+        ld      (atm_mem_source_cursor),hl
+        ld      hl,(atm_mem_source_cursor+2)
         ld      de,(atm_mem_op_length+2)
         adc     hl,de
-        ld      (atm_mem_source_offset+2),hl
+        ld      (atm_mem_source_cursor+2),hl
         call    atm_mem_source_dec
-        ld      hl,(atm_mem_destination_offset)
+        ld      hl,(atm_mem_destination_cursor)
         ld      de,(atm_mem_op_length)
         add     hl,de
-        ld      (atm_mem_destination_offset),hl
-        ld      hl,(atm_mem_destination_offset+2)
+        ld      (atm_mem_destination_cursor),hl
+        ld      hl,(atm_mem_destination_cursor+2)
         ld      de,(atm_mem_op_length+2)
         adc     hl,de
-        ld      (atm_mem_destination_offset+2),hl
+        ld      (atm_mem_destination_cursor+2),hl
         call    atm_mem_destination_dec
 
 atm_mem_copy_backward_loop:
@@ -56,7 +68,7 @@ atm_mem_copy_backward_loop:
         call    atm_mem_source_dec
         call    atm_mem_destination_dec
         call    atm_mem_length_dec
-        call    atm_mem_op_length_is_zero
+        call    atm_mem_remaining_is_zero
         jr      nz,atm_mem_copy_backward_loop
         or      a
         ret
@@ -68,7 +80,7 @@ atm_mem_copy_forward_loop:
         call    atm_mem_source_inc
         call    atm_mem_destination_inc
         call    atm_mem_length_dec
-        call    atm_mem_op_length_is_zero
+        call    atm_mem_remaining_is_zero
         jr      nz,atm_mem_copy_forward_loop
         or      a
         ret
@@ -85,10 +97,10 @@ atm_mem_fill::
         ldir
         call    atm_mem_validate_request
         ret     c
-        call    atm_mem_op_length_is_zero
+        call    atm_mem_remaining_is_zero
         ret     z
 atm_mem_fill_loop:
-        ld      hl,atm_mem_destination_offset
+        ld      hl,atm_mem_destination_cursor
         ld      de,atm_mem_work_offset
         ld      bc,4
         ldir
@@ -98,7 +110,7 @@ atm_mem_fill_loop:
         ld      (hl),a
         call    atm_mem_destination_inc
         call    atm_mem_length_dec
-        call    atm_mem_op_length_is_zero
+        call    atm_mem_remaining_is_zero
         jr      nz,atm_mem_fill_loop
         or      a
         ret
@@ -127,13 +139,13 @@ atm_mem_validate_pair:
 
 ; Carry clear if destination <= source; carry set if destination > source.
 atm_mem_destination_after_source:
-        ld      hl,(atm_mem_destination_offset+2)
+        ld      hl,(atm_mem_destination_cursor+2)
         ld      de,(atm_mem_source_offset+2)
         or      a
         sbc     hl,de
         jr      c,atm_mem_destination_not_after
         jr      nz,atm_mem_destination_is_after
-        ld      hl,(atm_mem_destination_offset)
+        ld      hl,(atm_mem_destination_cursor)
         ld      de,(atm_mem_source_offset)
         or      a
         sbc     hl,de
@@ -147,7 +159,7 @@ atm_mem_destination_not_after:
         ret
 
 ; Z iff all four bytes of operation length are zero.
-atm_mem_op_length_is_zero:
+atm_mem_remaining_is_zero:
         ld      a,(atm_mem_op_length)
         ld      b,a
         ld      a,(atm_mem_op_length+1)
@@ -162,7 +174,7 @@ atm_mem_op_length_is_zero:
 
 ; Copy one byte through the only aperture that this runtime owns.
 atm_mem_copy_one:
-        ld      hl,atm_mem_source_offset
+        ld      hl,atm_mem_source_cursor
         ld      de,atm_mem_work_offset
         ld      bc,4
         ldir
@@ -170,7 +182,7 @@ atm_mem_copy_one:
         ret     c
         ld      a,(hl)
         ld      (atm_mem_copy_byte),a
-        ld      hl,atm_mem_destination_offset
+        ld      hl,atm_mem_destination_cursor
         ld      de,atm_mem_work_offset
         ld      bc,4
         ldir
@@ -208,65 +220,68 @@ atm_mem_map_work_offset:
         ret
 
 atm_mem_source_inc:
-        ld      hl,(atm_mem_source_offset)
+        ld      hl,(atm_mem_source_cursor)
         inc     hl
-        ld      (atm_mem_source_offset),hl
+        ld      (atm_mem_source_cursor),hl
         ret     nz
-        ld      hl,(atm_mem_source_offset+2)
+        ld      hl,(atm_mem_source_cursor+2)
         inc     hl
-        ld      (atm_mem_source_offset+2),hl
+        ld      (atm_mem_source_cursor+2),hl
         ret
 
 atm_mem_destination_inc:
-        ld      hl,(atm_mem_destination_offset)
+        ld      hl,(atm_mem_destination_cursor)
         inc     hl
-        ld      (atm_mem_destination_offset),hl
+        ld      (atm_mem_destination_cursor),hl
         ret     nz
-        ld      hl,(atm_mem_destination_offset+2)
+        ld      hl,(atm_mem_destination_cursor+2)
         inc     hl
-        ld      (atm_mem_destination_offset+2),hl
+        ld      (atm_mem_destination_cursor+2),hl
         ret
 
 atm_mem_source_dec:
-        ld      hl,(atm_mem_source_offset)
+        ld      hl,(atm_mem_source_cursor)
         ld      de,1
         or      a
         sbc     hl,de
-        ld      (atm_mem_source_offset),hl
+        ld      (atm_mem_source_cursor),hl
         ret     nc
-        ld      hl,(atm_mem_source_offset+2)
+        ld      hl,(atm_mem_source_cursor+2)
         dec     hl
-        ld      (atm_mem_source_offset+2),hl
+        ld      (atm_mem_source_cursor+2),hl
         ret
 
 atm_mem_destination_dec:
-        ld      hl,(atm_mem_destination_offset)
+        ld      hl,(atm_mem_destination_cursor)
         ld      de,1
         or      a
         sbc     hl,de
-        ld      (atm_mem_destination_offset),hl
+        ld      (atm_mem_destination_cursor),hl
         ret     nc
-        ld      hl,(atm_mem_destination_offset+2)
+        ld      hl,(atm_mem_destination_cursor+2)
         dec     hl
-        ld      (atm_mem_destination_offset+2),hl
+        ld      (atm_mem_destination_cursor+2),hl
         ret
 
 atm_mem_length_dec:
-        ld      hl,(atm_mem_op_length)
+        ld      hl,(atm_mem_remaining)
         ld      de,1
         or      a
         sbc     hl,de
-        ld      (atm_mem_op_length),hl
+        ld      (atm_mem_remaining),hl
         ret     nc
-        ld      hl,(atm_mem_op_length+2)
+        ld      hl,(atm_mem_remaining+2)
         dec     hl
-        ld      (atm_mem_op_length+2),hl
+        ld      (atm_mem_remaining+2),hl
         ret
 
-; Operation descriptors and private scratch.
+; Caller descriptors and private cursors/scratch.
 atm_mem_source_offset:       defs 4,0
 atm_mem_destination_offset:  defs 4,0
 atm_mem_op_length:           defs 4,0
+atm_mem_source_cursor:       defs 4,0
+atm_mem_destination_cursor:  defs 4,0
+atm_mem_remaining:           defs 4,0
 atm_mem_work_offset:         defs 4,0
 atm_mem_fill_value:          db 0
 atm_mem_copy_byte:           db 0
