@@ -46,7 +46,8 @@ LINE11:
         DB      $0D
 LINE11_END:
 
-        ; Project126 ROM trampoline: load the UI module first.
+        ; Preserve the original, proven Project126 ROM trampoline and
+        ; single CODE load. The UI is now part of the host CODE image.
         DB      0, 20
         DW      LINE20_END-LINE20
 LINE20:
@@ -55,30 +56,8 @@ LINE20:
         DW      15619
         DB      0
         DB      $3A, REM, $3A
-        DB      "LOAD ", 34, "p127ui", 34, " CODE 40960", $0D
+        DB      "LOAD ", 34, "p127host", 34, " CODE 24576", $0D
 LINE20_END:
-
-        ; Load the ATM host image on the next BASIC line.
-        DB      0, 21
-        DW      LINE21_END-LINE21
-LINE21:
-        DB      $EF, 34, "p127host", 34, " CODE 24576", $0D
-LINE21_END:
-
-        ; Announce that both host and UI images have been loaded.
-        DB      0, 22
-        DW      LINE22_END-LINE22
-LINE22:
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "76", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "79", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "65", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "69", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "68", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "13", 34, ":"
-        DB      OUT_CMD, VAL, 34, "239", 34, ",", VAL, 34, "10", 34
-        DB      $0D
-LINE22_END:
 
         ; Enter the host program at 6009h, exactly as Project126 does.
         DB      0, 30

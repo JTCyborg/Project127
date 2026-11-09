@@ -9,12 +9,13 @@
 
         PAGE 0
         INCLUDE "atm_host/p127_host.asm"
-        SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
 
+        ; Keep the proven single-file TR-DOS boot path. The console code is
+        ; placed at A000h and included in the same contiguous CODE image.
         PAGE 0
         ORG #A000
         INCLUDE "atm_host/p127_screen_console.asm"
-        SAVETRD "disk_A.trd", "p127ui.C", #A000, p127_console_end-#A000
+        SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_console_end-P127_HOST_LOAD_ADDRESS
 
         PAGE 0
         ORG #E000
