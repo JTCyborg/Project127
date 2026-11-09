@@ -1,6 +1,6 @@
 ; =========================================================================
 ; PROJECT127 — clean TR-DOS disk image
-; Contains BOOT.B, the ATM host image and Project126-style native status console.
+; Contains BOOT.B, the ATM host image and Project127 native status console.
 ; No Project126 x86 overlays or fixed 16 KiB module layout are included.
 ; =========================================================================
 
