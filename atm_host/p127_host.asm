@@ -34,7 +34,7 @@ p127_host_entry:
         jr      c,p127_host_ops_fail
         ld      hl,p127_host_ops_ok
         call    p127_host_debug_string
-        jr      p127_host_idle
+        jp      p127_host_idle
 p127_host_ops_fail:
         ld      d,a
         ld      hl,p127_host_ops_error
