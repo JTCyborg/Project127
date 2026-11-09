@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.46**  
+Scenario revision: **0.8.48**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -650,3 +650,26 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - The fixed-row writes occur only after W3=P0 restoration, HANDOFF release, UI resume, page frees, reservation/free-state audit and allocator reuse validation. They do not run while W3 is leased.
 - Physical-memory module advanced to v0.4.2. The allocator, page-map API, memory patterns, W3 ownership protocol and interrupt policy are unchanged. No W0/W1/W2 remapping or IM/EI enablement is introduced.
 - Scenario revision 0.8.46. Build and emulator verification are pending the user's rebuild/run; this commit does not claim that screen output is already runtime-confirmed.
+
+
+### 2026-11-09 — Stage 2.22 runtime acceptance: exhaustive W3 sweep and guarded lease API
+
+- User supplied the complete #EF startup log from the current Project127 image. All startup diagnostics pass, including software mapper model, IRQ contract preflights, resident-window/handoff guards, and the full physical-memory batch.
+- The physical sweep reports all 57 free page IDs (`#06`, `#08`–`#3F`) in the fill pass and all 57 in reverse order in the verify pass. The completion marker `PHYS W3 FULL FREE-PAGE SWEEP/ALLOCATOR/RESERVES/P0 RESTORE PASS` is present.
+- The subsequent marker `PAGE ALLOC/FREE + GUARDED W3 LEASE API PASS; IM/EI DISABLED` confirms the guarded allocation/free and W3 lease API self-test also completed.
+- Runtime evidence therefore accepts `src/kernel/p127_physmem.asm` v0.4.2 and the Stage 2.20 guarded W3 lease API in the user's emulator run. The seven protected pages remain outside the sweep: P0, P1, P2, P3, P4, P5 and P7. W3 is returned to P0, UI ownership is released/resumed, and IM/EI remain disabled.
+- This log confirms the #EF diagnostic path and the physical W3 sweep. It does **not** confirm that the `W3 FILL` / `W3 VERIFY` replay or fixed status-panel messages are visible on the ATM screen; that display issue remains open and must be diagnosed against the actual console/video mapping before another screen-output patch.
+- Scope limits remain: no arbitrary concurrent remapping, no W0/W1/W2 general-purpose remapping, no DMA validation, and no established IRQ source/vector/acknowledge path. This result does not authorize enabling IM/EI or unrestricted application mapping.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.47. Build was not independently run here; runtime acceptance is based on the user's supplied #EF log.
+- Next: audit the actual `p127_console.asm` output path, screen-page selection and console restore sequence against the Project112 video implementation. Reproduce a minimal fixed-row screen write after the W3 lease is released; only after that is visibly confirmed should the page-ID replay be expanded or other physical windows be considered.
+
+
+### 2026-11-09 — Stage 2.23: reassert ATM text video bank before screen replay v0.4.3
+
+- Audited Project127 `src/ui/p127_console.asm` against Project126 `atm_host/p126_screen_console.asm` and Project112 `112/src/mode_atm.asm` / `112/src/video_mode_control.asm`.
+- Confirmed the Project127 console's text-cell geometry and plane layout match the Project126 implementation: RG6 80×25; row offset `#01C0 + row*64 + column/2`; character bytes on the alternate character page P7 at `#4000/#6000`; attributes on alternate attribute page P3 at `#E000/#C000(+1)`; alternate video selection is initialized by `#7FFD=#18` and mode `#C6` through the TR-DOS ROM trampoline. Project112's standalone text demo uses the primary P5/P1 bank; Project127 intentionally uses the alternate P7/P3 bank selected by bit 3.
+- The existing `p126_screen_write_char` already maps P7/P3 for each cell and restores CPU windows to P5/P0. The remaining unverified state was the video-bank selector itself: restoring CPU window mappings does not reassert `#7FFD` alternate-screen selection or RG6 mode.
+- Updated `src/kernel/p127_physmem.asm` to v0.4.3. After the physical W3 sweep has restored W3=P0, released HANDOFF, resumed UI, freed all pages and verified allocator state, the screen replay now calls the existing `p126_atm_video_init` to reapply the known-good ATM setup. This happens outside the W3 lease; the full physical sweep and its ownership protocol are unchanged.
+- Added a fixed-row probe at row 4: `VIDEO MAP: RG6 ALT P7/P3 ACTIVE`. It is emitted through the normal `BIOS_DebugConsole_PrintAt` path immediately after video reinitialization, before the page-ID replay. Existing fixed result rows 2 and 3 and the scrolling `W3 FILL` / `W3 VERIFY` replay remain.
+- The probe is a runtime visibility test, not a claimed pass: the user must rebuild and confirm the row appears on the ATM screen. If #EF contains the probe but the screen does not, the next diagnosis must compare the emulator's active display-bank fetch with the P7/P3 CPU mapping; do not add speculative writes to other pages.
+- No W0/W1/W2 general-purpose remapping, DMA, IM/EI enablement, or IRQ source changes. Build and emulator runtime verification have not been run here.
