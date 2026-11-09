@@ -246,16 +246,12 @@ atm_mem_scatter_selftest::
         ld      (atm_mem_scatter_test_vector),hl
         ld      hl,(atm_mem_scatter_test_vector)
         ld      a,(hl)
-        ld      b,a
         inc     hl
-        ld      a,(hl)
-        or      b
+        or      (hl)
         inc     hl
-        ld      a,(hl)
-        or      b
+        or      (hl)
         inc     hl
-        ld      a,(hl)
-        or      b
+        or      (hl)
         jp      z,atm_mem_scatter_test_fail
         ld      hl,(atm_mem_scatter_test_vector)
         ld      de,4
