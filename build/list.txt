@@ -1,256 +1,500 @@
 # file opened: main.asm
- 1    0000              ; ============================================================================
- 2    0000              ; Project127 — complete TR-DOS image, assembled in one SjASMPlus pass.
- 3    0000              ; Follows Project112's EMPTYTRD + SAVETRD build model.
- 4    0000              ; ============================================================================
- 5    0000                      DEVICE ZXSPECTRUM128
- 6    0000                      EMPTYTRD "disk_A.trd"
- 7    0000                      INCLUDE "src/boot/p127_boot.asm"
+  1   0000              ; ============================================================================
+  2   0000              ; Project127 — complete TR-DOS image, assembled in one SjASMPlus pass.
+  3   0000              ; Follows Project112's EMPTYTRD + SAVETRD build model.
+  4   0000              ; ============================================================================
+  5   0000                      DEVICE ZXSPECTRUM128
+  6   0000                      EMPTYTRD "disk_A.trd"
+  7   0000                      INCLUDE "src/boot/p127_boot.asm"
 # file opened: p127_boot.asm
- 1+   0000              ; ============================================================================
- 2+   0000              ; Project127 — boot stage 0.2
- 3+   0000              ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
- 4+   0000              ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
- 5+   0000              ; ============================================================================
- 6+   0000                      DEVICE ZXSPECTRUM128
- 7+   0000
- 8+   0000              P127_LOAD_ADDRESS  EQU 06000h
- 9+   0000              P127_STACK_TOP     EQU 0BFFFh
-10+   0000              P127_DEBUG_PORT    EQU 00EFh
-11+   0000
-12+   0000                      ORG P127_LOAD_ADDRESS
-13+   6000
-14+   6000              p127_entry:
-15+   6000                      ; Match Project126: prove the BASIC USR jump reached the host entry
-16+   6000                      ; before DI, stack setup, paging changes or any subroutine call.
-17+   6000 01 EF 00             ld      bc, P127_DEBUG_PORT
-18+   6003 3E 3E                ld      a, '>'
-19+   6005 ED 79                out     (c), a
-20+   6007 C3 0A 60             jp      p127_start
-21+   600A
-22+   600A              p127_start:
-23+   600A F3                   di
-24+   600B 31 FF BF             ld      sp, P127_STACK_TOP
-25+   600E
-26+   600E 21 36 60             ld      hl, p127_msg_entry
-27+   6011 CD 29 60             call    p127_puts
-28+   6014
-29+   6014 21 4E 60             ld      hl, p127_msg_stack
-30+   6017 CD 29 60             call    p127_puts
-31+   601A
-32+   601A 21 66 60             ld      hl, p127_msg_exec
-33+   601D CD 29 60             call    p127_puts
-34+   6020
-35+   6020 21 7B 60             ld      hl, p127_msg_pass
-36+   6023 CD 29 60             call    p127_puts
-37+   6026
-38+   6026              p127_idle:
-39+   6026 76                   halt
-40+   6027 18 FD                jr      p127_idle
-41+   6029
-42+   6029              ; Input: HL -> zero-terminated string.
-43+   6029              ; Clobbers AF, BC, HL. Preserves caller's stack frame.
-44+   6029              p127_puts:
-45+   6029 7E                   ld      a, (hl)
-46+   602A B7                   or      a
-47+   602B C8                   ret     z
-48+   602C 23                   inc     hl
-49+   602D E5                   push    hl
-50+   602E 01 EF 00             ld      bc, P127_DEBUG_PORT
-51+   6031 ED 79                out     (c), a
-52+   6033 E1                   pop     hl
-53+   6034 18 F3                jr      p127_puts
-54+   6036
-55+   6036              p127_msg_entry:
-56+   6036 5B 50 31 32          db      "[P127] S2 ENTRY @6000", 13, 10, 0
-56+   603A 37 5D 20 53
-56+   603E 32 20 45 4E
-56+   6042 54 52 59 20
-56+   6046 40 36 30 30
-56+   604A 30 0D 0A 00
-57+   604E              p127_msg_stack:
-58+   604E 5B 50 31 32          db      "[P127] STACK SET BFFF", 13, 10, 0
-58+   6052 37 5D 20 53
-58+   6056 54 41 43 4B
-58+   605A 20 53 45 54
-58+   605E 20 42 46 46
-58+   6062 46 0D 0A 00
-59+   6066              p127_msg_exec:
-60+   6066 5B 50 31 32          db      "[P127] DEBUG TX EF", 13, 10, 0
-60+   606A 37 5D 20 44
-60+   606E 45 42 55 47
-60+   6072 20 54 58 20
-60+   6076 45 46 0D 0A
-60+   607A 00
-61+   607B              p127_msg_pass:
-62+   607B 5B 50 31 32          db      "[P127] BOOT0 PASS; IDLE", 13, 10, 0
-62+   607F 37 5D 20 42
-62+   6083 4F 4F 54 30
-62+   6087 20 50 41 53
-62+   608B 53 3B 20 49
-62+   608F 44 4C 45 0D
-62+   6093 0A 00
-63+   6095
-64+   6095              p127_end:
-65+   6095                      ASSERT  p127_entry = P127_LOAD_ADDRESS
-66+   6095                      ASSERT  p127_end > p127_entry
-67+   6095                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
-68+   6095
+  1+  0000              ; ============================================================================
+  2+  0000              ; Project127 — boot stage 0.3
+  3+  0000              ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
+  4+  0000              ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
+  5+  0000              ; ============================================================================
+  6+  0000                      DEVICE ZXSPECTRUM128
+  7+  0000
+  8+  0000              P127_LOAD_ADDRESS  EQU 06000h
+  9+  0000              P127_STACK_TOP     EQU 0BFFFh
+ 10+  0000              P127_DEBUG_PORT    EQU 00EFh
+ 11+  0000
+ 12+  0000                      ORG P127_LOAD_ADDRESS
+ 13+  6000
+ 14+  6000              p127_entry:
+ 15+  6000                      ; Preserve the known-good BASIC USR entry diagnostic.
+ 16+  6000 01 EF 00             ld      bc, P127_DEBUG_PORT
+ 17+  6003 3E 3E                ld      a, '>'
+ 18+  6005 ED 79                out     (c), a
+ 19+  6007 C3 0A 60             jp      p127_start
+ 20+  600A
+ 21+  600A              p127_start:
+ 22+  600A F3                   di
+ 23+  600B 31 FF BF             ld      sp, P127_STACK_TOP
+ 24+  600E
+ 25+  600E 21 65 60             ld      hl, p127_msg_entry
+ 26+  6011 CD 58 60             call    p127_puts
+ 27+  6014
+ 28+  6014 21 7D 60             ld      hl, p127_msg_stack
+ 29+  6017 CD 58 60             call    p127_puts
+ 30+  601A
+ 31+  601A 21 95 60             ld      hl, p127_msg_exec
+ 32+  601D CD 58 60             call    p127_puts
+ 33+  6020
+ 34+  6020 21 AA 60             ld      hl, p127_msg_pass
+ 35+  6023 CD 58 60             call    p127_puts
+ 36+  6026
+ 37+  6026                      ; Stage 1/2: software page accounting plus verified ATM video reserves.
+ 38+  6026 CD 5E 61             call    p127_mem_init
+ 39+  6029 21 C4 60             ld      hl,p127_msg_mem_init
+ 40+  602C CD 58 60             call    p127_puts
+ 41+  602F CD 9D 61             call    p127_mem_reserve_video
+ 42+  6032 38 13                jr      c,p127_mem_map_failed
+ 43+  6034 21 DE 60             ld      hl,p127_msg_video_reserved
+ 44+  6037 CD 58 60             call    p127_puts
+ 45+  603A CD EC 61             call    p127_mem_selftest
+ 46+  603D 38 10                jr      c,p127_mem_failed
+ 47+  603F 21 26 61             ld      hl,p127_msg_mem_pass
+ 48+  6042 CD 58 60             call    p127_puts
+ 49+  6045 18 0E                jr      p127_idle
+ 50+  6047              p127_mem_map_failed:
+ 51+  6047 21 06 61             ld      hl,p127_msg_mem_map_fail
+ 52+  604A CD 58 60             call    p127_puts
+ 53+  604D 18 06                jr      p127_idle
+ 54+  604F              p127_mem_failed:
+ 55+  604F 21 42 61             ld      hl,p127_msg_mem_fail
+ 56+  6052 CD 58 60             call    p127_puts
+ 57+  6055
+ 58+  6055              p127_idle:
+ 59+  6055 76                   halt
+ 60+  6056 18 FD                jr      p127_idle
+ 61+  6058
+ 62+  6058              ; Input: HL -> zero-terminated string.
+ 63+  6058              ; Clobbers AF, BC, HL. Preserves caller's stack frame.
+ 64+  6058              p127_puts:
+ 65+  6058 7E                   ld      a, (hl)
+ 66+  6059 B7                   or      a
+ 67+  605A C8                   ret     z
+ 68+  605B 23                   inc     hl
+ 69+  605C E5                   push    hl
+ 70+  605D 01 EF 00             ld      bc, P127_DEBUG_PORT
+ 71+  6060 ED 79                out     (c), a
+ 72+  6062 E1                   pop     hl
+ 73+  6063 18 F3                jr      p127_puts
+ 74+  6065
+ 75+  6065              p127_msg_entry:
+ 76+  6065 5B 50 31 32          db      "[P127] S2 ENTRY @6000", 13, 10, 0
+ 76+  6069 37 5D 20 53
+ 76+  606D 32 20 45 4E
+ 76+  6071 54 52 59 20
+ 76+  6075 40 36 30 30
+ 76+  6079 30 0D 0A 00
+ 77+  607D              p127_msg_stack:
+ 78+  607D 5B 50 31 32          db      "[P127] STACK SET BFFF", 13, 10, 0
+ 78+  6081 37 5D 20 53
+ 78+  6085 54 41 43 4B
+ 78+  6089 20 53 45 54
+ 78+  608D 20 42 46 46
+ 78+  6091 46 0D 0A 00
+ 79+  6095              p127_msg_exec:
+ 80+  6095 5B 50 31 32          db      "[P127] DEBUG TX EF", 13, 10, 0
+ 80+  6099 37 5D 20 44
+ 80+  609D 45 42 55 47
+ 80+  60A1 20 54 58 20
+ 80+  60A5 45 46 0D 0A
+ 80+  60A9 00
+ 81+  60AA              p127_msg_pass:
+ 82+  60AA 5B 50 31 32          db      "[P127] BOOT0 PASS; IDLE", 13, 10, 0
+ 82+  60AE 37 5D 20 42
+ 82+  60B2 4F 4F 54 30
+ 82+  60B6 20 50 41 53
+ 82+  60BA 53 3B 20 49
+ 82+  60BE 44 4C 45 0D
+ 82+  60C2 0A 00
+ 83+  60C4              p127_msg_mem_init:
+ 84+  60C4 5B 50 31 32          db      "[P127] MEM INIT 1MB/64P", 13, 10, 0
+ 84+  60C8 37 5D 20 4D
+ 84+  60CC 45 4D 20 49
+ 84+  60D0 4E 49 54 20
+ 84+  60D4 31 4D 42 2F
+ 84+  60D8 36 34 50 0D
+ 84+  60DC 0A 00
+ 85+  60DE              p127_msg_video_reserved:
+ 86+  60DE 5B 50 31 32          db      "[P127] VIDEO RAM RESERVED P1,P3,P5,P7", 13, 10, 0
+ 86+  60E2 37 5D 20 56
+ 86+  60E6 49 44 45 4F
+ 86+  60EA 20 52 41 4D
+ 86+  60EE 20 52 45 53
+ 86+  60F2 45 52 56 45
+ 86+  60F6 44 20 50 31
+ 86+  60FA 2C 50 33 2C
+ 86+  60FE 50 35 2C 50
+ 86+  6102 37 0D 0A 00
+ 87+  6106              p127_msg_mem_map_fail:
+ 88+  6106 5B 50 31 32          db      "[P127] VIDEO RAM RESERVE FAIL", 13, 10, 0
+ 88+  610A 37 5D 20 56
+ 88+  610E 49 44 45 4F
+ 88+  6112 20 52 41 4D
+ 88+  6116 20 52 45 53
+ 88+  611A 45 52 56 45
+ 88+  611E 20 46 41 49
+ 88+  6122 4C 0D 0A 00
+ 89+  6126              p127_msg_mem_pass:
+ 90+  6126 5B 50 31 32          db      "[P127] MEM PAGE TEST PASS", 13, 10, 0
+ 90+  612A 37 5D 20 4D
+ 90+  612E 45 4D 20 50
+ 90+  6132 41 47 45 20
+ 90+  6136 54 45 53 54
+ 90+  613A 20 50 41 53
+ 90+  613E 53 0D 0A 00
+ 91+  6142              p127_msg_mem_fail:
+ 92+  6142 5B 50 31 32          db      "[P127] MEM PAGE TEST FAIL", 13, 10, 0
+ 92+  6146 37 5D 20 4D
+ 92+  614A 45 4D 20 50
+ 92+  614E 41 47 45 20
+ 92+  6152 54 45 53 54
+ 92+  6156 20 46 41 49
+ 92+  615A 4C 0D 0A 00
+ 93+  615E
+ 94+  615E                      INCLUDE "src/kernel/p127_mem.asm"
+# file opened: p127_mem.asm
+  1++ 615E              ; ============================================================================
+  2++ 615E              ; Project127 ATM Core — physical page-state manager
+  3++ 615E              ; Module version: 0.2.0
+  4++ 615E              ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
+  5++ 615E              ;      free A=page, C=invalid/not allocated.
+  6++ 615E              ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
+  7++ 615E              ; NOTE: IDs are accounting handles only. Hardware page-register encoding and
+  8++ 615E              ;       video/kernel reservations are deliberately supplied by later map code.
+  9++ 615E              ; ============================================================================
+ 10++ 615E              P127_MEM_VERSION_MAJOR EQU 0
+ 11++ 615E              P127_MEM_VERSION_MINOR EQU 2
+ 12++ 615E              P127_MEM_VERSION_PATCH EQU 0
+ 13++ 615E              P127_MEM_PAGE_COUNT    EQU 64
+ 14++ 615E              P127_MEM_PAGE_SIZE     EQU 04000h
+ 15++ 615E              P127_MEM_FREE          EQU 0
+ 16++ 615E              P127_MEM_RESERVED      EQU 1
+ 17++ 615E              P127_MEM_ALLOCATED     EQU 2
+ 18++ 615E
+ 19++ 615E              p127_mem_init:
+ 20++ 615E 21 29 62             ld      hl,p127_mem_page_state
+ 21++ 6161 11 2A 62             ld      de,p127_mem_page_state+1
+ 22++ 6164 01 3F 00             ld      bc,P127_MEM_PAGE_COUNT-1
+ 23++ 6167 36 00                ld      (hl),P127_MEM_FREE
+ 24++ 6169 ED B0                ldir
+ 25++ 616B C9                   ret
+ 26++ 616C
+ 27++ 616C              ; Reserve a contiguous physical-page range.
+ 28++ 616C              ; IN: A=first page, B=count. OUT: carry=1 on invalid range/conflict.
+ 29++ 616C              ; A zero-length reservation is accepted as a no-op.
+ 30++ 616C              p127_mem_reserve:
+ 31++ 616C 4F                   ld      c,a
+ 32++ 616D 78                   ld      a,b
+ 33++ 616E B7                   or      a
+ 34++ 616F C8                   ret     z
+ 35++ 6170 79                   ld      a,c
+ 36++ 6171 FE 40                cp      P127_MEM_PAGE_COUNT
+ 37++ 6173 30 75                jr      nc,p127_mem_error
+ 38++ 6175 79                   ld      a,c
+ 39++ 6176 80                   add     a,b
+ 40++ 6177 38 71                jr      c,p127_mem_error
+ 41++ 6179 FE 41                cp      P127_MEM_PAGE_COUNT+1
+ 42++ 617B 30 6D                jr      nc,p127_mem_error
+ 43++ 617D 21 29 62             ld      hl,p127_mem_page_state
+ 44++ 6180 59                   ld      e,c
+ 45++ 6181 16 00                ld      d,0
+ 46++ 6183 19                   add     hl,de
+ 47++ 6184 50                   ld      d,b
+ 48++ 6185              p127_mem_reserve_check:
+ 49++ 6185 7E                   ld      a,(hl)
+ 50++ 6186 B7                   or      a
+ 51++ 6187 20 61                jr      nz,p127_mem_error
+ 52++ 6189 23                   inc     hl
+ 53++ 618A 15                   dec     d
+ 54++ 618B 20 F8                jr      nz,p127_mem_reserve_check
+ 55++ 618D 21 29 62             ld      hl,p127_mem_page_state
+ 56++ 6190 59                   ld      e,c
+ 57++ 6191 16 00                ld      d,0
+ 58++ 6193 19                   add     hl,de
+ 59++ 6194 50                   ld      d,b
+ 60++ 6195              p127_mem_reserve_set:
+ 61++ 6195 36 01                ld      (hl),P127_MEM_RESERVED
+ 62++ 6197 23                   inc     hl
+ 63++ 6198 15                   dec     d
+ 64++ 6199 20 FA                jr      nz,p127_mem_reserve_set
+ 65++ 619B B7                   or      a
+ 66++ 619C C9                   ret
+ 67++ 619D
+ 68++ 619D              ; Reserve ATM video RAM used by the complete Project112 mode set.
+ 69++ 619D              ; Project112 ATM710: ZX uses page 5 or 7; ATM640/EGA/Text use page
+ 70++ 619D              ; pairs 5+1 or 7+3. Reserve the union so any supported mode can be selected.
+ 71++ 619D              ; OUT: carry=1 if a reservation conflicts or is out of range.
+ 72++ 619D              p127_mem_reserve_video:
+ 73++ 619D 3E 01                ld      a,1
+ 74++ 619F 06 01                ld      b,1
+ 75++ 61A1 CD 6C 61             call    p127_mem_reserve
+ 76++ 61A4 D8                   ret     c
+ 77++ 61A5 3E 03                ld      a,3
+ 78++ 61A7 06 01                ld      b,1
+ 79++ 61A9 CD 6C 61             call    p127_mem_reserve
+ 80++ 61AC D8                   ret     c
+ 81++ 61AD 3E 05                ld      a,5
+ 82++ 61AF 06 01                ld      b,1
+ 83++ 61B1 CD 6C 61             call    p127_mem_reserve
+ 84++ 61B4 D8                   ret     c
+ 85++ 61B5 3E 07                ld      a,7
+ 86++ 61B7 06 01                ld      b,1
+ 87++ 61B9 CD 6C 61             call    p127_mem_reserve
+ 88++ 61BC D8                   ret     c
+ 89++ 61BD B7                   or      a
+ 90++ 61BE C9                   ret
+ 91++ 61BF
+ 92++ 61BF              ; Allocate the first free physical page.
+ 93++ 61BF              ; OUT: A=page ID, carry=1 when exhausted.
+ 94++ 61BF              p127_mem_alloc:
+ 95++ 61BF 21 29 62             ld      hl,p127_mem_page_state
+ 96++ 61C2 06 40                ld      b,P127_MEM_PAGE_COUNT
+ 97++ 61C4 0E 00                ld      c,0
+ 98++ 61C6              p127_mem_alloc_scan:
+ 99++ 61C6 7E                   ld      a,(hl)
+100++ 61C7 B7                   or      a
+101++ 61C8 28 06                jr      z,p127_mem_alloc_found
+102++ 61CA 23                   inc     hl
+103++ 61CB 0C                   inc     c
+104++ 61CC 10 F8                djnz    p127_mem_alloc_scan
+105++ 61CE 37                   scf
+106++ 61CF C9                   ret
+107++ 61D0              p127_mem_alloc_found:
+108++ 61D0 36 02                ld      (hl),P127_MEM_ALLOCATED
+109++ 61D2 79                   ld      a,c
+110++ 61D3 B7                   or      a
+111++ 61D4 C9                   ret
+112++ 61D5
+113++ 61D5              ; Release only pages owned by the allocator. Reserved pages cannot be freed.
+114++ 61D5              ; IN: A=page ID. OUT: carry=1 for invalid ID or non-allocated page.
+115++ 61D5              p127_mem_free:
+116++ 61D5 FE 40                cp      P127_MEM_PAGE_COUNT
+117++ 61D7 30 11                jr      nc,p127_mem_error
+118++ 61D9 4F                   ld      c,a
+119++ 61DA 21 29 62             ld      hl,p127_mem_page_state
+120++ 61DD 59                   ld      e,c
+121++ 61DE 16 00                ld      d,0
+122++ 61E0 19                   add     hl,de
+123++ 61E1 7E                   ld      a,(hl)
+124++ 61E2 FE 02                cp      P127_MEM_ALLOCATED
+125++ 61E4 20 04                jr      nz,p127_mem_error
+126++ 61E6 36 00                ld      (hl),P127_MEM_FREE
+127++ 61E8 B7                   or      a
+128++ 61E9 C9                   ret
+129++ 61EA
+130++ 61EA              p127_mem_error:
+131++ 61EA 37                   scf
+132++ 61EB C9                   ret
+133++ 61EC
+134++ 61EC              ; Runtime smoke test: reserved video pages are immutable; allocation/free works.
+135++ 61EC              ; OUT: carry=1 on failure. Does not retain any allocated page.
+136++ 61EC              p127_mem_selftest:
+137++ 61EC 3E 01                ld      a,1
+138++ 61EE CD D5 61             call    p127_mem_free
+139++ 61F1 30 33                jr      nc,p127_mem_test_fail
+140++ 61F3 3E 03                ld      a,3
+141++ 61F5 CD D5 61             call    p127_mem_free
+142++ 61F8 30 2C                jr      nc,p127_mem_test_fail
+143++ 61FA 3E 05                ld      a,5
+144++ 61FC CD D5 61             call    p127_mem_free
+145++ 61FF 30 25                jr      nc,p127_mem_test_fail
+146++ 6201 3E 07                ld      a,7
+147++ 6203 CD D5 61             call    p127_mem_free
+148++ 6206 30 1E                jr      nc,p127_mem_test_fail
+149++ 6208 CD BF 61             call    p127_mem_alloc
+150++ 620B D8                   ret     c
+151++ 620C 32 28 62             ld      (p127_mem_test_page),a
+152++ 620F CD D5 61             call    p127_mem_free
+153++ 6212 D8                   ret     c
+154++ 6213 3A 28 62             ld      a,(p127_mem_test_page)
+155++ 6216 CD BF 61             call    p127_mem_alloc
+156++ 6219 D8                   ret     c
+157++ 621A 47                   ld      b,a
+158++ 621B 3A 28 62             ld      a,(p127_mem_test_page)
+159++ 621E B8                   cp      b
+160++ 621F 20 05                jr      nz,p127_mem_test_fail
+161++ 6221 78                   ld      a,b
+162++ 6222 CD D5 61             call    p127_mem_free
+163++ 6225 C9                   ret
+164++ 6226              p127_mem_test_fail:
+165++ 6226 37                   scf
+166++ 6227 C9                   ret
+167++ 6228
+168++ 6228              p127_mem_test_page:
+169++ 6228 00                   db      0
+170++ 6229              p127_mem_page_state:
+171++ 6229 00 00 00...          ds      P127_MEM_PAGE_COUNT,0
+172++ 6269              p127_mem_end:
+173++ 6269
+174++ 6269                      ASSERT  P127_MEM_PAGE_COUNT*P127_MEM_PAGE_SIZE = 100000h
+175++ 6269                      ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
+176++ 6269
+# file closed: p127_mem.asm
+ 95+  6269
+ 96+  6269              p127_end:
+ 97+  6269                      ASSERT  p127_entry = P127_LOAD_ADDRESS
+ 98+  6269                      ASSERT  p127_end > p127_entry
+ 99+  6269                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
+100+  6269
 # file closed: p127_boot.asm
- 8    6095
- 9    6095              ; BASIC boot file is assembly data, not a Python-generated byte array.
-10    6095                      ORG     #B000
-11    B000              CLEAR       EQU #FD
-12    B000              LOAD        EQU #EF
-13    B000              CODE        EQU #AF
-14    B000              RANDOMIZE   EQU #F9
-15    B000              USR         EQU #C0
-16    B000              REM         EQU #EA
-17    B000              VAL         EQU #B0
-18    B000              OUT_CMD     EQU #DF
-19    B000
-20    B000              basic_loader:
-21    B000              ; Line 10: initialize debug channel and reserve memory below #6000.
-22    B000 00 0A                DB      0,10
-23    B002 20 00                DW      l10_end-l10
-24    B004              l10:
-25    B004 DF 32 33 39          DB      OUT_CMD,"239",#0E,#00,#00,#EF,#00,#00
-25    B008 0E 00 00 EF
-25    B00C 00 00
-26    B00E 2C 31 0E 00          DB      ",","1",#0E,#00,#00,#01,#00,#00,":"
-26    B012 00 01 00 00
-26    B016 3A
-27    B017 FD 32 34 30          DB      CLEAR,"24000",#0E,#00,#00,#5D,#C0,#00,#0D
-27    B01B 30 30 0E 00
-27    B01F 00 5D C0 00
-27    B023 0D
-28    B024              l10_end:
-29    B024
-30    B024              ; BASIC startup diagnostics.
-31    B024 00 0B                DB      0,11
-32    B026 B6 00                DW      l11_end-l11
-33    B028              l11:
-34    B028 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"91",34,":"
-34    B02C 33 39 22 2C
-34    B030 B0 22 39 31
-34    B034 22 3A
-35    B036 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"80",34,":"
-35    B03A 33 39 22 2C
-35    B03E B0 22 38 30
-35    B042 22 3A
-36    B044 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"49",34,":"
-36    B048 33 39 22 2C
-36    B04C B0 22 34 39
-36    B050 22 3A
-37    B052 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"50",34,":"
-37    B056 33 39 22 2C
-37    B05A B0 22 35 30
-37    B05E 22 3A
-38    B060 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"55",34,":"
-38    B064 33 39 22 2C
-38    B068 B0 22 35 35
-38    B06C 22 3A
-39    B06E DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"93",34,":"
-39    B072 33 39 22 2C
-39    B076 B0 22 39 33
-39    B07A 22 3A
-40    B07C DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"32",34,":"
-40    B080 33 39 22 2C
-40    B084 B0 22 33 32
-40    B088 22 3A
-41    B08A DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"66",34,":"
-41    B08E 33 39 22 2C
-41    B092 B0 22 36 36
-41    B096 22 3A
-42    B098 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"65",34,":"
-42    B09C 33 39 22 2C
-42    B0A0 B0 22 36 35
-42    B0A4 22 3A
-43    B0A6 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"83",34,":"
-43    B0AA 33 39 22 2C
-43    B0AE B0 22 38 33
-43    B0B2 22 3A
-44    B0B4 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"73",34,":"
-44    B0B8 33 39 22 2C
-44    B0BC B0 22 37 33
-44    B0C0 22 3A
-45    B0C2 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"67",34,":"
-45    B0C6 33 39 22 2C
-45    B0CA B0 22 36 37
-45    B0CE 22 3A
-46    B0D0 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"32",34
-46    B0D4 33 39 22 2C
-46    B0D8 B0 22 33 32
-46    B0DC 22
-47    B0DD 0D                   DB      #0D
-48    B0DE              l11_end:
-49    B0DE
-50    B0DE              ; Exact TR-DOS interception sequence used by Project112/126.
-51    B0DE 00 14                DB      0,20
-52    B0E0 2B 00                DW      l20_end-l20
-53    B0E2              l20:
-54    B0E2 F9 C0 31 35          DB      RANDOMIZE,USR,"15619",#0E,#00,#00
-54    B0E6 36 31 39 0E
-54    B0EA 00 00
-55    B0EC 03 3D                DW      15619
-56    B0EE 00 3A EA 3A          DB      0,#3A,REM,#3A
-57    B0F2 4C 4F 41 44          DB      "LOAD ",34,"P127BOOT",34," CODE 24576",#0D
-57    B0F6 20 22 50 31
-57    B0FA 32 37 42 4F
-57    B0FE 4F 54 22 20
-57    B102 43 4F 44 45
-57    B106 20 32 34 35
-57    B10A 37 36 0D
-58    B10D              l20_end:
-59    B10D
-60    B10D              ; Output after TR-DOS has loaded the separate CODE file.
-61    B10D 00 15                DB      0,21
-62    B10F 46 00                DW      l21_end-l21
-63    B111              l21:
-64    B111 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"76",34,":"
-64    B115 33 39 22 2C
-64    B119 B0 22 37 36
-64    B11D 22 3A
-65    B11F DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"79",34,":"
-65    B123 33 39 22 2C
-65    B127 B0 22 37 39
-65    B12B 22 3A
-66    B12D DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"65",34,":"
-66    B131 33 39 22 2C
-66    B135 B0 22 36 35
-66    B139 22 3A
-67    B13B DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"68",34,":"
-67    B13F 33 39 22 2C
-67    B143 B0 22 36 38
-67    B147 22 3A
-68    B149 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"32",34
-68    B14D 33 39 22 2C
-68    B151 B0 22 33 32
-68    B155 22
-69    B156 0D                   DB      #0D
-70    B157              l21_end:
-71    B157
-72    B157 00 1E                DB      0,30
-73    B159 1E 00                DW      l30_end-l30
-74    B15B              l30:
-75    B15B DF 32 33 39          DB      OUT_CMD,"239",#0E,#00,#00,#EF,#00,#00,","
-75    B15F 0E 00 00 EF
-75    B163 00 00 2C
-76    B166 32 0E 00 00          DB      "2",#0E,#00,#00,#02,#00,#00,":"
-76    B16A 02 00 00 3A
-77    B16E F9 C0 B0 22          DB      RANDOMIZE,USR,VAL,34,"24576",34,#0D
-77    B172 32 34 35 37
-77    B176 36 22 0D
-78    B179              l30_end:
-79    B179 80                   DB      #80
-80    B17A              basic_loader_end:
-81    B17A
-82    B17A                      SAVETRD "disk_A.trd","boot.B",basic_loader,basic_loader_end-basic_loader,10
-83    B17A                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_end-P127_LOAD_ADDRESS
-84    B17A
-85    B17A                      ASSERT  p127_entry = #6000
-86    B17A                      ASSERT  p127_end > p127_entry
-87    B17A                      ASSERT  p127_end <= #A000
-88    B17A                      ASSERT  basic_loader_end > basic_loader
-89    B17A
+  8   6269
+  9   6269              ; BASIC boot file is assembly data, not a Python-generated byte array.
+ 10   6269                      ORG     #B000
+ 11   B000              CLEAR       EQU #FD
+ 12   B000              LOAD        EQU #EF
+ 13   B000              CODE        EQU #AF
+ 14   B000              RANDOMIZE   EQU #F9
+ 15   B000              USR         EQU #C0
+ 16   B000              REM         EQU #EA
+ 17   B000              VAL         EQU #B0
+ 18   B000              OUT_CMD     EQU #DF
+ 19   B000
+ 20   B000              basic_loader:
+ 21   B000              ; Line 10: initialize debug channel and reserve memory below #6000.
+ 22   B000 00 0A                DB      0,10
+ 23   B002 20 00                DW      l10_end-l10
+ 24   B004              l10:
+ 25   B004 DF 32 33 39          DB      OUT_CMD,"239",#0E,#00,#00,#EF,#00,#00
+ 25   B008 0E 00 00 EF
+ 25   B00C 00 00
+ 26   B00E 2C 31 0E 00          DB      ",","1",#0E,#00,#00,#01,#00,#00,":"
+ 26   B012 00 01 00 00
+ 26   B016 3A
+ 27   B017 FD 32 34 30          DB      CLEAR,"24000",#0E,#00,#00,#5D,#C0,#00,#0D
+ 27   B01B 30 30 0E 00
+ 27   B01F 00 5D C0 00
+ 27   B023 0D
+ 28   B024              l10_end:
+ 29   B024
+ 30   B024              ; BASIC startup diagnostics.
+ 31   B024 00 0B                DB      0,11
+ 32   B026 B6 00                DW      l11_end-l11
+ 33   B028              l11:
+ 34   B028 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"91",34,":"
+ 34   B02C 33 39 22 2C
+ 34   B030 B0 22 39 31
+ 34   B034 22 3A
+ 35   B036 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"80",34,":"
+ 35   B03A 33 39 22 2C
+ 35   B03E B0 22 38 30
+ 35   B042 22 3A
+ 36   B044 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"49",34,":"
+ 36   B048 33 39 22 2C
+ 36   B04C B0 22 34 39
+ 36   B050 22 3A
+ 37   B052 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"50",34,":"
+ 37   B056 33 39 22 2C
+ 37   B05A B0 22 35 30
+ 37   B05E 22 3A
+ 38   B060 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"55",34,":"
+ 38   B064 33 39 22 2C
+ 38   B068 B0 22 35 35
+ 38   B06C 22 3A
+ 39   B06E DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"93",34,":"
+ 39   B072 33 39 22 2C
+ 39   B076 B0 22 39 33
+ 39   B07A 22 3A
+ 40   B07C DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"32",34,":"
+ 40   B080 33 39 22 2C
+ 40   B084 B0 22 33 32
+ 40   B088 22 3A
+ 41   B08A DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"66",34,":"
+ 41   B08E 33 39 22 2C
+ 41   B092 B0 22 36 36
+ 41   B096 22 3A
+ 42   B098 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"65",34,":"
+ 42   B09C 33 39 22 2C
+ 42   B0A0 B0 22 36 35
+ 42   B0A4 22 3A
+ 43   B0A6 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"83",34,":"
+ 43   B0AA 33 39 22 2C
+ 43   B0AE B0 22 38 33
+ 43   B0B2 22 3A
+ 44   B0B4 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"73",34,":"
+ 44   B0B8 33 39 22 2C
+ 44   B0BC B0 22 37 33
+ 44   B0C0 22 3A
+ 45   B0C2 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"67",34,":"
+ 45   B0C6 33 39 22 2C
+ 45   B0CA B0 22 36 37
+ 45   B0CE 22 3A
+ 46   B0D0 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"32",34
+ 46   B0D4 33 39 22 2C
+ 46   B0D8 B0 22 33 32
+ 46   B0DC 22
+ 47   B0DD 0D                   DB      #0D
+ 48   B0DE              l11_end:
+ 49   B0DE
+ 50   B0DE              ; Exact TR-DOS interception sequence used by Project112/126.
+ 51   B0DE 00 14                DB      0,20
+ 52   B0E0 2B 00                DW      l20_end-l20
+ 53   B0E2              l20:
+ 54   B0E2 F9 C0 31 35          DB      RANDOMIZE,USR,"15619",#0E,#00,#00
+ 54   B0E6 36 31 39 0E
+ 54   B0EA 00 00
+ 55   B0EC 03 3D                DW      15619
+ 56   B0EE 00 3A EA 3A          DB      0,#3A,REM,#3A
+ 57   B0F2 4C 4F 41 44          DB      "LOAD ",34,"P127BOOT",34," CODE 24576",#0D
+ 57   B0F6 20 22 50 31
+ 57   B0FA 32 37 42 4F
+ 57   B0FE 4F 54 22 20
+ 57   B102 43 4F 44 45
+ 57   B106 20 32 34 35
+ 57   B10A 37 36 0D
+ 58   B10D              l20_end:
+ 59   B10D
+ 60   B10D              ; Output after TR-DOS has loaded the separate CODE file.
+ 61   B10D 00 15                DB      0,21
+ 62   B10F 46 00                DW      l21_end-l21
+ 63   B111              l21:
+ 64   B111 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"76",34,":"
+ 64   B115 33 39 22 2C
+ 64   B119 B0 22 37 36
+ 64   B11D 22 3A
+ 65   B11F DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"79",34,":"
+ 65   B123 33 39 22 2C
+ 65   B127 B0 22 37 39
+ 65   B12B 22 3A
+ 66   B12D DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"65",34,":"
+ 66   B131 33 39 22 2C
+ 66   B135 B0 22 36 35
+ 66   B139 22 3A
+ 67   B13B DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"68",34,":"
+ 67   B13F 33 39 22 2C
+ 67   B143 B0 22 36 38
+ 67   B147 22 3A
+ 68   B149 DF B0 22 32          DB      OUT_CMD,VAL,34,"239",34,",",VAL,34,"32",34
+ 68   B14D 33 39 22 2C
+ 68   B151 B0 22 33 32
+ 68   B155 22
+ 69   B156 0D                   DB      #0D
+ 70   B157              l21_end:
+ 71   B157
+ 72   B157 00 1E                DB      0,30
+ 73   B159 1E 00                DW      l30_end-l30
+ 74   B15B              l30:
+ 75   B15B DF 32 33 39          DB      OUT_CMD,"239",#0E,#00,#00,#EF,#00,#00,","
+ 75   B15F 0E 00 00 EF
+ 75   B163 00 00 2C
+ 76   B166 32 0E 00 00          DB      "2",#0E,#00,#00,#02,#00,#00,":"
+ 76   B16A 02 00 00 3A
+ 77   B16E F9 C0 B0 22          DB      RANDOMIZE,USR,VAL,34,"24576",34,#0D
+ 77   B172 32 34 35 37
+ 77   B176 36 22 0D
+ 78   B179              l30_end:
+ 79   B179 80                   DB      #80
+ 80   B17A              basic_loader_end:
+ 81   B17A
+ 82   B17A                      SAVETRD "disk_A.trd","boot.B",basic_loader,basic_loader_end-basic_loader,10
+ 83   B17A                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_end-P127_LOAD_ADDRESS
+ 84   B17A
+ 85   B17A                      ASSERT  p127_entry = #6000
+ 86   B17A                      ASSERT  p127_end > p127_entry
+ 87   B17A                      ASSERT  p127_end <= #A000
+ 88   B17A                      ASSERT  basic_loader_end > basic_loader
+ 89   B17A
 # file closed: main.asm
