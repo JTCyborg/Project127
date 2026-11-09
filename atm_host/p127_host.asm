@@ -61,6 +61,7 @@ p127_host_entry:
         call    P127_DebugConsole_Init
         ld      a,1
         ld      (p127_host_console_ready),a
+        call    P127_TRDOS_DumpCatalog
         call    P127_RTC_Startup
         call    P127_StorageAndFAT16_Startup
         ld      hl,p127_host_ui_ready
