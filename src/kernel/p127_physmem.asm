@@ -1,13 +1,13 @@
 ; ============================================================================
 ; Project127 physical ATM RAM page test — Stage 2.19
-; Module version: 0.3.3
+; Module version: 0.3.4
 ; Runs from W2 (#A000..), with stack in W2. W1 resident/kernel remains fixed.
 ; W3 is exclusively leased from the UI and restored to physical page 0.
 ; This is the first general-purpose physical W3 remap test.
 ; ============================================================================
 P127_PHYSMEM_VERSION_MAJOR EQU 0
 P127_PHYSMEM_VERSION_MINOR EQU 3
-P127_PHYSMEM_VERSION_PATCH EQU 3
+P127_PHYSMEM_VERSION_PATCH EQU 4
 P127_PHYSMEM_PAGE_SIZE     EQU 04000h
 P127_PHYSMEM_WINDOW_BASE   EQU 0C000h
 P127_PHYSMEM_PAGE_PORT     EQU 0FFF7h
@@ -271,6 +271,9 @@ p127_physmem_full_fill_loop:
         ld      a,(hl)
         inc     hl
         ld      (p127_physmem_current_page),a
+        ld      a,'F'
+        call    p127_physmem_trace_page
+        ld      a,(p127_physmem_current_page)
         call    p127_physmem_set_w3
         jp      c,p127_physmem_fail_map
         ld      a,(p127_physmem_current_page)
@@ -298,6 +301,9 @@ p127_physmem_full_verify_loop:
         dec     hl
         ld      a,(hl)
         ld      (p127_physmem_current_page),a
+        ld      a,'V'
+        call    p127_physmem_trace_page
+        ld      a,(p127_physmem_current_page)
         call    p127_physmem_set_w3
         jp      c,p127_physmem_fail_map
         ld      a,(p127_physmem_current_page)
@@ -560,6 +566,74 @@ p127_physmem_trace:
         ld      bc,00EFh
         out     (c),a
         ret
+
+; Emit progress for each physical page while the UI is quiesced.
+; A='F' prints FILL PAGE ID=xx; A='V' prints VERIFY PAGE ID=xx.
+; Preserve every register because the caller owns the page-list cursor.
+p127_physmem_trace_page:
+        push    af
+        push    bc
+        push    de
+        push    hl
+        cp      'F'
+        jr      nz,p127_physmem_trace_page_verify
+        ld      hl,p127_physmem_trace_fill_text
+        jr      p127_physmem_trace_page_text
+p127_physmem_trace_page_verify:
+        ld      hl,p127_physmem_trace_verify_text
+p127_physmem_trace_page_text:
+        ld      a,(hl)
+        or      a
+        jr      z,p127_physmem_trace_page_value
+        inc     hl
+        push    hl
+        call    p127_physmem_trace_char
+        pop     hl
+        jr      p127_physmem_trace_page_text
+p127_physmem_trace_page_value:
+        ld      a,(p127_physmem_current_page)
+        call    p127_physmem_trace_hex8
+        ld      a,13
+        call    p127_physmem_trace_char
+        ld      a,10
+        call    p127_physmem_trace_char
+        pop     hl
+        pop     de
+        pop     bc
+        pop     af
+        ret
+
+p127_physmem_trace_hex8:
+        push    af
+        and     0F0h
+        rrca
+        rrca
+        rrca
+        rrca
+        call    p127_physmem_trace_nibble
+        pop     af
+        and     00Fh
+        jp      p127_physmem_trace_nibble
+
+p127_physmem_trace_nibble:
+        ld      e,a
+        ld      d,0
+        ld      hl,p127_physmem_trace_hex_table
+        add     hl,de
+        ld      a,(hl)
+        jp      p127_physmem_trace_char
+
+p127_physmem_trace_char:
+        ld      bc,00EFh
+        out     (c),a
+        ret
+
+p127_physmem_trace_fill_text:
+        db      "FILL PAGE ID=",0
+p127_physmem_trace_verify_text:
+        db      "VERIFY PAGE ID=",0
+p127_physmem_trace_hex_table:
+        db      "0123456789ABCDEF"
 
 ; IN A=physical RAM page ID. Program only W3 (#FFF7), never W0/W1/W2.
 ; D6=1 selects RAM, D7=0 selects the inverse D0-D5 page ID.
