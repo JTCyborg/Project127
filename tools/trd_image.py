@@ -20,7 +20,7 @@ def basic_loader():
     def line(number, body):
         if not 0 <= number <= 9999:
             raise ValueError("BASIC line number out of range")
-        return bytes((number >> 8, number & 255)) + le16(len(body) + 1) + body + b"\\x0d"
+        return bytes((number >> 8, number & 255)) + le16(len(body) + 1) + body + b"\x0d"
 
     def debug_lines(first_number, message):
         # Use the byte-for-byte Project125 OUT VAL form, in short BASIC lines.
@@ -48,7 +48,7 @@ def basic_loader():
 
     # Line 20: exact TR-DOS bootstrap form used by the working P125/P126 loader.
     line20 = (bytes([TOK_RANDOMIZE, TOK_USR]) + b"15619" +
-              bytes([0x0E, 0x00, 0x00]) + le16(15619) + b"\\x00" +
+              bytes([0x0E, 0x00, 0x00]) + le16(15619) + b"\x00" +
               b":" + bytes([TOK_REM]) + b":" +
               b'LOAD "P127BOOT" CODE 24576')
 
@@ -60,13 +60,13 @@ def basic_loader():
               b"24576" + bytes([34]))
 
     lines = [line(10, line10)]
-    lines += debug_lines(11, "[P127] BASIC START\\r\\n")
+    lines += debug_lines(11, "[P127] BASIC START\r\n")
     lines.append(line(20, line20))
-    lines += debug_lines(21, "[P127] LOAD OK\\r\\n")
-    lines += debug_lines(23, "[P127] CALL 6000\\r\\n")
+    lines += debug_lines(21, "[P127] LOAD OK\r\n")
+    lines += debug_lines(23, "[P127] CALL 6000\r\n")
     lines.append(line(30, line30))
-    area = b"".join(lines) + b"\\x80"
-    return area + b"\\xaa\\x0a\\x00", len(area)
+    area = b"".join(lines) + b"\x80"
+    return area + b"\xaa\x0a\x00", len(area)
 
 def offset(track, sector):
     if not 0 <= track < TRACKS or not 0 <= sector < SPT:
