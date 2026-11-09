@@ -226,7 +226,57 @@ same-handle overlapping COPY, and rejects an out-of-range request. This test
 is an acceptance gate; implementation correctness is not considered proven
 until its PASS line is observed on the ATM runtime.
 
-## 11. Implementation order and frozen milestone
+## 11. Physical storage service — Nemo IDE / SMUC
+
+Project127 uses a **physical storage device attached through Nemo IDE / SMUC**.
+The disk is not required to be represented by a virtual image. The physical
+controller and drive are owned exclusively by the ATM Z80 host firmware.
+NeoGS and the emulated 8086 never issue physical controller IN/OUT operations.
+They submit block requests to the ATM storage service through the existing
+host-mediated DMA/IPC path.
+
+### Ownership and request path
+
+1. Guest/NeoGS submits operation, drive number, 28-bit LBA, sector count,
+   transfer direction, and a DMA-backed buffer/stream descriptor.
+2. ATM validates the complete request, buffer bounds, sector count and LBA
+   range before touching the device.
+3. ATM executes the physical controller transaction and transfers data in
+   bounded sector/DMA chunks. A partial transfer is never reported as success.
+4. ATM returns a completion record containing status, sectors completed,
+   device error/status and (for IDENTIFY) the device identity/capacity data.
+
+The service must support IDENTIFY, READ SECTORS, WRITE SECTORS and FLUSH CACHE
+at minimum. Use 512-byte logical sectors initially; obtain capacity and device
+capabilities from IDENTIFY rather than hard-coding disk geometry. The first
+implementation may use LBA28 only if IDENTIFY confirms the device supports it;
+otherwise fail explicitly. LBA48 can be added as a separately negotiated
+capability. Writes and flushes must preserve device error status.
+
+### Hardware backend separation
+
+The Project126/Project125 ATM-side Nemo IDE bridge is the reference for the
+Nemo register interface and bounded ATA status polling. Its observed register
+map is data low/high at #10/#11, sector count at #50, LBA bytes at #70/#90/#B0,
+drive/head at #D0, and command/status at #F0. The reference implements
+IDENTIFY, one-sector READ/WRITE and FLUSH. Project127 must extend this into
+multi-sector/block streaming behind the storage service API; do not expose the
+one-sector packet size as a public limit.
+
+SMUC must be treated as a distinct hardware backend until its exact register
+map, device-select protocol and status semantics are verified against the
+Project126/Project112 source or hardware documentation. Do not assume that
+SMUC is electrically or register-compatible with Nemo IDE. Probe available
+backends at startup, report the detected controller and capabilities, and
+select only a backend whose probe succeeds. No destructive write test is
+allowed during detection.
+
+All physical controller port access is confined to ATM storage backend source.
+No NeoGS module, guest x86 BIOS/device model, or shared memory API may access
+these ports directly. The guest-facing IDE controller, if later emulated,
+translates its register operations into the same ATM block-service requests.
+
+## 12. Implementation order and frozen milestone
 
 The ATM backend milestone v0.9.1 is runtime-confirmed: range core, page allocator,
 physical byte operations, scatter allocation, and handle READ/WRITE/FILL/COPY

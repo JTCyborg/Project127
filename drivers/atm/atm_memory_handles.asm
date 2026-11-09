@@ -197,12 +197,12 @@ atm_mem_scatter_free_record_ready:
         ld      hl,atm_mem_scatter_handles
         ld      de,6
         or      a
-        jp      z,atm_mem_scatter_free_record_ready
+        jp      z,atm_mem_scatter_free_record_reseek_ready
 atm_mem_scatter_free_record_reseek:
         add     hl,de
         dec     a
         jp      nz,atm_mem_scatter_free_record_reseek
-atm_mem_scatter_free_record_ready:
+atm_mem_scatter_free_record_reseek_ready:
         inc     hl
         ld      a,(hl)
         ld      (atm_mem_scatter_rollback_count),a
