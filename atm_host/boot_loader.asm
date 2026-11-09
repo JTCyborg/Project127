@@ -62,7 +62,7 @@ LINE20_END:
         DB      0, 21
         DW      LINE21_END-LINE21
 LINE21:
-        DB      "LOAD ", 34, "@@HOST_NAME@@", 34, " CODE 24576", $0D
+        DB      $EF, 34, "@@HOST_NAME@@", 34, " CODE 24576", $0D
 LINE21_END:
 
         ; Announce that both host and UI images have been loaded.
