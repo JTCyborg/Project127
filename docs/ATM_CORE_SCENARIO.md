@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.33**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping awaiting Stage 2.17 runtime acceptance**  
+Scenario revision: **0.8.35**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -39,13 +39,13 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.6.7 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/boot/p127_boot.asm` | 0.6.8 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.1 | Software page-state manager; reserves video P1/P3/P5/P7, bootstrap P0/P2 and future IRQ table P4 |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
 | `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract; 16-check exhaustive readiness-mask/prerequisite batch runtime accepted; P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
-| `src/kernel/p127_physmem.asm` | 0.1.0 | Real W3 page switching, non-destructive port probe, two-page full 16 KiB isolation/readback and P0 restoration; runtime pending |
+| `src/kernel/p127_physmem.asm` | 0.2.0 | Real W3 page switching; non-destructive port probe; two-page 16 KiB isolation; address-sensitive patterns and repeated switching batch; P0 restoration |
 | `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership and software rollback; no page OUT |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel modules |
 ## Stage 1 — physical page-state manager 0.2.0
@@ -527,3 +527,30 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - The test writes only the W3 page port #FFF7. It does not remap W0/W1/W2, enable interrupts, alter IM/IFF policy, use P4, or enable general application mapping. The existing console's bounded video mapping remains unchanged.
 - Scenario revision 0.8.33. Build and emulator runtime verification are pending the user's next single run; no successful assembly or physical test is claimed.
 - Next: if this batch passes, add multi-pattern/address-sensitive sweeps and test repeated map/restore cycles, then expose a guarded page-map API. If it fails, use the returned diagnostic and preserve the P0 recovery path before expanding scope.
+
+
+### 2026-11-09 — Stage 2.17 runtime acceptance: physical W3 page switching
+
+- User supplied the complete #EF startup log from the Stage 2.17 physical-memory batch. It reaches `PHYS W3 SWITCH/2X16K ISOLATION/VERIFY/P0 RESTORE PASS` after all prior boot, memory, software-map, resident-window and IRQ-preflight diagnostics.
+- Stage 2.17 / `src/kernel/p127_physmem.asm` v0.1.0 is accepted in the user's Unreal Speccy runtime. The diagnostic is emitted only after the routine completes its physical W3 mapping probe, two-page 16 KiB write/readback isolation checks, return to P0, restoration of the saved P0 byte, UI handoff release and page frees.
+- This is runtime evidence for the tested two allocated pages and the W3 dispatcher path. It does not establish exhaustive correctness across all 64 physical pages, arbitrary concurrent remapping, W0/W1/W2 remapping, application mapping, or interrupt operation. The system remains DI-only; IM/EI and the IRQ source/vector contract remain unresolved.
+- No functional source module changed in this acceptance update. Scenario revision advanced to 0.8.34.
+- Next: extend the single-run physical-memory batch with address-sensitive patterns, repeated A/B switching cycles and broader page-pair coverage while preserving the P0 recovery path. Do not expose unrestricted application mapping until those checks pass.
+
+
+### 2026-11-09 — Stage 2.17 runtime acceptance: physical W3 page switching
+
+- User supplied the complete #EF startup log. It reaches `PHYS W3 SWITCH/2X16K ISOLATION/VERIFY/P0 RESTORE PASS` after all earlier diagnostics.
+- Stage 2.17 / `src/kernel/p127_physmem.asm` v0.1.0 is accepted in the user's Unreal Speccy runtime. The marker is emitted only after the physical W3 probe, two-page 16 KiB isolation/readback, return to P0, restoration of the saved P0 byte, UI handoff release and freeing both allocated pages.
+- Acceptance covers the two allocated pages and W3 dispatcher path exercised by this batch. It does not establish exhaustive correctness across all 64 physical pages, arbitrary concurrent remapping, W0/W1/W2 remapping, application mapping, or interrupt operation. DI-only policy remains; IM/EI and the IRQ source/vector contract remain unresolved.
+- No source behavior changed as part of this acceptance record. Scenario revision advanced to 0.8.35.
+
+### 2026-11-09 — Stage 2.18: address-sensitive W3 memory batch v0.2.0
+
+- Advanced `src/kernel/p127_physmem.asm` to v0.2.0 and boot source to v0.6.8.
+- Extended the existing single startup batch after the non-destructive physical-page probe and two-page isolation stage. Each of the two allocator-owned pages is filled and checked using an address-derived byte pattern (`ROL(address_low) XOR address_high XOR seed`), rather than a single constant byte.
+- Four pattern rounds use distinct seeds on both pages. Each round repeatedly switches W3 between A and B and re-verifies the previously written page after returning from the other page. This combines address-sensitive data checks, page isolation, repeated mapping, and data retention in one boot run.
+- The original safety contract is retained: code and stack remain in W2; W1/W2 are not remapped; UI is quiesced and W3 ownership is acquired; the probe byte on P0 is saved/restored; cleanup returns W3 to P0, releases ownership, resumes UI, and frees allocated pages.
+- Success marker: `PHYS W3 ADDR PATTERN/4ROUND/20MAP/2PAGE VERIFY/P0 RESTORE PASS`.
+- The batch still covers two allocator-selected physical pages, not all 64 pages. It does not authorize unrestricted application mapping or IM/EI.
+- Scenario revision 0.8.35. Build and emulator runtime verification for Stage 2.18 are pending the user's next single run; no successful build is claimed.
