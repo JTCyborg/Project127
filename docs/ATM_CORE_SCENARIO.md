@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.35**  
+Scenario revision: **0.8.36**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -554,3 +554,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Success marker: `PHYS W3 ADDR PATTERN/4ROUND/20MAP/2PAGE VERIFY/P0 RESTORE PASS`.
 - The batch still covers two allocator-selected physical pages, not all 64 pages. It does not authorize unrestricted application mapping or IM/EI.
 - Scenario revision 0.8.35. Build and emulator runtime verification for Stage 2.18 are pending the user's next single run; no successful build is claimed.
+
+
+### 2026-11-09 — Stage 2.18 runtime acceptance: address-sensitive W3 memory batch
+
+- User supplied the complete #EF startup log from the Stage 2.18 image. All preceding diagnostics pass and the log reaches `PHYS W3 ADDR PATTERN/4ROUND/20MAP/2PAGE VERIFY/P0 RESTORE PASS`.
+- Stage 2.18 / `src/kernel/p127_physmem.asm` v0.2.0 is accepted in the user's Unreal Speccy runtime. The marker confirms that the combined startup batch completed its address-derived pattern rounds, repeated A/B W3 mapping and full-page verification, then restored W3 to P0 and completed cleanup.
+- Runtime acceptance is limited to the two allocator-selected physical pages and the W3 path covered by the batch. It is not an exhaustive test of all 64 pages, W0/W1/W2 mapping, concurrent mapping, application allocation policy under load, or interrupt operation. IM/EI remain disabled and IRQ source/vector/acknowledgement remain unresolved.
+- No functional source module changed in this acceptance update. Scenario revision advanced to 0.8.36.
+- Next stage: expand the same single-run batch to allocator/page-state integrity and broader physical-page pair coverage, retaining guarded W3 ownership, P0 restoration, UI recovery and full cleanup. Do not enable unrestricted remapping or interrupts based solely on this test.
