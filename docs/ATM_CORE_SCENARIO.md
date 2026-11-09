@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.6.1**  
-Status: **BOOT0, console, and Stage 1 smoke test accepted; bootstrap physical-map reservations added, runtime retest pending**  
+Scenario revision: **0.6.2**  
+Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -22,8 +22,8 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | Stage | Status | Deliverable / acceptance |
 |---|---|---|
 | 0 — Bootstrap baseline | **PASS (baseline)** | BASIC `boot.B` loads `P127BOOT.C` at #6000; original four BOOT0 diagnostic lines retained. |
-| 1 — Physical page-state manager | **PASS (previous runtime smoke test); bootstrap reserve retest pending** | 64-entry page-state table; video and active boot-map reservations; allocate/free/reallocate smoke test. |
-| 2 — Physical memory map | **PARTIALLY VERIFIED** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
+| 1 — Physical page-state manager | **PASS (runtime accepted)** | 64-entry page-state table; video and active boot-map reservations; allocate/free/reallocate smoke test. |
+| 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
 | 4 — Page mapper | PLANNED | Verified ATM hardware page-register backend; map/unmap API; no direct hardware writes from applications. |
 | 5 — Process/context manager | PLANNED | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
@@ -145,3 +145,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Replaced only those two conditional relative branches with absolute conditional `JP` instructions. Reservation validation and error handling are unchanged.
 - Advanced `src/kernel/p127_mem.asm` from v0.3.0 to v0.3.1; scenario revision 0.6.1.
 - The reported assembler failure is addressed at source level. A fresh SjASMPlus build and emulator run are still required; no successful build is claimed.
+
+
+### 2026-11-09 — Runtime acceptance: bootstrap reservations v0.3.1
+
+- User rebuilt and ran the Project127 TR-DOS image after commit `a126a26`.
+- The supplied #EF log confirms `MEM INIT 1MB/64P`, `VIDEO RAM RESERVED P1,P3,P5,P7`, `BOOT MAP RESERVED P0,P2; P5 ACTIVE`, and `MEM PAGE TEST PASS`.
+- Stage 1 page-state manager and the Stage 2.3 bootstrap reservation calls are accepted in the emulator.
+- The acceptance covers software bookkeeping and reservation guards only. It does not prove physical page-register writes, actual physical bank identity, remapping, or program arena availability.
+- No module code changed in this acceptance update. Scenario revision advanced to 0.6.2.
+- Next: implement a pure ATM page-register encoding/state model and self-tests first. Keep hardware OUT writes disabled until the safe remap protocol can preserve the executing code, UI, and stack windows.
