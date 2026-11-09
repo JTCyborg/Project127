@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.62**  
+Scenario revision: **0.8.63**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -27,7 +27,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 3 — UINT32 memory/range API and program arena | **STAGE 3.1/3.2/3.3/3.4 PASS (user runtime log)** | UINT32 half-open range validation plus a map-derived top-down arena. Current reservations yield P8..P63 (56 pages); LIFO release; no physical mapping or byte-granular ABI. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | **SOFTWARE PREFLIGHT + MAP TRANSACTION RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0, P4 table-slot preflight v0.3.0, map transaction v0.3.0 | Implement resident interrupt-entry/return and controlled physical W3 mapping. Physical remap remains blocked; independent physical stack backing and IFF/IM/vector handling are not proven. |
-| 6 — Managed program address space | **STAGE 6.1 IMPLEMENTED (runtime pending)** | 4 MiB logical page table (256 × 16 KiB), allocator-owned physical-page bindings, duplicate-alias rejection and 32-bit logical-address translation; no byte transfer or hardware remap. |
+| 6 — Managed program address space | **STAGE 6.1 PASS (user runtime log)** | 4 MiB logical page table (256 × 16 KiB), allocator-owned physical-page bindings, duplicate-alias rejection and 32-bit logical-address translation; boundary test at 0x3FFF/0x4000 passed. No byte transfer or hardware remap. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
 | 9 — RTC and input | PLANNED | DS12887/SMUC and keyboard/input host services. |
@@ -39,7 +39,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.7.6 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/boot/p127_boot.asm` | 0.7.7 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.3 | Software page-state manager; allocator negative-path tests use absolute JP failure branches to remain in range under SjASMPlus |
 | `src/kernel/p127_range.asm` | 0.1.2 | UINT32 end-exclusive physical range validator; 1 MiB bounds/overflow self-test; arithmetic only, no mapping or memory access |
 | `src/kernel/p127_arena.asm` | 0.1.2 | Map-derived highest contiguous FREE run; bounded allocation and LIFO release; accounting only, no mapping |
@@ -815,3 +815,15 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Integrated after the arena self-test. `src/boot/p127_boot.asm` advances to v0.7.7; scenario revision 0.8.62.
 - Strict scope: software translation table only. No physical-byte read/write, cross-page copy, ATM window switching, additional page-port OUT, DMA, IRQ or IM/EI activation. The caller must unbind before releasing a physical page. Cross-page transfer and loader/process ownership are subsequent work.
 - Build and Unreal Speccy runtime verification are pending the user's rebuild; no independent assembler/emulator run is claimed.
+
+
+### 2026-11-09 — Runtime acceptance update: Stage 6.1 and integrated regression set
+
+- User supplied the complete startup #EF log from the current Project127 image. It reports `LOGICAL PAGE TABLE/BOUNDARY TRANSLATION PASS; NO MAP/OUT`; Stage 6.1 is therefore accepted on the user's runtime evidence.
+- The boundary checks include the last byte of logical page 0 (`0x3FFF`) and the first byte of logical page 1 (`0x4000`). The 4 MiB logical page table remains metadata-only: no physical byte transfer, page-window remap or additional page-port OUT is exercised.
+- The same run reports PASS for software map transaction commit/rollback, resident stack probe, UI quiesce/W3 ownership, W3 rollback/recovery, IRQ frame roundtrip, 16-check IRQ batch, IRQ table-slot preflight, IRQ mask/vector contract, resident trampoline preflight, resident-window contract, handoff guard and software map model.
+- IRQ remains deliberately inactive: the log explicitly states source unresolved, vector disabled and IM/EI/OUT disabled. These passes validate frame/contract/preflight logic only; they do not establish a live interrupt source or authorize EI, IM changes, vector activation or hardware mapping.
+- Physical memory regression also passes: the current linked kernel image is reported as `0x1AE8` bytes (6,888 bytes), with P5/P2 bounds valid; all 57 free physical pages are filled and reverse-verified; W3 is restored to P0, UI is active, and the guarded page allocator/W3 lease API passes.
+- Scenario revision advanced to 0.8.63. The boot module register is synchronized to `src/boot/p127_boot.asm` v0.7.7. No implementation source changed in this acceptance commit.
+- Acceptance is based on the user's supplied log. The assembler and emulator were not independently run in this environment.
+- Next implementation work must not begin physical cross-page transfer or loader integration until a separate safe transfer contract is designed. Keep the existing W3 lease as the only exercised physical mapping path; do not enable IRQ/IM/EI or add page-port OUT as a side effect.
