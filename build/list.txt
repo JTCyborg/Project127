@@ -8,7 +8,7 @@
   7   0000                      INCLUDE "src/boot/p127_boot.asm"
 # file opened: p127_boot.asm
   1+  0000              ; ============================================================================
-  2+  0000              ; Project127 — boot stage 0.5.5
+  2+  0000              ; Project127 — boot stage 0.5.6
   3+  0000              ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
   4+  0000              ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
   5+  0000              ; ============================================================================
@@ -44,7 +44,7 @@
  35+  6023 CD E5 60             call    p127_puts
  36+  6026
  37+  6026                      ; Initialize software W3 ownership before bringing up the UI.
- 38+  6026 CD 0F 68             call    p127_w3_init
+ 38+  6026 CD 69 68             call    p127_w3_init
  39+  6029                      ; Initialize Project126's ATM-native debug console after BOOT0.
  40+  6029 CD 81 A0             call    p127_ui_init
  41+  602C 3E 01                ld      a,1
@@ -53,40 +53,39 @@
  44+  6034 CD E5 60             call    p127_puts
  45+  6037
  46+  6037                      ; Stage 1/2: software page accounting plus video and active boot-map reserves.
- 47+  6037 CD C1 63             call    p127_mem_init
+ 47+  6037 CD 1B 64             call    p127_mem_init
  48+  603A 21 94 61             ld      hl,p127_msg_mem_init
  49+  603D CD E5 60             call    p127_puts
- 50+  6040 CD 02 64             call    p127_mem_reserve_video
+ 50+  6040 CD 5C 64             call    p127_mem_reserve_video
  51+  6043 DA CC 60             jp      c,p127_mem_map_failed
  52+  6046 21 AE 61             ld      hl,p127_msg_video_reserved
  53+  6049 CD E5 60             call    p127_puts
- 54+  604C CD 24 64             call    p127_mem_reserve_boot
+ 54+  604C CD 7E 64             call    p127_mem_reserve_boot
  55+  604F DA D4 60             jp      c,p127_mem_boot_failed
  56+  6052 21 D6 61             ld      hl,p127_msg_boot_reserved
  57+  6055 CD E5 60             call    p127_puts
- 58+  6058 CD 61 64             call    p127_mem_selftest
+ 58+  6058 CD BB 64             call    p127_mem_selftest
  59+  605B 38 7F                jr      c,p127_mem_failed
  60+  605D 21 41 62             ld      hl,p127_msg_mem_pass
  61+  6060 CD E5 60             call    p127_puts
  62+  6063
  63+  6063                      ; Stage 2.4: pure software mapper model; hardware OUT remains disabled.
- 64+  6063 CD EC 64             call    p127_map_init
- 65+  6066 CD 41 65             call    p127_map_selftest
+ 64+  6063 CD 46 65             call    p127_map_init
+ 65+  6066 CD 9B 65             call    p127_map_selftest
  66+  6069 DA C4 60             jp      c,p127_map_failed
- 67+  606C CD 48 66             call    p127_map_handoff_selftest
+ 67+  606C CD A2 66             call    p127_map_handoff_selftest
  68+  606F DA BC 60             jp      c,p127_handoff_failed
- 69+  6072 CD E6 66             call    p127_handoff_stack_probe
+ 69+  6072 CD 40 67             call    p127_handoff_stack_probe
  70+  6075 DA A4 60             jp      c,p127_stack_probe_failed
  71+  6078 21 C1 62             ld      hl,p127_msg_stack_probe_pass
  72+  607B CD E5 60             call    p127_puts
  73+  607E                      ; Stage 2.7: verify the fixed resident-window contract. This test
  74+  607E                      ; supplies a synthetic quiesced-UI state; it does not quiesce UI.
- 75+  607E CD C1 67             call    p127_resident_selftest
+ 75+  607E CD 1B 68             call    p127_resident_selftest
  76+  6081 DA B4 60             jp      c,p127_resident_failed
- 77+  6084 CD A1 68             call    p127_w3_selftest
+ 77+  6084 CD FB 68             call    p127_w3_selftest
  78+  6087 DA AC 60             jp      c,p127_w3_failed
-p127_boot.asm(79): error: Label not found: p127_msg_w3_pass
- 79+  608A 21 00 00             ld      hl,p127_msg_w3_pass
+ 79+  608A 21 C1 63             ld      hl,p127_msg_w3_pass
  80+  608D CD E5 60             call    p127_puts
  81+  6090 21 15 63             ld      hl,p127_msg_resident_pass
  82+  6093 CD E5 60             call    p127_puts
@@ -100,8 +99,7 @@ p127_boot.asm(79): error: Label not found: p127_msg_w3_pass
  90+  60A7 CD E5 60             call    p127_puts
  91+  60AA 18 36                jr      p127_idle
  92+  60AC              p127_w3_failed:
-p127_boot.asm(93): error: Label not found: p127_msg_w3_fail
- 93+  60AC 21 00 00             ld      hl,p127_msg_w3_fail
+ 93+  60AC 21 F5 63             ld      hl,p127_msg_w3_fail
  94+  60AF CD E5 60             call    p127_puts
  95+  60B2 18 2E                jr      p127_idle
  96+  60B4              p127_resident_failed:
@@ -357,913 +355,938 @@ p127_boot.asm(93): error: Label not found: p127_msg_w3_fail
 186+  63B8 54 20 46 41
 186+  63BC 49 4C 0D 0A
 186+  63C0 00
-187+  63C1
-188+  63C1                      INCLUDE "src/kernel/p127_mem.asm"
+187+  63C1              p127_msg_w3_pass:
+188+  63C1 5B 50 31 32          db      "[P127] UI QUIESCE/W3 OWNERSHIP PASS; OUT DISABLED",13,10,0
+188+  63C5 37 5D 20 55
+188+  63C9 49 20 51 55
+188+  63CD 49 45 53 43
+188+  63D1 45 2F 57 33
+188+  63D5 20 4F 57 4E
+188+  63D9 45 52 53 48
+188+  63DD 49 50 20 50
+188+  63E1 41 53 53 3B
+188+  63E5 20 4F 55 54
+188+  63E9 20 44 49 53
+188+  63ED 41 42 4C 45
+188+  63F1 44 0D 0A 00
+189+  63F5              p127_msg_w3_fail:
+190+  63F5 5B 50 31 32          db      "[P127] UI QUIESCE/W3 OWNERSHIP FAIL",13,10,0
+190+  63F9 37 5D 20 55
+190+  63FD 49 20 51 55
+190+  6401 49 45 53 43
+190+  6405 45 2F 57 33
+190+  6409 20 4F 57 4E
+190+  640D 45 52 53 48
+190+  6411 49 50 20 46
+190+  6415 41 49 4C 0D
+190+  6419 0A 00
+191+  641B
+192+  641B                      INCLUDE "src/kernel/p127_mem.asm"
 # file opened: p127_mem.asm
-  1++ 63C1              ; ============================================================================
-  2++ 63C1              ; Project127 ATM Core — physical page-state manager
-  3++ 63C1              ; Module version: 0.3.1
-  4++ 63C1              ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
-  5++ 63C1              ;      free A=page, C=invalid/not allocated.
-  6++ 63C1              ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
-  7++ 63C1              ; ATM Turbo 2+ page IDs are physical 16 KiB RAM pages. Bootstrap reservations
-  8++ 63C1              ; reflect the active ZX-128 map: page 5 (window 1), page 2 (window 2), and
-  9++ 63C1              ; page 0 (window 3). Page 5 is already covered by the video-page union.
- 10++ 63C1              ; ============================================================================
- 11++ 63C1              P127_MEM_VERSION_MAJOR EQU 0
- 12++ 63C1              P127_MEM_VERSION_MINOR EQU 3
- 13++ 63C1              P127_MEM_VERSION_PATCH EQU 1
- 14++ 63C1              P127_MEM_PAGE_COUNT    EQU 64
- 15++ 63C1              P127_MEM_PAGE_SIZE     EQU 04000h
- 16++ 63C1              P127_MEM_FREE          EQU 0
- 17++ 63C1              P127_MEM_RESERVED      EQU 1
- 18++ 63C1              P127_MEM_ALLOCATED     EQU 2
- 19++ 63C1
- 20++ 63C1              p127_mem_init:
- 21++ 63C1 21 AC 64             ld      hl,p127_mem_page_state
- 22++ 63C4 11 AD 64             ld      de,p127_mem_page_state+1
- 23++ 63C7 01 3F 00             ld      bc,P127_MEM_PAGE_COUNT-1
- 24++ 63CA 36 00                ld      (hl),P127_MEM_FREE
- 25++ 63CC ED B0                ldir
- 26++ 63CE C9                   ret
- 27++ 63CF
- 28++ 63CF              ; Reserve a contiguous physical-page range.
- 29++ 63CF              ; IN: A=first page, B=count. OUT: carry=1 on invalid range/conflict.
- 30++ 63CF              ; A zero-length reservation is accepted as a no-op.
- 31++ 63CF              p127_mem_reserve:
- 32++ 63CF 4F                   ld      c,a
- 33++ 63D0 78                   ld      a,b
- 34++ 63D1 B7                   or      a
- 35++ 63D2 C8                   ret     z
- 36++ 63D3 79                   ld      a,c
- 37++ 63D4 FE 40                cp      P127_MEM_PAGE_COUNT
- 38++ 63D6 D2 5F 64             jp      nc,p127_mem_error
- 39++ 63D9 79                   ld      a,c
- 40++ 63DA 80                   add     a,b
- 41++ 63DB DA 5F 64             jp      c,p127_mem_error
- 42++ 63DE FE 41                cp      P127_MEM_PAGE_COUNT+1
- 43++ 63E0 30 7D                jr      nc,p127_mem_error
- 44++ 63E2 21 AC 64             ld      hl,p127_mem_page_state
- 45++ 63E5 59                   ld      e,c
- 46++ 63E6 16 00                ld      d,0
- 47++ 63E8 19                   add     hl,de
- 48++ 63E9 50                   ld      d,b
- 49++ 63EA              p127_mem_reserve_check:
- 50++ 63EA 7E                   ld      a,(hl)
- 51++ 63EB B7                   or      a
- 52++ 63EC 20 71                jr      nz,p127_mem_error
- 53++ 63EE 23                   inc     hl
- 54++ 63EF 15                   dec     d
- 55++ 63F0 20 F8                jr      nz,p127_mem_reserve_check
- 56++ 63F2 21 AC 64             ld      hl,p127_mem_page_state
- 57++ 63F5 59                   ld      e,c
- 58++ 63F6 16 00                ld      d,0
- 59++ 63F8 19                   add     hl,de
- 60++ 63F9 50                   ld      d,b
- 61++ 63FA              p127_mem_reserve_set:
- 62++ 63FA 36 01                ld      (hl),P127_MEM_RESERVED
- 63++ 63FC 23                   inc     hl
- 64++ 63FD 15                   dec     d
- 65++ 63FE 20 FA                jr      nz,p127_mem_reserve_set
- 66++ 6400 B7                   or      a
- 67++ 6401 C9                   ret
- 68++ 6402
- 69++ 6402              ; Reserve ATM video RAM used by the complete Project112 mode set.
- 70++ 6402              ; Project112 ATM710: ZX uses page 5 or 7; ATM640/EGA/Text use page
- 71++ 6402              ; pairs 5+1 or 7+3. Reserve the union so any supported mode can be selected.
- 72++ 6402              ; OUT: carry=1 if a reservation conflicts or is out of range.
- 73++ 6402              p127_mem_reserve_video:
- 74++ 6402 3E 01                ld      a,1
- 75++ 6404 06 01                ld      b,1
- 76++ 6406 CD CF 63             call    p127_mem_reserve
- 77++ 6409 D8                   ret     c
- 78++ 640A 3E 03                ld      a,3
- 79++ 640C 06 01                ld      b,1
- 80++ 640E CD CF 63             call    p127_mem_reserve
- 81++ 6411 D8                   ret     c
- 82++ 6412 3E 05                ld      a,5
- 83++ 6414 06 01                ld      b,1
- 84++ 6416 CD CF 63             call    p127_mem_reserve
- 85++ 6419 D8                   ret     c
- 86++ 641A 3E 07                ld      a,7
- 87++ 641C 06 01                ld      b,1
- 88++ 641E CD CF 63             call    p127_mem_reserve
- 89++ 6421 D8                   ret     c
- 90++ 6422 B7                   or      a
- 91++ 6423 C9                   ret
- 92++ 6424
- 93++ 6424              ; Reserve bootstrap pages that are live in the current ZX-128 host map.
- 94++ 6424              ; Window 1/page 5 contains P127BOOT.C; window 2/page 2 contains the resident
- 95++ 6424              ; UI and stack; window 3/page 0 is retained as the host/staging page.
- 96++ 6424              ; Page 5 is already RESERVED by p127_mem_reserve_video.
- 97++ 6424              ; OUT: carry=1 if either reservation conflicts.
- 98++ 6424              p127_mem_reserve_boot:
- 99++ 6424 3E 00                ld      a,0
-100++ 6426 06 01                ld      b,1
-101++ 6428 CD CF 63             call    p127_mem_reserve
-102++ 642B D8                   ret     c
-103++ 642C 3E 02                ld      a,2
-104++ 642E 06 01                ld      b,1
-105++ 6430 CD CF 63             call    p127_mem_reserve
-106++ 6433 C9                   ret
-107++ 6434
-108++ 6434              ; Allocate the first free physical page.
-109++ 6434              ; OUT: A=page ID, carry=1 when exhausted.
-110++ 6434              p127_mem_alloc:
-111++ 6434 21 AC 64             ld      hl,p127_mem_page_state
-112++ 6437 06 40                ld      b,P127_MEM_PAGE_COUNT
-113++ 6439 0E 00                ld      c,0
-114++ 643B              p127_mem_alloc_scan:
-115++ 643B 7E                   ld      a,(hl)
-116++ 643C B7                   or      a
-117++ 643D 28 06                jr      z,p127_mem_alloc_found
-118++ 643F 23                   inc     hl
-119++ 6440 0C                   inc     c
-120++ 6441 10 F8                djnz    p127_mem_alloc_scan
-121++ 6443 37                   scf
-122++ 6444 C9                   ret
-123++ 6445              p127_mem_alloc_found:
-124++ 6445 36 02                ld      (hl),P127_MEM_ALLOCATED
-125++ 6447 79                   ld      a,c
-126++ 6448 B7                   or      a
-127++ 6449 C9                   ret
-128++ 644A
-129++ 644A              ; Release only pages owned by the allocator. Reserved pages cannot be freed.
-130++ 644A              ; IN: A=page ID. OUT: carry=1 for invalid ID or non-allocated page.
-131++ 644A              p127_mem_free:
-132++ 644A FE 40                cp      P127_MEM_PAGE_COUNT
-133++ 644C 30 11                jr      nc,p127_mem_error
-134++ 644E 4F                   ld      c,a
-135++ 644F 21 AC 64             ld      hl,p127_mem_page_state
-136++ 6452 59                   ld      e,c
-137++ 6453 16 00                ld      d,0
-138++ 6455 19                   add     hl,de
-139++ 6456 7E                   ld      a,(hl)
-140++ 6457 FE 02                cp      P127_MEM_ALLOCATED
-141++ 6459 20 04                jr      nz,p127_mem_error
-142++ 645B 36 00                ld      (hl),P127_MEM_FREE
-143++ 645D B7                   or      a
-144++ 645E C9                   ret
-145++ 645F
-146++ 645F              p127_mem_error:
-147++ 645F 37                   scf
-148++ 6460 C9                   ret
-149++ 6461
-150++ 6461              ; Runtime smoke test: video and bootstrap pages are immutable; allocation/free works.
-151++ 6461              ; OUT: carry=1 on failure. Does not retain any allocated page.
-152++ 6461              p127_mem_selftest:
-153++ 6461 3E 00                ld      a,0
-154++ 6463 CD 4A 64             call    p127_mem_free
-155++ 6466 30 41                jr      nc,p127_mem_test_fail
-156++ 6468 3E 01                ld      a,1
-157++ 646A CD 4A 64             call    p127_mem_free
-158++ 646D 30 3A                jr      nc,p127_mem_test_fail
-159++ 646F 3E 02                ld      a,2
-160++ 6471 CD 4A 64             call    p127_mem_free
-161++ 6474 30 33                jr      nc,p127_mem_test_fail
-162++ 6476 3E 03                ld      a,3
-163++ 6478 CD 4A 64             call    p127_mem_free
-164++ 647B 30 2C                jr      nc,p127_mem_test_fail
-165++ 647D 3E 05                ld      a,5
-166++ 647F CD 4A 64             call    p127_mem_free
-167++ 6482 30 25                jr      nc,p127_mem_test_fail
-168++ 6484 3E 07                ld      a,7
-169++ 6486 CD 4A 64             call    p127_mem_free
-170++ 6489 30 1E                jr      nc,p127_mem_test_fail
-171++ 648B CD 34 64             call    p127_mem_alloc
-172++ 648E D8                   ret     c
-173++ 648F 32 AB 64             ld      (p127_mem_test_page),a
-174++ 6492 CD 4A 64             call    p127_mem_free
-175++ 6495 D8                   ret     c
-176++ 6496 3A AB 64             ld      a,(p127_mem_test_page)
-177++ 6499 CD 34 64             call    p127_mem_alloc
-178++ 649C D8                   ret     c
-179++ 649D 47                   ld      b,a
-180++ 649E 3A AB 64             ld      a,(p127_mem_test_page)
-181++ 64A1 B8                   cp      b
-182++ 64A2 20 05                jr      nz,p127_mem_test_fail
-183++ 64A4 78                   ld      a,b
-184++ 64A5 CD 4A 64             call    p127_mem_free
-185++ 64A8 C9                   ret
-186++ 64A9              p127_mem_test_fail:
-187++ 64A9 37                   scf
-188++ 64AA C9                   ret
-189++ 64AB
-190++ 64AB              p127_mem_test_page:
-191++ 64AB 00                   db      0
-192++ 64AC              p127_mem_page_state:
-193++ 64AC 00 00 00...          ds      P127_MEM_PAGE_COUNT,0
-194++ 64EC              p127_mem_end:
-195++ 64EC
-196++ 64EC                      ASSERT  P127_MEM_PAGE_COUNT*P127_MEM_PAGE_SIZE = 100000h
-197++ 64EC                      ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
-198++ 64EC
+  1++ 641B              ; ============================================================================
+  2++ 641B              ; Project127 ATM Core — physical page-state manager
+  3++ 641B              ; Module version: 0.3.1
+  4++ 641B              ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
+  5++ 641B              ;      free A=page, C=invalid/not allocated.
+  6++ 641B              ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
+  7++ 641B              ; ATM Turbo 2+ page IDs are physical 16 KiB RAM pages. Bootstrap reservations
+  8++ 641B              ; reflect the active ZX-128 map: page 5 (window 1), page 2 (window 2), and
+  9++ 641B              ; page 0 (window 3). Page 5 is already covered by the video-page union.
+ 10++ 641B              ; ============================================================================
+ 11++ 641B              P127_MEM_VERSION_MAJOR EQU 0
+ 12++ 641B              P127_MEM_VERSION_MINOR EQU 3
+ 13++ 641B              P127_MEM_VERSION_PATCH EQU 1
+ 14++ 641B              P127_MEM_PAGE_COUNT    EQU 64
+ 15++ 641B              P127_MEM_PAGE_SIZE     EQU 04000h
+ 16++ 641B              P127_MEM_FREE          EQU 0
+ 17++ 641B              P127_MEM_RESERVED      EQU 1
+ 18++ 641B              P127_MEM_ALLOCATED     EQU 2
+ 19++ 641B
+ 20++ 641B              p127_mem_init:
+ 21++ 641B 21 06 65             ld      hl,p127_mem_page_state
+ 22++ 641E 11 07 65             ld      de,p127_mem_page_state+1
+ 23++ 6421 01 3F 00             ld      bc,P127_MEM_PAGE_COUNT-1
+ 24++ 6424 36 00                ld      (hl),P127_MEM_FREE
+ 25++ 6426 ED B0                ldir
+ 26++ 6428 C9                   ret
+ 27++ 6429
+ 28++ 6429              ; Reserve a contiguous physical-page range.
+ 29++ 6429              ; IN: A=first page, B=count. OUT: carry=1 on invalid range/conflict.
+ 30++ 6429              ; A zero-length reservation is accepted as a no-op.
+ 31++ 6429              p127_mem_reserve:
+ 32++ 6429 4F                   ld      c,a
+ 33++ 642A 78                   ld      a,b
+ 34++ 642B B7                   or      a
+ 35++ 642C C8                   ret     z
+ 36++ 642D 79                   ld      a,c
+ 37++ 642E FE 40                cp      P127_MEM_PAGE_COUNT
+ 38++ 6430 D2 B9 64             jp      nc,p127_mem_error
+ 39++ 6433 79                   ld      a,c
+ 40++ 6434 80                   add     a,b
+ 41++ 6435 DA B9 64             jp      c,p127_mem_error
+ 42++ 6438 FE 41                cp      P127_MEM_PAGE_COUNT+1
+ 43++ 643A 30 7D                jr      nc,p127_mem_error
+ 44++ 643C 21 06 65             ld      hl,p127_mem_page_state
+ 45++ 643F 59                   ld      e,c
+ 46++ 6440 16 00                ld      d,0
+ 47++ 6442 19                   add     hl,de
+ 48++ 6443 50                   ld      d,b
+ 49++ 6444              p127_mem_reserve_check:
+ 50++ 6444 7E                   ld      a,(hl)
+ 51++ 6445 B7                   or      a
+ 52++ 6446 20 71                jr      nz,p127_mem_error
+ 53++ 6448 23                   inc     hl
+ 54++ 6449 15                   dec     d
+ 55++ 644A 20 F8                jr      nz,p127_mem_reserve_check
+ 56++ 644C 21 06 65             ld      hl,p127_mem_page_state
+ 57++ 644F 59                   ld      e,c
+ 58++ 6450 16 00                ld      d,0
+ 59++ 6452 19                   add     hl,de
+ 60++ 6453 50                   ld      d,b
+ 61++ 6454              p127_mem_reserve_set:
+ 62++ 6454 36 01                ld      (hl),P127_MEM_RESERVED
+ 63++ 6456 23                   inc     hl
+ 64++ 6457 15                   dec     d
+ 65++ 6458 20 FA                jr      nz,p127_mem_reserve_set
+ 66++ 645A B7                   or      a
+ 67++ 645B C9                   ret
+ 68++ 645C
+ 69++ 645C              ; Reserve ATM video RAM used by the complete Project112 mode set.
+ 70++ 645C              ; Project112 ATM710: ZX uses page 5 or 7; ATM640/EGA/Text use page
+ 71++ 645C              ; pairs 5+1 or 7+3. Reserve the union so any supported mode can be selected.
+ 72++ 645C              ; OUT: carry=1 if a reservation conflicts or is out of range.
+ 73++ 645C              p127_mem_reserve_video:
+ 74++ 645C 3E 01                ld      a,1
+ 75++ 645E 06 01                ld      b,1
+ 76++ 6460 CD 29 64             call    p127_mem_reserve
+ 77++ 6463 D8                   ret     c
+ 78++ 6464 3E 03                ld      a,3
+ 79++ 6466 06 01                ld      b,1
+ 80++ 6468 CD 29 64             call    p127_mem_reserve
+ 81++ 646B D8                   ret     c
+ 82++ 646C 3E 05                ld      a,5
+ 83++ 646E 06 01                ld      b,1
+ 84++ 6470 CD 29 64             call    p127_mem_reserve
+ 85++ 6473 D8                   ret     c
+ 86++ 6474 3E 07                ld      a,7
+ 87++ 6476 06 01                ld      b,1
+ 88++ 6478 CD 29 64             call    p127_mem_reserve
+ 89++ 647B D8                   ret     c
+ 90++ 647C B7                   or      a
+ 91++ 647D C9                   ret
+ 92++ 647E
+ 93++ 647E              ; Reserve bootstrap pages that are live in the current ZX-128 host map.
+ 94++ 647E              ; Window 1/page 5 contains P127BOOT.C; window 2/page 2 contains the resident
+ 95++ 647E              ; UI and stack; window 3/page 0 is retained as the host/staging page.
+ 96++ 647E              ; Page 5 is already RESERVED by p127_mem_reserve_video.
+ 97++ 647E              ; OUT: carry=1 if either reservation conflicts.
+ 98++ 647E              p127_mem_reserve_boot:
+ 99++ 647E 3E 00                ld      a,0
+100++ 6480 06 01                ld      b,1
+101++ 6482 CD 29 64             call    p127_mem_reserve
+102++ 6485 D8                   ret     c
+103++ 6486 3E 02                ld      a,2
+104++ 6488 06 01                ld      b,1
+105++ 648A CD 29 64             call    p127_mem_reserve
+106++ 648D C9                   ret
+107++ 648E
+108++ 648E              ; Allocate the first free physical page.
+109++ 648E              ; OUT: A=page ID, carry=1 when exhausted.
+110++ 648E              p127_mem_alloc:
+111++ 648E 21 06 65             ld      hl,p127_mem_page_state
+112++ 6491 06 40                ld      b,P127_MEM_PAGE_COUNT
+113++ 6493 0E 00                ld      c,0
+114++ 6495              p127_mem_alloc_scan:
+115++ 6495 7E                   ld      a,(hl)
+116++ 6496 B7                   or      a
+117++ 6497 28 06                jr      z,p127_mem_alloc_found
+118++ 6499 23                   inc     hl
+119++ 649A 0C                   inc     c
+120++ 649B 10 F8                djnz    p127_mem_alloc_scan
+121++ 649D 37                   scf
+122++ 649E C9                   ret
+123++ 649F              p127_mem_alloc_found:
+124++ 649F 36 02                ld      (hl),P127_MEM_ALLOCATED
+125++ 64A1 79                   ld      a,c
+126++ 64A2 B7                   or      a
+127++ 64A3 C9                   ret
+128++ 64A4
+129++ 64A4              ; Release only pages owned by the allocator. Reserved pages cannot be freed.
+130++ 64A4              ; IN: A=page ID. OUT: carry=1 for invalid ID or non-allocated page.
+131++ 64A4              p127_mem_free:
+132++ 64A4 FE 40                cp      P127_MEM_PAGE_COUNT
+133++ 64A6 30 11                jr      nc,p127_mem_error
+134++ 64A8 4F                   ld      c,a
+135++ 64A9 21 06 65             ld      hl,p127_mem_page_state
+136++ 64AC 59                   ld      e,c
+137++ 64AD 16 00                ld      d,0
+138++ 64AF 19                   add     hl,de
+139++ 64B0 7E                   ld      a,(hl)
+140++ 64B1 FE 02                cp      P127_MEM_ALLOCATED
+141++ 64B3 20 04                jr      nz,p127_mem_error
+142++ 64B5 36 00                ld      (hl),P127_MEM_FREE
+143++ 64B7 B7                   or      a
+144++ 64B8 C9                   ret
+145++ 64B9
+146++ 64B9              p127_mem_error:
+147++ 64B9 37                   scf
+148++ 64BA C9                   ret
+149++ 64BB
+150++ 64BB              ; Runtime smoke test: video and bootstrap pages are immutable; allocation/free works.
+151++ 64BB              ; OUT: carry=1 on failure. Does not retain any allocated page.
+152++ 64BB              p127_mem_selftest:
+153++ 64BB 3E 00                ld      a,0
+154++ 64BD CD A4 64             call    p127_mem_free
+155++ 64C0 30 41                jr      nc,p127_mem_test_fail
+156++ 64C2 3E 01                ld      a,1
+157++ 64C4 CD A4 64             call    p127_mem_free
+158++ 64C7 30 3A                jr      nc,p127_mem_test_fail
+159++ 64C9 3E 02                ld      a,2
+160++ 64CB CD A4 64             call    p127_mem_free
+161++ 64CE 30 33                jr      nc,p127_mem_test_fail
+162++ 64D0 3E 03                ld      a,3
+163++ 64D2 CD A4 64             call    p127_mem_free
+164++ 64D5 30 2C                jr      nc,p127_mem_test_fail
+165++ 64D7 3E 05                ld      a,5
+166++ 64D9 CD A4 64             call    p127_mem_free
+167++ 64DC 30 25                jr      nc,p127_mem_test_fail
+168++ 64DE 3E 07                ld      a,7
+169++ 64E0 CD A4 64             call    p127_mem_free
+170++ 64E3 30 1E                jr      nc,p127_mem_test_fail
+171++ 64E5 CD 8E 64             call    p127_mem_alloc
+172++ 64E8 D8                   ret     c
+173++ 64E9 32 05 65             ld      (p127_mem_test_page),a
+174++ 64EC CD A4 64             call    p127_mem_free
+175++ 64EF D8                   ret     c
+176++ 64F0 3A 05 65             ld      a,(p127_mem_test_page)
+177++ 64F3 CD 8E 64             call    p127_mem_alloc
+178++ 64F6 D8                   ret     c
+179++ 64F7 47                   ld      b,a
+180++ 64F8 3A 05 65             ld      a,(p127_mem_test_page)
+181++ 64FB B8                   cp      b
+182++ 64FC 20 05                jr      nz,p127_mem_test_fail
+183++ 64FE 78                   ld      a,b
+184++ 64FF CD A4 64             call    p127_mem_free
+185++ 6502 C9                   ret
+186++ 6503              p127_mem_test_fail:
+187++ 6503 37                   scf
+188++ 6504 C9                   ret
+189++ 6505
+190++ 6505              p127_mem_test_page:
+191++ 6505 00                   db      0
+192++ 6506              p127_mem_page_state:
+193++ 6506 00 00 00...          ds      P127_MEM_PAGE_COUNT,0
+194++ 6546              p127_mem_end:
+195++ 6546
+196++ 6546                      ASSERT  P127_MEM_PAGE_COUNT*P127_MEM_PAGE_SIZE = 100000h
+197++ 6546                      ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
+198++ 6546
 # file closed: p127_mem.asm
-189+  64EC                      INCLUDE "src/kernel/p127_map.asm"
+193+  6546                      INCLUDE "src/kernel/p127_map.asm"
 # file opened: p127_map.asm
-  1++ 64EC              ; ============================================================================
-  2++ 64EC              ; Project127 ATM Core — pure software page-mapper model
-  3++ 64EC              ; Module version: 0.2.2
-  4++ 64EC              ; No hardware OUT instructions are permitted in this stage.
-  5++ 64EC              ; ============================================================================
-  6++ 64EC              P127_MAP_VERSION_MAJOR EQU 0
-  7++ 64EC              P127_MAP_VERSION_MINOR EQU 2
-  8++ 64EC              P127_MAP_VERSION_PATCH EQU 1
-  9++ 64EC
- 10++ 64EC              P127_MAP_WINDOW_COUNT  EQU 4
- 11++ 64EC              P127_MAP_ROM            EQU 0FFh
- 12++ 64EC
- 13++ 64EC              ; Shadow map reflects the verified bootstrap layout:
- 14++ 64EC              ; W0=TR-DOS ROM, W1=RAM P5, W2=RAM P2, W3=RAM P0.
- 15++ 64EC              ; This table is descriptive state only; it does not program hardware.
- 16++ 64EC              p127_map_init:
- 17++ 64EC 3E FF                ld      a,P127_MAP_ROM
- 18++ 64EE 32 E2 66             ld      (p127_map_shadow),a
- 19++ 64F1 3E 05                ld      a,5
- 20++ 64F3 32 E3 66             ld      (p127_map_shadow+1),a
- 21++ 64F6 3E 02                ld      a,2
- 22++ 64F8 32 E4 66             ld      (p127_map_shadow+2),a
- 23++ 64FB 3E 00                ld      a,0
- 24++ 64FD 32 E5 66             ld      (p127_map_shadow+3),a
- 25++ 6500 B7                   or      a
- 26++ 6501 C9                   ret
- 27++ 6502
- 28++ 6502              ; Encode physical RAM page ID as the ATM dispatcher byte.
- 29++ 6502              ; IN: A=physical page 0..63.
- 30++ 6502              ; OUT: A=7Fh-page; carry=1 for invalid page.
- 31++ 6502              p127_map_encode_page:
- 32++ 6502 FE 40                cp      64
- 33++ 6504 D2 DE 66             jp      nc,p127_map_invalid
- 34++ 6507 47                   ld      b,a
- 35++ 6508 3E 7F                ld      a,07Fh
- 36++ 650A 90                   sub     b
- 37++ 650B B7                   or      a
- 38++ 650C C9                   ret
- 39++ 650D
- 40++ 650D              ; Return the hardware shadow-port address for a CPU window.
- 41++ 650D              ; IN: A=window 0..3. OUT: HL=port; carry=1 for invalid window.
- 42++ 650D              ; This routine returns an address only; it never performs I/O.
- 43++ 650D              p127_map_window_port:
- 44++ 650D B7                   or      a
- 45++ 650E 28 0E                jr      z,p127_map_port_w0
- 46++ 6510 FE 01                cp      1
- 47++ 6512 28 0F                jr      z,p127_map_port_w1
- 48++ 6514 FE 02                cp      2
- 49++ 6516 28 10                jr      z,p127_map_port_w2
- 50++ 6518 FE 03                cp      3
- 51++ 651A 28 11                jr      z,p127_map_port_w3
- 52++ 651C 37                   scf
- 53++ 651D C9                   ret
- 54++ 651E              p127_map_port_w0:
- 55++ 651E 21 F7 3F             ld      hl,03FF7h
- 56++ 6521 B7                   or      a
- 57++ 6522 C9                   ret
- 58++ 6523              p127_map_port_w1:
- 59++ 6523 21 F7 7F             ld      hl,07FF7h
- 60++ 6526 B7                   or      a
- 61++ 6527 C9                   ret
- 62++ 6528              p127_map_port_w2:
- 63++ 6528 21 F7 BF             ld      hl,0BFF7h
- 64++ 652B B7                   or      a
- 65++ 652C C9                   ret
- 66++ 652D              p127_map_port_w3:
- 67++ 652D 21 F7 FF             ld      hl,0FFF7h
- 68++ 6530 B7                   or      a
- 69++ 6531 C9                   ret
- 70++ 6532
- 71++ 6532              ; Read the software shadow entry.
- 72++ 6532              ; IN: A=window 0..3. OUT: A=page ID or FFh (ROM); carry=1 if invalid.
- 73++ 6532              p127_map_get_shadow:
- 74++ 6532 FE 04                cp      P127_MAP_WINDOW_COUNT
- 75++ 6534 D2 DE 66             jp      nc,p127_map_invalid
- 76++ 6537 5F                   ld      e,a
- 77++ 6538 16 00                ld      d,0
- 78++ 653A 21 E2 66             ld      hl,p127_map_shadow
- 79++ 653D 19                   add     hl,de
- 80++ 653E 7E                   ld      a,(hl)
- 81++ 653F B7                   or      a
- 82++ 6540 C9                   ret
- 83++ 6541
- 84++ 6541              ; Stage 0.1 self-test: encoding, invalid page, all window ports and shadow map.
- 85++ 6541              ; OUT: carry=1 on any mismatch. No hardware registers are touched.
- 86++ 6541              p127_map_selftest:
- 87++ 6541 3E 00                ld      a,0
- 88++ 6543 CD 02 65             call    p127_map_encode_page
- 89++ 6546 DA E0 66             jp      c,p127_map_test_fail
- 90++ 6549 FE 7F                cp      07Fh
- 91++ 654B C2 E0 66             jp      nz,p127_map_test_fail
- 92++ 654E 3E 01                ld      a,1
- 93++ 6550 CD 02 65             call    p127_map_encode_page
- 94++ 6553 DA E0 66             jp      c,p127_map_test_fail
- 95++ 6556 FE 7E                cp      07Eh
- 96++ 6558 C2 E0 66             jp      nz,p127_map_test_fail
- 97++ 655B 3E 03                ld      a,3
- 98++ 655D CD 02 65             call    p127_map_encode_page
- 99++ 6560 DA E0 66             jp      c,p127_map_test_fail
-100++ 6563 FE 7C                cp      07Ch
-101++ 6565 C2 E0 66             jp      nz,p127_map_test_fail
-102++ 6568 3E 05                ld      a,5
-103++ 656A CD 02 65             call    p127_map_encode_page
-104++ 656D DA E0 66             jp      c,p127_map_test_fail
-105++ 6570 FE 7A                cp      07Ah
-106++ 6572 C2 E0 66             jp      nz,p127_map_test_fail
-107++ 6575 3E 07                ld      a,7
-108++ 6577 CD 02 65             call    p127_map_encode_page
-109++ 657A DA E0 66             jp      c,p127_map_test_fail
-110++ 657D FE 78                cp      078h
-111++ 657F C2 E0 66             jp      nz,p127_map_test_fail
-112++ 6582 3E 3F                ld      a,63
-113++ 6584 CD 02 65             call    p127_map_encode_page
-114++ 6587 DA E0 66             jp      c,p127_map_test_fail
-115++ 658A FE 40                cp      040h
-116++ 658C C2 E0 66             jp      nz,p127_map_test_fail
-117++ 658F 3E 40                ld      a,64
-118++ 6591 CD 02 65             call    p127_map_encode_page
-119++ 6594 D2 E0 66             jp      nc,p127_map_test_fail
-120++ 6597
-121++ 6597 3E 00                ld      a,0
-122++ 6599 CD 0D 65             call    p127_map_window_port
-123++ 659C DA E0 66             jp      c,p127_map_test_fail
-124++ 659F 11 F7 3F             ld      de,03FF7h
-125++ 65A2 B7                   or      a
-126++ 65A3 ED 52                sbc     hl,de
-127++ 65A5 C2 E0 66             jp      nz,p127_map_test_fail
-128++ 65A8 3E 01                ld      a,1
-129++ 65AA CD 0D 65             call    p127_map_window_port
-130++ 65AD DA E0 66             jp      c,p127_map_test_fail
-131++ 65B0 11 F7 7F             ld      de,07FF7h
-132++ 65B3 B7                   or      a
-133++ 65B4 ED 52                sbc     hl,de
-134++ 65B6 C2 E0 66             jp      nz,p127_map_test_fail
-135++ 65B9 3E 02                ld      a,2
-136++ 65BB CD 0D 65             call    p127_map_window_port
-137++ 65BE DA E0 66             jp      c,p127_map_test_fail
-138++ 65C1 11 F7 BF             ld      de,0BFF7h
-139++ 65C4 B7                   or      a
-140++ 65C5 ED 52                sbc     hl,de
-141++ 65C7 C2 E0 66             jp      nz,p127_map_test_fail
-142++ 65CA 3E 03                ld      a,3
-143++ 65CC CD 0D 65             call    p127_map_window_port
-144++ 65CF DA E0 66             jp      c,p127_map_test_fail
-145++ 65D2 11 F7 FF             ld      de,0FFF7h
-146++ 65D5 B7                   or      a
-147++ 65D6 ED 52                sbc     hl,de
-148++ 65D8 C2 E0 66             jp      nz,p127_map_test_fail
-149++ 65DB 3E 04                ld      a,4
-150++ 65DD CD 0D 65             call    p127_map_window_port
-151++ 65E0 D2 E0 66             jp      nc,p127_map_test_fail
-152++ 65E3
-153++ 65E3 CD EC 64             call    p127_map_init
-154++ 65E6 3E 00                ld      a,0
-155++ 65E8 CD 32 65             call    p127_map_get_shadow
-156++ 65EB FE FF                cp      P127_MAP_ROM
-157++ 65ED C2 E0 66             jp      nz,p127_map_test_fail
-158++ 65F0 3E 01                ld      a,1
-159++ 65F2 CD 32 65             call    p127_map_get_shadow
-160++ 65F5 FE 05                cp      5
-161++ 65F7 C2 E0 66             jp      nz,p127_map_test_fail
-162++ 65FA 3E 02                ld      a,2
-163++ 65FC CD 32 65             call    p127_map_get_shadow
-164++ 65FF FE 02                cp      2
-165++ 6601 C2 E0 66             jp      nz,p127_map_test_fail
-166++ 6604 3E 03                ld      a,3
-167++ 6606 CD 32 65             call    p127_map_get_shadow
-168++ 6609 FE 00                cp      0
-169++ 660B C2 E0 66             jp      nz,p127_map_test_fail
-170++ 660E 3E 04                ld      a,4
-171++ 6610 CD 32 65             call    p127_map_get_shadow
-172++ 6613 D2 E0 66             jp      nc,p127_map_test_fail
-173++ 6616 B7                   or      a
-174++ 6617 C9                   ret
-175++ 6618
-176++ 6618
-177++ 6618              ; ---------------------------------------------------------------------------
-178++ 6618              ; Safe-remap preparation gate (software-only).
-179++ 6618              ; IN: A=target window 0..3, B=new physical page 0..63,
-180++ 6618              ;     C=bitmask of protected windows (bit 0=W0 ... bit 3=W3).
-181++ 6618              ; OUT: carry=1 if invalid/protected; carry=0 if a pending request is staged.
-182++ 6618              ; This routine NEVER writes a page port and NEVER changes the active map.
-183++ 6618              ; Caller must include execution, stack, UI, interrupt and host/staging windows
-184++ 6618              ; in C. The bootstrap currently protects all four windows (#0F).
-185++ 6618              p127_map_handoff_prepare:
-186++ 6618                      ; Keep the target in E, invalidate any older staged request, then
-187++ 6618                      ; validate the page/window and index the four-byte mask with DE=0:E.
-188++ 6618 5F                   ld      e,a
-189++ 6619 AF                   xor     a
-190++ 661A 32 D9 66             ld      (p127_map_pending_valid),a
-191++ 661D 78                   ld      a,b
-192++ 661E FE 40                cp      64
-193++ 6620 D2 DC 66             jp      nc,p127_map_handoff_reject
-194++ 6623 7B                   ld      a,e
-195++ 6624 FE 04                cp      P127_MAP_WINDOW_COUNT
-196++ 6626 D2 DC 66             jp      nc,p127_map_handoff_reject
-197++ 6629 16 00                ld      d,0
-198++ 662B 21 D5 66             ld      hl,p127_map_window_mask
-199++ 662E 19                   add     hl,de
-200++ 662F 7E                   ld      a,(hl)
-201++ 6630 A1                   and     c
-202++ 6631 C2 DC 66             jp      nz,p127_map_handoff_reject
-203++ 6634 7B                   ld      a,e
-204++ 6635 32 DA 66             ld      (p127_map_pending_window),a
-205++ 6638 78                   ld      a,b
-206++ 6639 32 DB 66             ld      (p127_map_pending_page),a
-207++ 663C 3E 01                ld      a,1
-208++ 663E 32 D9 66             ld      (p127_map_pending_valid),a
-209++ 6641 B7                   or      a
-210++ 6642 C9                   ret
-211++ 6643
-212++ 6643              ; Cancel a staged request. No hardware state is modified.
-213++ 6643              p127_map_handoff_abort:
-214++ 6643 AF                   xor     a
-215++ 6644 32 D9 66             ld      (p127_map_pending_valid),a
-216++ 6647 C9                   ret
-217++ 6648
-218++ 6648              ; Exercise protected-window rejection and a synthetic safe-window preparation.
-219++ 6648              ; This test does not issue OUT and does not commit a physical mapping.
-220++ 6648              p127_map_handoff_selftest:
-221++ 6648 CD 43 66             call    p127_map_handoff_abort
-222++ 664B 06 0A                ld      b,10
-223++ 664D 0E 0F                ld      c,0Fh
-224++ 664F 3E 00                ld      a,0
-225++ 6651 CD 18 66             call    p127_map_handoff_prepare
-226++ 6654 D2 E0 66             jp      nc,p127_map_test_fail
-227++ 6657 3E 01                ld      a,1
-228++ 6659 CD 18 66             call    p127_map_handoff_prepare
-229++ 665C D2 E0 66             jp      nc,p127_map_test_fail
-230++ 665F 3E 02                ld      a,2
-231++ 6661 CD 18 66             call    p127_map_handoff_prepare
-232++ 6664 D2 E0 66             jp      nc,p127_map_test_fail
-233++ 6667 3E 03                ld      a,3
-234++ 6669 CD 18 66             call    p127_map_handoff_prepare
-235++ 666C D2 E0 66             jp      nc,p127_map_test_fail
-236++ 666F
-237++ 666F                      ; Synthetic case: W0 is declared stable; W1-W3 remain protected.
-238++ 666F 06 0A                ld      b,10
-239++ 6671 0E 0E                ld      c,0Eh
-240++ 6673 3E 00                ld      a,0
-241++ 6675 CD 18 66             call    p127_map_handoff_prepare
-242++ 6678 DA E0 66             jp      c,p127_map_test_fail
-243++ 667B 3A D9 66             ld      a,(p127_map_pending_valid)
-244++ 667E FE 01                cp      1
-245++ 6680 C2 E0 66             jp      nz,p127_map_test_fail
-246++ 6683 3A DA 66             ld      a,(p127_map_pending_window)
-247++ 6686 B7                   or      a
-248++ 6687 C2 E0 66             jp      nz,p127_map_test_fail
-249++ 668A 3A DB 66             ld      a,(p127_map_pending_page)
-250++ 668D FE 0A                cp      10
-251++ 668F C2 E0 66             jp      nz,p127_map_test_fail
-252++ 6692                      ; A rejected request must invalidate a previously staged request.
-253++ 6692 06 0A                ld      b,10
-254++ 6694 0E 0F                ld      c,0Fh
-255++ 6696 3E 00                ld      a,0
-256++ 6698 CD 18 66             call    p127_map_handoff_prepare
-257++ 669B D2 E0 66             jp      nc,p127_map_test_fail
-258++ 669E 3A D9 66             ld      a,(p127_map_pending_valid)
-259++ 66A1 B7                   or      a
-260++ 66A2 C2 E0 66             jp      nz,p127_map_test_fail
-261++ 66A5
-262++ 66A5                      ; Explicit abort remains idempotent.
-263++ 66A5 CD 43 66             call    p127_map_handoff_abort
-264++ 66A8 3A D9 66             ld      a,(p127_map_pending_valid)
-265++ 66AB B7                   or      a
-266++ 66AC C2 E0 66             jp      nz,p127_map_test_fail
-267++ 66AF
-268++ 66AF                      ; Reject invalid window and page even if no windows are protected.
-269++ 66AF 06 0A                ld      b,10
-270++ 66B1 0E 00                ld      c,0
-271++ 66B3 3E 04                ld      a,4
-272++ 66B5 CD 18 66             call    p127_map_handoff_prepare
-273++ 66B8 D2 E0 66             jp      nc,p127_map_test_fail
-274++ 66BB 3A D9 66             ld      a,(p127_map_pending_valid)
-275++ 66BE B7                   or      a
-276++ 66BF C2 E0 66             jp      nz,p127_map_test_fail
-277++ 66C2 06 40                ld      b,64
-278++ 66C4 3E 00                ld      a,0
-279++ 66C6 CD 18 66             call    p127_map_handoff_prepare
-280++ 66C9 D2 E0 66             jp      nc,p127_map_test_fail
-281++ 66CC 3A D9 66             ld      a,(p127_map_pending_valid)
-282++ 66CF B7                   or      a
-283++ 66D0 C2 E0 66             jp      nz,p127_map_test_fail
-284++ 66D3 B7                   or      a
-285++ 66D4 C9                   ret
-286++ 66D5
-287++ 66D5              p127_map_window_mask:
-288++ 66D5 01 02 04 08          db      1,2,4,8
-289++ 66D9              p127_map_pending_valid:
-290++ 66D9 00                   db      0
-291++ 66DA              p127_map_pending_window:
-292++ 66DA 00                   db      0
-293++ 66DB              p127_map_pending_page:
-294++ 66DB 00                   db      0
-295++ 66DC
-296++ 66DC              ; Shared rejection target for handoff preflight (carry=1).
-297++ 66DC              p127_map_handoff_reject:
-298++ 66DC 37                   scf
-299++ 66DD C9                   ret
-300++ 66DE
-301++ 66DE              p127_map_invalid:
-302++ 66DE 37                   scf
-303++ 66DF C9                   ret
-304++ 66E0              p127_map_test_fail:
-305++ 66E0 37                   scf
-306++ 66E1 C9                   ret
-307++ 66E2
-308++ 66E2              p127_map_shadow:
-309++ 66E2 00 00 00 00          ds      P127_MAP_WINDOW_COUNT,0
-310++ 66E6              p127_map_end:
-311++ 66E6
+  1++ 6546              ; ============================================================================
+  2++ 6546              ; Project127 ATM Core — pure software page-mapper model
+  3++ 6546              ; Module version: 0.2.2
+  4++ 6546              ; No hardware OUT instructions are permitted in this stage.
+  5++ 6546              ; ============================================================================
+  6++ 6546              P127_MAP_VERSION_MAJOR EQU 0
+  7++ 6546              P127_MAP_VERSION_MINOR EQU 2
+  8++ 6546              P127_MAP_VERSION_PATCH EQU 1
+  9++ 6546
+ 10++ 6546              P127_MAP_WINDOW_COUNT  EQU 4
+ 11++ 6546              P127_MAP_ROM            EQU 0FFh
+ 12++ 6546
+ 13++ 6546              ; Shadow map reflects the verified bootstrap layout:
+ 14++ 6546              ; W0=TR-DOS ROM, W1=RAM P5, W2=RAM P2, W3=RAM P0.
+ 15++ 6546              ; This table is descriptive state only; it does not program hardware.
+ 16++ 6546              p127_map_init:
+ 17++ 6546 3E FF                ld      a,P127_MAP_ROM
+ 18++ 6548 32 3C 67             ld      (p127_map_shadow),a
+ 19++ 654B 3E 05                ld      a,5
+ 20++ 654D 32 3D 67             ld      (p127_map_shadow+1),a
+ 21++ 6550 3E 02                ld      a,2
+ 22++ 6552 32 3E 67             ld      (p127_map_shadow+2),a
+ 23++ 6555 3E 00                ld      a,0
+ 24++ 6557 32 3F 67             ld      (p127_map_shadow+3),a
+ 25++ 655A B7                   or      a
+ 26++ 655B C9                   ret
+ 27++ 655C
+ 28++ 655C              ; Encode physical RAM page ID as the ATM dispatcher byte.
+ 29++ 655C              ; IN: A=physical page 0..63.
+ 30++ 655C              ; OUT: A=7Fh-page; carry=1 for invalid page.
+ 31++ 655C              p127_map_encode_page:
+ 32++ 655C FE 40                cp      64
+ 33++ 655E D2 38 67             jp      nc,p127_map_invalid
+ 34++ 6561 47                   ld      b,a
+ 35++ 6562 3E 7F                ld      a,07Fh
+ 36++ 6564 90                   sub     b
+ 37++ 6565 B7                   or      a
+ 38++ 6566 C9                   ret
+ 39++ 6567
+ 40++ 6567              ; Return the hardware shadow-port address for a CPU window.
+ 41++ 6567              ; IN: A=window 0..3. OUT: HL=port; carry=1 for invalid window.
+ 42++ 6567              ; This routine returns an address only; it never performs I/O.
+ 43++ 6567              p127_map_window_port:
+ 44++ 6567 B7                   or      a
+ 45++ 6568 28 0E                jr      z,p127_map_port_w0
+ 46++ 656A FE 01                cp      1
+ 47++ 656C 28 0F                jr      z,p127_map_port_w1
+ 48++ 656E FE 02                cp      2
+ 49++ 6570 28 10                jr      z,p127_map_port_w2
+ 50++ 6572 FE 03                cp      3
+ 51++ 6574 28 11                jr      z,p127_map_port_w3
+ 52++ 6576 37                   scf
+ 53++ 6577 C9                   ret
+ 54++ 6578              p127_map_port_w0:
+ 55++ 6578 21 F7 3F             ld      hl,03FF7h
+ 56++ 657B B7                   or      a
+ 57++ 657C C9                   ret
+ 58++ 657D              p127_map_port_w1:
+ 59++ 657D 21 F7 7F             ld      hl,07FF7h
+ 60++ 6580 B7                   or      a
+ 61++ 6581 C9                   ret
+ 62++ 6582              p127_map_port_w2:
+ 63++ 6582 21 F7 BF             ld      hl,0BFF7h
+ 64++ 6585 B7                   or      a
+ 65++ 6586 C9                   ret
+ 66++ 6587              p127_map_port_w3:
+ 67++ 6587 21 F7 FF             ld      hl,0FFF7h
+ 68++ 658A B7                   or      a
+ 69++ 658B C9                   ret
+ 70++ 658C
+ 71++ 658C              ; Read the software shadow entry.
+ 72++ 658C              ; IN: A=window 0..3. OUT: A=page ID or FFh (ROM); carry=1 if invalid.
+ 73++ 658C              p127_map_get_shadow:
+ 74++ 658C FE 04                cp      P127_MAP_WINDOW_COUNT
+ 75++ 658E D2 38 67             jp      nc,p127_map_invalid
+ 76++ 6591 5F                   ld      e,a
+ 77++ 6592 16 00                ld      d,0
+ 78++ 6594 21 3C 67             ld      hl,p127_map_shadow
+ 79++ 6597 19                   add     hl,de
+ 80++ 6598 7E                   ld      a,(hl)
+ 81++ 6599 B7                   or      a
+ 82++ 659A C9                   ret
+ 83++ 659B
+ 84++ 659B              ; Stage 0.1 self-test: encoding, invalid page, all window ports and shadow map.
+ 85++ 659B              ; OUT: carry=1 on any mismatch. No hardware registers are touched.
+ 86++ 659B              p127_map_selftest:
+ 87++ 659B 3E 00                ld      a,0
+ 88++ 659D CD 5C 65             call    p127_map_encode_page
+ 89++ 65A0 DA 3A 67             jp      c,p127_map_test_fail
+ 90++ 65A3 FE 7F                cp      07Fh
+ 91++ 65A5 C2 3A 67             jp      nz,p127_map_test_fail
+ 92++ 65A8 3E 01                ld      a,1
+ 93++ 65AA CD 5C 65             call    p127_map_encode_page
+ 94++ 65AD DA 3A 67             jp      c,p127_map_test_fail
+ 95++ 65B0 FE 7E                cp      07Eh
+ 96++ 65B2 C2 3A 67             jp      nz,p127_map_test_fail
+ 97++ 65B5 3E 03                ld      a,3
+ 98++ 65B7 CD 5C 65             call    p127_map_encode_page
+ 99++ 65BA DA 3A 67             jp      c,p127_map_test_fail
+100++ 65BD FE 7C                cp      07Ch
+101++ 65BF C2 3A 67             jp      nz,p127_map_test_fail
+102++ 65C2 3E 05                ld      a,5
+103++ 65C4 CD 5C 65             call    p127_map_encode_page
+104++ 65C7 DA 3A 67             jp      c,p127_map_test_fail
+105++ 65CA FE 7A                cp      07Ah
+106++ 65CC C2 3A 67             jp      nz,p127_map_test_fail
+107++ 65CF 3E 07                ld      a,7
+108++ 65D1 CD 5C 65             call    p127_map_encode_page
+109++ 65D4 DA 3A 67             jp      c,p127_map_test_fail
+110++ 65D7 FE 78                cp      078h
+111++ 65D9 C2 3A 67             jp      nz,p127_map_test_fail
+112++ 65DC 3E 3F                ld      a,63
+113++ 65DE CD 5C 65             call    p127_map_encode_page
+114++ 65E1 DA 3A 67             jp      c,p127_map_test_fail
+115++ 65E4 FE 40                cp      040h
+116++ 65E6 C2 3A 67             jp      nz,p127_map_test_fail
+117++ 65E9 3E 40                ld      a,64
+118++ 65EB CD 5C 65             call    p127_map_encode_page
+119++ 65EE D2 3A 67             jp      nc,p127_map_test_fail
+120++ 65F1
+121++ 65F1 3E 00                ld      a,0
+122++ 65F3 CD 67 65             call    p127_map_window_port
+123++ 65F6 DA 3A 67             jp      c,p127_map_test_fail
+124++ 65F9 11 F7 3F             ld      de,03FF7h
+125++ 65FC B7                   or      a
+126++ 65FD ED 52                sbc     hl,de
+127++ 65FF C2 3A 67             jp      nz,p127_map_test_fail
+128++ 6602 3E 01                ld      a,1
+129++ 6604 CD 67 65             call    p127_map_window_port
+130++ 6607 DA 3A 67             jp      c,p127_map_test_fail
+131++ 660A 11 F7 7F             ld      de,07FF7h
+132++ 660D B7                   or      a
+133++ 660E ED 52                sbc     hl,de
+134++ 6610 C2 3A 67             jp      nz,p127_map_test_fail
+135++ 6613 3E 02                ld      a,2
+136++ 6615 CD 67 65             call    p127_map_window_port
+137++ 6618 DA 3A 67             jp      c,p127_map_test_fail
+138++ 661B 11 F7 BF             ld      de,0BFF7h
+139++ 661E B7                   or      a
+140++ 661F ED 52                sbc     hl,de
+141++ 6621 C2 3A 67             jp      nz,p127_map_test_fail
+142++ 6624 3E 03                ld      a,3
+143++ 6626 CD 67 65             call    p127_map_window_port
+144++ 6629 DA 3A 67             jp      c,p127_map_test_fail
+145++ 662C 11 F7 FF             ld      de,0FFF7h
+146++ 662F B7                   or      a
+147++ 6630 ED 52                sbc     hl,de
+148++ 6632 C2 3A 67             jp      nz,p127_map_test_fail
+149++ 6635 3E 04                ld      a,4
+150++ 6637 CD 67 65             call    p127_map_window_port
+151++ 663A D2 3A 67             jp      nc,p127_map_test_fail
+152++ 663D
+153++ 663D CD 46 65             call    p127_map_init
+154++ 6640 3E 00                ld      a,0
+155++ 6642 CD 8C 65             call    p127_map_get_shadow
+156++ 6645 FE FF                cp      P127_MAP_ROM
+157++ 6647 C2 3A 67             jp      nz,p127_map_test_fail
+158++ 664A 3E 01                ld      a,1
+159++ 664C CD 8C 65             call    p127_map_get_shadow
+160++ 664F FE 05                cp      5
+161++ 6651 C2 3A 67             jp      nz,p127_map_test_fail
+162++ 6654 3E 02                ld      a,2
+163++ 6656 CD 8C 65             call    p127_map_get_shadow
+164++ 6659 FE 02                cp      2
+165++ 665B C2 3A 67             jp      nz,p127_map_test_fail
+166++ 665E 3E 03                ld      a,3
+167++ 6660 CD 8C 65             call    p127_map_get_shadow
+168++ 6663 FE 00                cp      0
+169++ 6665 C2 3A 67             jp      nz,p127_map_test_fail
+170++ 6668 3E 04                ld      a,4
+171++ 666A CD 8C 65             call    p127_map_get_shadow
+172++ 666D D2 3A 67             jp      nc,p127_map_test_fail
+173++ 6670 B7                   or      a
+174++ 6671 C9                   ret
+175++ 6672
+176++ 6672
+177++ 6672              ; ---------------------------------------------------------------------------
+178++ 6672              ; Safe-remap preparation gate (software-only).
+179++ 6672              ; IN: A=target window 0..3, B=new physical page 0..63,
+180++ 6672              ;     C=bitmask of protected windows (bit 0=W0 ... bit 3=W3).
+181++ 6672              ; OUT: carry=1 if invalid/protected; carry=0 if a pending request is staged.
+182++ 6672              ; This routine NEVER writes a page port and NEVER changes the active map.
+183++ 6672              ; Caller must include execution, stack, UI, interrupt and host/staging windows
+184++ 6672              ; in C. The bootstrap currently protects all four windows (#0F).
+185++ 6672              p127_map_handoff_prepare:
+186++ 6672                      ; Keep the target in E, invalidate any older staged request, then
+187++ 6672                      ; validate the page/window and index the four-byte mask with DE=0:E.
+188++ 6672 5F                   ld      e,a
+189++ 6673 AF                   xor     a
+190++ 6674 32 33 67             ld      (p127_map_pending_valid),a
+191++ 6677 78                   ld      a,b
+192++ 6678 FE 40                cp      64
+193++ 667A D2 36 67             jp      nc,p127_map_handoff_reject
+194++ 667D 7B                   ld      a,e
+195++ 667E FE 04                cp      P127_MAP_WINDOW_COUNT
+196++ 6680 D2 36 67             jp      nc,p127_map_handoff_reject
+197++ 6683 16 00                ld      d,0
+198++ 6685 21 2F 67             ld      hl,p127_map_window_mask
+199++ 6688 19                   add     hl,de
+200++ 6689 7E                   ld      a,(hl)
+201++ 668A A1                   and     c
+202++ 668B C2 36 67             jp      nz,p127_map_handoff_reject
+203++ 668E 7B                   ld      a,e
+204++ 668F 32 34 67             ld      (p127_map_pending_window),a
+205++ 6692 78                   ld      a,b
+206++ 6693 32 35 67             ld      (p127_map_pending_page),a
+207++ 6696 3E 01                ld      a,1
+208++ 6698 32 33 67             ld      (p127_map_pending_valid),a
+209++ 669B B7                   or      a
+210++ 669C C9                   ret
+211++ 669D
+212++ 669D              ; Cancel a staged request. No hardware state is modified.
+213++ 669D              p127_map_handoff_abort:
+214++ 669D AF                   xor     a
+215++ 669E 32 33 67             ld      (p127_map_pending_valid),a
+216++ 66A1 C9                   ret
+217++ 66A2
+218++ 66A2              ; Exercise protected-window rejection and a synthetic safe-window preparation.
+219++ 66A2              ; This test does not issue OUT and does not commit a physical mapping.
+220++ 66A2              p127_map_handoff_selftest:
+221++ 66A2 CD 9D 66             call    p127_map_handoff_abort
+222++ 66A5 06 0A                ld      b,10
+223++ 66A7 0E 0F                ld      c,0Fh
+224++ 66A9 3E 00                ld      a,0
+225++ 66AB CD 72 66             call    p127_map_handoff_prepare
+226++ 66AE D2 3A 67             jp      nc,p127_map_test_fail
+227++ 66B1 3E 01                ld      a,1
+228++ 66B3 CD 72 66             call    p127_map_handoff_prepare
+229++ 66B6 D2 3A 67             jp      nc,p127_map_test_fail
+230++ 66B9 3E 02                ld      a,2
+231++ 66BB CD 72 66             call    p127_map_handoff_prepare
+232++ 66BE D2 3A 67             jp      nc,p127_map_test_fail
+233++ 66C1 3E 03                ld      a,3
+234++ 66C3 CD 72 66             call    p127_map_handoff_prepare
+235++ 66C6 D2 3A 67             jp      nc,p127_map_test_fail
+236++ 66C9
+237++ 66C9                      ; Synthetic case: W0 is declared stable; W1-W3 remain protected.
+238++ 66C9 06 0A                ld      b,10
+239++ 66CB 0E 0E                ld      c,0Eh
+240++ 66CD 3E 00                ld      a,0
+241++ 66CF CD 72 66             call    p127_map_handoff_prepare
+242++ 66D2 DA 3A 67             jp      c,p127_map_test_fail
+243++ 66D5 3A 33 67             ld      a,(p127_map_pending_valid)
+244++ 66D8 FE 01                cp      1
+245++ 66DA C2 3A 67             jp      nz,p127_map_test_fail
+246++ 66DD 3A 34 67             ld      a,(p127_map_pending_window)
+247++ 66E0 B7                   or      a
+248++ 66E1 C2 3A 67             jp      nz,p127_map_test_fail
+249++ 66E4 3A 35 67             ld      a,(p127_map_pending_page)
+250++ 66E7 FE 0A                cp      10
+251++ 66E9 C2 3A 67             jp      nz,p127_map_test_fail
+252++ 66EC                      ; A rejected request must invalidate a previously staged request.
+253++ 66EC 06 0A                ld      b,10
+254++ 66EE 0E 0F                ld      c,0Fh
+255++ 66F0 3E 00                ld      a,0
+256++ 66F2 CD 72 66             call    p127_map_handoff_prepare
+257++ 66F5 D2 3A 67             jp      nc,p127_map_test_fail
+258++ 66F8 3A 33 67             ld      a,(p127_map_pending_valid)
+259++ 66FB B7                   or      a
+260++ 66FC C2 3A 67             jp      nz,p127_map_test_fail
+261++ 66FF
+262++ 66FF                      ; Explicit abort remains idempotent.
+263++ 66FF CD 9D 66             call    p127_map_handoff_abort
+264++ 6702 3A 33 67             ld      a,(p127_map_pending_valid)
+265++ 6705 B7                   or      a
+266++ 6706 C2 3A 67             jp      nz,p127_map_test_fail
+267++ 6709
+268++ 6709                      ; Reject invalid window and page even if no windows are protected.
+269++ 6709 06 0A                ld      b,10
+270++ 670B 0E 00                ld      c,0
+271++ 670D 3E 04                ld      a,4
+272++ 670F CD 72 66             call    p127_map_handoff_prepare
+273++ 6712 D2 3A 67             jp      nc,p127_map_test_fail
+274++ 6715 3A 33 67             ld      a,(p127_map_pending_valid)
+275++ 6718 B7                   or      a
+276++ 6719 C2 3A 67             jp      nz,p127_map_test_fail
+277++ 671C 06 40                ld      b,64
+278++ 671E 3E 00                ld      a,0
+279++ 6720 CD 72 66             call    p127_map_handoff_prepare
+280++ 6723 D2 3A 67             jp      nc,p127_map_test_fail
+281++ 6726 3A 33 67             ld      a,(p127_map_pending_valid)
+282++ 6729 B7                   or      a
+283++ 672A C2 3A 67             jp      nz,p127_map_test_fail
+284++ 672D B7                   or      a
+285++ 672E C9                   ret
+286++ 672F
+287++ 672F              p127_map_window_mask:
+288++ 672F 01 02 04 08          db      1,2,4,8
+289++ 6733              p127_map_pending_valid:
+290++ 6733 00                   db      0
+291++ 6734              p127_map_pending_window:
+292++ 6734 00                   db      0
+293++ 6735              p127_map_pending_page:
+294++ 6735 00                   db      0
+295++ 6736
+296++ 6736              ; Shared rejection target for handoff preflight (carry=1).
+297++ 6736              p127_map_handoff_reject:
+298++ 6736 37                   scf
+299++ 6737 C9                   ret
+300++ 6738
+301++ 6738              p127_map_invalid:
+302++ 6738 37                   scf
+303++ 6739 C9                   ret
+304++ 673A              p127_map_test_fail:
+305++ 673A 37                   scf
+306++ 673B C9                   ret
+307++ 673C
+308++ 673C              p127_map_shadow:
+309++ 673C 00 00 00 00          ds      P127_MAP_WINDOW_COUNT,0
+310++ 6740              p127_map_end:
+311++ 6740
 # file closed: p127_map.asm
-190+  66E6                      INCLUDE "src/kernel/p127_handoff.asm"
+194+  6740                      INCLUDE "src/kernel/p127_handoff.asm"
 # file opened: p127_handoff.asm
-  1++ 66E6              ; ============================================================================
-  2++ 66E6              ; Project127 — resident stack handoff probe
-  3++ 66E6              ; Module version: 0.1.0
-  4++ 66E6              ; Runs from the resident Stage2 image in W1/P5. Scratch stack is a bounded
-  5++ 66E6              ; test area in the still-mapped W2/P2. No page port is written.
-  6++ 66E6              ; ============================================================================
-  7++ 66E6              P127_HANDOFF_VERSION_MAJOR EQU 0
-  8++ 66E6              P127_HANDOFF_VERSION_MINOR EQU 1
-  9++ 66E6              P127_HANDOFF_VERSION_PATCH EQU 0
- 10++ 66E6
- 11++ 66E6              ; Current bootstrap stack is at #BFFF in W2/P2. Keep at least 128 bytes
- 12++ 66E6              ; between its low-water boundary and the scratch stack.
- 13++ 66E6              P127_HANDOFF_MIN_OLD_SP    EQU 0B900h
- 14++ 66E6              P127_HANDOFF_STACK_BOTTOM  EQU 0B800h
- 15++ 66E6              P127_HANDOFF_STACK_TOP     EQU 0B880h
- 16++ 66E6              P127_HANDOFF_GUARD_LO      EQU 0B7FEh
- 17++ 66E6              P127_HANDOFF_GUARD_HI      EQU 0B7FFh
- 18++ 66E6
- 19++ 66E6              ; IN: none.
- 20++ 66E6              ; OUT: carry=1 on failure; carry=0 on success.
- 21++ 66E6              ; Preserves BC, DE, HL, IX and IY. AF/flags are return status.
- 22++ 66E6              ; Requires interrupts disabled. DI is asserted defensively and this routine
- 23++ 66E6              ; returns with interrupts disabled. IM and interrupt vectors are untouched.
- 24++ 66E6              ; The active stack must be at/above #B900 after this routine's save frame.
- 25++ 66E6              ; This is a stack-integrity probe only: W2 remains mapped throughout.
- 26++ 66E6              p127_handoff_stack_probe:
- 27++ 66E6 F3                   di
- 28++ 66E7 F5                   push    af
- 29++ 66E8 C5                   push    bc
- 30++ 66E9 D5                   push    de
- 31++ 66EA E5                   push    hl
- 32++ 66EB DD E5                push    ix
- 33++ 66ED FD E5                push    iy
- 34++ 66EF ED 73 7E 67          ld      (p127_handoff_saved_sp),sp
- 35++ 66F3
- 36++ 66F3                      ; Refuse if the live stack has crossed its declared low-water limit.
- 37++ 66F3 21 00 00             ld      hl,0
- 38++ 66F6 39                   add     hl,sp
- 39++ 66F7 11 00 B9             ld      de,P127_HANDOFF_MIN_OLD_SP
- 40++ 66FA B7                   or      a
- 41++ 66FB ED 52                sbc     hl,de
- 42++ 66FD DA 4E 67             jp      c,p127_handoff_stack_refuse
- 43++ 6700
- 44++ 6700                      ; Canary bytes bracket the unused gap below the scratch stack.
- 45++ 6700 3E A5                ld      a,0A5h
- 46++ 6702 32 FE B7             ld      (P127_HANDOFF_GUARD_LO),a
- 47++ 6705 3E 5A                ld      a,05Ah
- 48++ 6707 32 FF B7             ld      (P127_HANDOFF_GUARD_HI),a
- 49++ 670A
- 50++ 670A                      ; Switch only the software stack pointer. W2/P2 stays mapped.
- 51++ 670A 31 80 B8             ld      sp,P127_HANDOFF_STACK_TOP
- 52++ 670D 21 57 13             ld      hl,01357h
- 53++ 6710 E5                   push    hl
- 54++ 6711 11 68 24             ld      de,02468h
- 55++ 6714 D5                   push    de
- 56++ 6715 CD 66 67             call    p127_handoff_stack_inner
- 57++ 6718 DA 46 67             jp      c,p127_handoff_stack_fail
- 58++ 671B D1                   pop     de
- 59++ 671C 21 68 24             ld      hl,02468h
- 60++ 671F B7                   or      a
- 61++ 6720 ED 52                sbc     hl,de
- 62++ 6722 C2 46 67             jp      nz,p127_handoff_stack_fail
- 63++ 6725 E1                   pop     hl
- 64++ 6726 11 57 13             ld      de,01357h
- 65++ 6729 B7                   or      a
- 66++ 672A ED 52                sbc     hl,de
- 67++ 672C C2 46 67             jp      nz,p127_handoff_stack_fail
- 68++ 672F
- 69++ 672F 3A FE B7             ld      a,(P127_HANDOFF_GUARD_LO)
- 70++ 6732 FE A5                cp      0A5h
- 71++ 6734 C2 46 67             jp      nz,p127_handoff_stack_fail
- 72++ 6737 3A FF B7             ld      a,(P127_HANDOFF_GUARD_HI)
- 73++ 673A FE 5A                cp      05Ah
- 74++ 673C C2 46 67             jp      nz,p127_handoff_stack_fail
- 75++ 673F
- 76++ 673F AF                   xor     a
- 77++ 6740 32 80 67             ld      (p127_handoff_result),a
- 78++ 6743 C3 53 67             jp      p127_handoff_stack_restore
- 79++ 6746
- 80++ 6746              p127_handoff_stack_fail:
- 81++ 6746 3E 01                ld      a,1
- 82++ 6748 32 80 67             ld      (p127_handoff_result),a
- 83++ 674B C3 53 67             jp      p127_handoff_stack_restore
- 84++ 674E
- 85++ 674E              p127_handoff_stack_refuse:
- 86++ 674E 3E 02                ld      a,2
- 87++ 6750 32 80 67             ld      (p127_handoff_result),a
- 88++ 6753
- 89++ 6753              p127_handoff_stack_restore:
- 90++ 6753                      ; Restore the exact saved SP before touching the caller's saved frame.
- 91++ 6753 ED 7B 7E 67          ld      sp,(p127_handoff_saved_sp)
- 92++ 6757 FD E1                pop     iy
- 93++ 6759 DD E1                pop     ix
- 94++ 675B E1                   pop     hl
- 95++ 675C D1                   pop     de
- 96++ 675D C1                   pop     bc
- 97++ 675E F1                   pop     af
- 98++ 675F 3A 80 67             ld      a,(p127_handoff_result)
- 99++ 6762 B7                   or      a
-100++ 6763 C8                   ret     z
-101++ 6764 37                   scf
-102++ 6765 C9                   ret
-103++ 6766
-104++ 6766              ; Nested CALL/PUSH/POP test on the scratch stack; BC is preserved.
-105++ 6766              p127_handoff_stack_inner:
-106++ 6766 C5                   push    bc
-107++ 6767 01 5A A5             ld      bc,0A55Ah
-108++ 676A C5                   push    bc
-109++ 676B C1                   pop     bc
-110++ 676C 78                   ld      a,b
-111++ 676D FE A5                cp      0A5h
-112++ 676F C2 7B 67             jp      nz,p127_handoff_inner_fail
-113++ 6772 79                   ld      a,c
-114++ 6773 FE 5A                cp      05Ah
-115++ 6775 C2 7B 67             jp      nz,p127_handoff_inner_fail
-116++ 6778 C1                   pop     bc
-117++ 6779 B7                   or      a
-118++ 677A C9                   ret
-119++ 677B              p127_handoff_inner_fail:
-120++ 677B C1                   pop     bc
-121++ 677C 37                   scf
-122++ 677D C9                   ret
-123++ 677E
-124++ 677E              p127_handoff_saved_sp:
-125++ 677E 00 00                dw      0
-126++ 6780              p127_handoff_result:
-127++ 6780 00                   db      0
-128++ 6781              p127_handoff_end:
-129++ 6781
+  1++ 6740              ; ============================================================================
+  2++ 6740              ; Project127 — resident stack handoff probe
+  3++ 6740              ; Module version: 0.1.0
+  4++ 6740              ; Runs from the resident Stage2 image in W1/P5. Scratch stack is a bounded
+  5++ 6740              ; test area in the still-mapped W2/P2. No page port is written.
+  6++ 6740              ; ============================================================================
+  7++ 6740              P127_HANDOFF_VERSION_MAJOR EQU 0
+  8++ 6740              P127_HANDOFF_VERSION_MINOR EQU 1
+  9++ 6740              P127_HANDOFF_VERSION_PATCH EQU 0
+ 10++ 6740
+ 11++ 6740              ; Current bootstrap stack is at #BFFF in W2/P2. Keep at least 128 bytes
+ 12++ 6740              ; between its low-water boundary and the scratch stack.
+ 13++ 6740              P127_HANDOFF_MIN_OLD_SP    EQU 0B900h
+ 14++ 6740              P127_HANDOFF_STACK_BOTTOM  EQU 0B800h
+ 15++ 6740              P127_HANDOFF_STACK_TOP     EQU 0B880h
+ 16++ 6740              P127_HANDOFF_GUARD_LO      EQU 0B7FEh
+ 17++ 6740              P127_HANDOFF_GUARD_HI      EQU 0B7FFh
+ 18++ 6740
+ 19++ 6740              ; IN: none.
+ 20++ 6740              ; OUT: carry=1 on failure; carry=0 on success.
+ 21++ 6740              ; Preserves BC, DE, HL, IX and IY. AF/flags are return status.
+ 22++ 6740              ; Requires interrupts disabled. DI is asserted defensively and this routine
+ 23++ 6740              ; returns with interrupts disabled. IM and interrupt vectors are untouched.
+ 24++ 6740              ; The active stack must be at/above #B900 after this routine's save frame.
+ 25++ 6740              ; This is a stack-integrity probe only: W2 remains mapped throughout.
+ 26++ 6740              p127_handoff_stack_probe:
+ 27++ 6740 F3                   di
+ 28++ 6741 F5                   push    af
+ 29++ 6742 C5                   push    bc
+ 30++ 6743 D5                   push    de
+ 31++ 6744 E5                   push    hl
+ 32++ 6745 DD E5                push    ix
+ 33++ 6747 FD E5                push    iy
+ 34++ 6749 ED 73 D8 67          ld      (p127_handoff_saved_sp),sp
+ 35++ 674D
+ 36++ 674D                      ; Refuse if the live stack has crossed its declared low-water limit.
+ 37++ 674D 21 00 00             ld      hl,0
+ 38++ 6750 39                   add     hl,sp
+ 39++ 6751 11 00 B9             ld      de,P127_HANDOFF_MIN_OLD_SP
+ 40++ 6754 B7                   or      a
+ 41++ 6755 ED 52                sbc     hl,de
+ 42++ 6757 DA A8 67             jp      c,p127_handoff_stack_refuse
+ 43++ 675A
+ 44++ 675A                      ; Canary bytes bracket the unused gap below the scratch stack.
+ 45++ 675A 3E A5                ld      a,0A5h
+ 46++ 675C 32 FE B7             ld      (P127_HANDOFF_GUARD_LO),a
+ 47++ 675F 3E 5A                ld      a,05Ah
+ 48++ 6761 32 FF B7             ld      (P127_HANDOFF_GUARD_HI),a
+ 49++ 6764
+ 50++ 6764                      ; Switch only the software stack pointer. W2/P2 stays mapped.
+ 51++ 6764 31 80 B8             ld      sp,P127_HANDOFF_STACK_TOP
+ 52++ 6767 21 57 13             ld      hl,01357h
+ 53++ 676A E5                   push    hl
+ 54++ 676B 11 68 24             ld      de,02468h
+ 55++ 676E D5                   push    de
+ 56++ 676F CD C0 67             call    p127_handoff_stack_inner
+ 57++ 6772 DA A0 67             jp      c,p127_handoff_stack_fail
+ 58++ 6775 D1                   pop     de
+ 59++ 6776 21 68 24             ld      hl,02468h
+ 60++ 6779 B7                   or      a
+ 61++ 677A ED 52                sbc     hl,de
+ 62++ 677C C2 A0 67             jp      nz,p127_handoff_stack_fail
+ 63++ 677F E1                   pop     hl
+ 64++ 6780 11 57 13             ld      de,01357h
+ 65++ 6783 B7                   or      a
+ 66++ 6784 ED 52                sbc     hl,de
+ 67++ 6786 C2 A0 67             jp      nz,p127_handoff_stack_fail
+ 68++ 6789
+ 69++ 6789 3A FE B7             ld      a,(P127_HANDOFF_GUARD_LO)
+ 70++ 678C FE A5                cp      0A5h
+ 71++ 678E C2 A0 67             jp      nz,p127_handoff_stack_fail
+ 72++ 6791 3A FF B7             ld      a,(P127_HANDOFF_GUARD_HI)
+ 73++ 6794 FE 5A                cp      05Ah
+ 74++ 6796 C2 A0 67             jp      nz,p127_handoff_stack_fail
+ 75++ 6799
+ 76++ 6799 AF                   xor     a
+ 77++ 679A 32 DA 67             ld      (p127_handoff_result),a
+ 78++ 679D C3 AD 67             jp      p127_handoff_stack_restore
+ 79++ 67A0
+ 80++ 67A0              p127_handoff_stack_fail:
+ 81++ 67A0 3E 01                ld      a,1
+ 82++ 67A2 32 DA 67             ld      (p127_handoff_result),a
+ 83++ 67A5 C3 AD 67             jp      p127_handoff_stack_restore
+ 84++ 67A8
+ 85++ 67A8              p127_handoff_stack_refuse:
+ 86++ 67A8 3E 02                ld      a,2
+ 87++ 67AA 32 DA 67             ld      (p127_handoff_result),a
+ 88++ 67AD
+ 89++ 67AD              p127_handoff_stack_restore:
+ 90++ 67AD                      ; Restore the exact saved SP before touching the caller's saved frame.
+ 91++ 67AD ED 7B D8 67          ld      sp,(p127_handoff_saved_sp)
+ 92++ 67B1 FD E1                pop     iy
+ 93++ 67B3 DD E1                pop     ix
+ 94++ 67B5 E1                   pop     hl
+ 95++ 67B6 D1                   pop     de
+ 96++ 67B7 C1                   pop     bc
+ 97++ 67B8 F1                   pop     af
+ 98++ 67B9 3A DA 67             ld      a,(p127_handoff_result)
+ 99++ 67BC B7                   or      a
+100++ 67BD C8                   ret     z
+101++ 67BE 37                   scf
+102++ 67BF C9                   ret
+103++ 67C0
+104++ 67C0              ; Nested CALL/PUSH/POP test on the scratch stack; BC is preserved.
+105++ 67C0              p127_handoff_stack_inner:
+106++ 67C0 C5                   push    bc
+107++ 67C1 01 5A A5             ld      bc,0A55Ah
+108++ 67C4 C5                   push    bc
+109++ 67C5 C1                   pop     bc
+110++ 67C6 78                   ld      a,b
+111++ 67C7 FE A5                cp      0A5h
+112++ 67C9 C2 D5 67             jp      nz,p127_handoff_inner_fail
+113++ 67CC 79                   ld      a,c
+114++ 67CD FE 5A                cp      05Ah
+115++ 67CF C2 D5 67             jp      nz,p127_handoff_inner_fail
+116++ 67D2 C1                   pop     bc
+117++ 67D3 B7                   or      a
+118++ 67D4 C9                   ret
+119++ 67D5              p127_handoff_inner_fail:
+120++ 67D5 C1                   pop     bc
+121++ 67D6 37                   scf
+122++ 67D7 C9                   ret
+123++ 67D8
+124++ 67D8              p127_handoff_saved_sp:
+125++ 67D8 00 00                dw      0
+126++ 67DA              p127_handoff_result:
+127++ 67DA 00                   db      0
+128++ 67DB              p127_handoff_end:
+129++ 67DB
 # file closed: p127_handoff.asm
-191+  6781                      INCLUDE "src/kernel/p127_resident.asm"
+195+  67DB                      INCLUDE "src/kernel/p127_resident.asm"
 # file opened: p127_resident.asm
-  1++ 6781              ; ============================================================================
-  2++ 6781              ; Project127 — resident-window contract / software preflight
-  3++ 6781              ; Module version: 0.2.0
-  4++ 6781              ; Defines the only first-stage remap candidate without touching hardware.
-  5++ 6781              ; W1/P5 owns resident execution+data; W2/P2 owns resident stack/control.
-  6++ 6781              ; W3 is the only candidate target and may be used only after UI quiescence.
-  7++ 6781              ; W0 is ROM. No OUT instruction is permitted here.
-  8++ 6781              ; ============================================================================
-  9++ 6781              P127_RESIDENT_VERSION_MAJOR EQU 0
- 10++ 6781              P127_RESIDENT_VERSION_MINOR EQU 2
- 11++ 6781              P127_RESIDENT_VERSION_PATCH EQU 0
- 12++ 6781
- 13++ 6781              P127_RESIDENT_CODE_WINDOW  EQU 1
- 14++ 6781              P127_RESIDENT_CODE_PAGE    EQU 5
- 15++ 6781              P127_RESIDENT_STACK_WINDOW EQU 2
- 16++ 6781              P127_RESIDENT_STACK_PAGE   EQU 2
- 17++ 6781              P127_RESIDENT_TARGET       EQU 3
- 18++ 6781              P127_RESIDENT_UI_QUIESCED  EQU 1
- 19++ 6781
- 20++ 6781              ; IN: A=target window, B=resident code window, C=resident stack window,
- 21++ 6781              ;     D=flags (bit 0 set means UI is quiesced).
- 22++ 6781              ; OUT: carry=0 if the fixed resident contract is satisfied; carry=1 otherwise.
- 23++ 6781              ; This is a software contract check, not a physical mapping operation.
- 24++ 6781              p127_resident_validate:
- 25++ 6781 32 0B 68             ld      (p127_resident_arg_target),a
- 26++ 6784 78                   ld      a,b
- 27++ 6785 32 0C 68             ld      (p127_resident_arg_code),a
- 28++ 6788 79                   ld      a,c
- 29++ 6789 32 0D 68             ld      (p127_resident_arg_stack),a
- 30++ 678C 7A                   ld      a,d
- 31++ 678D 32 0E 68             ld      (p127_resident_arg_flags),a
- 32++ 6790
- 33++ 6790 3A 0B 68             ld      a,(p127_resident_arg_target)
- 34++ 6793 FE 03                cp      P127_RESIDENT_TARGET
- 35++ 6795 C2 BF 67             jp      nz,p127_resident_reject
- 36++ 6798 3A 0C 68             ld      a,(p127_resident_arg_code)
- 37++ 679B FE 01                cp      P127_RESIDENT_CODE_WINDOW
- 38++ 679D C2 BF 67             jp      nz,p127_resident_reject
- 39++ 67A0 3A 0D 68             ld      a,(p127_resident_arg_stack)
- 40++ 67A3 FE 02                cp      P127_RESIDENT_STACK_WINDOW
- 41++ 67A5 C2 BF 67             jp      nz,p127_resident_reject
- 42++ 67A8 3A 0E 68             ld      a,(p127_resident_arg_flags)
- 43++ 67AB E6 01                and     P127_RESIDENT_UI_QUIESCED
- 44++ 67AD CA BF 67             jp      z,p127_resident_reject
- 45++ 67B0                      ; Explicitly assert target is distinct from both resident windows.
- 46++ 67B0 3A 0B 68             ld      a,(p127_resident_arg_target)
- 47++ 67B3 FE 01                cp      P127_RESIDENT_CODE_WINDOW
- 48++ 67B5 CA BF 67             jp      z,p127_resident_reject
- 49++ 67B8 FE 02                cp      P127_RESIDENT_STACK_WINDOW
- 50++ 67BA CA BF 67             jp      z,p127_resident_reject
- 51++ 67BD B7                   or      a
- 52++ 67BE C9                   ret
- 53++ 67BF
- 54++ 67BF              p127_resident_reject:
- 55++ 67BF 37                   scf
- 56++ 67C0 C9                   ret
- 57++ 67C1
- 58++ 67C1              ; Synthetic software-only tests: accepted W3 with UI quiesced; reject W1,
- 59++ 67C1              ; reject W2, reject active UI, and reject a displaced resident code window.
- 60++ 67C1              p127_resident_selftest:
- 61++ 67C1 3E 03                ld      a,3
- 62++ 67C3 06 01                ld      b,1
- 63++ 67C5 0E 02                ld      c,2
- 64++ 67C7 16 01                ld      d,1
- 65++ 67C9 CD 81 67             call    p127_resident_validate
- 66++ 67CC DA 09 68             jp      c,p127_resident_test_fail
- 67++ 67CF
- 68++ 67CF 3E 01                ld      a,1
- 69++ 67D1 06 01                ld      b,1
- 70++ 67D3 0E 02                ld      c,2
- 71++ 67D5 16 01                ld      d,1
- 72++ 67D7 CD 81 67             call    p127_resident_validate
- 73++ 67DA D2 09 68             jp      nc,p127_resident_test_fail
- 74++ 67DD
- 75++ 67DD 3E 02                ld      a,2
- 76++ 67DF 06 01                ld      b,1
- 77++ 67E1 0E 02                ld      c,2
- 78++ 67E3 16 01                ld      d,1
- 79++ 67E5 CD 81 67             call    p127_resident_validate
- 80++ 67E8 D2 09 68             jp      nc,p127_resident_test_fail
- 81++ 67EB
- 82++ 67EB 3E 03                ld      a,3
- 83++ 67ED 06 01                ld      b,1
- 84++ 67EF 0E 02                ld      c,2
- 85++ 67F1 16 00                ld      d,0
- 86++ 67F3 CD 81 67             call    p127_resident_validate
- 87++ 67F6 D2 09 68             jp      nc,p127_resident_test_fail
- 88++ 67F9
- 89++ 67F9 3E 03                ld      a,3
- 90++ 67FB 06 00                ld      b,0
- 91++ 67FD 0E 02                ld      c,2
- 92++ 67FF 16 01                ld      d,1
- 93++ 6801 CD 81 67             call    p127_resident_validate
- 94++ 6804 D2 09 68             jp      nc,p127_resident_test_fail
- 95++ 6807 B7                   or      a
- 96++ 6808 C9                   ret
- 97++ 6809
- 98++ 6809              p127_resident_test_fail:
- 99++ 6809 37                   scf
-100++ 680A C9                   ret
-101++ 680B
-102++ 680B              p127_resident_arg_target:
-103++ 680B 00                   db      0
-104++ 680C              p127_resident_arg_code:
-105++ 680C 00                   db      0
-106++ 680D              p127_resident_arg_stack:
-107++ 680D 00                   db      0
-108++ 680E              p127_resident_arg_flags:
-109++ 680E 00                   db      0
-110++ 680F              p127_resident_end:
-111++ 680F
-112++ 680F
-113++ 680F              ; W3 ownership / UI quiesce state machine. Software only; no page OUT.
-114++ 680F              P127_W3_STATE_UI_ACTIVE EQU 1
-115++ 680F              P127_W3_STATE_QUIESCED EQU 2
-116++ 680F              P127_W3_OWNER_UI EQU 1
-117++ 680F              P127_W3_OWNER_NONE EQU 0
-118++ 680F              P127_W3_OWNER_HANDOFF EQU 2
-119++ 680F
-120++ 680F              p127_w3_init:
-121++ 680F 3E 01                ld      a,P127_W3_STATE_UI_ACTIVE
-122++ 6811 32 F3 68             ld      (p127_w3_state),a
-123++ 6814 3E 01                ld      a,P127_W3_OWNER_UI
-124++ 6816 32 F4 68             ld      (p127_w3_owner),a
-125++ 6819 AF                   xor     a
-126++ 681A 32 F5 68             ld      (p127_w3_busy),a
-127++ 681D B7                   or      a
-128++ 681E C9                   ret
-129++ 681F
-130++ 681F              p127_w3_ui_enter:
-131++ 681F 3A F3 68             ld      a,(p127_w3_state)
-132++ 6822 FE 01                cp      P127_W3_STATE_UI_ACTIVE
-133++ 6824 20 79                jr      nz,p127_w3_reject
-134++ 6826 3A F4 68             ld      a,(p127_w3_owner)
-135++ 6829 FE 01                cp      P127_W3_OWNER_UI
-136++ 682B 20 72                jr      nz,p127_w3_reject
-137++ 682D 3A F5 68             ld      a,(p127_w3_busy)
-138++ 6830 B7                   or      a
-139++ 6831 20 6C                jr      nz,p127_w3_reject
-140++ 6833 3E 01                ld      a,1
-141++ 6835 32 F5 68             ld      (p127_w3_busy),a
-142++ 6838 B7                   or      a
-143++ 6839 C9                   ret
-144++ 683A
-145++ 683A              p127_w3_ui_leave:
-146++ 683A AF                   xor     a
-147++ 683B 32 F5 68             ld      (p127_w3_busy),a
-148++ 683E C9                   ret
-149++ 683F
-150++ 683F              p127_w3_quiesce:
-151++ 683F 3A F3 68             ld      a,(p127_w3_state)
-152++ 6842 FE 01                cp      P127_W3_STATE_UI_ACTIVE
-153++ 6844 20 59                jr      nz,p127_w3_reject
-154++ 6846 3A F4 68             ld      a,(p127_w3_owner)
-155++ 6849 FE 01                cp      P127_W3_OWNER_UI
-156++ 684B 20 52                jr      nz,p127_w3_reject
-157++ 684D 3A F5 68             ld      a,(p127_w3_busy)
-158++ 6850 B7                   or      a
-159++ 6851 20 4C                jr      nz,p127_w3_reject
-160++ 6853 3E 02                ld      a,P127_W3_STATE_QUIESCED
-161++ 6855 32 F3 68             ld      (p127_w3_state),a
-162++ 6858 AF                   xor     a
-163++ 6859 32 F4 68             ld      (p127_w3_owner),a
-164++ 685C B7                   or      a
-165++ 685D C9                   ret
-166++ 685E
-167++ 685E              p127_w3_handoff_acquire:
-168++ 685E 3A F3 68             ld      a,(p127_w3_state)
-169++ 6861 FE 02                cp      P127_W3_STATE_QUIESCED
-170++ 6863 20 3A                jr      nz,p127_w3_reject
-171++ 6865 3A F4 68             ld      a,(p127_w3_owner)
-172++ 6868 B7                   or      a
-173++ 6869 20 34                jr      nz,p127_w3_reject
-174++ 686B 3E 02                ld      a,P127_W3_OWNER_HANDOFF
-175++ 686D 32 F4 68             ld      (p127_w3_owner),a
-176++ 6870 B7                   or      a
-177++ 6871 C9                   ret
-178++ 6872
-179++ 6872              p127_w3_handoff_release:
-180++ 6872 3A F3 68             ld      a,(p127_w3_state)
-181++ 6875 FE 02                cp      P127_W3_STATE_QUIESCED
-182++ 6877 20 26                jr      nz,p127_w3_reject
-183++ 6879 3A F4 68             ld      a,(p127_w3_owner)
-184++ 687C FE 02                cp      P127_W3_OWNER_HANDOFF
-185++ 687E 20 1F                jr      nz,p127_w3_reject
-186++ 6880 AF                   xor     a
-187++ 6881 32 F4 68             ld      (p127_w3_owner),a
-188++ 6884 B7                   or      a
-189++ 6885 C9                   ret
-190++ 6886
-191++ 6886              p127_w3_resume:
-192++ 6886 3A F3 68             ld      a,(p127_w3_state)
-193++ 6889 FE 02                cp      P127_W3_STATE_QUIESCED
-194++ 688B 20 12                jr      nz,p127_w3_reject
-195++ 688D 3A F4 68             ld      a,(p127_w3_owner)
-196++ 6890 B7                   or      a
-197++ 6891 20 0C                jr      nz,p127_w3_reject
-198++ 6893 3E 01                ld      a,P127_W3_OWNER_UI
-199++ 6895 32 F4 68             ld      (p127_w3_owner),a
-200++ 6898 3E 01                ld      a,P127_W3_STATE_UI_ACTIVE
-201++ 689A 32 F3 68             ld      (p127_w3_state),a
-202++ 689D B7                   or      a
-203++ 689E C9                   ret
-204++ 689F
-205++ 689F              p127_w3_reject:
-206++ 689F 37                   scf
-207++ 68A0 C9                   ret
-208++ 68A1
-209++ 68A1              p127_w3_selftest:
-210++ 68A1 CD 0F 68             call    p127_w3_init
-211++ 68A4 CD 1F 68             call    p127_w3_ui_enter
-212++ 68A7 DA EE 68             jp      c,p127_w3_test_fail
-213++ 68AA CD 3F 68             call    p127_w3_quiesce
-214++ 68AD D2 EE 68             jp      nc,p127_w3_test_fail
-215++ 68B0 CD 3A 68             call    p127_w3_ui_leave
-216++ 68B3 CD 3F 68             call    p127_w3_quiesce
-217++ 68B6 DA EE 68             jp      c,p127_w3_test_fail
-218++ 68B9 CD 1F 68             call    p127_w3_ui_enter
-219++ 68BC D2 EE 68             jp      nc,p127_w3_test_fail
-220++ 68BF CD 5E 68             call    p127_w3_handoff_acquire
-221++ 68C2 DA EE 68             jp      c,p127_w3_test_fail
-222++ 68C5 CD 3F 68             call    p127_w3_quiesce
-223++ 68C8 D2 EE 68             jp      nc,p127_w3_test_fail
-224++ 68CB CD 1F 68             call    p127_w3_ui_enter
-225++ 68CE D2 EE 68             jp      nc,p127_w3_test_fail
-226++ 68D1 CD 72 68             call    p127_w3_handoff_release
-227++ 68D4 DA EE 68             jp      c,p127_w3_test_fail
-228++ 68D7 CD 86 68             call    p127_w3_resume
-229++ 68DA DA EE 68             jp      c,p127_w3_test_fail
-230++ 68DD CD 86 68             call    p127_w3_resume
-231++ 68E0 D2 EE 68             jp      nc,p127_w3_test_fail
-232++ 68E3 CD 1F 68             call    p127_w3_ui_enter
-233++ 68E6 DA EE 68             jp      c,p127_w3_test_fail
-234++ 68E9 CD 3A 68             call    p127_w3_ui_leave
-235++ 68EC B7                   or      a
-236++ 68ED C9                   ret
-237++ 68EE
-238++ 68EE              p127_w3_test_fail:
-239++ 68EE CD 0F 68             call    p127_w3_init
-240++ 68F1 37                   scf
-241++ 68F2 C9                   ret
-242++ 68F3
-243++ 68F3 00           p127_w3_state: db 0
-244++ 68F4 00           p127_w3_owner: db 0
-245++ 68F5 00           p127_w3_busy: db 0
-246++ 68F6
+  1++ 67DB              ; ============================================================================
+  2++ 67DB              ; Project127 — resident-window contract / software preflight
+  3++ 67DB              ; Module version: 0.2.0
+  4++ 67DB              ; Defines the only first-stage remap candidate without touching hardware.
+  5++ 67DB              ; W1/P5 owns resident execution+data; W2/P2 owns resident stack/control.
+  6++ 67DB              ; W3 is the only candidate target and may be used only after UI quiescence.
+  7++ 67DB              ; W0 is ROM. No OUT instruction is permitted here.
+  8++ 67DB              ; ============================================================================
+  9++ 67DB              P127_RESIDENT_VERSION_MAJOR EQU 0
+ 10++ 67DB              P127_RESIDENT_VERSION_MINOR EQU 2
+ 11++ 67DB              P127_RESIDENT_VERSION_PATCH EQU 0
+ 12++ 67DB
+ 13++ 67DB              P127_RESIDENT_CODE_WINDOW  EQU 1
+ 14++ 67DB              P127_RESIDENT_CODE_PAGE    EQU 5
+ 15++ 67DB              P127_RESIDENT_STACK_WINDOW EQU 2
+ 16++ 67DB              P127_RESIDENT_STACK_PAGE   EQU 2
+ 17++ 67DB              P127_RESIDENT_TARGET       EQU 3
+ 18++ 67DB              P127_RESIDENT_UI_QUIESCED  EQU 1
+ 19++ 67DB
+ 20++ 67DB              ; IN: A=target window, B=resident code window, C=resident stack window,
+ 21++ 67DB              ;     D=flags (bit 0 set means UI is quiesced).
+ 22++ 67DB              ; OUT: carry=0 if the fixed resident contract is satisfied; carry=1 otherwise.
+ 23++ 67DB              ; This is a software contract check, not a physical mapping operation.
+ 24++ 67DB              p127_resident_validate:
+ 25++ 67DB 32 65 68             ld      (p127_resident_arg_target),a
+ 26++ 67DE 78                   ld      a,b
+ 27++ 67DF 32 66 68             ld      (p127_resident_arg_code),a
+ 28++ 67E2 79                   ld      a,c
+ 29++ 67E3 32 67 68             ld      (p127_resident_arg_stack),a
+ 30++ 67E6 7A                   ld      a,d
+ 31++ 67E7 32 68 68             ld      (p127_resident_arg_flags),a
+ 32++ 67EA
+ 33++ 67EA 3A 65 68             ld      a,(p127_resident_arg_target)
+ 34++ 67ED FE 03                cp      P127_RESIDENT_TARGET
+ 35++ 67EF C2 19 68             jp      nz,p127_resident_reject
+ 36++ 67F2 3A 66 68             ld      a,(p127_resident_arg_code)
+ 37++ 67F5 FE 01                cp      P127_RESIDENT_CODE_WINDOW
+ 38++ 67F7 C2 19 68             jp      nz,p127_resident_reject
+ 39++ 67FA 3A 67 68             ld      a,(p127_resident_arg_stack)
+ 40++ 67FD FE 02                cp      P127_RESIDENT_STACK_WINDOW
+ 41++ 67FF C2 19 68             jp      nz,p127_resident_reject
+ 42++ 6802 3A 68 68             ld      a,(p127_resident_arg_flags)
+ 43++ 6805 E6 01                and     P127_RESIDENT_UI_QUIESCED
+ 44++ 6807 CA 19 68             jp      z,p127_resident_reject
+ 45++ 680A                      ; Explicitly assert target is distinct from both resident windows.
+ 46++ 680A 3A 65 68             ld      a,(p127_resident_arg_target)
+ 47++ 680D FE 01                cp      P127_RESIDENT_CODE_WINDOW
+ 48++ 680F CA 19 68             jp      z,p127_resident_reject
+ 49++ 6812 FE 02                cp      P127_RESIDENT_STACK_WINDOW
+ 50++ 6814 CA 19 68             jp      z,p127_resident_reject
+ 51++ 6817 B7                   or      a
+ 52++ 6818 C9                   ret
+ 53++ 6819
+ 54++ 6819              p127_resident_reject:
+ 55++ 6819 37                   scf
+ 56++ 681A C9                   ret
+ 57++ 681B
+ 58++ 681B              ; Synthetic software-only tests: accepted W3 with UI quiesced; reject W1,
+ 59++ 681B              ; reject W2, reject active UI, and reject a displaced resident code window.
+ 60++ 681B              p127_resident_selftest:
+ 61++ 681B 3E 03                ld      a,3
+ 62++ 681D 06 01                ld      b,1
+ 63++ 681F 0E 02                ld      c,2
+ 64++ 6821 16 01                ld      d,1
+ 65++ 6823 CD DB 67             call    p127_resident_validate
+ 66++ 6826 DA 63 68             jp      c,p127_resident_test_fail
+ 67++ 6829
+ 68++ 6829 3E 01                ld      a,1
+ 69++ 682B 06 01                ld      b,1
+ 70++ 682D 0E 02                ld      c,2
+ 71++ 682F 16 01                ld      d,1
+ 72++ 6831 CD DB 67             call    p127_resident_validate
+ 73++ 6834 D2 63 68             jp      nc,p127_resident_test_fail
+ 74++ 6837
+ 75++ 6837 3E 02                ld      a,2
+ 76++ 6839 06 01                ld      b,1
+ 77++ 683B 0E 02                ld      c,2
+ 78++ 683D 16 01                ld      d,1
+ 79++ 683F CD DB 67             call    p127_resident_validate
+ 80++ 6842 D2 63 68             jp      nc,p127_resident_test_fail
+ 81++ 6845
+ 82++ 6845 3E 03                ld      a,3
+ 83++ 6847 06 01                ld      b,1
+ 84++ 6849 0E 02                ld      c,2
+ 85++ 684B 16 00                ld      d,0
+ 86++ 684D CD DB 67             call    p127_resident_validate
+ 87++ 6850 D2 63 68             jp      nc,p127_resident_test_fail
+ 88++ 6853
+ 89++ 6853 3E 03                ld      a,3
+ 90++ 6855 06 00                ld      b,0
+ 91++ 6857 0E 02                ld      c,2
+ 92++ 6859 16 01                ld      d,1
+ 93++ 685B CD DB 67             call    p127_resident_validate
+ 94++ 685E D2 63 68             jp      nc,p127_resident_test_fail
+ 95++ 6861 B7                   or      a
+ 96++ 6862 C9                   ret
+ 97++ 6863
+ 98++ 6863              p127_resident_test_fail:
+ 99++ 6863 37                   scf
+100++ 6864 C9                   ret
+101++ 6865
+102++ 6865              p127_resident_arg_target:
+103++ 6865 00                   db      0
+104++ 6866              p127_resident_arg_code:
+105++ 6866 00                   db      0
+106++ 6867              p127_resident_arg_stack:
+107++ 6867 00                   db      0
+108++ 6868              p127_resident_arg_flags:
+109++ 6868 00                   db      0
+110++ 6869              p127_resident_end:
+111++ 6869
+112++ 6869
+113++ 6869              ; W3 ownership / UI quiesce state machine. Software only; no page OUT.
+114++ 6869              P127_W3_STATE_UI_ACTIVE EQU 1
+115++ 6869              P127_W3_STATE_QUIESCED EQU 2
+116++ 6869              P127_W3_OWNER_UI EQU 1
+117++ 6869              P127_W3_OWNER_NONE EQU 0
+118++ 6869              P127_W3_OWNER_HANDOFF EQU 2
+119++ 6869
+120++ 6869              p127_w3_init:
+121++ 6869 3E 01                ld      a,P127_W3_STATE_UI_ACTIVE
+122++ 686B 32 4D 69             ld      (p127_w3_state),a
+123++ 686E 3E 01                ld      a,P127_W3_OWNER_UI
+124++ 6870 32 4E 69             ld      (p127_w3_owner),a
+125++ 6873 AF                   xor     a
+126++ 6874 32 4F 69             ld      (p127_w3_busy),a
+127++ 6877 B7                   or      a
+128++ 6878 C9                   ret
+129++ 6879
+130++ 6879              p127_w3_ui_enter:
+131++ 6879 3A 4D 69             ld      a,(p127_w3_state)
+132++ 687C FE 01                cp      P127_W3_STATE_UI_ACTIVE
+133++ 687E 20 79                jr      nz,p127_w3_reject
+134++ 6880 3A 4E 69             ld      a,(p127_w3_owner)
+135++ 6883 FE 01                cp      P127_W3_OWNER_UI
+136++ 6885 20 72                jr      nz,p127_w3_reject
+137++ 6887 3A 4F 69             ld      a,(p127_w3_busy)
+138++ 688A B7                   or      a
+139++ 688B 20 6C                jr      nz,p127_w3_reject
+140++ 688D 3E 01                ld      a,1
+141++ 688F 32 4F 69             ld      (p127_w3_busy),a
+142++ 6892 B7                   or      a
+143++ 6893 C9                   ret
+144++ 6894
+145++ 6894              p127_w3_ui_leave:
+146++ 6894 AF                   xor     a
+147++ 6895 32 4F 69             ld      (p127_w3_busy),a
+148++ 6898 C9                   ret
+149++ 6899
+150++ 6899              p127_w3_quiesce:
+151++ 6899 3A 4D 69             ld      a,(p127_w3_state)
+152++ 689C FE 01                cp      P127_W3_STATE_UI_ACTIVE
+153++ 689E 20 59                jr      nz,p127_w3_reject
+154++ 68A0 3A 4E 69             ld      a,(p127_w3_owner)
+155++ 68A3 FE 01                cp      P127_W3_OWNER_UI
+156++ 68A5 20 52                jr      nz,p127_w3_reject
+157++ 68A7 3A 4F 69             ld      a,(p127_w3_busy)
+158++ 68AA B7                   or      a
+159++ 68AB 20 4C                jr      nz,p127_w3_reject
+160++ 68AD 3E 02                ld      a,P127_W3_STATE_QUIESCED
+161++ 68AF 32 4D 69             ld      (p127_w3_state),a
+162++ 68B2 AF                   xor     a
+163++ 68B3 32 4E 69             ld      (p127_w3_owner),a
+164++ 68B6 B7                   or      a
+165++ 68B7 C9                   ret
+166++ 68B8
+167++ 68B8              p127_w3_handoff_acquire:
+168++ 68B8 3A 4D 69             ld      a,(p127_w3_state)
+169++ 68BB FE 02                cp      P127_W3_STATE_QUIESCED
+170++ 68BD 20 3A                jr      nz,p127_w3_reject
+171++ 68BF 3A 4E 69             ld      a,(p127_w3_owner)
+172++ 68C2 B7                   or      a
+173++ 68C3 20 34                jr      nz,p127_w3_reject
+174++ 68C5 3E 02                ld      a,P127_W3_OWNER_HANDOFF
+175++ 68C7 32 4E 69             ld      (p127_w3_owner),a
+176++ 68CA B7                   or      a
+177++ 68CB C9                   ret
+178++ 68CC
+179++ 68CC              p127_w3_handoff_release:
+180++ 68CC 3A 4D 69             ld      a,(p127_w3_state)
+181++ 68CF FE 02                cp      P127_W3_STATE_QUIESCED
+182++ 68D1 20 26                jr      nz,p127_w3_reject
+183++ 68D3 3A 4E 69             ld      a,(p127_w3_owner)
+184++ 68D6 FE 02                cp      P127_W3_OWNER_HANDOFF
+185++ 68D8 20 1F                jr      nz,p127_w3_reject
+186++ 68DA AF                   xor     a
+187++ 68DB 32 4E 69             ld      (p127_w3_owner),a
+188++ 68DE B7                   or      a
+189++ 68DF C9                   ret
+190++ 68E0
+191++ 68E0              p127_w3_resume:
+192++ 68E0 3A 4D 69             ld      a,(p127_w3_state)
+193++ 68E3 FE 02                cp      P127_W3_STATE_QUIESCED
+194++ 68E5 20 12                jr      nz,p127_w3_reject
+195++ 68E7 3A 4E 69             ld      a,(p127_w3_owner)
+196++ 68EA B7                   or      a
+197++ 68EB 20 0C                jr      nz,p127_w3_reject
+198++ 68ED 3E 01                ld      a,P127_W3_OWNER_UI
+199++ 68EF 32 4E 69             ld      (p127_w3_owner),a
+200++ 68F2 3E 01                ld      a,P127_W3_STATE_UI_ACTIVE
+201++ 68F4 32 4D 69             ld      (p127_w3_state),a
+202++ 68F7 B7                   or      a
+203++ 68F8 C9                   ret
+204++ 68F9
+205++ 68F9              p127_w3_reject:
+206++ 68F9 37                   scf
+207++ 68FA C9                   ret
+208++ 68FB
+209++ 68FB              p127_w3_selftest:
+210++ 68FB CD 69 68             call    p127_w3_init
+211++ 68FE CD 79 68             call    p127_w3_ui_enter
+212++ 6901 DA 48 69             jp      c,p127_w3_test_fail
+213++ 6904 CD 99 68             call    p127_w3_quiesce
+214++ 6907 D2 48 69             jp      nc,p127_w3_test_fail
+215++ 690A CD 94 68             call    p127_w3_ui_leave
+216++ 690D CD 99 68             call    p127_w3_quiesce
+217++ 6910 DA 48 69             jp      c,p127_w3_test_fail
+218++ 6913 CD 79 68             call    p127_w3_ui_enter
+219++ 6916 D2 48 69             jp      nc,p127_w3_test_fail
+220++ 6919 CD B8 68             call    p127_w3_handoff_acquire
+221++ 691C DA 48 69             jp      c,p127_w3_test_fail
+222++ 691F CD 99 68             call    p127_w3_quiesce
+223++ 6922 D2 48 69             jp      nc,p127_w3_test_fail
+224++ 6925 CD 79 68             call    p127_w3_ui_enter
+225++ 6928 D2 48 69             jp      nc,p127_w3_test_fail
+226++ 692B CD CC 68             call    p127_w3_handoff_release
+227++ 692E DA 48 69             jp      c,p127_w3_test_fail
+228++ 6931 CD E0 68             call    p127_w3_resume
+229++ 6934 DA 48 69             jp      c,p127_w3_test_fail
+230++ 6937 CD E0 68             call    p127_w3_resume
+231++ 693A D2 48 69             jp      nc,p127_w3_test_fail
+232++ 693D CD 79 68             call    p127_w3_ui_enter
+233++ 6940 DA 48 69             jp      c,p127_w3_test_fail
+234++ 6943 CD 94 68             call    p127_w3_ui_leave
+235++ 6946 B7                   or      a
+236++ 6947 C9                   ret
+237++ 6948
+238++ 6948              p127_w3_test_fail:
+239++ 6948 CD 69 68             call    p127_w3_init
+240++ 694B 37                   scf
+241++ 694C C9                   ret
+242++ 694D
+243++ 694D 00           p127_w3_state: db 0
+244++ 694E 00           p127_w3_owner: db 0
+245++ 694F 00           p127_w3_busy: db 0
+246++ 6950
 # file closed: p127_resident.asm
-192+  68F6
-193+  68F6              p127_end:
-194+  68F6                      ASSERT  p127_entry = P127_LOAD_ADDRESS
-195+  68F6                      ASSERT  p127_end > p127_entry
-196+  68F6                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
-197+  68F6
+196+  6950
+197+  6950              p127_end:
+198+  6950                      ASSERT  p127_entry = P127_LOAD_ADDRESS
+199+  6950                      ASSERT  p127_end > p127_entry
+200+  6950                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
+201+  6950
 # file closed: p127_boot.asm
-  8   68F6
-  9   68F6              ; BASIC boot file is assembly data, not a Python-generated byte array.
- 10   68F6                      ORG     #B000
+  8   6950
+  9   6950              ; BASIC boot file is assembly data, not a Python-generated byte array.
+ 10   6950                      ORG     #B000
  11   B000              CLEAR       EQU #FD
  12   B000              LOAD        EQU #EF
  13   B000              CODE        EQU #AF
@@ -1671,7 +1694,7 @@ p127_boot.asm(93): error: Label not found: p127_msg_w3_fail
 243+  A14A C5                   push    bc
 244+  A14B D5                   push    de
 245+  A14C E5                   push    hl
-246+  A14D CD 1F 68             call    p127_w3_ui_enter
+246+  A14D CD 79 68             call    p127_w3_ui_enter
 247+  A150 DA B9 A1             jp      c,.p126_print_at_denied
 248+  A153                      ; The lease routine uses A; restore the complete caller frame before
 249+  A153                      ; consuming the PrintAt row/column parameters.
@@ -1719,7 +1742,7 @@ p127_boot.asm(93): error: Label not found: p127_msg_w3_fail
 291+  A1A0 32 10 A0             ld      (bios_dbg_print_col), a
 292+  A1A3 C3 65 A1             jp      .p126_print_at_loop
 293+  A1A6              .p126_print_at_done:
-294+  A1A6 CD 3A 68             call    p127_w3_ui_leave
+294+  A1A6 CD 94 68             call    p127_w3_ui_leave
 295+  A1A9 01 EF 00             ld      bc,P127_UI_DEBUG_PORT
 296+  A1AC 3E 0D                ld      a,13
 297+  A1AE ED 79                out     (c),a
@@ -1741,7 +1764,7 @@ p127_boot.asm(93): error: Label not found: p127_msg_w3_fail
 313+  A1BE              BIOS_DebugConsole_PrintChar:
 313+  A1BE
 314+  A1BE F5                   push    af
-315+  A1BF CD 1F 68             call    p127_w3_ui_enter
+315+  A1BF CD 79 68             call    p127_w3_ui_enter
 316+  A1C2 DA 5B A2             jp      c,.p126_console_denied
 317+  A1C5 F1                   pop     af
 318+  A1C6 F5                   push    af
@@ -1812,7 +1835,7 @@ p127_boot.asm(93): error: Label not found: p127_msg_w3_fail
 383+  A24D CD 5D A2             call    p126_screen_write_char
 384+  A250 C3 15 A2             jp      .p126_console_sync_cursor
 385+  A253              .p126_console_done:
-386+  A253 CD 3A 68             call    p127_w3_ui_leave
+386+  A253 CD 94 68             call    p127_w3_ui_leave
 387+  A256 E1                   pop     hl
 388+  A257 D1                   pop     de
 389+  A258 C1                   pop     bc
