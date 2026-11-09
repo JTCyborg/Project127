@@ -180,10 +180,10 @@ p127_trdos_dir_error: db 0
 p127_trdos_test_directory:
         ; Slots 0-1 are free; slot 2 is a one-sector BASIC file.
         defs 2*P127_TRDOS_ENTRY_SIZE,0
-        db "TEST    ",'B',0,0,1,1,0,0
+        db "TEST    ",'B',0,0,1,1,0,0,1
         ; Slots 3-126 are free; slot 127 is a 512-byte CODE file.
         defs (P127_TRDOS_DIR_ENTRIES-3-1)*P127_TRDOS_ENTRY_SIZE,0
-        db "LAST    ",'C',0,0,0,2,0,0
+        db "LAST    ",'C',0,2,0,0,0,0,1
 p127_trdos_test_directory_end:
 p127_trdos_service_end:
         ASSERT p127_trdos_test_directory_end-p127_trdos_test_directory=P127_TRDOS_DIR_BYTES
