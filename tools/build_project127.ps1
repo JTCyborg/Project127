@@ -20,6 +20,9 @@ try {
     $loaderTemplate = Get-Content -Raw "atm_host/boot_loader.asm"
     $loader = $loaderTemplate.Replace("@@HOST_NAME@@", $HostName)
     Set-Content -Path "atm_host/boot_loader.generated.asm" -Value $loader -Encoding ASCII
+    $diskTemplate = Get-Content -Raw "atm_host/project127_disk.generated.asm"
+    $diskGenerated = $diskTemplate.Replace("@@HOST_NAME@@", $HostName)
+    Set-Content -Path "atm_host/project127_disk.generated.asm" -Value $diskGenerated -Encoding ASCII
 
     Remove-Item -Force -ErrorAction SilentlyContinue $diskImage
     Remove-Item -Force -ErrorAction SilentlyContinue "build/ATM_DISK.lst","build/ATM_DISK.map"
