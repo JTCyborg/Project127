@@ -13,8 +13,8 @@
 # file opened: p127_host.asm
   1+  0000              ; =========================================================================
   2+  0000              ; PROJECT127 - ATM Turbo 2+ host entry
-  3+  0000              ; Version: P127_ATM_HOST v0.3.4
-  4+  0000              ; First ATM memory-core milestone: capability/range validation only.
+  3+  0000              ; Version: P127_ATM_HOST v0.4.0
+  4+  0000              ; ATM page-map and contiguous allocator milestone.
   5+  0000              ; =========================================================================
   6+  0000
   7+  0000                      DEVICE ZXSPECTRUM128
@@ -31,452 +31,1066 @@
  18+  6009              p127_host_entry:
  19+  6009 F3                   di
  20+  600A 31 FF AF             ld      sp,P127_HOST_STACK_TOP
- 21+  600D 21 B7 60             ld      hl,p127_host_banner
- 22+  6010 CD AC 60             call    p127_host_debug_string
- 23+  6013 CD 41 62             call    atm_mem_range_selftest
- 24+  6016 38 08                jr      c,p127_host_range_fail
- 25+  6018 21 0E 61             ld      hl,p127_host_range_ok
- 26+  601B CD AC 60             call    p127_host_debug_string
- 27+  601E 18 56                jr      p127_host_idle
- 28+  6020              p127_host_range_fail:
- 29+  6020 57                   ld      d,a
- 30+  6021 21 32 61             ld      hl,p127_host_range_error
- 31+  6024 CD AC 60             call    p127_host_debug_string
- 32+  6027 7A                   ld      a,d
- 33+  6028 C6 30                add     a,'0'
- 34+  602A CD 79 60             call    p127_host_debug_char
- 35+  602D 3E 0D                ld      a,13
- 36+  602F CD 79 60             call    p127_host_debug_char
- 37+  6032 3E 0A                ld      a,10
- 38+  6034 CD 79 60             call    p127_host_debug_char
- 39+  6037 7A                   ld      a,d
- 40+  6038 FE 04                cp      4
- 41+  603A 20 3A                jr      nz,p127_host_idle
- 42+  603C 21 5A 61             ld      hl,p127_host_diag_offset
- 43+  603F CD AC 60             call    p127_host_debug_string
- 44+  6042 21 17 62             ld      hl,p127_range_offset
- 45+  6045 CD 7F 60             call    p127_host_debug_hex4
- 46+  6048 21 63 61             ld      hl,p127_host_diag_length_pre
- 47+  604B CD AC 60             call    p127_host_debug_string
- 48+  604E 21 27 62             ld      hl,atm_mem_test4_length_snapshot
- 49+  6051 CD 7F 60             call    p127_host_debug_hex4
- 50+  6054 21 70 61             ld      hl,p127_host_diag_length
- 51+  6057 CD AC 60             call    p127_host_debug_string
- 52+  605A 21 1B 62             ld      hl,p127_range_length
- 53+  605D CD 7F 60             call    p127_host_debug_hex4
- 54+  6060 21 7E 61             ld      hl,p127_host_diag_capacity
- 55+  6063 CD AC 60             call    p127_host_debug_string
- 56+  6066 21 1F 62             ld      hl,p127_range_capacity
- 57+  6069 CD 7F 60             call    p127_host_debug_hex4
- 58+  606C 3E 0D                ld      a,13
- 59+  606E CD 79 60             call    p127_host_debug_char
- 60+  6071 3E 0A                ld      a,10
- 61+  6073 CD 79 60             call    p127_host_debug_char
- 62+  6076              p127_host_idle:
- 63+  6076 76                   halt
- 64+  6077 18 FD                jr      p127_host_idle
- 65+  6079
- 66+  6079              p127_host_debug_char:
- 67+  6079 01 EF 00             ld      bc,#00EF
- 68+  607C ED 79                out     (c),a
- 69+  607E C9                   ret
- 70+  607F
- 71+  607F              p127_host_debug_hex4:
- 72+  607F 7E                   ld      a,(hl)
- 73+  6080 CD 93 60             call    p127_host_debug_hex_byte
- 74+  6083 23                   inc     hl
- 75+  6084 7E                   ld      a,(hl)
- 76+  6085 CD 93 60             call    p127_host_debug_hex_byte
- 77+  6088 23                   inc     hl
- 78+  6089 7E                   ld      a,(hl)
- 79+  608A CD 93 60             call    p127_host_debug_hex_byte
- 80+  608D 23                   inc     hl
- 81+  608E 7E                   ld      a,(hl)
- 82+  608F CD 93 60             call    p127_host_debug_hex_byte
- 83+  6092 C9                   ret
- 84+  6093
- 85+  6093              p127_host_debug_hex_byte:
- 86+  6093 F5                   push    af
- 87+  6094 0F                   rrca
- 88+  6095 0F                   rrca
- 89+  6096 0F                   rrca
- 90+  6097 0F                   rrca
- 91+  6098 E6 0F                and     #0F
- 92+  609A CD A0 60             call    p127_host_debug_hex_nibble
- 93+  609D F1                   pop     af
- 94+  609E E6 0F                and     #0F
- 95+  60A0              p127_host_debug_hex_nibble:
- 96+  60A0 FE 0A                cp      10
- 97+  60A2 38 04                jr      c,p127_host_debug_hex_digit
- 98+  60A4 C6 37                add     a,'A'-10
- 99+  60A6 18 D1                jr      p127_host_debug_char
-100+  60A8              p127_host_debug_hex_digit:
-101+  60A8 C6 30                add     a,'0'
-102+  60AA 18 CD                jr      p127_host_debug_char
-103+  60AC
-104+  60AC              p127_host_debug_string:
-105+  60AC 7E                   ld      a,(hl)
-106+  60AD B7                   or      a
-107+  60AE C8                   ret     z
-108+  60AF 01 EF 00             ld      bc,#00EF
-109+  60B2 ED 79                out     (c),a
-110+  60B4 23                   inc     hl
-111+  60B5 18 F5                jr      p127_host_debug_string
-112+  60B7
-113+  60B7              p127_host_banner:
-114+  60B7 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.3.4",13,10
-114+  60BB 37 5D 20 41
-114+  60BF 54 4D 20 48
-114+  60C3 4F 53 54 20
-114+  60C7 45 4E 54 52
-114+  60CB 59 20 76 30
-114+  60CF 2E 33 2E 34
-114+  60D3 0D 0A
-115+  60D5 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
-115+  60D9 37 5D 20 54
-115+  60DD 52 2D 44 4F
-115+  60E1 53 20 42 4F
-115+  60E5 4F 54 20 4F
-115+  60E9 4B 0D 0A
-116+  60EC 5B 50 31 32          db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
-116+  60F0 37 5D 20 41
-116+  60F4 54 4D 20 52
-116+  60F8 41 4D 20 52
-116+  60FC 41 4E 47 45
-116+  6100 20 43 4F 52
-116+  6104 45 20 31 20
-116+  6108 4D 69 42 0D
-116+  610C 0A 00
-117+  610E              p127_host_range_ok:
-118+  610E 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
-118+  6112 37 5D 20 55
-118+  6116 49 4E 54 33
-118+  611A 32 20 52 41
-118+  611E 4E 47 45 20
-118+  6122 53 45 4C 46
-118+  6126 54 45 53 54
-118+  612A 20 50 41 53
-118+  612E 53 0D 0A 00
-119+  6132              p127_host_range_error:
-120+  6132 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST FAIL TEST ",0
-120+  6136 37 5D 20 55
-120+  613A 49 4E 54 33
-120+  613E 32 20 52 41
-120+  6142 4E 47 45 20
-120+  6146 53 45 4C 46
-120+  614A 54 45 53 54
-120+  614E 20 46 41 49
-120+  6152 4C 20 54 45
-120+  6156 53 54 20 00
-121+  615A              p127_host_diag_offset:
-122+  615A 20 4F 46 46          db " OFFSET=",0
-122+  615E 53 45 54 3D
-122+  6162 00
-123+  6163              p127_host_diag_length_pre:
-124+  6163 20 4C 45 4E          db " LENGTH_PRE=",0
-124+  6167 47 54 48 5F
-124+  616B 50 52 45 3D
-124+  616F 00
-125+  6170              p127_host_diag_length:
-126+  6170 20 4C 45 4E          db " LENGTH_POST=",0
-126+  6174 47 54 48 5F
-126+  6178 50 4F 53 54
-126+  617C 3D 00
-127+  617E              p127_host_diag_capacity:
-128+  617E 20 43 41 50          db " CAPACITY=",0
-128+  6182 41 43 49 54
-128+  6186 59 3D 00
-129+  6189
-130+  6189                      INCLUDE "drivers/atm/atm_memory_backend.asm"
+ 21+  600D 21 D7 60             ld      hl,p127_host_banner
+ 22+  6010 CD CC 60             call    p127_host_debug_string
+ 23+  6013 CD D1 63             call    atm_mem_init
+ 24+  6016 38 18                jr      c,p127_host_memory_init_fail
+ 25+  6018 CD D3 62             call    atm_mem_range_selftest
+ 26+  601B 38 23                jr      c,p127_host_range_fail
+ 27+  601D 21 2E 61             ld      hl,p127_host_range_ok
+ 28+  6020 CD CC 60             call    p127_host_debug_string
+ 29+  6023 CD 83 66             call    atm_mem_allocator_selftest
+ 30+  6026 38 10                jr      c,p127_host_allocator_fail
+ 31+  6028 21 52 61             ld      hl,p127_host_allocator_ok
+ 32+  602B CD CC 60             call    p127_host_debug_string
+ 33+  602E 18 66                jr      p127_host_idle
+ 34+  6030              p127_host_memory_init_fail:
+ 35+  6030 21 A6 61             ld      hl,p127_host_memory_init_error
+ 36+  6033 CD CC 60             call    p127_host_debug_string
+ 37+  6036 18 5E                jr      p127_host_idle
+ 38+  6038              p127_host_allocator_fail:
+ 39+  6038 21 7C 61             ld      hl,p127_host_allocator_error
+ 40+  603B CD CC 60             call    p127_host_debug_string
+ 41+  603E 18 56                jr      p127_host_idle
+ 42+  6040              p127_host_range_fail:
+ 43+  6040 57                   ld      d,a
+ 44+  6041 21 C4 61             ld      hl,p127_host_range_error
+ 45+  6044 CD CC 60             call    p127_host_debug_string
+ 46+  6047 7A                   ld      a,d
+ 47+  6048 C6 30                add     a,'0'
+ 48+  604A CD 99 60             call    p127_host_debug_char
+ 49+  604D 3E 0D                ld      a,13
+ 50+  604F CD 99 60             call    p127_host_debug_char
+ 51+  6052 3E 0A                ld      a,10
+ 52+  6054 CD 99 60             call    p127_host_debug_char
+ 53+  6057 7A                   ld      a,d
+ 54+  6058 FE 04                cp      4
+ 55+  605A 20 3A                jr      nz,p127_host_idle
+ 56+  605C 21 EC 61             ld      hl,p127_host_diag_offset
+ 57+  605F CD CC 60             call    p127_host_debug_string
+ 58+  6062 21 A9 62             ld      hl,p127_range_offset
+ 59+  6065 CD 9F 60             call    p127_host_debug_hex4
+ 60+  6068 21 F5 61             ld      hl,p127_host_diag_length_pre
+ 61+  606B CD CC 60             call    p127_host_debug_string
+ 62+  606E 21 B9 62             ld      hl,atm_mem_test4_length_snapshot
+ 63+  6071 CD 9F 60             call    p127_host_debug_hex4
+ 64+  6074 21 02 62             ld      hl,p127_host_diag_length
+ 65+  6077 CD CC 60             call    p127_host_debug_string
+ 66+  607A 21 AD 62             ld      hl,p127_range_length
+ 67+  607D CD 9F 60             call    p127_host_debug_hex4
+ 68+  6080 21 10 62             ld      hl,p127_host_diag_capacity
+ 69+  6083 CD CC 60             call    p127_host_debug_string
+ 70+  6086 21 B1 62             ld      hl,p127_range_capacity
+ 71+  6089 CD 9F 60             call    p127_host_debug_hex4
+ 72+  608C 3E 0D                ld      a,13
+ 73+  608E CD 99 60             call    p127_host_debug_char
+ 74+  6091 3E 0A                ld      a,10
+ 75+  6093 CD 99 60             call    p127_host_debug_char
+ 76+  6096              p127_host_idle:
+ 77+  6096 76                   halt
+ 78+  6097 18 FD                jr      p127_host_idle
+ 79+  6099
+ 80+  6099              p127_host_debug_char:
+ 81+  6099 01 EF 00             ld      bc,#00EF
+ 82+  609C ED 79                out     (c),a
+ 83+  609E C9                   ret
+ 84+  609F
+ 85+  609F              p127_host_debug_hex4:
+ 86+  609F 7E                   ld      a,(hl)
+ 87+  60A0 CD B3 60             call    p127_host_debug_hex_byte
+ 88+  60A3 23                   inc     hl
+ 89+  60A4 7E                   ld      a,(hl)
+ 90+  60A5 CD B3 60             call    p127_host_debug_hex_byte
+ 91+  60A8 23                   inc     hl
+ 92+  60A9 7E                   ld      a,(hl)
+ 93+  60AA CD B3 60             call    p127_host_debug_hex_byte
+ 94+  60AD 23                   inc     hl
+ 95+  60AE 7E                   ld      a,(hl)
+ 96+  60AF CD B3 60             call    p127_host_debug_hex_byte
+ 97+  60B2 C9                   ret
+ 98+  60B3
+ 99+  60B3              p127_host_debug_hex_byte:
+100+  60B3 F5                   push    af
+101+  60B4 0F                   rrca
+102+  60B5 0F                   rrca
+103+  60B6 0F                   rrca
+104+  60B7 0F                   rrca
+105+  60B8 E6 0F                and     #0F
+106+  60BA CD C0 60             call    p127_host_debug_hex_nibble
+107+  60BD F1                   pop     af
+108+  60BE E6 0F                and     #0F
+109+  60C0              p127_host_debug_hex_nibble:
+110+  60C0 FE 0A                cp      10
+111+  60C2 38 04                jr      c,p127_host_debug_hex_digit
+112+  60C4 C6 37                add     a,'A'-10
+113+  60C6 18 D1                jr      p127_host_debug_char
+114+  60C8              p127_host_debug_hex_digit:
+115+  60C8 C6 30                add     a,'0'
+116+  60CA 18 CD                jr      p127_host_debug_char
+117+  60CC
+118+  60CC              p127_host_debug_string:
+119+  60CC 7E                   ld      a,(hl)
+120+  60CD B7                   or      a
+121+  60CE C8                   ret     z
+122+  60CF 01 EF 00             ld      bc,#00EF
+123+  60D2 ED 79                out     (c),a
+124+  60D4 23                   inc     hl
+125+  60D5 18 F5                jr      p127_host_debug_string
+126+  60D7
+127+  60D7              p127_host_banner:
+128+  60D7 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.4.0",13,10
+128+  60DB 37 5D 20 41
+128+  60DF 54 4D 20 48
+128+  60E3 4F 53 54 20
+128+  60E7 45 4E 54 52
+128+  60EB 59 20 76 30
+128+  60EF 2E 34 2E 30
+128+  60F3 0D 0A
+129+  60F5 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
+129+  60F9 37 5D 20 54
+129+  60FD 52 2D 44 4F
+129+  6101 53 20 42 4F
+129+  6105 4F 54 20 4F
+129+  6109 4B 0D 0A
+130+  610C 5B 50 31 32          db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
+130+  6110 37 5D 20 41
+130+  6114 54 4D 20 52
+130+  6118 41 4D 20 52
+130+  611C 41 4E 47 45
+130+  6120 20 43 4F 52
+130+  6124 45 20 31 20
+130+  6128 4D 69 42 0D
+130+  612C 0A 00
+131+  612E              p127_host_range_ok:
+132+  612E 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST PASS",13,10,0
+132+  6132 37 5D 20 55
+132+  6136 49 4E 54 33
+132+  613A 32 20 52 41
+132+  613E 4E 47 45 20
+132+  6142 53 45 4C 46
+132+  6146 54 45 53 54
+132+  614A 20 50 41 53
+132+  614E 53 0D 0A 00
+133+  6152              p127_host_allocator_ok:
+134+  6152 5B 50 31 32          db "[P127] ATM PAGE ALLOCATOR SELFTEST PASS",13,10,0
+134+  6156 37 5D 20 41
+134+  615A 54 4D 20 50
+134+  615E 41 47 45 20
+134+  6162 41 4C 4C 4F
+134+  6166 43 41 54 4F
+134+  616A 52 20 53 45
+134+  616E 4C 46 54 45
+134+  6172 53 54 20 50
+134+  6176 41 53 53 0D
+134+  617A 0A 00
+135+  617C              p127_host_allocator_error:
+136+  617C 5B 50 31 32          db "[P127] ATM PAGE ALLOCATOR SELFTEST FAIL",13,10,0
+136+  6180 37 5D 20 41
+136+  6184 54 4D 20 50
+136+  6188 41 47 45 20
+136+  618C 41 4C 4C 4F
+136+  6190 43 41 54 4F
+136+  6194 52 20 53 45
+136+  6198 4C 46 54 45
+136+  619C 53 54 20 46
+136+  61A0 41 49 4C 0D
+136+  61A4 0A 00
+137+  61A6              p127_host_memory_init_error:
+138+  61A6 5B 50 31 32          db "[P127] ATM MEMORY INIT FAIL",13,10,0
+138+  61AA 37 5D 20 41
+138+  61AE 54 4D 20 4D
+138+  61B2 45 4D 4F 52
+138+  61B6 59 20 49 4E
+138+  61BA 49 54 20 46
+138+  61BE 41 49 4C 0D
+138+  61C2 0A 00
+139+  61C4              p127_host_range_error:
+140+  61C4 5B 50 31 32          db "[P127] UINT32 RANGE SELFTEST FAIL TEST ",0
+140+  61C8 37 5D 20 55
+140+  61CC 49 4E 54 33
+140+  61D0 32 20 52 41
+140+  61D4 4E 47 45 20
+140+  61D8 53 45 4C 46
+140+  61DC 54 45 53 54
+140+  61E0 20 46 41 49
+140+  61E4 4C 20 54 45
+140+  61E8 53 54 20 00
+141+  61EC              p127_host_diag_offset:
+142+  61EC 20 4F 46 46          db " OFFSET=",0
+142+  61F0 53 45 54 3D
+142+  61F4 00
+143+  61F5              p127_host_diag_length_pre:
+144+  61F5 20 4C 45 4E          db " LENGTH_PRE=",0
+144+  61F9 47 54 48 5F
+144+  61FD 50 52 45 3D
+144+  6201 00
+145+  6202              p127_host_diag_length:
+146+  6202 20 4C 45 4E          db " LENGTH_POST=",0
+146+  6206 47 54 48 5F
+146+  620A 50 4F 53 54
+146+  620E 3D 00
+147+  6210              p127_host_diag_capacity:
+148+  6210 20 43 41 50          db " CAPACITY=",0
+148+  6214 41 43 49 54
+148+  6218 59 3D 00
+149+  621B
+150+  621B                      INCLUDE "drivers/atm/atm_memory_backend.asm"
 # file opened: atm_memory_backend.asm
-  1++ 6189              ; Project127 ATM Turbo 2+ memory backend — capability and range core.
-  2++ 6189              ; Physical capacity is the agreed 1 MiB ATM RAM configuration.
-  3++ 6189              ; Active video backing and system reservations are NOT allocatable.
-  4++ 6189              ; Project112 proves video mappings (physical page 5/page 1), but does not
-  5++ 6189              ; define a complete general-purpose physical-page selector for all ATM RAM.
-  6++ 6189              ;
-  7++ 6189              ; atm_mem_query_caps: HL -> 18-byte capability record
-  8++ 6189              ; atm_mem_validate_range: carry clear iff offset+length is in 1 MiB
-  9++ 6189              ; atm_mem_range_selftest: carry clear iff all arithmetic boundary tests pass
- 10++ 6189              ;
- 11++ 6189              ; READ/WRITE/ALLOC/FREE are not advertised until page selection and the
- 12++ 6189              ; reservation map are implemented and tested on target.
- 13++ 6189
- 14++ 6189                      INCLUDE "drivers/shared/p127_memory_core.inc"
+  1++ 621B              ; Project127 ATM Turbo 2+ memory backend.
+  2++ 621B              ; Physical capacity: 1 MiB (64 x 16 KiB pages).
+  3++ 621B              ; ATM page selection is private to atm_memory_manager.asm.
+  4++ 621B              ; Reserved pages: 0,1,2,3,5,7; allocator owns the remaining 58 pages.
+  5++ 621B              ;
+  6++ 621B              ; atm_mem_query_caps: HL -> 18-byte capability record
+  7++ 621B              ; atm_mem_validate_range: carry clear iff offset+length is in 1 MiB
+  8++ 621B              ; atm_mem_range_selftest: carry clear iff all arithmetic boundary tests pass
+  9++ 621B              ;
+ 10++ 621B              ; ALLOC/FREE and fixed-window page mapping are implemented.
+ 11++ 621B              ; Byte READ/WRITE/FILL/COPY and multi-extent handles remain future work.
+ 12++ 621B
+ 13++ 621B                      INCLUDE "drivers/shared/p127_memory_core.inc"
 # file opened: p127_memory_core.inc
-  1+++6189              ; Project127 shared 32-bit memory range core
-  2+++6189              ; UINT32 values are little-endian. Carry set means overflow or end > capacity.
-  3+++6189              ; Zero-length ranges are valid when offset <= capacity.
-  4+++6189              ; Non-reentrant: each processor serializes memory API calls.
-  5+++6189
-  6+++6189              P127_ABI_MAJOR EQU 1
-  7+++6189              P127_ABI_MINOR EQU 0
-  8+++6189              P127_MEM_CAPS_SIZE EQU 18
-  9+++6189
- 10+++6189              p127_range_check:
- 10+++6189
- 11+++6189                      ; A zero-length range is a boundary position, not a memory access.
- 12+++6189                      ; Validate offset <= capacity directly, including offset == capacity.
- 13+++6189 3A 1B 62             ld      a,(p127_range_length)
- 14+++618C 47                   ld      b,a
- 15+++618D 3A 1C 62             ld      a,(p127_range_length+1)
- 16+++6190 B0                   or      b
- 17+++6191 47                   ld      b,a
- 18+++6192 3A 1D 62             ld      a,(p127_range_length+2)
- 19+++6195 B0                   or      b
- 20+++6196 47                   ld      b,a
- 21+++6197 3A 1E 62             ld      a,(p127_range_length+3)
- 22+++619A B0                   or      b
- 23+++619B 20 26                jr      nz,p127_range_nonzero
- 24+++619D
- 25+++619D 11 1A 62             ld      de,p127_range_offset+3
- 26+++61A0 21 22 62             ld      hl,p127_range_capacity+3
- 27+++61A3 1A                   ld      a,(de)
- 28+++61A4 BE                   cp      (hl)
- 29+++61A5 38 6C                jr      c,p127_range_valid
- 30+++61A7 20 6C                jr      nz,p127_range_invalid
- 31+++61A9 1B                   dec     de
- 32+++61AA 2B                   dec     hl
- 33+++61AB 1A                   ld      a,(de)
- 34+++61AC BE                   cp      (hl)
- 35+++61AD 38 64                jr      c,p127_range_valid
- 36+++61AF 20 64                jr      nz,p127_range_invalid
- 37+++61B1 1B                   dec     de
- 38+++61B2 2B                   dec     hl
- 39+++61B3 1A                   ld      a,(de)
- 40+++61B4 BE                   cp      (hl)
- 41+++61B5 38 5C                jr      c,p127_range_valid
- 42+++61B7 20 5C                jr      nz,p127_range_invalid
- 43+++61B9 1B                   dec     de
- 44+++61BA 2B                   dec     hl
- 45+++61BB 1A                   ld      a,(de)
- 46+++61BC BE                   cp      (hl)
- 47+++61BD 38 54                jr      c,p127_range_valid
- 48+++61BF 20 54                jr      nz,p127_range_invalid
- 49+++61C1 18 50                jr      p127_range_valid
- 50+++61C3
- 51+++61C3              p127_range_nonzero:
- 52+++61C3 21 17 62             ld      hl,p127_range_offset
- 53+++61C6 11 1B 62             ld      de,p127_range_length
- 54+++61C9 7E                   ld      a,(hl)
- 55+++61CA 47                   ld      b,a
- 56+++61CB 1A                   ld      a,(de)
- 57+++61CC 80                   add     a,b
- 58+++61CD 32 23 62             ld      (p127_range_end),a
- 59+++61D0 23                   inc     hl
- 60+++61D1 13                   inc     de
- 61+++61D2 7E                   ld      a,(hl)
- 62+++61D3 47                   ld      b,a
- 63+++61D4 1A                   ld      a,(de)
- 64+++61D5 88                   adc     a,b
- 65+++61D6 32 24 62             ld      (p127_range_end+1),a
- 66+++61D9 23                   inc     hl
- 67+++61DA 13                   inc     de
- 68+++61DB 7E                   ld      a,(hl)
- 69+++61DC 47                   ld      b,a
- 70+++61DD 1A                   ld      a,(de)
- 71+++61DE 88                   adc     a,b
- 72+++61DF 32 25 62             ld      (p127_range_end+2),a
- 73+++61E2 23                   inc     hl
- 74+++61E3 13                   inc     de
- 75+++61E4 7E                   ld      a,(hl)
- 76+++61E5 47                   ld      b,a
- 77+++61E6 1A                   ld      a,(de)
- 78+++61E7 88                   adc     a,b
- 79+++61E8 32 26 62             ld      (p127_range_end+3),a
- 80+++61EB 38 28                jr      c,p127_range_invalid
- 81+++61ED
- 82+++61ED                      ; Unsigned end <= capacity, most-significant byte first.
- 83+++61ED 3A 26 62             ld      a,(p127_range_end+3)
- 84+++61F0 21 22 62             ld      hl,p127_range_capacity+3
- 85+++61F3 BE                   cp      (hl)
- 86+++61F4 38 1D                jr      c,p127_range_valid
- 87+++61F6 20 1D                jr      nz,p127_range_invalid
- 88+++61F8 3A 25 62             ld      a,(p127_range_end+2)
- 89+++61FB 2B                   dec     hl
- 90+++61FC BE                   cp      (hl)
- 91+++61FD 38 14                jr      c,p127_range_valid
- 92+++61FF 20 14                jr      nz,p127_range_invalid
- 93+++6201 3A 24 62             ld      a,(p127_range_end+1)
- 94+++6204 2B                   dec     hl
- 95+++6205 BE                   cp      (hl)
- 96+++6206 38 0B                jr      c,p127_range_valid
- 97+++6208 20 0B                jr      nz,p127_range_invalid
- 98+++620A 3A 23 62             ld      a,(p127_range_end)
- 99+++620D 2B                   dec     hl
-100+++620E BE                   cp      (hl)
-101+++620F 38 02                jr      c,p127_range_valid
-102+++6211 20 02                jr      nz,p127_range_invalid
-103+++6213              p127_range_valid:
-104+++6213 B7                   or      a
-105+++6214 C9                   ret
-106+++6215              p127_range_invalid:
-107+++6215 37                   scf
-108+++6216 C9                   ret
-109+++6217
-110+++6217 00 00 00 00  p127_range_offset:   defs 4,0
-111+++621B 00 00 00 00  p127_range_length:   defs 4,0
-112+++621F 00 00 00 00  p127_range_capacity: defs 4,0
-113+++6223 00 00 00 00  p127_range_end:      defs 4,0
-114+++6227
+  1+++621B              ; Project127 shared 32-bit memory range core
+  2+++621B              ; UINT32 values are little-endian. Carry set means overflow or end > capacity.
+  3+++621B              ; Zero-length ranges are valid when offset <= capacity.
+  4+++621B              ; Non-reentrant: each processor serializes memory API calls.
+  5+++621B
+  6+++621B              P127_ABI_MAJOR EQU 1
+  7+++621B              P127_ABI_MINOR EQU 0
+  8+++621B              P127_MEM_CAPS_SIZE EQU 18
+  9+++621B
+ 10+++621B              p127_range_check:
+ 10+++621B
+ 11+++621B                      ; A zero-length range is a boundary position, not a memory access.
+ 12+++621B                      ; Validate offset <= capacity directly, including offset == capacity.
+ 13+++621B 3A AD 62             ld      a,(p127_range_length)
+ 14+++621E 47                   ld      b,a
+ 15+++621F 3A AE 62             ld      a,(p127_range_length+1)
+ 16+++6222 B0                   or      b
+ 17+++6223 47                   ld      b,a
+ 18+++6224 3A AF 62             ld      a,(p127_range_length+2)
+ 19+++6227 B0                   or      b
+ 20+++6228 47                   ld      b,a
+ 21+++6229 3A B0 62             ld      a,(p127_range_length+3)
+ 22+++622C B0                   or      b
+ 23+++622D 20 26                jr      nz,p127_range_nonzero
+ 24+++622F
+ 25+++622F 11 AC 62             ld      de,p127_range_offset+3
+ 26+++6232 21 B4 62             ld      hl,p127_range_capacity+3
+ 27+++6235 1A                   ld      a,(de)
+ 28+++6236 BE                   cp      (hl)
+ 29+++6237 38 6C                jr      c,p127_range_valid
+ 30+++6239 20 6C                jr      nz,p127_range_invalid
+ 31+++623B 1B                   dec     de
+ 32+++623C 2B                   dec     hl
+ 33+++623D 1A                   ld      a,(de)
+ 34+++623E BE                   cp      (hl)
+ 35+++623F 38 64                jr      c,p127_range_valid
+ 36+++6241 20 64                jr      nz,p127_range_invalid
+ 37+++6243 1B                   dec     de
+ 38+++6244 2B                   dec     hl
+ 39+++6245 1A                   ld      a,(de)
+ 40+++6246 BE                   cp      (hl)
+ 41+++6247 38 5C                jr      c,p127_range_valid
+ 42+++6249 20 5C                jr      nz,p127_range_invalid
+ 43+++624B 1B                   dec     de
+ 44+++624C 2B                   dec     hl
+ 45+++624D 1A                   ld      a,(de)
+ 46+++624E BE                   cp      (hl)
+ 47+++624F 38 54                jr      c,p127_range_valid
+ 48+++6251 20 54                jr      nz,p127_range_invalid
+ 49+++6253 18 50                jr      p127_range_valid
+ 50+++6255
+ 51+++6255              p127_range_nonzero:
+ 52+++6255 21 A9 62             ld      hl,p127_range_offset
+ 53+++6258 11 AD 62             ld      de,p127_range_length
+ 54+++625B 7E                   ld      a,(hl)
+ 55+++625C 47                   ld      b,a
+ 56+++625D 1A                   ld      a,(de)
+ 57+++625E 80                   add     a,b
+ 58+++625F 32 B5 62             ld      (p127_range_end),a
+ 59+++6262 23                   inc     hl
+ 60+++6263 13                   inc     de
+ 61+++6264 7E                   ld      a,(hl)
+ 62+++6265 47                   ld      b,a
+ 63+++6266 1A                   ld      a,(de)
+ 64+++6267 88                   adc     a,b
+ 65+++6268 32 B6 62             ld      (p127_range_end+1),a
+ 66+++626B 23                   inc     hl
+ 67+++626C 13                   inc     de
+ 68+++626D 7E                   ld      a,(hl)
+ 69+++626E 47                   ld      b,a
+ 70+++626F 1A                   ld      a,(de)
+ 71+++6270 88                   adc     a,b
+ 72+++6271 32 B7 62             ld      (p127_range_end+2),a
+ 73+++6274 23                   inc     hl
+ 74+++6275 13                   inc     de
+ 75+++6276 7E                   ld      a,(hl)
+ 76+++6277 47                   ld      b,a
+ 77+++6278 1A                   ld      a,(de)
+ 78+++6279 88                   adc     a,b
+ 79+++627A 32 B8 62             ld      (p127_range_end+3),a
+ 80+++627D 38 28                jr      c,p127_range_invalid
+ 81+++627F
+ 82+++627F                      ; Unsigned end <= capacity, most-significant byte first.
+ 83+++627F 3A B8 62             ld      a,(p127_range_end+3)
+ 84+++6282 21 B4 62             ld      hl,p127_range_capacity+3
+ 85+++6285 BE                   cp      (hl)
+ 86+++6286 38 1D                jr      c,p127_range_valid
+ 87+++6288 20 1D                jr      nz,p127_range_invalid
+ 88+++628A 3A B7 62             ld      a,(p127_range_end+2)
+ 89+++628D 2B                   dec     hl
+ 90+++628E BE                   cp      (hl)
+ 91+++628F 38 14                jr      c,p127_range_valid
+ 92+++6291 20 14                jr      nz,p127_range_invalid
+ 93+++6293 3A B6 62             ld      a,(p127_range_end+1)
+ 94+++6296 2B                   dec     hl
+ 95+++6297 BE                   cp      (hl)
+ 96+++6298 38 0B                jr      c,p127_range_valid
+ 97+++629A 20 0B                jr      nz,p127_range_invalid
+ 98+++629C 3A B5 62             ld      a,(p127_range_end)
+ 99+++629F 2B                   dec     hl
+100+++62A0 BE                   cp      (hl)
+101+++62A1 38 02                jr      c,p127_range_valid
+102+++62A3 20 02                jr      nz,p127_range_invalid
+103+++62A5              p127_range_valid:
+104+++62A5 B7                   or      a
+105+++62A6 C9                   ret
+106+++62A7              p127_range_invalid:
+107+++62A7 37                   scf
+108+++62A8 C9                   ret
+109+++62A9
+110+++62A9 00 00 00 00  p127_range_offset:   defs 4,0
+111+++62AD 00 00 00 00  p127_range_length:   defs 4,0
+112+++62B1 00 00 00 00  p127_range_capacity: defs 4,0
+113+++62B5 00 00 00 00  p127_range_end:      defs 4,0
+114+++62B9
 # file closed: p127_memory_core.inc
- 15++ 6227
- 16++ 6227              ATM_RAM_CAPACITY_LO  EQU #00
- 17++ 6227              ATM_RAM_CAPACITY_MID EQU #00
- 18++ 6227              ATM_RAM_CAPACITY_HI  EQU #10
- 19++ 6227              ATM_RAM_CAPACITY_TOP EQU #00
- 20++ 6227
- 21++ 6227              atm_mem_test4_length_snapshot:
- 22++ 6227 00 00 00 00          defs    4,0
- 23++ 622B
- 24++ 622B              atm_mem_query_caps:
- 24++ 622B
- 25++ 622B 21 2D 63             ld      hl,atm_mem_capabilities
- 26++ 622E C9                   ret
- 27++ 622F
- 28++ 622F              atm_mem_validate_range:
- 28++ 622F
- 29++ 622F 21 00 00             ld      hl,ATM_RAM_CAPACITY_LO
- 30++ 6232 22 1F 62             ld      (p127_range_capacity),hl
- 31++ 6235 3E 10                ld      a,ATM_RAM_CAPACITY_HI
- 32++ 6237 32 21 62             ld      (p127_range_capacity+2),a
- 33++ 623A AF                   xor     a
- 34++ 623B 32 22 62             ld      (p127_range_capacity+3),a
- 35++ 623E C3 89 61             jp      p127_range_check
- 36++ 6241
- 37++ 6241              atm_mem_range_selftest:
- 37++ 6241
- 38++ 6241                      ; Test 1: final installed byte is valid.
- 39++ 6241 21 FF FF             ld      hl,#FFFF
- 40++ 6244 22 17 62             ld      (p127_range_offset),hl
- 41++ 6247 21 0F 00             ld      hl,#000F
- 42++ 624A 22 19 62             ld      (p127_range_offset+2),hl
- 43++ 624D 21 01 00             ld      hl,1
- 44++ 6250 22 1B 62             ld      (p127_range_length),hl
- 45++ 6253 21 00 00             ld      hl,0
- 46++ 6256 22 1D 62             ld      (p127_range_length+2),hl
- 47++ 6259 CD 2F 62             call    atm_mem_validate_range
- 48++ 625C DA 11 63             jp      c,atm_mem_selftest_fail_1
- 49++ 625F
- 50++ 625F                      ; Test 2: first byte beyond installed RAM is invalid.
- 51++ 625F 21 00 00             ld      hl,0
- 52++ 6262 22 17 62             ld      (p127_range_offset),hl
- 53++ 6265 21 10 00             ld      hl,#0010
- 54++ 6268 22 19 62             ld      (p127_range_offset+2),hl
- 55++ 626B 21 01 00             ld      hl,1
- 56++ 626E 22 1B 62             ld      (p127_range_length),hl
- 57++ 6271 21 00 00             ld      hl,0
- 58++ 6274 22 1D 62             ld      (p127_range_length+2),hl
- 59++ 6277 CD 2F 62             call    atm_mem_validate_range
- 60++ 627A D2 15 63             jp      nc,atm_mem_selftest_fail_2
- 61++ 627D
- 62++ 627D                      ; Test 3: exact full-capacity range is valid.
- 63++ 627D 21 00 00             ld      hl,0
- 64++ 6280 22 17 62             ld      (p127_range_offset),hl
- 65++ 6283 22 19 62             ld      (p127_range_offset+2),hl
- 66++ 6286 22 1B 62             ld      (p127_range_length),hl
- 67++ 6289 21 10 00             ld      hl,#0010
- 68++ 628C 22 1D 62             ld      (p127_range_length+2),hl
- 69++ 628F CD 2F 62             call    atm_mem_validate_range
- 70++ 6292 DA 19 63             jp      c,atm_mem_selftest_fail_3
- 71++ 6295
- 72++ 6295                      ; Test 4: zero length at capacity is valid.
- 73++ 6295 21 00 00             ld      hl,0
- 74++ 6298 22 17 62             ld      (p127_range_offset),hl
- 75++ 629B 21 10 00             ld      hl,#0010
- 76++ 629E 22 19 62             ld      (p127_range_offset+2),hl
- 77++ 62A1                      ; Zero-length test: HL must be cleared after setting offset high word.
- 78++ 62A1 21 00 00             ld      hl,0
- 79++ 62A4 22 1B 62             ld      (p127_range_length),hl
- 80++ 62A7 22 1D 62             ld      (p127_range_length+2),hl
- 81++ 62AA                      ; Preserve the exact test input before the validator runs.
- 82++ 62AA 21 1B 62             ld      hl,p127_range_length
- 83++ 62AD 11 27 62             ld      de,atm_mem_test4_length_snapshot
- 84++ 62B0 01 04 00             ld      bc,4
- 85++ 62B3 ED B0                ldir
- 86++ 62B5 CD 2F 62             call    atm_mem_validate_range
- 87++ 62B8 DA 1D 63             jp      c,atm_mem_selftest_fail_4
- 88++ 62BB
- 89++ 62BB                      ; Test 5: zero length beyond capacity is invalid.
- 90++ 62BB 21 01 00             ld      hl,1
- 91++ 62BE 22 17 62             ld      (p127_range_offset),hl
- 92++ 62C1 21 10 00             ld      hl,#0010
- 93++ 62C4 22 19 62             ld      (p127_range_offset+2),hl
- 94++ 62C7 21 00 00             ld      hl,0
- 95++ 62CA 22 1B 62             ld      (p127_range_length),hl
- 96++ 62CD 22 1D 62             ld      (p127_range_length+2),hl
- 97++ 62D0 CD 2F 62             call    atm_mem_validate_range
- 98++ 62D3 D2 21 63             jp      nc,atm_mem_selftest_fail_5
- 99++ 62D6
-100++ 62D6                      ; Test 6: two bytes from the final byte cross the end.
-101++ 62D6 21 FF FF             ld      hl,#FFFF
-102++ 62D9 22 17 62             ld      (p127_range_offset),hl
-103++ 62DC 21 0F 00             ld      hl,#000F
-104++ 62DF 22 19 62             ld      (p127_range_offset+2),hl
-105++ 62E2 21 02 00             ld      hl,2
-106++ 62E5 22 1B 62             ld      (p127_range_length),hl
-107++ 62E8 21 00 00             ld      hl,0
-108++ 62EB 22 1D 62             ld      (p127_range_length+2),hl
-109++ 62EE CD 2F 62             call    atm_mem_validate_range
-110++ 62F1 D2 25 63             jp      nc,atm_mem_selftest_fail_6
-111++ 62F4
-112++ 62F4                      ; Test 7: UINT32 addition overflow is rejected.
-113++ 62F4 21 FF FF             ld      hl,#FFFF
-114++ 62F7 22 17 62             ld      (p127_range_offset),hl
-115++ 62FA 22 19 62             ld      (p127_range_offset+2),hl
-116++ 62FD 21 01 00             ld      hl,1
-117++ 6300 22 1B 62             ld      (p127_range_length),hl
-118++ 6303 21 00 00             ld      hl,0
-119++ 6306 22 1D 62             ld      (p127_range_length+2),hl
-120++ 6309 CD 2F 62             call    atm_mem_validate_range
-121++ 630C D2 29 63             jp      nc,atm_mem_selftest_fail_7
-122++ 630F AF                   xor     a
-123++ 6310 C9                   ret
-124++ 6311
-125++ 6311              atm_mem_selftest_fail_1:
-126++ 6311 3E 01                ld      a,1
-127++ 6313 18 16                jr      atm_mem_selftest_fail
-128++ 6315              atm_mem_selftest_fail_2:
-129++ 6315 3E 02                ld      a,2
-130++ 6317 18 12                jr      atm_mem_selftest_fail
-131++ 6319              atm_mem_selftest_fail_3:
-132++ 6319 3E 03                ld      a,3
-133++ 631B 18 0E                jr      atm_mem_selftest_fail
-134++ 631D              atm_mem_selftest_fail_4:
-135++ 631D 3E 04                ld      a,4
-136++ 631F 18 0A                jr      atm_mem_selftest_fail
-137++ 6321              atm_mem_selftest_fail_5:
-138++ 6321 3E 05                ld      a,5
-139++ 6323 18 06                jr      atm_mem_selftest_fail
-140++ 6325              atm_mem_selftest_fail_6:
-141++ 6325 3E 06                ld      a,6
-142++ 6327 18 02                jr      atm_mem_selftest_fail
-143++ 6329              atm_mem_selftest_fail_7:
-144++ 6329 3E 07                ld      a,7
-145++ 632B              atm_mem_selftest_fail:
-146++ 632B 37                   scf
-147++ 632C C9                   ret
-148++ 632D
-149++ 632D              atm_mem_capabilities:
-150++ 632D 50 31 32 37          db      "P127"
-151++ 6331 01 00                db      P127_ABI_MAJOR,P127_ABI_MINOR
-152++ 6333 00                   db      0
-153++ 6334 00                   db      0
-154++ 6335 00 00 10 00          db      #00,#00,#10,#00
-155++ 6339 00 00 00 00          db      #00,#00,#00,#00
-156++ 633D 12 00                db      P127_MEM_CAPS_SIZE,0
-157++ 633F
+ 14++ 62B9
+ 15++ 62B9              ATM_RAM_CAPACITY_LO  EQU #00
+ 16++ 62B9              ATM_RAM_CAPACITY_MID EQU #00
+ 17++ 62B9              ATM_RAM_CAPACITY_HI  EQU #10
+ 18++ 62B9              ATM_RAM_CAPACITY_TOP EQU #00
+ 19++ 62B9
+ 20++ 62B9              atm_mem_test4_length_snapshot:
+ 21++ 62B9 00 00 00 00          defs    4,0
+ 22++ 62BD
+ 23++ 62BD              atm_mem_query_caps:
+ 23++ 62BD
+ 24++ 62BD 21 BF 63             ld      hl,atm_mem_capabilities
+ 25++ 62C0 C9                   ret
+ 26++ 62C1
+ 27++ 62C1              atm_mem_validate_range:
+ 27++ 62C1
+ 28++ 62C1 21 00 00             ld      hl,ATM_RAM_CAPACITY_LO
+ 29++ 62C4 22 B1 62             ld      (p127_range_capacity),hl
+ 30++ 62C7 3E 10                ld      a,ATM_RAM_CAPACITY_HI
+ 31++ 62C9 32 B3 62             ld      (p127_range_capacity+2),a
+ 32++ 62CC AF                   xor     a
+ 33++ 62CD 32 B4 62             ld      (p127_range_capacity+3),a
+ 34++ 62D0 C3 1B 62             jp      p127_range_check
+ 35++ 62D3
+ 36++ 62D3              atm_mem_range_selftest:
+ 36++ 62D3
+ 37++ 62D3                      ; Test 1: final installed byte is valid.
+ 38++ 62D3 21 FF FF             ld      hl,#FFFF
+ 39++ 62D6 22 A9 62             ld      (p127_range_offset),hl
+ 40++ 62D9 21 0F 00             ld      hl,#000F
+ 41++ 62DC 22 AB 62             ld      (p127_range_offset+2),hl
+ 42++ 62DF 21 01 00             ld      hl,1
+ 43++ 62E2 22 AD 62             ld      (p127_range_length),hl
+ 44++ 62E5 21 00 00             ld      hl,0
+ 45++ 62E8 22 AF 62             ld      (p127_range_length+2),hl
+ 46++ 62EB CD C1 62             call    atm_mem_validate_range
+ 47++ 62EE DA A3 63             jp      c,atm_mem_selftest_fail_1
+ 48++ 62F1
+ 49++ 62F1                      ; Test 2: first byte beyond installed RAM is invalid.
+ 50++ 62F1 21 00 00             ld      hl,0
+ 51++ 62F4 22 A9 62             ld      (p127_range_offset),hl
+ 52++ 62F7 21 10 00             ld      hl,#0010
+ 53++ 62FA 22 AB 62             ld      (p127_range_offset+2),hl
+ 54++ 62FD 21 01 00             ld      hl,1
+ 55++ 6300 22 AD 62             ld      (p127_range_length),hl
+ 56++ 6303 21 00 00             ld      hl,0
+ 57++ 6306 22 AF 62             ld      (p127_range_length+2),hl
+ 58++ 6309 CD C1 62             call    atm_mem_validate_range
+ 59++ 630C D2 A7 63             jp      nc,atm_mem_selftest_fail_2
+ 60++ 630F
+ 61++ 630F                      ; Test 3: exact full-capacity range is valid.
+ 62++ 630F 21 00 00             ld      hl,0
+ 63++ 6312 22 A9 62             ld      (p127_range_offset),hl
+ 64++ 6315 22 AB 62             ld      (p127_range_offset+2),hl
+ 65++ 6318 22 AD 62             ld      (p127_range_length),hl
+ 66++ 631B 21 10 00             ld      hl,#0010
+ 67++ 631E 22 AF 62             ld      (p127_range_length+2),hl
+ 68++ 6321 CD C1 62             call    atm_mem_validate_range
+ 69++ 6324 DA AB 63             jp      c,atm_mem_selftest_fail_3
+ 70++ 6327
+ 71++ 6327                      ; Test 4: zero length at capacity is valid.
+ 72++ 6327 21 00 00             ld      hl,0
+ 73++ 632A 22 A9 62             ld      (p127_range_offset),hl
+ 74++ 632D 21 10 00             ld      hl,#0010
+ 75++ 6330 22 AB 62             ld      (p127_range_offset+2),hl
+ 76++ 6333                      ; Zero-length test: HL must be cleared after setting offset high word.
+ 77++ 6333 21 00 00             ld      hl,0
+ 78++ 6336 22 AD 62             ld      (p127_range_length),hl
+ 79++ 6339 22 AF 62             ld      (p127_range_length+2),hl
+ 80++ 633C                      ; Preserve the exact test input before the validator runs.
+ 81++ 633C 21 AD 62             ld      hl,p127_range_length
+ 82++ 633F 11 B9 62             ld      de,atm_mem_test4_length_snapshot
+ 83++ 6342 01 04 00             ld      bc,4
+ 84++ 6345 ED B0                ldir
+ 85++ 6347 CD C1 62             call    atm_mem_validate_range
+ 86++ 634A DA AF 63             jp      c,atm_mem_selftest_fail_4
+ 87++ 634D
+ 88++ 634D                      ; Test 5: zero length beyond capacity is invalid.
+ 89++ 634D 21 01 00             ld      hl,1
+ 90++ 6350 22 A9 62             ld      (p127_range_offset),hl
+ 91++ 6353 21 10 00             ld      hl,#0010
+ 92++ 6356 22 AB 62             ld      (p127_range_offset+2),hl
+ 93++ 6359 21 00 00             ld      hl,0
+ 94++ 635C 22 AD 62             ld      (p127_range_length),hl
+ 95++ 635F 22 AF 62             ld      (p127_range_length+2),hl
+ 96++ 6362 CD C1 62             call    atm_mem_validate_range
+ 97++ 6365 D2 B3 63             jp      nc,atm_mem_selftest_fail_5
+ 98++ 6368
+ 99++ 6368                      ; Test 6: two bytes from the final byte cross the end.
+100++ 6368 21 FF FF             ld      hl,#FFFF
+101++ 636B 22 A9 62             ld      (p127_range_offset),hl
+102++ 636E 21 0F 00             ld      hl,#000F
+103++ 6371 22 AB 62             ld      (p127_range_offset+2),hl
+104++ 6374 21 02 00             ld      hl,2
+105++ 6377 22 AD 62             ld      (p127_range_length),hl
+106++ 637A 21 00 00             ld      hl,0
+107++ 637D 22 AF 62             ld      (p127_range_length+2),hl
+108++ 6380 CD C1 62             call    atm_mem_validate_range
+109++ 6383 D2 B7 63             jp      nc,atm_mem_selftest_fail_6
+110++ 6386
+111++ 6386                      ; Test 7: UINT32 addition overflow is rejected.
+112++ 6386 21 FF FF             ld      hl,#FFFF
+113++ 6389 22 A9 62             ld      (p127_range_offset),hl
+114++ 638C 22 AB 62             ld      (p127_range_offset+2),hl
+115++ 638F 21 01 00             ld      hl,1
+116++ 6392 22 AD 62             ld      (p127_range_length),hl
+117++ 6395 21 00 00             ld      hl,0
+118++ 6398 22 AF 62             ld      (p127_range_length+2),hl
+119++ 639B CD C1 62             call    atm_mem_validate_range
+120++ 639E D2 BB 63             jp      nc,atm_mem_selftest_fail_7
+121++ 63A1 AF                   xor     a
+122++ 63A2 C9                   ret
+123++ 63A3
+124++ 63A3              atm_mem_selftest_fail_1:
+125++ 63A3 3E 01                ld      a,1
+126++ 63A5 18 16                jr      atm_mem_selftest_fail
+127++ 63A7              atm_mem_selftest_fail_2:
+128++ 63A7 3E 02                ld      a,2
+129++ 63A9 18 12                jr      atm_mem_selftest_fail
+130++ 63AB              atm_mem_selftest_fail_3:
+131++ 63AB 3E 03                ld      a,3
+132++ 63AD 18 0E                jr      atm_mem_selftest_fail
+133++ 63AF              atm_mem_selftest_fail_4:
+134++ 63AF 3E 04                ld      a,4
+135++ 63B1 18 0A                jr      atm_mem_selftest_fail
+136++ 63B3              atm_mem_selftest_fail_5:
+137++ 63B3 3E 05                ld      a,5
+138++ 63B5 18 06                jr      atm_mem_selftest_fail
+139++ 63B7              atm_mem_selftest_fail_6:
+140++ 63B7 3E 06                ld      a,6
+141++ 63B9 18 02                jr      atm_mem_selftest_fail
+142++ 63BB              atm_mem_selftest_fail_7:
+143++ 63BB 3E 07                ld      a,7
+144++ 63BD              atm_mem_selftest_fail:
+145++ 63BD 37                   scf
+146++ 63BE C9                   ret
+147++ 63BF
+148++ 63BF              atm_mem_capabilities:
+149++ 63BF 50 31 32 37          db      "P127"
+150++ 63C3 01 00                db      P127_ABI_MAJOR,P127_ABI_MINOR
+151++ 63C5 07                   db      #07                 ; range + page-map + alloc/free
+152++ 63C6 00                   db      0
+153++ 63C7 00 00 10 00          db      #00,#00,#10,#00
+154++ 63CB 00 80 0E 00          db      #00,#80,#0E,#00     ; 58 pages = 0x000E8000 bytes allocatable
+155++ 63CF 12 00                db      P127_MEM_CAPS_SIZE,0
+156++ 63D1
+157++ 63D1                      INCLUDE "drivers/atm/atm_memory_manager.asm"
+# file opened: atm_memory_manager.asm
+  1+++63D1              ; =========================================================================
+  2+++63D1              ; Project127 ATM physical-page manager
+  3+++63D1              ; ATM RAM: 64 x 16 KiB pages, mapped through four 16 KiB CPU windows.
+  4+++63D1              ;
+  5+++63D1              ; Public request ABI:
+  6+++63D1              ;   atm_mem_request_length[4]  UINT32 byte length
+  7+++63D1              ;   atm_mem_request_offset[4]  UINT32 physical byte offset (FREE)
+  8+++63D1              ;   atm_mem_result_offset[4]   UINT32 physical byte offset (ALLOC result)
+  9+++63D1              ;
+ 10+++63D1              ; ALLOC returns a page-aligned contiguous physical extent. The caller sees
+ 11+++63D1              ; a 32-bit byte offset; page numbers and the 16 KiB mapping window are private.
+ 12+++63D1              ; READ/WRITE/STREAM operations will use the same mapper and split internally.
+ 13+++63D1              ;
+ 14+++63D1              ; Reserved pages are based on the Project112 ATM2+ memory map and the P127
+ 15+++63D1              ; boot runtime: page 0 system/BASIC map, page 2 host stack, page 5 host image,
+ 16+++63D1              ; pages 1/5 ATM video pair, and pages 3/7 alternate ZX video pages.
+ 17+++63D1              ; =========================================================================
+ 18+++63D1
+ 19+++63D1              ATM_PAGE_COUNT          EQU 64
+ 20+++63D1              ATM_PAGE_SHIFT          EQU 14
+ 21+++63D1              ATM_PAGE_SIZE           EQU #4000
+ 22+++63D1              ATM_PAGE_PORT_WINDOW3   EQU #FFF7
+ 23+++63D1              ATM_ALLOCATION_SLOTS     EQU 64
+ 24+++63D1
+ 25+++63D1              atm_mem_init:
+ 25+++63D1
+ 26+++63D1                      ; Clear allocations from a previous initialization.
+ 27+++63D1 AF                   xor     a
+ 28+++63D2 21 9E 68             ld      hl,atm_mem_allocated_bitmap
+ 29+++63D5 77                   ld      (hl),a
+ 30+++63D6 11 9F 68             ld      de,atm_mem_allocated_bitmap+1
+ 31+++63D9 01 07 00             ld      bc,7
+ 32+++63DC ED B0                ldir
+ 33+++63DE 21 16 67             ld      hl,atm_mem_alloc_table
+ 34+++63E1 77                   ld      (hl),a
+ 35+++63E2 11 17 67             ld      de,atm_mem_alloc_table+1
+ 36+++63E5 01 7F 01             ld      bc,383
+ 37+++63E8 ED B0                ldir
+ 38+++63EA                      ; Open the ATM shadow-port decoder using the proven Project112 ROM
+ 39+++63EA                      ; trampoline. This is required before writes to #FFF7.
+ 40+++63EA CD EF 63             call    atm_mem_open_shadow_ports
+ 41+++63ED B7                   or      a
+ 42+++63EE C9                   ret
+ 43+++63EF
+ 44+++63EF              atm_mem_open_shadow_ports:
+ 45+++63EF 01 FF 63             ld      bc,atm_mem_shadow_ports_opened
+ 46+++63F2 C5                   push    bc
+ 47+++63F3 01 53 2A             ld      bc,#2A53
+ 48+++63F6 C5                   push    bc
+ 49+++63F7 01 77 01             ld      bc,#0177
+ 50+++63FA 3E C3                ld      a,#C3
+ 51+++63FC C3 2F 3D             jp      #3D2F
+ 52+++63FF              atm_mem_shadow_ports_opened:
+ 53+++63FF C9                   ret
+ 54+++6400
+ 55+++6400              ; A = physical RAM page 0..63. Maps it into CPU window 3 ($C000-$FFFF).
+ 56+++6400              ; The ATM dispatcher uses inverted D0-D5, D6=1 (RAM), D7=0 (fixed page).
+ 57+++6400              atm_mem_map_page:
+ 57+++6400
+ 58+++6400 FE 40                cp      ATM_PAGE_COUNT
+ 59+++6402 D2 11 64             jp      nc,atm_mem_map_page_invalid
+ 60+++6405 2F                   cpl
+ 61+++6406 E6 3F                and     #3F
+ 62+++6408 F6 40                or      #40
+ 63+++640A 01 F7 FF             ld      bc,ATM_PAGE_PORT_WINDOW3
+ 64+++640D ED 79                out     (c),a
+ 65+++640F B7                   or      a
+ 66+++6410 C9                   ret
+ 67+++6411              atm_mem_map_page_invalid:
+ 68+++6411 37                   scf
+ 69+++6412 C9                   ret
+ 70+++6413
+ 71+++6413              ; Validate request_offset + request_length against physical capacity.
+ 72+++6413              atm_mem_validate_request:
+ 73+++6413 2A 05 67             ld      hl,(atm_mem_request_offset)
+ 74+++6416 22 A9 62             ld      (p127_range_offset),hl
+ 75+++6419 2A 07 67             ld      hl,(atm_mem_request_offset+2)
+ 76+++641C 22 AB 62             ld      (p127_range_offset+2),hl
+ 77+++641F 2A 09 67             ld      hl,(atm_mem_request_length)
+ 78+++6422 22 AD 62             ld      (p127_range_length),hl
+ 79+++6425 2A 0B 67             ld      hl,(atm_mem_request_length+2)
+ 80+++6428 22 AF 62             ld      (p127_range_length+2),hl
+ 81+++642B C3 C1 62             jp      atm_mem_validate_range
+ 82+++642E
+ 83+++642E              ; A = ceil(request_length / 16384), 1..64. Request must already be validated.
+ 84+++642E              atm_mem_pages_for_length:
+ 85+++642E 3A 0A 67             ld      a,(atm_mem_request_length+1)
+ 86+++6431 E6 C0                and     #C0
+ 87+++6433 CB 3F                srl     a
+ 88+++6435 CB 3F                srl     a
+ 89+++6437 CB 3F                srl     a
+ 90+++6439 CB 3F                srl     a
+ 91+++643B CB 3F                srl     a
+ 92+++643D CB 3F                srl     a
+ 93+++643F 47                   ld      b,a
+ 94+++6440 3A 0B 67             ld      a,(atm_mem_request_length+2)
+ 95+++6443 87                   add     a,a
+ 96+++6444 87                   add     a,a
+ 97+++6445 80                   add     a,b
+ 98+++6446 47                   ld      b,a
+ 99+++6447 3A 09 67             ld      a,(atm_mem_request_length)
+100+++644A 4F                   ld      c,a
+101+++644B 3A 0A 67             ld      a,(atm_mem_request_length+1)
+102+++644E E6 3F                and     #3F
+103+++6450 B1                   or      c
+104+++6451 CA 55 64             jp      z,atm_mem_pages_exact
+105+++6454 04                   inc     b
+106+++6455              atm_mem_pages_exact:
+107+++6455 78                   ld      a,b
+108+++6456 C9                   ret
+109+++6457
+110+++6457              ; ALLOC: request_length -> result_offset. First-fit contiguous page extent.
+111+++6457              ; Carry clear = complete allocation; carry set = invalid size or no run.
+112+++6457              atm_mem_alloc:
+112+++6457
+113+++6457 21 00 00             ld      hl,0
+114+++645A 22 05 67             ld      (atm_mem_request_offset),hl
+115+++645D 22 07 67             ld      (atm_mem_request_offset+2),hl
+116+++6460 3A 09 67             ld      a,(atm_mem_request_length)
+117+++6463 47                   ld      b,a
+118+++6464 3A 0A 67             ld      a,(atm_mem_request_length+1)
+119+++6467 B0                   or      b
+120+++6468 47                   ld      b,a
+121+++6469 3A 0B 67             ld      a,(atm_mem_request_length+2)
+122+++646C B0                   or      b
+123+++646D 47                   ld      b,a
+124+++646E 3A 0C 67             ld      a,(atm_mem_request_length+3)
+125+++6471 B0                   or      b
+126+++6472 CA 13 65             jp      z,atm_mem_alloc_fail
+127+++6475 CD 13 64             call    atm_mem_validate_request
+128+++6478 DA 13 65             jp      c,atm_mem_alloc_fail
+129+++647B CD 2E 64             call    atm_mem_pages_for_length
+130+++647E B7                   or      a
+131+++647F CA 13 65             jp      z,atm_mem_alloc_fail
+132+++6482 32 11 67             ld      (atm_mem_pages_needed),a
+133+++6485
+134+++6485                      ; Reserve a bookkeeping slot before searching for physical pages.
+135+++6485 21 16 67             ld      hl,atm_mem_alloc_table
+136+++6488 06 40                ld      b,ATM_ALLOCATION_SLOTS
+137+++648A              atm_mem_alloc_find_slot:
+138+++648A 7E                   ld      a,(hl)
+139+++648B B7                   or      a
+140+++648C CA 9A 64             jp      z,atm_mem_alloc_slot_found
+141+++648F C5                   push    bc
+142+++6490 11 06 00             ld      de,6
+143+++6493 19                   add     hl,de
+144+++6494 C1                   pop     bc
+145+++6495 10 F3                djnz    atm_mem_alloc_find_slot
+146+++6497 C3 13 65             jp      atm_mem_alloc_fail
+147+++649A              atm_mem_alloc_slot_found:
+148+++649A 22 14 67             ld      (atm_mem_record_ptr),hl
+149+++649D
+150+++649D AF                   xor     a
+151+++649E 32 12 67             ld      (atm_mem_candidate),a
+152+++64A1
+153+++64A1              atm_mem_alloc_candidate:
+154+++64A1 3A 12 67             ld      a,(atm_mem_candidate)
+155+++64A4 FE 40                cp      ATM_PAGE_COUNT
+156+++64A6 D2 13 65             jp      nc,atm_mem_alloc_fail
+157+++64A9 47                   ld      b,a
+158+++64AA 3A 11 67             ld      a,(atm_mem_pages_needed)
+159+++64AD 4F                   ld      c,a
+160+++64AE              atm_mem_alloc_scan:
+161+++64AE 78                   ld      a,b
+162+++64AF FE 40                cp      ATM_PAGE_COUNT
+163+++64B1 D2 09 65             jp      nc,atm_mem_alloc_next_candidate
+164+++64B4 CD DE 65             call    atm_mem_page_is_free
+165+++64B7 C2 09 65             jp      nz,atm_mem_alloc_next_candidate
+166+++64BA 04                   inc     b
+167+++64BB 0D                   dec     c
+168+++64BC C2 AE 64             jp      nz,atm_mem_alloc_scan
+169+++64BF
+170+++64BF                      ; Entire run is free. Mark all pages allocated.
+171+++64BF 3A 12 67             ld      a,(atm_mem_candidate)
+172+++64C2 32 13 67             ld      (atm_mem_alloc_start),a
+173+++64C5 47                   ld      b,a
+174+++64C6 3A 11 67             ld      a,(atm_mem_pages_needed)
+175+++64C9 4F                   ld      c,a
+176+++64CA              atm_mem_alloc_mark:
+177+++64CA 78                   ld      a,b
+178+++64CB CD 10 66             call    atm_mem_page_set_allocated
+179+++64CE 04                   inc     b
+180+++64CF 0D                   dec     c
+181+++64D0 C2 CA 64             jp      nz,atm_mem_alloc_mark
+182+++64D3
+183+++64D3                      ; Record exact allocation identity: start page, page count, byte length.
+184+++64D3 2A 14 67             ld      hl,(atm_mem_record_ptr)
+185+++64D6 3A 13 67             ld      a,(atm_mem_alloc_start)
+186+++64D9 77                   ld      (hl),a
+187+++64DA 23                   inc     hl
+188+++64DB 3A 11 67             ld      a,(atm_mem_pages_needed)
+189+++64DE 77                   ld      (hl),a
+190+++64DF 23                   inc     hl
+191+++64E0 11 09 67             ld      de,atm_mem_request_length
+192+++64E3 01 04 00             ld      bc,4
+193+++64E6 ED B0                ldir
+194+++64E8
+195+++64E8                      ; Convert page index to a 32-bit byte offset (page << 14).
+196+++64E8 3A 13 67             ld      a,(atm_mem_alloc_start)
+197+++64EB E6 03                and     3
+198+++64ED 87                   add     a,a
+199+++64EE 87                   add     a,a
+200+++64EF 87                   add     a,a
+201+++64F0 87                   add     a,a
+202+++64F1 87                   add     a,a
+203+++64F2 87                   add     a,a
+204+++64F3 32 0E 67             ld      (atm_mem_result_offset+1),a
+205+++64F6 3A 13 67             ld      a,(atm_mem_alloc_start)
+206+++64F9 CB 3F                srl     a
+207+++64FB CB 3F                srl     a
+208+++64FD 32 0F 67             ld      (atm_mem_result_offset+2),a
+209+++6500 AF                   xor     a
+210+++6501 32 0D 67             ld      (atm_mem_result_offset),a
+211+++6504 32 10 67             ld      (atm_mem_result_offset+3),a
+212+++6507 B7                   or      a
+213+++6508 C9                   ret
+214+++6509
+215+++6509              atm_mem_alloc_next_candidate:
+216+++6509 3A 12 67             ld      a,(atm_mem_candidate)
+217+++650C 3C                   inc     a
+218+++650D 32 12 67             ld      (atm_mem_candidate),a
+219+++6510 C3 A1 64             jp      atm_mem_alloc_candidate
+220+++6513
+221+++6513              atm_mem_alloc_fail:
+222+++6513 37                   scf
+223+++6514 C9                   ret
+224+++6515
+225+++6515              ; FREE: request_offset + request_length identify the original allocation.
+226+++6515              ; Both the base and the rounded page extent must match allocated pages.
+227+++6515              atm_mem_free:
+227+++6515
+228+++6515 3A 05 67             ld      a,(atm_mem_request_offset)
+229+++6518 B7                   or      a
+230+++6519 C2 DC 65             jp      nz,atm_mem_free_fail
+231+++651C 3A 08 67             ld      a,(atm_mem_request_offset+3)
+232+++651F B7                   or      a
+233+++6520 C2 DC 65             jp      nz,atm_mem_free_fail
+234+++6523 3A 06 67             ld      a,(atm_mem_request_offset+1)
+235+++6526 E6 3F                and     #3F
+236+++6528 C2 DC 65             jp      nz,atm_mem_free_fail
+237+++652B 3A 09 67             ld      a,(atm_mem_request_length)
+238+++652E 47                   ld      b,a
+239+++652F 3A 0A 67             ld      a,(atm_mem_request_length+1)
+240+++6532 B0                   or      b
+241+++6533 47                   ld      b,a
+242+++6534 3A 0B 67             ld      a,(atm_mem_request_length+2)
+243+++6537 B0                   or      b
+244+++6538 47                   ld      b,a
+245+++6539 3A 0C 67             ld      a,(atm_mem_request_length+3)
+246+++653C B0                   or      b
+247+++653D CA DC 65             jp      z,atm_mem_free_fail
+248+++6540 CD 13 64             call    atm_mem_validate_request
+249+++6543 DA DC 65             jp      c,atm_mem_free_fail
+250+++6546
+251+++6546                      ; Page index = (offset >> 14).
+252+++6546 3A 07 67             ld      a,(atm_mem_request_offset+2)
+253+++6549 87                   add     a,a
+254+++654A 87                   add     a,a
+255+++654B 47                   ld      b,a
+256+++654C 3A 06 67             ld      a,(atm_mem_request_offset+1)
+257+++654F CB 3F                srl     a
+258+++6551 CB 3F                srl     a
+259+++6553 CB 3F                srl     a
+260+++6555 CB 3F                srl     a
+261+++6557 CB 3F                srl     a
+262+++6559 CB 3F                srl     a
+263+++655B E6 03                and     3
+264+++655D B0                   or      b
+265+++655E 32 13 67             ld      (atm_mem_alloc_start),a
+266+++6561
+267+++6561                      ; Require an exact base+length match in the allocation table.
+268+++6561 21 16 67             ld      hl,atm_mem_alloc_table
+269+++6564 06 40                ld      b,ATM_ALLOCATION_SLOTS
+270+++6566              atm_mem_free_find_record:
+271+++6566 7E                   ld      a,(hl)
+272+++6567 B7                   or      a
+273+++6568 CA A0 65             jp      z,atm_mem_free_next_record
+274+++656B 57                   ld      d,a
+275+++656C 3A 13 67             ld      a,(atm_mem_alloc_start)
+276+++656F BA                   cp      d
+277+++6570 C2 A0 65             jp      nz,atm_mem_free_next_record
+278+++6573 E5                   push    hl
+279+++6574 23                   inc     hl
+280+++6575 23                   inc     hl
+281+++6576 11 09 67             ld      de,atm_mem_request_length
+282+++6579 1A                   ld      a,(de)
+283+++657A BE                   cp      (hl)
+284+++657B C2 9F 65             jp      nz,atm_mem_free_record_mismatch
+285+++657E 13                   inc     de
+286+++657F 23                   inc     hl
+287+++6580 1A                   ld      a,(de)
+288+++6581 BE                   cp      (hl)
+289+++6582 C2 9F 65             jp      nz,atm_mem_free_record_mismatch
+290+++6585 13                   inc     de
+291+++6586 23                   inc     hl
+292+++6587 1A                   ld      a,(de)
+293+++6588 BE                   cp      (hl)
+294+++6589 C2 9F 65             jp      nz,atm_mem_free_record_mismatch
+295+++658C 13                   inc     de
+296+++658D 23                   inc     hl
+297+++658E 1A                   ld      a,(de)
+298+++658F BE                   cp      (hl)
+299+++6590 C2 9F 65             jp      nz,atm_mem_free_record_mismatch
+300+++6593 E1                   pop     hl
+301+++6594 22 14 67             ld      (atm_mem_record_ptr),hl
+302+++6597 23                   inc     hl
+303+++6598 7E                   ld      a,(hl)
+304+++6599 32 11 67             ld      (atm_mem_pages_needed),a
+305+++659C C3 AB 65             jp      atm_mem_free_record_found
+306+++659F              atm_mem_free_record_mismatch:
+307+++659F E1                   pop     hl
+308+++65A0              atm_mem_free_next_record:
+309+++65A0 C5                   push    bc
+310+++65A1 11 06 00             ld      de,6
+311+++65A4 19                   add     hl,de
+312+++65A5 C1                   pop     bc
+313+++65A6 10 BE                djnz    atm_mem_free_find_record
+314+++65A8 C3 DC 65             jp      atm_mem_free_fail
+315+++65AB              atm_mem_free_record_found:
+316+++65AB
+317+++65AB                      ; Validate every page before changing any bitmap bit.
+318+++65AB 3A 13 67             ld      a,(atm_mem_alloc_start)
+319+++65AE 47                   ld      b,a
+320+++65AF 3A 11 67             ld      a,(atm_mem_pages_needed)
+321+++65B2 4F                   ld      c,a
+322+++65B3              atm_mem_free_check:
+323+++65B3 78                   ld      a,b
+324+++65B4 FE 40                cp      ATM_PAGE_COUNT
+325+++65B6 D2 DC 65             jp      nc,atm_mem_free_fail
+326+++65B9 CD 37 66             call    atm_mem_page_is_allocated
+327+++65BC CA DC 65             jp      z,atm_mem_free_fail
+328+++65BF 04                   inc     b
+329+++65C0 0D                   dec     c
+330+++65C1 C2 B3 65             jp      nz,atm_mem_free_check
+331+++65C4
+332+++65C4 3A 13 67             ld      a,(atm_mem_alloc_start)
+333+++65C7 47                   ld      b,a
+334+++65C8 3A 11 67             ld      a,(atm_mem_pages_needed)
+335+++65CB 4F                   ld      c,a
+336+++65CC              atm_mem_free_clear:
+337+++65CC 78                   ld      a,b
+338+++65CD CD 5B 66             call    atm_mem_page_clear_allocated
+339+++65D0 04                   inc     b
+340+++65D1 0D                   dec     c
+341+++65D2 C2 CC 65             jp      nz,atm_mem_free_clear
+342+++65D5                      ; Release the exact allocation record only after all page bits clear.
+343+++65D5 2A 14 67             ld      hl,(atm_mem_record_ptr)
+344+++65D8 AF                   xor     a
+345+++65D9 77                   ld      (hl),a
+346+++65DA B7                   or      a
+347+++65DB C9                   ret
+348+++65DC
+349+++65DC              atm_mem_free_fail:
+350+++65DC 37                   scf
+351+++65DD C9                   ret
+352+++65DE
+353+++65DE              ; A=page. Z if neither reserved nor allocated.
+354+++65DE              atm_mem_page_is_free:
+355+++65DE C5                   push    bc
+356+++65DF 4F                   ld      c,a
+357+++65E0 E6 07                and     7
+358+++65E2 47                   ld      b,a
+359+++65E3 79                   ld      a,c
+360+++65E4 CB 3F                srl     a
+361+++65E6 CB 3F                srl     a
+362+++65E8 CB 3F                srl     a
+363+++65EA 4F                   ld      c,a
+364+++65EB 1E 01                ld      e,1
+365+++65ED 78                   ld      a,b
+366+++65EE B7                   or      a
+367+++65EF CA F6 65             jp      z,atm_mem_page_free_mask_ready
+368+++65F2              atm_mem_page_free_mask_loop:
+369+++65F2 CB 23                sla     e
+370+++65F4 10 FC                djnz    atm_mem_page_free_mask_loop
+371+++65F6              atm_mem_page_free_mask_ready:
+372+++65F6 79                   ld      a,c
+373+++65F7 4F                   ld      c,a
+374+++65F8 06 00                ld      b,0
+375+++65FA 21 96 68             ld      hl,atm_mem_reserved_bitmap
+376+++65FD 09                   add     hl,bc
+377+++65FE 7E                   ld      a,(hl)
+378+++65FF A3                   and     e
+379+++6600 C2 0B 66             jp      nz,atm_mem_page_used
+380+++6603 21 9E 68             ld      hl,atm_mem_allocated_bitmap
+381+++6606 09                   add     hl,bc
+382+++6607 7E                   ld      a,(hl)
+383+++6608 A3                   and     e
+384+++6609 C1                   pop     bc
+385+++660A C9                   ret
+386+++660B              atm_mem_page_used:
+387+++660B 3E 01                ld      a,1
+388+++660D B7                   or      a
+389+++660E C1                   pop     bc
+390+++660F C9                   ret
+391+++6610
+392+++6610              ; A=page. Sets its bit in the allocation bitmap.
+393+++6610              atm_mem_page_set_allocated:
+394+++6610 C5                   push    bc
+395+++6611 4F                   ld      c,a
+396+++6612 E6 07                and     7
+397+++6614 47                   ld      b,a
+398+++6615 79                   ld      a,c
+399+++6616 CB 3F                srl     a
+400+++6618 CB 3F                srl     a
+401+++661A CB 3F                srl     a
+402+++661C 4F                   ld      c,a
+403+++661D 1E 01                ld      e,1
+404+++661F 78                   ld      a,b
+405+++6620 B7                   or      a
+406+++6621 CA 28 66             jp      z,atm_mem_page_set_mask_ready
+407+++6624              atm_mem_page_set_mask_loop:
+408+++6624 CB 23                sla     e
+409+++6626 10 FC                djnz    atm_mem_page_set_mask_loop
+410+++6628              atm_mem_page_set_mask_ready:
+411+++6628 7B                   ld      a,e
+412+++6629 F5                   push    af
+413+++662A 79                   ld      a,c
+414+++662B 4F                   ld      c,a
+415+++662C 06 00                ld      b,0
+416+++662E 21 9E 68             ld      hl,atm_mem_allocated_bitmap
+417+++6631 09                   add     hl,bc
+418+++6632 F1                   pop     af
+419+++6633 B6                   or      (hl)
+420+++6634 77                   ld      (hl),a
+421+++6635 C1                   pop     bc
+422+++6636 C9                   ret
+423+++6637
+424+++6637              ; A=page. Returns NZ if its allocation bit is set.
+425+++6637              atm_mem_page_is_allocated:
+426+++6637 C5                   push    bc
+427+++6638 4F                   ld      c,a
+428+++6639 E6 07                and     7
+429+++663B 47                   ld      b,a
+430+++663C 79                   ld      a,c
+431+++663D CB 3F                srl     a
+432+++663F CB 3F                srl     a
+433+++6641 CB 3F                srl     a
+434+++6643 4F                   ld      c,a
+435+++6644 1E 01                ld      e,1
+436+++6646 78                   ld      a,b
+437+++6647 B7                   or      a
+438+++6648 CA 4F 66             jp      z,atm_mem_page_alloc_test_ready
+439+++664B              atm_mem_page_alloc_test_loop:
+440+++664B CB 23                sla     e
+441+++664D 10 FC                djnz    atm_mem_page_alloc_test_loop
+442+++664F              atm_mem_page_alloc_test_ready:
+443+++664F 79                   ld      a,c
+444+++6650 4F                   ld      c,a
+445+++6651 06 00                ld      b,0
+446+++6653 21 9E 68             ld      hl,atm_mem_allocated_bitmap
+447+++6656 09                   add     hl,bc
+448+++6657 7E                   ld      a,(hl)
+449+++6658 A3                   and     e
+450+++6659 C1                   pop     bc
+451+++665A C9                   ret
+452+++665B
+453+++665B              ; A=page. Clears its allocation bit.
+454+++665B              atm_mem_page_clear_allocated:
+455+++665B C5                   push    bc
+456+++665C 4F                   ld      c,a
+457+++665D E6 07                and     7
+458+++665F 47                   ld      b,a
+459+++6660 79                   ld      a,c
+460+++6661 CB 3F                srl     a
+461+++6663 CB 3F                srl     a
+462+++6665 CB 3F                srl     a
+463+++6667 4F                   ld      c,a
+464+++6668 1E 01                ld      e,1
+465+++666A 78                   ld      a,b
+466+++666B B7                   or      a
+467+++666C CA 73 66             jp      z,atm_mem_page_clear_mask_ready
+468+++666F              atm_mem_page_clear_mask_loop:
+469+++666F CB 23                sla     e
+470+++6671 10 FC                djnz    atm_mem_page_clear_mask_loop
+471+++6673              atm_mem_page_clear_mask_ready:
+472+++6673 7B                   ld      a,e
+473+++6674 2F                   cpl
+474+++6675 F5                   push    af
+475+++6676 79                   ld      a,c
+476+++6677 4F                   ld      c,a
+477+++6678 06 00                ld      b,0
+478+++667A 21 9E 68             ld      hl,atm_mem_allocated_bitmap
+479+++667D 09                   add     hl,bc
+480+++667E F1                   pop     af
+481+++667F A6                   and     (hl)
+482+++6680 77                   ld      (hl),a
+483+++6681 C1                   pop     bc
+484+++6682 C9                   ret
+485+++6683
+486+++6683              ; Runtime allocator smoke test. Verifies a 16 KiB + 1 byte allocation crosses
+487+++6683              ; the physical page boundary, then verifies a one-byte allocation and FREE.
+488+++6683              atm_mem_allocator_selftest:
+488+++6683
+489+++6683 21 01 40             ld      hl,#4001
+490+++6686 22 09 67             ld      (atm_mem_request_length),hl
+491+++6689 21 00 00             ld      hl,0
+492+++668C 22 0B 67             ld      (atm_mem_request_length+2),hl
+493+++668F CD 57 64             call    atm_mem_alloc
+494+++6692 DA 03 67             jp      c,atm_mem_allocator_selftest_fail
+495+++6695 3A 0D 67             ld      a,(atm_mem_result_offset)
+496+++6698 B7                   or      a
+497+++6699 C2 03 67             jp      nz,atm_mem_allocator_selftest_fail
+498+++669C 3A 0E 67             ld      a,(atm_mem_result_offset+1)
+499+++669F B7                   or      a
+500+++66A0 C2 03 67             jp      nz,atm_mem_allocator_selftest_fail
+501+++66A3 3A 0F 67             ld      a,(atm_mem_result_offset+2)
+502+++66A6 FE 02                cp      2
+503+++66A8 C2 03 67             jp      nz,atm_mem_allocator_selftest_fail
+504+++66AB 3A 10 67             ld      a,(atm_mem_result_offset+3)
+505+++66AE B7                   or      a
+506+++66AF C2 03 67             jp      nz,atm_mem_allocator_selftest_fail
+507+++66B2 2A 0D 67             ld      hl,(atm_mem_result_offset)
+508+++66B5 22 05 67             ld      (atm_mem_request_offset),hl
+509+++66B8 2A 0F 67             ld      hl,(atm_mem_result_offset+2)
+510+++66BB 22 07 67             ld      (atm_mem_request_offset+2),hl
+511+++66BE CD 15 65             call    atm_mem_free
+512+++66C1 DA 03 67             jp      c,atm_mem_allocator_selftest_fail
+513+++66C4
+514+++66C4 21 01 00             ld      hl,1
+515+++66C7 22 09 67             ld      (atm_mem_request_length),hl
+516+++66CA 21 00 00             ld      hl,0
+517+++66CD 22 0B 67             ld      (atm_mem_request_length+2),hl
+518+++66D0 CD 57 64             call    atm_mem_alloc
+519+++66D3 DA 03 67             jp      c,atm_mem_allocator_selftest_fail
+520+++66D6 3A 0D 67             ld      a,(atm_mem_result_offset)
+521+++66D9 B7                   or      a
+522+++66DA C2 03 67             jp      nz,atm_mem_allocator_selftest_fail
+523+++66DD 3A 0E 67             ld      a,(atm_mem_result_offset+1)
+524+++66E0 B7                   or      a
+525+++66E1 C2 03 67             jp      nz,atm_mem_allocator_selftest_fail
+526+++66E4 3A 0F 67             ld      a,(atm_mem_result_offset+2)
+527+++66E7 FE 01                cp      1
+528+++66E9 C2 03 67             jp      nz,atm_mem_allocator_selftest_fail
+529+++66EC 3A 10 67             ld      a,(atm_mem_result_offset+3)
+530+++66EF B7                   or      a
+531+++66F0 C2 03 67             jp      nz,atm_mem_allocator_selftest_fail
+532+++66F3 2A 0D 67             ld      hl,(atm_mem_result_offset)
+533+++66F6 22 05 67             ld      (atm_mem_request_offset),hl
+534+++66F9 2A 0F 67             ld      hl,(atm_mem_result_offset+2)
+535+++66FC 22 07 67             ld      (atm_mem_request_offset+2),hl
+536+++66FF CD 15 65             call    atm_mem_free
+537+++6702 C9                   ret
+538+++6703
+539+++6703              atm_mem_allocator_selftest_fail:
+540+++6703 37                   scf
+541+++6704 C9                   ret
+542+++6705
+543+++6705 00 00 00 00  atm_mem_request_offset:     defs 4,0
+544+++6709 00 00 00 00  atm_mem_request_length:     defs 4,0
+545+++670D 00 00 00 00  atm_mem_result_offset:      defs 4,0
+546+++6711 00           atm_mem_pages_needed:       db 0
+547+++6712 00           atm_mem_candidate:          db 0
+548+++6713 00           atm_mem_alloc_start:        db 0
+549+++6714 00 00        atm_mem_record_ptr:         dw 0
+550+++6716              ; 64 records * 6 bytes: start page, page count, exact UINT32 byte length.
+551+++6716 00 00 00...  atm_mem_alloc_table:        defs 384,0
+552+++6896
+553+++6896              ; Page 0,1,2,3,5,7 are reserved: $AF in bitmap byte zero.
+554+++6896              atm_mem_reserved_bitmap:
+555+++6896 AF 00 00 00          db #AF,0,0,0,0,0,0,0
+555+++689A 00 00 00 00
+556+++689E              atm_mem_allocated_bitmap:
+557+++689E 00 00 00...          defs 8,0
+558+++68A6
+# file closed: atm_memory_manager.asm
+158++ 68A6
 # file closed: atm_memory_backend.asm
-131+  633F
-132+  633F              p127_host_program_end:
-133+  633F                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
-134+  633F                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
-135+  633F
+151+  68A6
+152+  68A6              p127_host_program_end:
+153+  68A6                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
+154+  68A6                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
+155+  68A6
 # file closed: p127_host.asm
- 12   633F                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
- 13   633F
- 14   633F                      PAGE 0
- 15   633F                      ORG #E000
+ 12   68A6                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
+ 13   68A6
+ 14   68A6                      PAGE 0
+ 15   68A6                      ORG #E000
  16   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
 # file opened: boot_loader.generated.asm
   1+  E000              ; =========================================================================
@@ -661,19 +1275,73 @@
 
 Value    Label
 ------ - -----------------------------------------------------------
-0x632D   atm_mem_capabilities
-0x622B X atm_mem_query_caps
-0x6241   atm_mem_range_selftest
-0x632B   atm_mem_selftest_fail
-0x6311   atm_mem_selftest_fail_1
-0x6315   atm_mem_selftest_fail_2
-0x6319   atm_mem_selftest_fail_3
-0x631D   atm_mem_selftest_fail_4
-0x6321   atm_mem_selftest_fail_5
-0x6325   atm_mem_selftest_fail_6
-0x6329   atm_mem_selftest_fail_7
-0x6227   atm_mem_test4_length_snapshot
-0x622F   atm_mem_validate_range
+0x0040   ATM_ALLOCATION_SLOTS
+0x6457   atm_mem_alloc
+0x64A1   atm_mem_alloc_candidate
+0x6513   atm_mem_alloc_fail
+0x648A   atm_mem_alloc_find_slot
+0x64CA   atm_mem_alloc_mark
+0x6509   atm_mem_alloc_next_candidate
+0x64AE   atm_mem_alloc_scan
+0x649A   atm_mem_alloc_slot_found
+0x6713   atm_mem_alloc_start
+0x6716   atm_mem_alloc_table
+0x689E   atm_mem_allocated_bitmap
+0x6683   atm_mem_allocator_selftest
+0x6703   atm_mem_allocator_selftest_fail
+0x6712   atm_mem_candidate
+0x63BF   atm_mem_capabilities
+0x6515   atm_mem_free
+0x65B3   atm_mem_free_check
+0x65CC   atm_mem_free_clear
+0x65DC   atm_mem_free_fail
+0x6566   atm_mem_free_find_record
+0x65A0   atm_mem_free_next_record
+0x65AB   atm_mem_free_record_found
+0x659F   atm_mem_free_record_mismatch
+0x63D1   atm_mem_init
+0x6400 X atm_mem_map_page
+0x6411   atm_mem_map_page_invalid
+0x63EF   atm_mem_open_shadow_ports
+0x664B   atm_mem_page_alloc_test_loop
+0x664F   atm_mem_page_alloc_test_ready
+0x665B   atm_mem_page_clear_allocated
+0x666F   atm_mem_page_clear_mask_loop
+0x6673   atm_mem_page_clear_mask_ready
+0x65F2   atm_mem_page_free_mask_loop
+0x65F6   atm_mem_page_free_mask_ready
+0x6637   atm_mem_page_is_allocated
+0x65DE   atm_mem_page_is_free
+0x6610   atm_mem_page_set_allocated
+0x6624   atm_mem_page_set_mask_loop
+0x6628   atm_mem_page_set_mask_ready
+0x660B   atm_mem_page_used
+0x6455   atm_mem_pages_exact
+0x642E   atm_mem_pages_for_length
+0x6711   atm_mem_pages_needed
+0x62BD X atm_mem_query_caps
+0x62D3   atm_mem_range_selftest
+0x6714   atm_mem_record_ptr
+0x6709   atm_mem_request_length
+0x6705   atm_mem_request_offset
+0x6896   atm_mem_reserved_bitmap
+0x670D   atm_mem_result_offset
+0x63BD   atm_mem_selftest_fail
+0x63A3   atm_mem_selftest_fail_1
+0x63A7   atm_mem_selftest_fail_2
+0x63AB   atm_mem_selftest_fail_3
+0x63AF   atm_mem_selftest_fail_4
+0x63B3   atm_mem_selftest_fail_5
+0x63B7   atm_mem_selftest_fail_6
+0x63BB   atm_mem_selftest_fail_7
+0x63FF   atm_mem_shadow_ports_opened
+0x62B9   atm_mem_test4_length_snapshot
+0x62C1   atm_mem_validate_range
+0x6413   atm_mem_validate_request
+0x0040   ATM_PAGE_COUNT
+0xFFF7   ATM_PAGE_PORT_WINDOW3
+0x000E X ATM_PAGE_SHIFT
+0x4000 X ATM_PAGE_SIZE
 0x0010   ATM_RAM_CAPACITY_HI
 0x0000   ATM_RAM_CAPACITY_LO
 0x0000 X ATM_RAM_CAPACITY_MID
@@ -695,36 +1363,41 @@ Value    Label
 0x00DF   OUT_CMD
 0x0001   P127_ABI_MAJOR
 0x0000   P127_ABI_MINOR
-0x60B7   p127_host_banner
-0x6079   p127_host_debug_char
-0x607F   p127_host_debug_hex4
-0x6093   p127_host_debug_hex_byte
-0x60A8   p127_host_debug_hex_digit
-0x60A0   p127_host_debug_hex_nibble
-0x60AC   p127_host_debug_string
-0x617E   p127_host_diag_capacity
-0x6170   p127_host_diag_length
-0x6163   p127_host_diag_length_pre
-0x615A   p127_host_diag_offset
+0x617C   p127_host_allocator_error
+0x6038   p127_host_allocator_fail
+0x6152   p127_host_allocator_ok
+0x60D7   p127_host_banner
+0x6099   p127_host_debug_char
+0x609F   p127_host_debug_hex4
+0x60B3   p127_host_debug_hex_byte
+0x60C8   p127_host_debug_hex_digit
+0x60C0   p127_host_debug_hex_nibble
+0x60CC   p127_host_debug_string
+0x6210   p127_host_diag_capacity
+0x6202   p127_host_diag_length
+0x61F5   p127_host_diag_length_pre
+0x61EC   p127_host_diag_offset
 0x6009   p127_host_entry
 0x6009   P127_HOST_ENTRY_POINT
-0x6076   p127_host_idle
+0x6096   p127_host_idle
 0x6000   P127_HOST_LOAD_ADDRESS
-0x633F X p127_host_program_end
+0x61A6   p127_host_memory_init_error
+0x6030   p127_host_memory_init_fail
+0x68A6 X p127_host_program_end
 0x6000   p127_host_program_start
-0x6132   p127_host_range_error
-0x6020   p127_host_range_fail
-0x610E   p127_host_range_ok
+0x61C4   p127_host_range_error
+0x6040   p127_host_range_fail
+0x612E   p127_host_range_ok
 0xAFFF   P127_HOST_STACK_TOP
 0x0012   P127_MEM_CAPS_SIZE
-0x621F   p127_range_capacity
-0x6189   p127_range_check
-0x6223   p127_range_end
-0x6215   p127_range_invalid
-0x621B   p127_range_length
-0x61C3   p127_range_nonzero
-0x6217   p127_range_offset
-0x6213   p127_range_valid
+0x62B1   p127_range_capacity
+0x621B   p127_range_check
+0x62B5   p127_range_end
+0x62A7   p127_range_invalid
+0x62AD   p127_range_length
+0x6255   p127_range_nonzero
+0x62A9   p127_range_offset
+0x62A5   p127_range_valid
 0x00F9   RANDOMIZE
 0x00EA   REM
 0x00C0   USR
