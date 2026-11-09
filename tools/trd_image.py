@@ -25,7 +25,7 @@ def offset(track, sector):
         raise ValueError("TR-DOS track/sector out of range")
     return (track * SPT + sector) * SECTOR
 
-def build_trd(code, label="PROJECT127"):
+def build_trd(code, label="P127DISK"):
     if not code:
         raise ValueError("Stage-2 code is empty")
     if len(code) > 0xFFFF or LOAD_ADDRESS + len(code) > 0x10000:
