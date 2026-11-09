@@ -1,11 +1,3 @@
-p127_console.asm(370): error: Duplicate label: BIOS_DebugConsole_PrintChar
-p127_console.asm(386): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_char_ok
-p127_console.asm(403): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_store_col
-p127_console.asm(405): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_sync_cursor
-p127_console.asm(412): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_cr
-p127_console.asm(417): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_lf
-p127_console.asm(420): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_bs
-p127_console.asm(434): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_console_done
 # file opened: main.asm
   1   0000              ; ============================================================================
   2   0000              ; Project127 — complete TR-DOS image, assembled in one SjASMPlus pass.
@@ -96,7 +88,7 @@ p127_console.asm(434): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_
  79+  606F B7                   or      a
  80+  6070 28 07                jr      z,p127_puts_ef
  81+  6072 F1                   pop     af
- 82+  6073 CD 2E A2             call    BIOS_DebugConsole_PrintChar
+ 82+  6073 CD A8 A1             call    BIOS_DebugConsole_PrintChar
  83+  6076 E1                   pop     hl
  84+  6077 18 ED                jr      p127_puts
  85+  6079              p127_puts_ef:
@@ -693,7 +685,7 @@ p127_console.asm(434): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_
 148+  A09F C5                   push    bc
 149+  A0A0 D5                   push    de
 150+  A0A1 E5                   push    hl
-151+  A0A2 CD 2E A3             call    p126_screen_map_video_pages
+151+  A0A2 CD BA A2             call    p126_screen_map_video_pages
 152+  A0A5
 153+  A0A5                      ; Clear 25 rows x 64-byte stride in both character parity planes.
 154+  A0A5 21 C0 41             ld      hl, #41C0
@@ -742,7 +734,7 @@ p127_console.asm(434): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_
 197+  A108 01 3F 03             ld      bc, #033F
 198+  A10B ED B0                ldir
 199+  A10D
-200+  A10D CD 3D A3             call    p126_screen_restore_host_pages
+200+  A10D CD C9 A2             call    p126_screen_restore_host_pages
 201+  A110 AF                   xor     a
 202+  A111 32 04 A0             ld      (bios_dbg_row), a
 203+  A114 32 05 A0             ld      (bios_dbg_col), a
@@ -761,17 +753,17 @@ p127_console.asm(434): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_
 215+  A125 C5                   push    bc
 216+  A126 E5                   push    hl
 217+  A127
-218+  A127 21 D0 A3             ld      hl, p126_ui_line0
+218+  A127 21 5D A3             ld      hl, p126_ui_line0
 219+  A12A 3E 00                ld      a, 0
 220+  A12C 0E 01                ld      c, 1
 221+  A12E CD 49 A1             call    BIOS_DebugConsole_PrintAt
 222+  A131
-223+  A131 21 F8 A3             ld      hl, p126_ui_line1
+223+  A131 21 85 A3             ld      hl, p126_ui_line1
 224+  A134 3E 01                ld      a, 1
 225+  A136 0E 01                ld      c, 1
 226+  A138 CD 49 A1             call    BIOS_DebugConsole_PrintAt
 227+  A13B
-228+  A13B 21 1E A4             ld      hl, p126_ui_line11
+228+  A13B 21 AB A3             ld      hl, p126_ui_line11
 229+  A13E              .p126_draw_rtc_line:
 230+  A13E 3E 0B                ld      a, 11
 231+  A140 0E 01                ld      c, 1
@@ -798,429 +790,333 @@ p127_console.asm(434): error: Duplicate label: BIOS_DebugConsole_PrintChar.p126_
 251+  A157 2A 0D A0             ld      hl, (bios_dbg_text_ptr)
 252+  A15A 7E                   ld      a, (hl)
 253+  A15B B7                   or      a
-254+  A15C 28 36                jr      z, .p126_print_at_done
-255+  A15E 32 06 A0             ld      (bios_dbg_char), a
-256+  A161 23                   inc     hl
-257+  A162 22 0D A0             ld      (bios_dbg_text_ptr), hl
-258+  A165 3A 0F A0             ld      a, (bios_dbg_print_row)
-259+  A168 57                   ld      d, a
-260+  A169 3A 10 A0             ld      a, (bios_dbg_print_col)
-261+  A16C 5F                   ld      e, a
-262+  A16D 3A 06 A0             ld      a, (bios_dbg_char)
-263+  A170 F5                   push    af
-264+  A171 01 EF 00             ld      bc,P127_UI_DEBUG_PORT
-265+  A174 ED 79                out     (c),a
-266+  A176 F1                   pop     af
-267+  A177 CD B1 A2             call    p126_screen_write_char
-268+  A17A 3A 10 A0             ld      a, (bios_dbg_print_col)
-269+  A17D 3C                   inc     a
-270+  A17E FE 50                cp      BIOS_DEBUG_COLUMNS
-271+  A180 38 0D                jr      c, .p126_print_at_col_ok
-272+  A182 AF                   xor     a
-273+  A183 32 10 A0             ld      (bios_dbg_print_col), a
-274+  A186 3A 0F A0             ld      a, (bios_dbg_print_row)
-275+  A189 3C                   inc     a
-276+  A18A 32 0F A0             ld      (bios_dbg_print_row), a
-277+  A18D 18 C8                jr      .p126_print_at_loop
-278+  A18F              .p126_print_at_col_ok:
-279+  A18F 32 10 A0             ld      (bios_dbg_print_col), a
-280+  A192 18 C3                jr      .p126_print_at_loop
-281+  A194              .p126_print_at_done:
-282+  A194 01 EF 00             ld      bc,P127_UI_DEBUG_PORT
-283+  A197 3E 0D                ld      a,13
-284+  A199 ED 79                out     (c),a
-285+  A19B 3E 0A                ld      a,10
-286+  A19D ED 79                out     (c),a
-287+  A19F E1                   pop     hl
-288+  A1A0 D1                   pop     de
-289+  A1A1 C1                   pop     bc
-290+  A1A2 F1                   pop     af
-291+  A1A3 C9                   ret
-292+  A1A4
-293+  A1A4              ; IN: A=character. CR/LF/BS are handled; printable ASCII is rendered.
-p127_console.asm(294): warning: Label has different value in pass 3: previous value 41518 not equal 41380
-294+  A1A4              BIOS_DebugConsole_PrintChar:
-294+  A1A4
-295+  A1A4 F5                   push    af
-296+  A1A5 C5                   push    bc
-297+  A1A6 01 EF 00             ld      bc,P127_UI_DEBUG_PORT
-298+  A1A9 ED 79                out     (c),a
-299+  A1AB C1                   pop     bc
-300+  A1AC C5                   push    bc
-301+  A1AD D5                   push    de
-302+  A1AE E5                   push    hl
-303+  A1AF FE 0D                cp      13
-304+  A1B1 CA 83 A2             jp      z, .p126_console_cr
-305+  A1B4 FE 0A                cp      10
-306+  A1B6 CA 8C A2             jp      z, .p126_console_lf
-307+  A1B9 FE 08                cp      8
-308+  A1BB CA 91 A2             jp      z, .p126_console_bs
-309+  A1BE FE 20                cp      32
-310+  A1C0 DA AC A2             jp      c, .p126_console_done
-311+  A1C3 FE 80                cp      128
-p127_console.asm(312): error: [JR] Target out of range (+133)
-312+  A1C5 38 00                jr      c, .p126_console_char_ok
-313+  A1C7 3E 3F                ld      a, '?'
-p127_console.asm(314): warning: Label has different value in pass 3: previous value 41548 not equal 41417
-314+  A1C9              .p126_console_char_ok:
-315+  A1C9 32 06 A0             ld      (bios_dbg_char), a
-316+  A1CC 3A 04 A0             ld      a, (bios_dbg_row)
-317+  A1CF C6 0C                add     a, BIOS_DEBUG_TOP
-318+  A1D1 57                   ld      d, a
-319+  A1D2 3A 05 A0             ld      a, (bios_dbg_col)
-320+  A1D5 5F                   ld      e, a
-321+  A1D6 3A 06 A0             ld      a, (bios_dbg_char)
-322+  A1D9 CD B1 A2             call    p126_screen_write_char
-323+  A1DC 3A 05 A0             ld      a, (bios_dbg_col)
-324+  A1DF 3C                   inc     a
-325+  A1E0 FE 50                cp      BIOS_DEBUG_COLUMNS
-p127_console.asm(326): error: [JR] Target out of range (+140)
-326+  A1E2 38 00                jr      c, .p126_console_store_col
-327+  A1E4 AF                   xor     a
-328+  A1E5 32 05 A0             ld      (bios_dbg_col), a
-329+  A1E8 CD 4C A3             call    bios_dbg_newline
-p127_console.asm(330): error: [JR] Target out of range (+134)
-330+  A1EB 18 00                jr      .p126_console_sync_cursor
-p127_console.asm(331): warning: Label has different value in pass 3: previous value 41584 not equal 41453
-331+  A1ED              .p126_console_store_col:
-332+  A1ED 32 05 A0             ld      (bios_dbg_col), a
-p127_console.asm(333): warning: Label has different value in pass 3: previous value 41587 not equal 41456
-333+  A1F0              .p126_console_sync_cursor:
-334+  A1F0 3A 05 A0             ld      a, (bios_dbg_col)
-335+  A1F3 32 02 A0             ld      (Console_X), a
-336+  A1F6 3A 04 A0             ld      a, (bios_dbg_row)
-337+  A1F9 C6 0C                add     a, BIOS_DEBUG_TOP
-338+  A1FB 32 03 A0             ld      (Console_Y), a
-p127_console.asm(339): error: [JR] Target out of range (+172)
-339+  A1FE 18 00                jr      .p126_console_done
-p127_console.asm(340): warning: Label has different value in pass 3: previous value 41603 not equal 41472
-340+  A200              .p126_console_cr:
-341+  A200 AF                   xor     a
-342+  A201 32 05 A0             ld      (bios_dbg_col), a
-343+  A204 32 02 A0             ld      (Console_X), a
-p127_console.asm(344): error: [JR] Target out of range (+163)
-344+  A207 18 00                jr      .p126_console_done
-p127_console.asm(345): warning: Label has different value in pass 3: previous value 41612 not equal 41481
-345+  A209              .p126_console_lf:
-346+  A209 CD 4C A3             call    bios_dbg_newline
-347+  A20C 18 E2                jr      .p126_console_sync_cursor
-p127_console.asm(348): warning: Label has different value in pass 3: previous value 41617 not equal 41486
-348+  A20E              .p126_console_bs:
-349+  A20E 3A 05 A0             ld      a, (bios_dbg_col)
-350+  A211 B7                   or      a
-p127_console.asm(351): error: [JR] Target out of range (+152)
-351+  A212 28 00                jr      z, .p126_console_done
-352+  A214 3D                   dec     a
-353+  A215 32 05 A0             ld      (bios_dbg_col), a
-354+  A218 3A 04 A0             ld      a, (bios_dbg_row)
-355+  A21B C6 0C                add     a, BIOS_DEBUG_TOP
-356+  A21D 57                   ld      d, a
-357+  A21E 3A 05 A0             ld      a, (bios_dbg_col)
-358+  A221 5F                   ld      e, a
-359+  A222 3E 20                ld      a, 32
-360+  A224 CD B1 A2             call    p126_screen_write_char
-361+  A227 18 C7                jr      .p126_console_sync_cursor
-p127_console.asm(362): warning: Label has different value in pass 3: previous value 41644 not equal 41513
-362+  A229              .p126_console_done:
-363+  A229 E1                   pop     hl
-364+  A22A D1                   pop     de
-365+  A22B C1                   pop     bc
-366+  A22C F1                   pop     af
-367+  A22D C9                   ret
-368+  A22E
-369+  A22E
-p127_console.asm(370): warning: Label has different value in pass 3: previous value 41380 not equal 41518
-370+  A22E              BIOS_DebugConsole_PrintChar:
-370+  A22E
-371+  A22E F5                   push    af
-372+  A22F C5                   push    bc
-373+  A230 D5                   push    de
-374+  A231 E5                   push    hl
-375+  A232 FE 0D                cp      13
-376+  A234 CA 00 A2             jp      z, .p126_console_cr
-377+  A237 FE 0A                cp      10
-378+  A239 CA 09 A2             jp      z, .p126_console_lf
-379+  A23C FE 08                cp      8
-380+  A23E CA 0E A2             jp      z, .p126_console_bs
-381+  A241 FE 20                cp      32
-382+  A243 DA 29 A2             jp      c, .p126_console_done
-383+  A246 FE 80                cp      128
-p127_console.asm(384): error: [JR] Target out of range (-129)
-384+  A248 38 00                jr      c, .p126_console_char_ok
-385+  A24A 3E 3F                ld      a, '?'
-p127_console.asm(386): warning: Label has different value in pass 3: previous value 41417 not equal 41548
-386+  A24C              .p126_console_char_ok:
-387+  A24C 32 06 A0             ld      (bios_dbg_char), a
-388+  A24F 3A 04 A0             ld      a, (bios_dbg_row)
-389+  A252 C6 0C                add     a, BIOS_DEBUG_TOP
-390+  A254 57                   ld      d, a
-391+  A255 3A 05 A0             ld      a, (bios_dbg_col)
-392+  A258 5F                   ld      e, a
-393+  A259 3A 06 A0             ld      a, (bios_dbg_char)
-394+  A25C CD B1 A2             call    p126_screen_write_char
-395+  A25F 3A 05 A0             ld      a, (bios_dbg_col)
-396+  A262 3C                   inc     a
-397+  A263 FE 50                cp      BIOS_DEBUG_COLUMNS
-398+  A265 38 86                jr      c, .p126_console_store_col
-399+  A267 AF                   xor     a
-400+  A268 32 05 A0             ld      (bios_dbg_col), a
-401+  A26B CD 4C A3             call    bios_dbg_newline
-402+  A26E 18 80                jr      .p126_console_sync_cursor
-p127_console.asm(403): warning: Label has different value in pass 3: previous value 41453 not equal 41584
-403+  A270              .p126_console_store_col:
-404+  A270 32 05 A0             ld      (bios_dbg_col), a
-p127_console.asm(405): warning: Label has different value in pass 3: previous value 41456 not equal 41587
-405+  A273              .p126_console_sync_cursor:
-406+  A273 3A 05 A0             ld      a, (bios_dbg_col)
-407+  A276 32 02 A0             ld      (Console_X), a
-408+  A279 3A 04 A0             ld      a, (bios_dbg_row)
-409+  A27C C6 0C                add     a, BIOS_DEBUG_TOP
-410+  A27E 32 03 A0             ld      (Console_Y), a
-411+  A281 18 A6                jr      .p126_console_done
-p127_console.asm(412): warning: Label has different value in pass 3: previous value 41472 not equal 41603
-412+  A283              .p126_console_cr:
-413+  A283 AF                   xor     a
-414+  A284 32 05 A0             ld      (bios_dbg_col), a
-415+  A287 32 02 A0             ld      (Console_X), a
-416+  A28A 18 9D                jr      .p126_console_done
-p127_console.asm(417): warning: Label has different value in pass 3: previous value 41481 not equal 41612
-417+  A28C              .p126_console_lf:
-418+  A28C CD 4C A3             call    bios_dbg_newline
-419+  A28F 18 E2                jr      .p126_console_sync_cursor
-p127_console.asm(420): warning: Label has different value in pass 3: previous value 41486 not equal 41617
-420+  A291              .p126_console_bs:
-421+  A291 3A 05 A0             ld      a, (bios_dbg_col)
-422+  A294 B7                   or      a
-423+  A295 28 92                jr      z, .p126_console_done
-424+  A297 3D                   dec     a
-425+  A298 32 05 A0             ld      (bios_dbg_col), a
-426+  A29B 3A 04 A0             ld      a, (bios_dbg_row)
-427+  A29E C6 0C                add     a, BIOS_DEBUG_TOP
-428+  A2A0 57                   ld      d, a
-429+  A2A1 3A 05 A0             ld      a, (bios_dbg_col)
-430+  A2A4 5F                   ld      e, a
-431+  A2A5 3E 20                ld      a, 32
-432+  A2A7 CD B1 A2             call    p126_screen_write_char
-433+  A2AA 18 C7                jr      .p126_console_sync_cursor
-p127_console.asm(434): warning: Label has different value in pass 3: previous value 41513 not equal 41644
-434+  A2AC              .p126_console_done:
-435+  A2AC E1                   pop     hl
-436+  A2AD D1                   pop     de
-437+  A2AE C1                   pop     bc
-438+  A2AF F1                   pop     af
-439+  A2B0 C9                   ret
-440+  A2B1
-441+  A2B1
-442+  A2B1              p126_screen_write_char:
-443+  A2B1 F5                   push    af
-444+  A2B2 C5                   push    bc
-445+  A2B3 D5                   push    de
-446+  A2B4 E5                   push    hl
-447+  A2B5 32 06 A0             ld      (bios_dbg_char), a
-448+  A2B8 7A                   ld      a, d
-449+  A2B9 32 07 A0             ld      (bios_dbg_write_row), a
-450+  A2BC 7B                   ld      a, e
-451+  A2BD 32 08 A0             ld      (bios_dbg_write_col), a
-452+  A2C0
-453+  A2C0 CD 2E A3             call    p126_screen_map_video_pages
-454+  A2C3
-455+  A2C3                      ; Offset = #01C0 + row*64 + column/2.
-456+  A2C3 3A 07 A0             ld      a, (bios_dbg_write_row)
-457+  A2C6 6F                   ld      l, a
-458+  A2C7 26 00                ld      h, 0
-459+  A2C9 29                   add     hl, hl
-460+  A2CA 29                   add     hl, hl
-461+  A2CB 29                   add     hl, hl
-462+  A2CC 29                   add     hl, hl
-463+  A2CD 29                   add     hl, hl
-464+  A2CE 29                   add     hl, hl
-465+  A2CF 11 C0 01             ld      de, #01C0
-466+  A2D2 19                   add     hl, de
-467+  A2D3 3A 08 A0             ld      a, (bios_dbg_write_col)
-468+  A2D6 4F                   ld      c, a
-469+  A2D7 E6 01                and     1
-470+  A2D9 32 09 A0             ld      (bios_dbg_parity), a
-471+  A2DC 79                   ld      a, c
-472+  A2DD CB 3F                srl     a
-473+  A2DF 5F                   ld      e, a
-474+  A2E0 16 00                ld      d, 0
-475+  A2E2 19                   add     hl, de
-476+  A2E3 22 0B A0             ld      (bios_dbg_offset), hl
-477+  A2E6
-478+  A2E6                      ; Header rows use blue/white; the lower log uses green/black.
-479+  A2E6 3A 07 A0             ld      a, (bios_dbg_write_row)
-480+  A2E9 FE 0C                cp      BIOS_DEBUG_TOP
-481+  A2EB 3E 44                ld      a, #44
-482+  A2ED 30 02                jr      nc, .p126_attr_ready
-483+  A2EF 3E 4F                ld      a, #4F
-484+  A2F1              .p126_attr_ready:
-485+  A2F1 32 0A A0             ld      (bios_dbg_attr), a
-486+  A2F4
-487+  A2F4 2A 0B A0             ld      hl, (bios_dbg_offset)
-488+  A2F7 3A 09 A0             ld      a, (bios_dbg_parity)
-489+  A2FA B7                   or      a
-490+  A2FB 20 15                jr      nz, .p126_write_odd
-491+  A2FD
-492+  A2FD 11 00 40             ld      de, #4000
-493+  A300 19                   add     hl, de
-494+  A301 3A 06 A0             ld      a, (bios_dbg_char)
-495+  A304 77                   ld      (hl), a
-496+  A305 2A 0B A0             ld      hl, (bios_dbg_offset)
-497+  A308 11 00 E0             ld      de, #E000
-498+  A30B 19                   add     hl, de
-499+  A30C 3A 0A A0             ld      a, (bios_dbg_attr)
-500+  A30F 77                   ld      (hl), a
-501+  A310 18 14                jr      .p126_write_done
-502+  A312
-503+  A312              .p126_write_odd:
-504+  A312 11 00 60             ld      de, #6000
-505+  A315 19                   add     hl, de
-506+  A316 3A 06 A0             ld      a, (bios_dbg_char)
-507+  A319 77                   ld      (hl), a
-508+  A31A 2A 0B A0             ld      hl, (bios_dbg_offset)
-509+  A31D 11 00 C0             ld      de, #C000
-510+  A320 19                   add     hl, de
-511+  A321 23                   inc     hl
-512+  A322 3A 0A A0             ld      a, (bios_dbg_attr)
-513+  A325 77                   ld      (hl), a
-514+  A326
-515+  A326              .p126_write_done:
-516+  A326 CD 3D A3             call    p126_screen_restore_host_pages
-517+  A329 E1                   pop     hl
-518+  A32A D1                   pop     de
-519+  A32B C1                   pop     bc
-520+  A32C F1                   pop     af
-521+  A32D C9                   ret
-522+  A32E
-523+  A32E              ; IN: A=character, B=ATM-native attribute, D=row, E=column.
-524+  A32E
-525+  A32E              p126_screen_map_video_pages:
-526+  A32E 3E 78                ld      a, P126_VIDEO_PAGE7
-527+  A330 01 F7 7F             ld      bc, #7FF7
-528+  A333 ED 79                out     (c), a
-529+  A335 3E 7C                ld      a, P126_VIDEO_PAGE3
-530+  A337 01 F7 FF             ld      bc, #FFF7
-531+  A33A ED 79                out     (c), a
-532+  A33C C9                   ret
-533+  A33D
-534+  A33D              p126_screen_restore_host_pages:
-535+  A33D 3E 7A                ld      a, P126_HOST_PAGE5
-536+  A33F 01 F7 7F             ld      bc, #7FF7
-537+  A342 ED 79                out     (c), a
-538+  A344 3E 7F                ld      a, P126_HOST_PAGE0
-539+  A346 01 F7 FF             ld      bc, #FFF7
-540+  A349 ED 79                out     (c), a
-541+  A34B C9                   ret
-542+  A34C
-543+  A34C
-544+  A34C              ; Advance one row in the 13-row log; scroll rows 13..24 at the bottom.
-545+  A34C              bios_dbg_newline:
-546+  A34C 3A 04 A0             ld      a, (bios_dbg_row)
-547+  A34F 3C                   inc     a
-548+  A350 FE 0D                cp      BIOS_DEBUG_ROWS
-549+  A352 38 05                jr      c, .p126_newline_store
-550+  A354 CD 61 A3             call    P126_ScrollConsoleUp
-551+  A357 3E 0C                ld      a, BIOS_DEBUG_ROWS - 1
-552+  A359              .p126_newline_store:
-553+  A359 32 04 A0             ld      (bios_dbg_row), a
-554+  A35C AF                   xor     a
-555+  A35D 32 05 A0             ld      (bios_dbg_col), a
-556+  A360 C9                   ret
-557+  A361
-558+  A361              ; Move log rows 13..24 up by one. Each hardware text row has a 64-byte
-559+  A361              ; stride; the 40 visible bytes are copied together with the row padding.
-560+  A361              P126_ScrollConsoleUp:
-560+  A361
-561+  A361 F5                   push    af
-562+  A362 C5                   push    bc
-563+  A363 D5                   push    de
-564+  A364 E5                   push    hl
-565+  A365 CD 2E A3             call    p126_screen_map_video_pages
-566+  A368
-567+  A368                      ; Even character plane: page 7, window #4000.
-568+  A368 21 00 45             ld      hl, #4500
-569+  A36B 11 C0 44             ld      de, #44C0
-570+  A36E 01 00 03             ld      bc, #0300
-571+  A371 ED B0                ldir
-572+  A373                      ; Odd character plane: page 7, window #6000.
-573+  A373 21 00 65             ld      hl, #6500
-574+  A376 11 C0 64             ld      de, #64C0
-575+  A379 01 00 03             ld      bc, #0300
-576+  A37C ED B0                ldir
-577+  A37E                      ; Even attributes: page 3, window #E000.
-578+  A37E 21 00 E5             ld      hl, #E500
-579+  A381 11 C0 E4             ld      de, #E4C0
-580+  A384 01 00 03             ld      bc, #0300
-581+  A387 ED B0                ldir
-582+  A389                      ; Odd attributes: page 3, window #C000, odd-byte skew +1.
-583+  A389 21 01 C5             ld      hl, #C501
-584+  A38C 11 C1 C4             ld      de, #C4C1
-585+  A38F 01 00 03             ld      bc, #0300
-586+  A392 ED B0                ldir
-587+  A394
-588+  A394                      ; Clear the new bottom row.
-589+  A394 21 C0 47             ld      hl, #47C0
-590+  A397 11 C1 47             ld      de, #47C1
-591+  A39A 36 20                ld      (hl), 32
-592+  A39C 01 3F 00             ld      bc, #003F
-593+  A39F ED B0                ldir
-594+  A3A1 21 C0 67             ld      hl, #67C0
-595+  A3A4 11 C1 67             ld      de, #67C1
-596+  A3A7 36 20                ld      (hl), 32
-597+  A3A9 01 3F 00             ld      bc, #003F
-598+  A3AC ED B0                ldir
-599+  A3AE 21 C0 E7             ld      hl, #E7C0
-600+  A3B1 11 C1 E7             ld      de, #E7C1
-601+  A3B4 36 44                ld      (hl), #44
-602+  A3B6 01 3F 00             ld      bc, #003F
-603+  A3B9 ED B0                ldir
-604+  A3BB 21 C1 C7             ld      hl, #C7C1
-605+  A3BE 11 C2 C7             ld      de, #C7C2
-606+  A3C1 36 44                ld      (hl), #44
-607+  A3C3 01 3F 00             ld      bc, #003F
-608+  A3C6 ED B0                ldir
-609+  A3C8
-610+  A3C8 CD 3D A3             call    p126_screen_restore_host_pages
-611+  A3CB E1                   pop     hl
-612+  A3CC D1                   pop     de
-613+  A3CD C1                   pop     bc
-614+  A3CE F1                   pop     af
-615+  A3CF C9                   ret
-616+  A3D0
-617+  A3D0
-618+  A3D0 50 52 4F 4A  p126_ui_line0: db "PROJECT127 | ATM TURBO 2+ | SYSTEM CORE",0
-618+  A3D4 45 43 54 31
-618+  A3D8 32 37 20 7C
-618+  A3DC 20 41 54 4D
-618+  A3E0 20 54 55 52
-618+  A3E4 42 4F 20 32
-618+  A3E8 2B 20 7C 20
-618+  A3EC 53 59 53 54
-618+  A3F0 45 4D 20 43
-618+  A3F4 4F 52 45 00
-619+  A3F8 53 59 53 54  p126_ui_line1: db "SYSTEM STARTUP / HARDWARE DIAGNOSTICS",0
-619+  A3FC 45 4D 20 53
-619+  A400 54 41 52 54
-619+  A404 55 50 20 2F
-619+  A408 20 48 41 52
-619+  A40C 44 57 41 52
-619+  A410 45 20 44 49
-619+  A414 41 47 4E 4F
-619+  A418 53 54 49 43
-619+  A41C 53 00
-620+  A41E 52 54 43 3A  p126_ui_line11: db "RTC: NOT INITIALIZED | SYSTEM READY",0
-620+  A422 20 4E 4F 54
-620+  A426 20 49 4E 49
-620+  A42A 54 49 41 4C
-620+  A42E 49 5A 45 44
-620+  A432 20 7C 20 53
-620+  A436 59 53 54 45
-620+  A43A 4D 20 52 45
-620+  A43E 41 44 59 00
-621+  A442
+254+  A15C CA 98 A1             jp      z, .p126_print_at_done
+255+  A15F 32 06 A0             ld      (bios_dbg_char), a
+256+  A162 23                   inc     hl
+257+  A163 22 0D A0             ld      (bios_dbg_text_ptr), hl
+258+  A166 3A 0F A0             ld      a, (bios_dbg_print_row)
+259+  A169 57                   ld      d, a
+260+  A16A 3A 10 A0             ld      a, (bios_dbg_print_col)
+261+  A16D 5F                   ld      e, a
+262+  A16E 3A 06 A0             ld      a, (bios_dbg_char)
+263+  A171 F5                   push    af
+264+  A172 01 EF 00             ld      bc,P127_UI_DEBUG_PORT
+265+  A175 ED 79                out     (c),a
+266+  A177 F1                   pop     af
+267+  A178 CD 3A A2             call    p126_screen_write_char
+268+  A17B 3A 10 A0             ld      a, (bios_dbg_print_col)
+269+  A17E 3C                   inc     a
+270+  A17F FE 50                cp      BIOS_DEBUG_COLUMNS
+271+  A181 DA 92 A1             jp      c, .p126_print_at_col_ok
+272+  A184 AF                   xor     a
+273+  A185 32 10 A0             ld      (bios_dbg_print_col), a
+274+  A188 3A 0F A0             ld      a, (bios_dbg_print_row)
+275+  A18B 3C                   inc     a
+276+  A18C 32 0F A0             ld      (bios_dbg_print_row), a
+277+  A18F C3 57 A1             jp      .p126_print_at_loop
+278+  A192              .p126_print_at_col_ok:
+279+  A192 32 10 A0             ld      (bios_dbg_print_col), a
+280+  A195 C3 57 A1             jp      .p126_print_at_loop
+281+  A198              .p126_print_at_done:
+282+  A198 01 EF 00             ld      bc,P127_UI_DEBUG_PORT
+283+  A19B 3E 0D                ld      a,13
+284+  A19D ED 79                out     (c),a
+285+  A19F 3E 0A                ld      a,10
+286+  A1A1 ED 79                out     (c),a
+287+  A1A3 E1                   pop     hl
+288+  A1A4 D1                   pop     de
+289+  A1A5 C1                   pop     bc
+290+  A1A6 F1                   pop     af
+291+  A1A7 C9                   ret
+292+  A1A8
+293+  A1A8              ; IN: A=character. CR/LF/BS are handled; printable ASCII is rendered.
+294+  A1A8              BIOS_DebugConsole_PrintChar:
+294+  A1A8
+295+  A1A8 F5                   push    af
+296+  A1A9 C5                   push    bc
+297+  A1AA 01 EF 00             ld      bc,P127_UI_DEBUG_PORT
+298+  A1AD ED 79                out     (c),a
+299+  A1AF C1                   pop     bc
+300+  A1B0 C5                   push    bc
+301+  A1B1 D5                   push    de
+302+  A1B2 E5                   push    hl
+303+  A1B3 FE 0D                cp      13
+304+  A1B5 CA 08 A2             jp      z, .p126_console_cr
+305+  A1B8 FE 0A                cp      10
+306+  A1BA CA 12 A2             jp      z, .p126_console_lf
+307+  A1BD FE 08                cp      8
+308+  A1BF CA 18 A2             jp      z, .p126_console_bs
+309+  A1C2 FE 20                cp      32
+310+  A1C4 DA 35 A2             jp      c, .p126_console_done
+311+  A1C7 FE 80                cp      128
+312+  A1C9 DA CE A1             jp      c, .p126_console_char_ok
+313+  A1CC 3E 3F                ld      a, '?'
+314+  A1CE              .p126_console_char_ok:
+315+  A1CE 32 06 A0             ld      (bios_dbg_char), a
+316+  A1D1 3A 04 A0             ld      a, (bios_dbg_row)
+317+  A1D4 C6 0C                add     a, BIOS_DEBUG_TOP
+318+  A1D6 57                   ld      d, a
+319+  A1D7 3A 05 A0             ld      a, (bios_dbg_col)
+320+  A1DA 5F                   ld      e, a
+321+  A1DB 3A 06 A0             ld      a, (bios_dbg_char)
+322+  A1DE CD 3A A2             call    p126_screen_write_char
+323+  A1E1 3A 05 A0             ld      a, (bios_dbg_col)
+324+  A1E4 3C                   inc     a
+325+  A1E5 FE 50                cp      BIOS_DEBUG_COLUMNS
+326+  A1E7 DA F4 A1             jp      c, .p126_console_store_col
+327+  A1EA AF                   xor     a
+328+  A1EB 32 05 A0             ld      (bios_dbg_col), a
+329+  A1EE CD D8 A2             call    bios_dbg_newline
+330+  A1F1 C3 F7 A1             jp      .p126_console_sync_cursor
+331+  A1F4              .p126_console_store_col:
+332+  A1F4 32 05 A0             ld      (bios_dbg_col), a
+333+  A1F7              .p126_console_sync_cursor:
+334+  A1F7 3A 05 A0             ld      a, (bios_dbg_col)
+335+  A1FA 32 02 A0             ld      (Console_X), a
+336+  A1FD 3A 04 A0             ld      a, (bios_dbg_row)
+337+  A200 C6 0C                add     a, BIOS_DEBUG_TOP
+338+  A202 32 03 A0             ld      (Console_Y), a
+339+  A205 C3 35 A2             jp      .p126_console_done
+340+  A208              .p126_console_cr:
+341+  A208 AF                   xor     a
+342+  A209 32 05 A0             ld      (bios_dbg_col), a
+343+  A20C 32 02 A0             ld      (Console_X), a
+344+  A20F C3 35 A2             jp      .p126_console_done
+345+  A212              .p126_console_lf:
+346+  A212 CD D8 A2             call    bios_dbg_newline
+347+  A215 C3 F7 A1             jp      .p126_console_sync_cursor
+348+  A218              .p126_console_bs:
+349+  A218 3A 05 A0             ld      a, (bios_dbg_col)
+350+  A21B B7                   or      a
+351+  A21C CA 35 A2             jp      z, .p126_console_done
+352+  A21F 3D                   dec     a
+353+  A220 32 05 A0             ld      (bios_dbg_col), a
+354+  A223 3A 04 A0             ld      a, (bios_dbg_row)
+355+  A226 C6 0C                add     a, BIOS_DEBUG_TOP
+356+  A228 57                   ld      d, a
+357+  A229 3A 05 A0             ld      a, (bios_dbg_col)
+358+  A22C 5F                   ld      e, a
+359+  A22D 3E 20                ld      a, 32
+360+  A22F CD 3A A2             call    p126_screen_write_char
+361+  A232 C3 F7 A1             jp      .p126_console_sync_cursor
+362+  A235              .p126_console_done:
+363+  A235 E1                   pop     hl
+364+  A236 D1                   pop     de
+365+  A237 C1                   pop     bc
+366+  A238 F1                   pop     af
+367+  A239 C9                   ret
+368+  A23A
+369+  A23A
+370+  A23A              p126_screen_write_char:
+371+  A23A F5                   push    af
+372+  A23B C5                   push    bc
+373+  A23C D5                   push    de
+374+  A23D E5                   push    hl
+375+  A23E 32 06 A0             ld      (bios_dbg_char), a
+376+  A241 7A                   ld      a, d
+377+  A242 32 07 A0             ld      (bios_dbg_write_row), a
+378+  A245 7B                   ld      a, e
+379+  A246 32 08 A0             ld      (bios_dbg_write_col), a
+380+  A249
+381+  A249 CD BA A2             call    p126_screen_map_video_pages
+382+  A24C
+383+  A24C                      ; Offset = #01C0 + row*64 + column/2.
+384+  A24C 3A 07 A0             ld      a, (bios_dbg_write_row)
+385+  A24F 6F                   ld      l, a
+386+  A250 26 00                ld      h, 0
+387+  A252 29                   add     hl, hl
+388+  A253 29                   add     hl, hl
+389+  A254 29                   add     hl, hl
+390+  A255 29                   add     hl, hl
+391+  A256 29                   add     hl, hl
+392+  A257 29                   add     hl, hl
+393+  A258 11 C0 01             ld      de, #01C0
+394+  A25B 19                   add     hl, de
+395+  A25C 3A 08 A0             ld      a, (bios_dbg_write_col)
+396+  A25F 4F                   ld      c, a
+397+  A260 E6 01                and     1
+398+  A262 32 09 A0             ld      (bios_dbg_parity), a
+399+  A265 79                   ld      a, c
+400+  A266 CB 3F                srl     a
+401+  A268 5F                   ld      e, a
+402+  A269 16 00                ld      d, 0
+403+  A26B 19                   add     hl, de
+404+  A26C 22 0B A0             ld      (bios_dbg_offset), hl
+405+  A26F
+406+  A26F                      ; Header rows use blue/white; the lower log uses green/black.
+407+  A26F 3A 07 A0             ld      a, (bios_dbg_write_row)
+408+  A272 FE 0C                cp      BIOS_DEBUG_TOP
+409+  A274 3E 44                ld      a, #44
+410+  A276 D2 7B A2             jp      nc, .p126_attr_ready
+411+  A279 3E 4F                ld      a, #4F
+412+  A27B              .p126_attr_ready:
+413+  A27B 32 0A A0             ld      (bios_dbg_attr), a
+414+  A27E
+415+  A27E 2A 0B A0             ld      hl, (bios_dbg_offset)
+416+  A281 3A 09 A0             ld      a, (bios_dbg_parity)
+417+  A284 B7                   or      a
+418+  A285 C2 9E A2             jp      nz, .p126_write_odd
+419+  A288
+420+  A288 11 00 40             ld      de, #4000
+421+  A28B 19                   add     hl, de
+422+  A28C 3A 06 A0             ld      a, (bios_dbg_char)
+423+  A28F 77                   ld      (hl), a
+424+  A290 2A 0B A0             ld      hl, (bios_dbg_offset)
+425+  A293 11 00 E0             ld      de, #E000
+426+  A296 19                   add     hl, de
+427+  A297 3A 0A A0             ld      a, (bios_dbg_attr)
+428+  A29A 77                   ld      (hl), a
+429+  A29B C3 B2 A2             jp      .p126_write_done
+430+  A29E
+431+  A29E              .p126_write_odd:
+432+  A29E 11 00 60             ld      de, #6000
+433+  A2A1 19                   add     hl, de
+434+  A2A2 3A 06 A0             ld      a, (bios_dbg_char)
+435+  A2A5 77                   ld      (hl), a
+436+  A2A6 2A 0B A0             ld      hl, (bios_dbg_offset)
+437+  A2A9 11 00 C0             ld      de, #C000
+438+  A2AC 19                   add     hl, de
+439+  A2AD 23                   inc     hl
+440+  A2AE 3A 0A A0             ld      a, (bios_dbg_attr)
+441+  A2B1 77                   ld      (hl), a
+442+  A2B2
+443+  A2B2              .p126_write_done:
+444+  A2B2 CD C9 A2             call    p126_screen_restore_host_pages
+445+  A2B5 E1                   pop     hl
+446+  A2B6 D1                   pop     de
+447+  A2B7 C1                   pop     bc
+448+  A2B8 F1                   pop     af
+449+  A2B9 C9                   ret
+450+  A2BA
+451+  A2BA              ; IN: A=character, B=ATM-native attribute, D=row, E=column.
+452+  A2BA
+453+  A2BA              p126_screen_map_video_pages:
+454+  A2BA 3E 78                ld      a, P126_VIDEO_PAGE7
+455+  A2BC 01 F7 7F             ld      bc, #7FF7
+456+  A2BF ED 79                out     (c), a
+457+  A2C1 3E 7C                ld      a, P126_VIDEO_PAGE3
+458+  A2C3 01 F7 FF             ld      bc, #FFF7
+459+  A2C6 ED 79                out     (c), a
+460+  A2C8 C9                   ret
+461+  A2C9
+462+  A2C9              p126_screen_restore_host_pages:
+463+  A2C9 3E 7A                ld      a, P126_HOST_PAGE5
+464+  A2CB 01 F7 7F             ld      bc, #7FF7
+465+  A2CE ED 79                out     (c), a
+466+  A2D0 3E 7F                ld      a, P126_HOST_PAGE0
+467+  A2D2 01 F7 FF             ld      bc, #FFF7
+468+  A2D5 ED 79                out     (c), a
+469+  A2D7 C9                   ret
+470+  A2D8
+471+  A2D8
+472+  A2D8              ; Advance one row in the 13-row log; scroll rows 13..24 at the bottom.
+473+  A2D8              bios_dbg_newline:
+474+  A2D8 3A 04 A0             ld      a, (bios_dbg_row)
+475+  A2DB 3C                   inc     a
+476+  A2DC FE 0D                cp      BIOS_DEBUG_ROWS
+477+  A2DE DA E6 A2             jp      c, .p126_newline_store
+478+  A2E1 CD EE A2             call    P126_ScrollConsoleUp
+479+  A2E4 3E 0C                ld      a, BIOS_DEBUG_ROWS - 1
+480+  A2E6              .p126_newline_store:
+481+  A2E6 32 04 A0             ld      (bios_dbg_row), a
+482+  A2E9 AF                   xor     a
+483+  A2EA 32 05 A0             ld      (bios_dbg_col), a
+484+  A2ED C9                   ret
+485+  A2EE
+486+  A2EE              ; Move log rows 13..24 up by one. Each hardware text row has a 64-byte
+487+  A2EE              ; stride; the 40 visible bytes are copied together with the row padding.
+488+  A2EE              P126_ScrollConsoleUp:
+488+  A2EE
+489+  A2EE F5                   push    af
+490+  A2EF C5                   push    bc
+491+  A2F0 D5                   push    de
+492+  A2F1 E5                   push    hl
+493+  A2F2 CD BA A2             call    p126_screen_map_video_pages
+494+  A2F5
+495+  A2F5                      ; Even character plane: page 7, window #4000.
+496+  A2F5 21 00 45             ld      hl, #4500
+497+  A2F8 11 C0 44             ld      de, #44C0
+498+  A2FB 01 00 03             ld      bc, #0300
+499+  A2FE ED B0                ldir
+500+  A300                      ; Odd character plane: page 7, window #6000.
+501+  A300 21 00 65             ld      hl, #6500
+502+  A303 11 C0 64             ld      de, #64C0
+503+  A306 01 00 03             ld      bc, #0300
+504+  A309 ED B0                ldir
+505+  A30B                      ; Even attributes: page 3, window #E000.
+506+  A30B 21 00 E5             ld      hl, #E500
+507+  A30E 11 C0 E4             ld      de, #E4C0
+508+  A311 01 00 03             ld      bc, #0300
+509+  A314 ED B0                ldir
+510+  A316                      ; Odd attributes: page 3, window #C000, odd-byte skew +1.
+511+  A316 21 01 C5             ld      hl, #C501
+512+  A319 11 C1 C4             ld      de, #C4C1
+513+  A31C 01 00 03             ld      bc, #0300
+514+  A31F ED B0                ldir
+515+  A321
+516+  A321                      ; Clear the new bottom row.
+517+  A321 21 C0 47             ld      hl, #47C0
+518+  A324 11 C1 47             ld      de, #47C1
+519+  A327 36 20                ld      (hl), 32
+520+  A329 01 3F 00             ld      bc, #003F
+521+  A32C ED B0                ldir
+522+  A32E 21 C0 67             ld      hl, #67C0
+523+  A331 11 C1 67             ld      de, #67C1
+524+  A334 36 20                ld      (hl), 32
+525+  A336 01 3F 00             ld      bc, #003F
+526+  A339 ED B0                ldir
+527+  A33B 21 C0 E7             ld      hl, #E7C0
+528+  A33E 11 C1 E7             ld      de, #E7C1
+529+  A341 36 44                ld      (hl), #44
+530+  A343 01 3F 00             ld      bc, #003F
+531+  A346 ED B0                ldir
+532+  A348 21 C1 C7             ld      hl, #C7C1
+533+  A34B 11 C2 C7             ld      de, #C7C2
+534+  A34E 36 44                ld      (hl), #44
+535+  A350 01 3F 00             ld      bc, #003F
+536+  A353 ED B0                ldir
+537+  A355
+538+  A355 CD C9 A2             call    p126_screen_restore_host_pages
+539+  A358 E1                   pop     hl
+540+  A359 D1                   pop     de
+541+  A35A C1                   pop     bc
+542+  A35B F1                   pop     af
+543+  A35C C9                   ret
+544+  A35D
+545+  A35D
+546+  A35D 50 52 4F 4A  p126_ui_line0: db "PROJECT127 | ATM TURBO 2+ | SYSTEM CORE",0
+546+  A361 45 43 54 31
+546+  A365 32 37 20 7C
+546+  A369 20 41 54 4D
+546+  A36D 20 54 55 52
+546+  A371 42 4F 20 32
+546+  A375 2B 20 7C 20
+546+  A379 53 59 53 54
+546+  A37D 45 4D 20 43
+546+  A381 4F 52 45 00
+547+  A385 53 59 53 54  p126_ui_line1: db "SYSTEM STARTUP / HARDWARE DIAGNOSTICS",0
+547+  A389 45 4D 20 53
+547+  A38D 54 41 52 54
+547+  A391 55 50 20 2F
+547+  A395 20 48 41 52
+547+  A399 44 57 41 52
+547+  A39D 45 20 44 49
+547+  A3A1 41 47 4E 4F
+547+  A3A5 53 54 49 43
+547+  A3A9 53 00
+548+  A3AB 52 54 43 3A  p126_ui_line11: db "RTC: NOT INITIALIZED | SYSTEM READY",0
+548+  A3AF 20 4E 4F 54
+548+  A3B3 20 49 4E 49
+548+  A3B7 54 49 41 4C
+548+  A3BB 49 5A 45 44
+548+  A3BF 20 7C 20 53
+548+  A3C3 59 53 54 45
+548+  A3C7 4D 20 52 45
+548+  A3CB 41 44 59 00
+549+  A3CF
 # file closed: p127_console.asm
- 93   A442              p127_image_end:
- 94   A442                      ASSERT p127_image_end <= #B000
- 95   A442                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_image_end-P127_LOAD_ADDRESS
- 96   A442
+ 93   A3CF              p127_image_end:
+ 94   A3CF                      ASSERT p127_image_end <= #B000
+ 95   A3CF                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_image_end-P127_LOAD_ADDRESS
+ 96   A3CF
 # file closed: main.asm
