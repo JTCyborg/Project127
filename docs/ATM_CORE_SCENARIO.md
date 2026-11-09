@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.24**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; future IM2 table page P4 reserved in software v0.3.0, runtime pending; physical bank switching not yet enabled**  
+Scenario revision: **0.8.25**  
+Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -26,7 +26,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
-| 5 — Process/context manager | **DI-ONLY INTERRUPT OWNERSHIP PREFLIGHT RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0 | Implement interrupt-entry/return and transactional physical remap; address preflight is runtime accepted but does not prove independent physical stack backing. |
+| 5 — Process/context manager | **DI-ONLY PREFLIGHT + IM2 SLOT RESERVATION RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0, P4 table-slot preflight v0.3.0 | Implement resident interrupt-entry/return and software-only target-map transaction with post-transition failure injection/rollback. Physical remap remains blocked; independent physical stack backing and IFF/IM/vector handling are not proven. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
@@ -436,6 +436,14 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Normalized the versioned module register after the Stage 2.13 update. The previous table contained literal escaped newline text and stale duplicate IRQ descriptions; the table now records the actual boot, memory-manager and IRQ module versions and their current acceptance boundaries.
 - No source behavior changed. Scenario revision advanced to 0.8.23.
 
+
+### 2026-11-09 — Runtime acceptance: IM2 table-page reservation and slot preflight v0.3.0
+
+- User supplied the fresh #EF runtime log. It reports `IRQ TABLE PAGE RESERVED P4; IM2 DISABLED` and `IRQ TABLE SLOT PREFLIGHT PASS; OUT DISABLED`, then continues through the IRQ contract, resident trampoline, resident-window, handoff-guard and mapper diagnostics.
+- Stage 2.13 is now runtime accepted for software reservation and preflight: P4 is recorded RESERVED, W3's software shadow remains on bootstrap page P0, and the table geometry checks pass.
+- This does not prove that the emulator's physical P4 is mapped or writable. No bytes are populated at #C000, I is not loaded, IM 2 and EI are not executed, and no interrupt handler/vector is installed. Physical page-port OUT remains disabled.
+- No functional source module changed in this acceptance update. Scenario revision advanced to 0.8.25.
+- Next: implement a software-only W3 target-map transaction with explicit old/new map snapshots, commit validation, injected post-transition failures and exact rollback. Keep hardware OUT, IM and EI disabled.
 
 ### 2026-11-09 — Memory manager branch-range correction
 
