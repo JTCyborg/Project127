@@ -1,11 +1,11 @@
 ; ============================================================================
 ; Project127 ATM Core — pure software page-mapper model
-; Module version: 0.1.1
+; Module version: 0.2.0
 ; No hardware OUT instructions are permitted in this stage.
 ; ============================================================================
 P127_MAP_VERSION_MAJOR EQU 0
-P127_MAP_VERSION_MINOR EQU 1
-P127_MAP_VERSION_PATCH EQU 1
+P127_MAP_VERSION_MINOR EQU 2
+P127_MAP_VERSION_PATCH EQU 0
 
 P127_MAP_WINDOW_COUNT  EQU 4
 P127_MAP_ROM            EQU 0FFh
@@ -172,6 +172,105 @@ p127_map_selftest:
         jp      nc,p127_map_test_fail
         or      a
         ret
+
+
+; ---------------------------------------------------------------------------
+; Safe-remap preparation gate (software-only).
+; IN: A=target window 0..3, B=new physical page 0..63,
+;     C=bitmask of protected windows (bit 0=W0 ... bit 3=W3).
+; OUT: carry=1 if invalid/protected; carry=0 if a pending request is staged.
+; This routine NEVER writes a page port and NEVER changes the active map.
+; Caller must include execution, stack, UI, interrupt and host/staging windows
+; in C. The bootstrap currently protects all four windows (#0F).
+p127_map_handoff_prepare:
+        ld      d,a
+        ld      a,b
+        cp      64
+        jp      nc,p127_map_handoff_reject
+        ld      a,d
+        cp      P127_MAP_WINDOW_COUNT
+        jp      nc,p127_map_handoff_reject
+        ld      e,a
+        ld      hl,p127_map_window_mask
+        add     hl,de
+        ld      a,(hl)
+        and     c
+        jp      nz,p127_map_handoff_reject
+        ld      a,d
+        ld      (p127_map_pending_window),a
+        ld      a,b
+        ld      (p127_map_pending_page),a
+        ld      a,1
+        ld      (p127_map_pending_valid),a
+        or      a
+        ret
+
+; Cancel a staged request. No hardware state is modified.
+p127_map_handoff_abort:
+        xor     a
+        ld      (p127_map_pending_valid),a
+        ret
+
+; Exercise protected-window rejection and a synthetic safe-window preparation.
+; This test does not issue OUT and does not commit a physical mapping.
+p127_map_handoff_selftest:
+        call    p127_map_handoff_abort
+        ld      b,10
+        ld      c,0Fh
+        ld      a,0
+        call    p127_map_handoff_prepare
+        jp      nc,p127_map_test_fail
+        ld      a,1
+        call    p127_map_handoff_prepare
+        jp      nc,p127_map_test_fail
+        ld      a,2
+        call    p127_map_handoff_prepare
+        jp      nc,p127_map_test_fail
+        ld      a,3
+        call    p127_map_handoff_prepare
+        jp      nc,p127_map_test_fail
+
+        ; Synthetic case: W0 is declared stable; W1-W3 remain protected.
+        ld      b,10
+        ld      c,0Eh
+        ld      a,0
+        call    p127_map_handoff_prepare
+        jp      c,p127_map_test_fail
+        ld      a,(p127_map_pending_valid)
+        cp      1
+        jp      nz,p127_map_test_fail
+        ld      a,(p127_map_pending_window)
+        or      a
+        jp      nz,p127_map_test_fail
+        ld      a,(p127_map_pending_page)
+        cp      10
+        jp      nz,p127_map_test_fail
+        call    p127_map_handoff_abort
+        ld      a,(p127_map_pending_valid)
+        or      a
+        jp      nz,p127_map_test_fail
+
+        ; Reject invalid window and page even if no windows are protected.
+        ld      b,10
+        ld      c,0
+        ld      a,4
+        call    p127_map_handoff_prepare
+        jp      nc,p127_map_test_fail
+        ld      b,64
+        ld      a,0
+        call    p127_map_handoff_prepare
+        jp      nc,p127_map_test_fail
+        or      a
+        ret
+
+p127_map_window_mask:
+        db      1,2,4,8
+p127_map_pending_valid:
+        db      0
+p127_map_pending_window:
+        db      0
+p127_map_pending_page:
+        db      0
 
 p127_map_invalid:
         scf
