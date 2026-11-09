@@ -8,6 +8,47 @@ P127_ABI_MINOR EQU 0
 P127_MEM_CAPS_SIZE EQU 18
 
 p127_range_check::
+        ; A zero-length range is a boundary position, not a memory access.
+        ; Validate offset <= capacity directly, including offset == capacity.
+        ld      a,(p127_range_length)
+        ld      b,a
+        ld      a,(p127_range_length+1)
+        or      b
+        ld      b,a
+        ld      a,(p127_range_length+2)
+        or      b
+        ld      b,a
+        ld      a,(p127_range_length+3)
+        or      b
+        jr      nz,p127_range_nonzero
+
+        ld      de,p127_range_offset+3
+        ld      hl,p127_range_capacity+3
+        ld      a,(de)
+        cp      (hl)
+        jr      c,p127_range_valid
+        jr      nz,p127_range_invalid
+        dec     de
+        dec     hl
+        ld      a,(de)
+        cp      (hl)
+        jr      c,p127_range_valid
+        jr      nz,p127_range_invalid
+        dec     de
+        dec     hl
+        ld      a,(de)
+        cp      (hl)
+        jr      c,p127_range_valid
+        jr      nz,p127_range_invalid
+        dec     de
+        dec     hl
+        ld      a,(de)
+        cp      (hl)
+        jr      c,p127_range_valid
+        jr      nz,p127_range_invalid
+        jr      p127_range_valid
+
+p127_range_nonzero:
         ld      hl,p127_range_offset
         ld      de,p127_range_length
         ld      a,(hl)

@@ -1,6 +1,6 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.3.1
+; Version: P127_ATM_HOST v0.3.2
 ; First ATM memory-core milestone: capability/range validation only.
 ; =========================================================================
 
