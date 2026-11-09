@@ -21,21 +21,21 @@ p127_host_entry:
         ld      hl,p127_host_banner
         call    p127_host_debug_string
         call    atm_mem_init
-        jr      c,p127_host_memory_init_fail
+        jp      c,p127_host_memory_init_fail
         call    atm_mem_range_selftest
-        jr      c,p127_host_range_fail
+        jp      c,p127_host_range_fail
         ld      hl,p127_host_range_ok
         call    p127_host_debug_string
         call    atm_mem_allocator_selftest
-        jr      c,p127_host_allocator_fail
+        jp      c,p127_host_allocator_fail
         ld      hl,p127_host_allocator_ok
         call    p127_host_debug_string
         call    atm_mem_ops_selftest
-        jr      c,p127_host_ops_fail
+        jp      c,p127_host_ops_fail
         ld      hl,p127_host_ops_ok
         call    p127_host_debug_string
         call    atm_mem_scatter_selftest
-        jr      c,p127_host_scatter_fail
+        jp      c,p127_host_scatter_fail
         ld      hl,p127_host_scatter_ok
         call    p127_host_debug_string
         jp      p127_host_idle
@@ -147,7 +147,7 @@ p127_host_debug_hex_byte:
         and     #0F
 p127_host_debug_hex_nibble:
         cp      10
-        jr      c,p127_host_debug_hex_digit
+        jp      c,p127_host_debug_hex_digit
         add     a,'A'-10
         jr      p127_host_debug_char
 p127_host_debug_hex_digit:
