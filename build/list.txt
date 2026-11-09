@@ -69,7 +69,7 @@
  60+  605E
  61+  605E                      ; Stage 2.4: pure software mapper model; hardware OUT remains disabled.
  62+  605E CD 97 63             call    p127_map_init
- 63+  6061 CD EB 63             call    p127_map_selftest
+ 63+  6061 CD EC 63             call    p127_map_selftest
  64+  6064 DA 6F 60             jp      c,p127_map_failed
  65+  6067 21 24 62             ld      hl,p127_msg_map_pass
  66+  606A CD 90 60             call    p127_puts
@@ -452,12 +452,12 @@
 # file opened: p127_map.asm
   1++ 6397              ; ============================================================================
   2++ 6397              ; Project127 ATM Core — pure software page-mapper model
-  3++ 6397              ; Module version: 0.1.0
+  3++ 6397              ; Module version: 0.1.1
   4++ 6397              ; No hardware OUT instructions are permitted in this stage.
   5++ 6397              ; ============================================================================
   6++ 6397              P127_MAP_VERSION_MAJOR EQU 0
   7++ 6397              P127_MAP_VERSION_MINOR EQU 1
-  8++ 6397              P127_MAP_VERSION_PATCH EQU 0
+  8++ 6397              P127_MAP_VERSION_PATCH EQU 1
   9++ 6397
  10++ 6397              P127_MAP_WINDOW_COUNT  EQU 4
  11++ 6397              P127_MAP_ROM            EQU 0FFh
@@ -467,13 +467,13 @@
  15++ 6397              ; This table is descriptive state only; it does not program hardware.
  16++ 6397              p127_map_init:
  17++ 6397 3E FF                ld      a,P127_MAP_ROM
- 18++ 6399 32 C6 64             ld      (p127_map_shadow),a
+ 18++ 6399 32 C7 64             ld      (p127_map_shadow),a
  19++ 639C 3E 05                ld      a,5
- 20++ 639E 32 C7 64             ld      (p127_map_shadow+1),a
+ 20++ 639E 32 C8 64             ld      (p127_map_shadow+1),a
  21++ 63A1 3E 02                ld      a,2
- 22++ 63A3 32 C8 64             ld      (p127_map_shadow+2),a
+ 22++ 63A3 32 C9 64             ld      (p127_map_shadow+2),a
  23++ 63A6 3E 00                ld      a,0
- 24++ 63A8 32 C9 64             ld      (p127_map_shadow+3),a
+ 24++ 63A8 32 CA 64             ld      (p127_map_shadow+3),a
  25++ 63AB B7                   or      a
  26++ 63AC C9                   ret
  27++ 63AD
@@ -482,7 +482,7 @@
  30++ 63AD              ; OUT: A=7Fh-page; carry=1 for invalid page.
  31++ 63AD              p127_map_encode_page:
  32++ 63AD FE 40                cp      64
- 33++ 63AF D2 C2 64             jp      nc,p127_map_invalid
+ 33++ 63AF D2 C3 64             jp      nc,p127_map_invalid
  34++ 63B2 47                   ld      b,a
  35++ 63B3 3E 7F                ld      a,07Fh
  36++ 63B5 90                   sub     b
@@ -524,130 +524,129 @@
  72++ 63DD              ; IN: A=window 0..3. OUT: A=page ID or FFh (ROM); carry=1 if invalid.
  73++ 63DD              p127_map_get_shadow:
  74++ 63DD FE 04                cp      P127_MAP_WINDOW_COUNT
-p127_map.asm(75): error: [JR] Target out of range (+225)
- 75++ 63DF 30 00                jr      nc,p127_map_invalid
- 76++ 63E1 5F                   ld      e,a
- 77++ 63E2 16 00                ld      d,0
- 78++ 63E4 21 C6 64             ld      hl,p127_map_shadow
- 79++ 63E7 19                   add     hl,de
- 80++ 63E8 7E                   ld      a,(hl)
- 81++ 63E9 B7                   or      a
- 82++ 63EA C9                   ret
- 83++ 63EB
- 84++ 63EB              ; Stage 0.1 self-test: encoding, invalid page, all window ports and shadow map.
- 85++ 63EB              ; OUT: carry=1 on any mismatch. No hardware registers are touched.
- 86++ 63EB              p127_map_selftest:
- 87++ 63EB 3E 00                ld      a,0
- 88++ 63ED CD AD 63             call    p127_map_encode_page
- 89++ 63F0 DA C4 64             jp      c,p127_map_test_fail
- 90++ 63F3 FE 7F                cp      07Fh
- 91++ 63F5 C2 C4 64             jp      nz,p127_map_test_fail
- 92++ 63F8 3E 01                ld      a,1
- 93++ 63FA CD AD 63             call    p127_map_encode_page
- 94++ 63FD DA C4 64             jp      c,p127_map_test_fail
- 95++ 6400 FE 7E                cp      07Eh
- 96++ 6402 C2 C4 64             jp      nz,p127_map_test_fail
- 97++ 6405 3E 03                ld      a,3
- 98++ 6407 CD AD 63             call    p127_map_encode_page
- 99++ 640A DA C4 64             jp      c,p127_map_test_fail
-100++ 640D FE 7C                cp      07Ch
-101++ 640F C2 C4 64             jp      nz,p127_map_test_fail
-102++ 6412 3E 05                ld      a,5
-103++ 6414 CD AD 63             call    p127_map_encode_page
-104++ 6417 DA C4 64             jp      c,p127_map_test_fail
-105++ 641A FE 7A                cp      07Ah
-106++ 641C C2 C4 64             jp      nz,p127_map_test_fail
-107++ 641F 3E 07                ld      a,7
-108++ 6421 CD AD 63             call    p127_map_encode_page
-109++ 6424 DA C4 64             jp      c,p127_map_test_fail
-110++ 6427 FE 78                cp      078h
-111++ 6429 C2 C4 64             jp      nz,p127_map_test_fail
-112++ 642C 3E 3F                ld      a,63
-113++ 642E CD AD 63             call    p127_map_encode_page
-114++ 6431 DA C4 64             jp      c,p127_map_test_fail
-115++ 6434 FE 40                cp      040h
-116++ 6436 C2 C4 64             jp      nz,p127_map_test_fail
-117++ 6439 3E 40                ld      a,64
-118++ 643B CD AD 63             call    p127_map_encode_page
-119++ 643E D2 C4 64             jp      nc,p127_map_test_fail
-120++ 6441
-121++ 6441 3E 00                ld      a,0
-122++ 6443 CD B8 63             call    p127_map_window_port
-123++ 6446 DA C4 64             jp      c,p127_map_test_fail
-124++ 6449 11 F7 3F             ld      de,03FF7h
-125++ 644C B7                   or      a
-126++ 644D ED 52                sbc     hl,de
-127++ 644F C2 C4 64             jp      nz,p127_map_test_fail
-128++ 6452 3E 01                ld      a,1
-129++ 6454 CD B8 63             call    p127_map_window_port
-130++ 6457 DA C4 64             jp      c,p127_map_test_fail
-131++ 645A 11 F7 7F             ld      de,07FF7h
-132++ 645D B7                   or      a
-133++ 645E ED 52                sbc     hl,de
-134++ 6460 C2 C4 64             jp      nz,p127_map_test_fail
-135++ 6463 3E 02                ld      a,2
-136++ 6465 CD B8 63             call    p127_map_window_port
-137++ 6468 DA C4 64             jp      c,p127_map_test_fail
-138++ 646B 11 F7 BF             ld      de,0BFF7h
-139++ 646E B7                   or      a
-140++ 646F ED 52                sbc     hl,de
-141++ 6471 C2 C4 64             jp      nz,p127_map_test_fail
-142++ 6474 3E 03                ld      a,3
-143++ 6476 CD B8 63             call    p127_map_window_port
-144++ 6479 DA C4 64             jp      c,p127_map_test_fail
-145++ 647C 11 F7 FF             ld      de,0FFF7h
-146++ 647F B7                   or      a
-147++ 6480 ED 52                sbc     hl,de
-148++ 6482 C2 C4 64             jp      nz,p127_map_test_fail
-149++ 6485 3E 04                ld      a,4
-150++ 6487 CD B8 63             call    p127_map_window_port
-151++ 648A D2 C4 64             jp      nc,p127_map_test_fail
-152++ 648D
-153++ 648D CD 97 63             call    p127_map_init
-154++ 6490 3E 00                ld      a,0
-155++ 6492 CD DD 63             call    p127_map_get_shadow
-156++ 6495 FE FF                cp      P127_MAP_ROM
-157++ 6497 C2 C4 64             jp      nz,p127_map_test_fail
-158++ 649A 3E 01                ld      a,1
-159++ 649C CD DD 63             call    p127_map_get_shadow
-160++ 649F FE 05                cp      5
-161++ 64A1 C2 C4 64             jp      nz,p127_map_test_fail
-162++ 64A4 3E 02                ld      a,2
-163++ 64A6 CD DD 63             call    p127_map_get_shadow
-164++ 64A9 FE 02                cp      2
-165++ 64AB C2 C4 64             jp      nz,p127_map_test_fail
-166++ 64AE 3E 03                ld      a,3
-167++ 64B0 CD DD 63             call    p127_map_get_shadow
-168++ 64B3 FE 00                cp      0
-169++ 64B5 C2 C4 64             jp      nz,p127_map_test_fail
-170++ 64B8 3E 04                ld      a,4
-171++ 64BA CD DD 63             call    p127_map_get_shadow
-172++ 64BD D2 C4 64             jp      nc,p127_map_test_fail
-173++ 64C0 B7                   or      a
-174++ 64C1 C9                   ret
-175++ 64C2
-176++ 64C2              p127_map_invalid:
-177++ 64C2 37                   scf
-178++ 64C3 C9                   ret
-179++ 64C4              p127_map_test_fail:
-180++ 64C4 37                   scf
-181++ 64C5 C9                   ret
-182++ 64C6
-183++ 64C6              p127_map_shadow:
-184++ 64C6 00 00 00 00          ds      P127_MAP_WINDOW_COUNT,0
-185++ 64CA              p127_map_end:
-186++ 64CA
+ 75++ 63DF D2 C3 64             jp      nc,p127_map_invalid
+ 76++ 63E2 5F                   ld      e,a
+ 77++ 63E3 16 00                ld      d,0
+ 78++ 63E5 21 C7 64             ld      hl,p127_map_shadow
+ 79++ 63E8 19                   add     hl,de
+ 80++ 63E9 7E                   ld      a,(hl)
+ 81++ 63EA B7                   or      a
+ 82++ 63EB C9                   ret
+ 83++ 63EC
+ 84++ 63EC              ; Stage 0.1 self-test: encoding, invalid page, all window ports and shadow map.
+ 85++ 63EC              ; OUT: carry=1 on any mismatch. No hardware registers are touched.
+ 86++ 63EC              p127_map_selftest:
+ 87++ 63EC 3E 00                ld      a,0
+ 88++ 63EE CD AD 63             call    p127_map_encode_page
+ 89++ 63F1 DA C5 64             jp      c,p127_map_test_fail
+ 90++ 63F4 FE 7F                cp      07Fh
+ 91++ 63F6 C2 C5 64             jp      nz,p127_map_test_fail
+ 92++ 63F9 3E 01                ld      a,1
+ 93++ 63FB CD AD 63             call    p127_map_encode_page
+ 94++ 63FE DA C5 64             jp      c,p127_map_test_fail
+ 95++ 6401 FE 7E                cp      07Eh
+ 96++ 6403 C2 C5 64             jp      nz,p127_map_test_fail
+ 97++ 6406 3E 03                ld      a,3
+ 98++ 6408 CD AD 63             call    p127_map_encode_page
+ 99++ 640B DA C5 64             jp      c,p127_map_test_fail
+100++ 640E FE 7C                cp      07Ch
+101++ 6410 C2 C5 64             jp      nz,p127_map_test_fail
+102++ 6413 3E 05                ld      a,5
+103++ 6415 CD AD 63             call    p127_map_encode_page
+104++ 6418 DA C5 64             jp      c,p127_map_test_fail
+105++ 641B FE 7A                cp      07Ah
+106++ 641D C2 C5 64             jp      nz,p127_map_test_fail
+107++ 6420 3E 07                ld      a,7
+108++ 6422 CD AD 63             call    p127_map_encode_page
+109++ 6425 DA C5 64             jp      c,p127_map_test_fail
+110++ 6428 FE 78                cp      078h
+111++ 642A C2 C5 64             jp      nz,p127_map_test_fail
+112++ 642D 3E 3F                ld      a,63
+113++ 642F CD AD 63             call    p127_map_encode_page
+114++ 6432 DA C5 64             jp      c,p127_map_test_fail
+115++ 6435 FE 40                cp      040h
+116++ 6437 C2 C5 64             jp      nz,p127_map_test_fail
+117++ 643A 3E 40                ld      a,64
+118++ 643C CD AD 63             call    p127_map_encode_page
+119++ 643F D2 C5 64             jp      nc,p127_map_test_fail
+120++ 6442
+121++ 6442 3E 00                ld      a,0
+122++ 6444 CD B8 63             call    p127_map_window_port
+123++ 6447 DA C5 64             jp      c,p127_map_test_fail
+124++ 644A 11 F7 3F             ld      de,03FF7h
+125++ 644D B7                   or      a
+126++ 644E ED 52                sbc     hl,de
+127++ 6450 C2 C5 64             jp      nz,p127_map_test_fail
+128++ 6453 3E 01                ld      a,1
+129++ 6455 CD B8 63             call    p127_map_window_port
+130++ 6458 DA C5 64             jp      c,p127_map_test_fail
+131++ 645B 11 F7 7F             ld      de,07FF7h
+132++ 645E B7                   or      a
+133++ 645F ED 52                sbc     hl,de
+134++ 6461 C2 C5 64             jp      nz,p127_map_test_fail
+135++ 6464 3E 02                ld      a,2
+136++ 6466 CD B8 63             call    p127_map_window_port
+137++ 6469 DA C5 64             jp      c,p127_map_test_fail
+138++ 646C 11 F7 BF             ld      de,0BFF7h
+139++ 646F B7                   or      a
+140++ 6470 ED 52                sbc     hl,de
+141++ 6472 C2 C5 64             jp      nz,p127_map_test_fail
+142++ 6475 3E 03                ld      a,3
+143++ 6477 CD B8 63             call    p127_map_window_port
+144++ 647A DA C5 64             jp      c,p127_map_test_fail
+145++ 647D 11 F7 FF             ld      de,0FFF7h
+146++ 6480 B7                   or      a
+147++ 6481 ED 52                sbc     hl,de
+148++ 6483 C2 C5 64             jp      nz,p127_map_test_fail
+149++ 6486 3E 04                ld      a,4
+150++ 6488 CD B8 63             call    p127_map_window_port
+151++ 648B D2 C5 64             jp      nc,p127_map_test_fail
+152++ 648E
+153++ 648E CD 97 63             call    p127_map_init
+154++ 6491 3E 00                ld      a,0
+155++ 6493 CD DD 63             call    p127_map_get_shadow
+156++ 6496 FE FF                cp      P127_MAP_ROM
+157++ 6498 C2 C5 64             jp      nz,p127_map_test_fail
+158++ 649B 3E 01                ld      a,1
+159++ 649D CD DD 63             call    p127_map_get_shadow
+160++ 64A0 FE 05                cp      5
+161++ 64A2 C2 C5 64             jp      nz,p127_map_test_fail
+162++ 64A5 3E 02                ld      a,2
+163++ 64A7 CD DD 63             call    p127_map_get_shadow
+164++ 64AA FE 02                cp      2
+165++ 64AC C2 C5 64             jp      nz,p127_map_test_fail
+166++ 64AF 3E 03                ld      a,3
+167++ 64B1 CD DD 63             call    p127_map_get_shadow
+168++ 64B4 FE 00                cp      0
+169++ 64B6 C2 C5 64             jp      nz,p127_map_test_fail
+170++ 64B9 3E 04                ld      a,4
+171++ 64BB CD DD 63             call    p127_map_get_shadow
+172++ 64BE D2 C5 64             jp      nc,p127_map_test_fail
+173++ 64C1 B7                   or      a
+174++ 64C2 C9                   ret
+175++ 64C3
+176++ 64C3              p127_map_invalid:
+177++ 64C3 37                   scf
+178++ 64C4 C9                   ret
+179++ 64C5              p127_map_test_fail:
+180++ 64C5 37                   scf
+181++ 64C6 C9                   ret
+182++ 64C7
+183++ 64C7              p127_map_shadow:
+184++ 64C7 00 00 00 00          ds      P127_MAP_WINDOW_COUNT,0
+185++ 64CB              p127_map_end:
+186++ 64CB
 # file closed: p127_map.asm
-142+  64CA
-143+  64CA              p127_end:
-144+  64CA                      ASSERT  p127_entry = P127_LOAD_ADDRESS
-145+  64CA                      ASSERT  p127_end > p127_entry
-146+  64CA                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
-147+  64CA
+142+  64CB
+143+  64CB              p127_end:
+144+  64CB                      ASSERT  p127_entry = P127_LOAD_ADDRESS
+145+  64CB                      ASSERT  p127_end > p127_entry
+146+  64CB                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
+147+  64CB
 # file closed: p127_boot.asm
-  8   64CA
-  9   64CA              ; BASIC boot file is assembly data, not a Python-generated byte array.
- 10   64CA                      ORG     #B000
+  8   64CB
+  9   64CB              ; BASIC boot file is assembly data, not a Python-generated byte array.
+ 10   64CB                      ORG     #B000
  11   B000              CLEAR       EQU #FD
  12   B000              LOAD        EQU #EF
  13   B000              CODE        EQU #AF
