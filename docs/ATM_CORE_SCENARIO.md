@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.2**  
-Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; software mapper model accepted after user runtime test; physical bank switching not yet enabled**  
+Scenario revision: **0.8.3**  
+Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; software mapper model and handoff guard v0.2.2 accepted by user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
 ## Fixed architecture requirements
@@ -25,7 +25,7 @@ Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 | 1 — Physical page-state manager | **PASS (runtime accepted)** | 64-entry page-state table; video and active boot-map reservations; allocate/free/reallocate smoke test. |
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
 | 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
-| 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD IMPLEMENTED; RUNTIME ACCEPTED / NEW GUARD TEST PENDING** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
+| 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | PLANNED | Full register/context frame, page-map snapshot, safe interrupt scheduling and restore tests. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
 | 7 — TR-DOS and filesystem services | PLANNED | Reuse Project126 routines after dependency and device-map audit. |
@@ -225,3 +225,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Extended the self-test: after a successful synthetic staging, a protected-window rejection must clear pending_valid; invalid window and invalid page rejections must also leave it clear.
 - Mapper module advanced to v0.2.2; scenario revision 0.8.2. No physical OUT or bank switching was added.
 - Build and emulator verification of this correction remain pending user confirmation.
+
+
+### 2026-11-09 — Runtime acceptance: handoff guard v0.2.2
+
+- User rebuilt and ran the current Project127 image after mapper correction commit `ce4bb5c`.
+- The supplied #EF log reached all three final diagnostics: `HANDOFF GUARD TEST PASS; OUT DISABLED` and `MAP MODEL TEST PASS; OUT DISABLED`, following `MEM PAGE TEST PASS`.
+- Stage 2.5 software-only handoff guard v0.2.2 is accepted in the emulator. This confirms protected-window rejection, synthetic safe-window staging, pending-state validation, abort, and rejection cleanup as exercised by the current self-test.
+- This acceptance does not validate a real stable execution window, stack migration, interrupt-vector ownership, IFF/IM state restoration, rollback after a physical bank write, or any actual hardware bank switch. No physical `OUT` has been enabled.
+- Scenario revision advanced to 0.8.3. No source module changed in this acceptance update.
+- Next implementation stage is a separately tested resident handoff/trampoline model. First map the exact live code/data/stack/interrupt/vector dependencies and prove a scratch stack transition without touching a bank port. Only after that test passes may the design specify a hardware commit sequence and rollback. The current bootstrap has no unprotected window (`C=#0F`), so it is not eligible for physical remapping.
