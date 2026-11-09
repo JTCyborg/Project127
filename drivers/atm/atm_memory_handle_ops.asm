@@ -127,10 +127,12 @@ atm_mem_handle_fill_loop:
 ; A=handle id, HL=pointer to UINT32 logical offset.
 atm_mem_handle_validate_range:
         ld      (atm_mem_handle_temp_id),a
+        ld      (atm_mem_handle_temp_offset_ptr),hl
         call    atm_mem_handle_find_record
         ret     c
         ld      (atm_mem_handle_temp_record),hl
         ; Compute end = offset + operation length with full carry checking.
+        ld      hl,(atm_mem_handle_temp_offset_ptr)
         ld      de,atm_mem_handle_temp_end
         ld      bc,4
         ldir
@@ -292,6 +294,7 @@ atm_mem_handle_op_length:          defs 4,0
 atm_mem_handle_fill_value:         db 0
 atm_mem_handle_temp_id:            db 0
 atm_mem_handle_temp_record:        dw 0
+atm_mem_handle_temp_offset_ptr:    dw 0
 atm_mem_handle_temp_vector:        dw 0
 atm_mem_handle_cursor_ptr:         dw 0
 atm_mem_handle_temp_end:            defs 4,0
