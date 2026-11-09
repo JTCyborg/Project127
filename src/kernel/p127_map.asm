@@ -1,11 +1,11 @@
 ; ============================================================================
 ; Project127 ATM Core — pure software page-mapper model
-; Module version: 0.2.0
+; Module version: 0.2.1
 ; No hardware OUT instructions are permitted in this stage.
 ; ============================================================================
 P127_MAP_VERSION_MAJOR EQU 0
 P127_MAP_VERSION_MINOR EQU 2
-P127_MAP_VERSION_PATCH EQU 0
+P127_MAP_VERSION_PATCH EQU 1
 
 P127_MAP_WINDOW_COUNT  EQU 4
 P127_MAP_ROM            EQU 0FFh
@@ -271,6 +271,11 @@ p127_map_pending_window:
         db      0
 p127_map_pending_page:
         db      0
+
+; Shared rejection target for handoff preflight (carry=1).
+p127_map_handoff_reject:
+        scf
+        ret
 
 p127_map_invalid:
         scf

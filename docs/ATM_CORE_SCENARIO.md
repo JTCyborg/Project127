@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.0**  
+Scenario revision: **0.8.1**  
 Status: **BOOT0, console, page-state self-test, and bootstrap reservation runtime test accepted; software mapper model accepted after user runtime test; physical bank switching not yet enabled**  
 Repository baseline before this step: `188a72d68cf3a6c0e10434d2d5d9cee016159684`
 
@@ -206,3 +206,12 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - **No OUT instructions, physical remap, page-table commit, or automatic protection-mask discovery are implemented.** Caller correctness in declaring every live window protected remains a requirement. The guard is a software preflight model, not yet the final executable handoff trampoline.
 - Build/runtime verification of this new stage is pending. Existing accepted tests remain accepted; do not interpret the new pass message until the user rebuilds and runs this revision.
 - Next: after user acceptance, design a resident trampoline and stack transition located in a verified stable mapping, then validate interrupt/IFF handling and rollback before considering any physical page-port write.
+
+
+### 2026-11-09 — Build correction: handoff reject target v0.2.1
+
+- User's SjASMPlus v1.24.0 build reported three unresolved references to `p127_map_handoff_reject` in `p127_map_handoff_prepare`.
+- Root cause: the preflight routine branched to a shared rejection target that had not been defined.
+- Added `p127_map_handoff_reject` as a local failure exit that sets carry and returns, matching the documented API. Invalid page, invalid window, and protected-window paths now share this target.
+- Mapper module advanced to v0.2.1; scenario revision 0.8.1.
+- This is a source-level correction only. Rebuild and runtime test of the handoff guard remain pending; do not use an older disk image.
