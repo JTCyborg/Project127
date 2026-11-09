@@ -13,11 +13,13 @@ def le16(n):
     return bytes((n & 255, n >> 8))
 
 def basic_loader():
-    # Spectrum BASIC numeric source is kept inside VAL strings to avoid
-    # malformed numeric-literal markers in the tokenized program.
-    # OUT 239,value writes each progress character to ATM debug port #EF.
-    # No CLEAR is used, so the current RAMTOP is left untouched.
+    # Match the proven Project125/126 TR-DOS BASIC boot sequence:
+    # line 10 performs a direct numeric OUT before any VAL/string parsing.
+    # Subsequent progress text uses the same VAL-based OUT form as P125.
     address = bytes([TOK_VAL]) + b' "24576"'
+
+    def line(number, body):
+        return bytes((0, number)) + le16(len(body) + 1) + body + b"\\x0d"
 
     def debug_text(message):
         statements = []
@@ -27,15 +29,25 @@ def basic_loader():
                               bytes([TOK_VAL]) + b' "' + str(value).encode("ascii") + b'"')
         return b":".join(statements)
 
-    body = (debug_text("[P127] BASIC START\r\n") + b":" +
-            bytes([TOK_LOAD]) + b' "P127BOOT" ' + bytes([TOK_CODE]) +
-            b" " + address + b":" +
-            debug_text("[P127] LOAD OK\r\n") + b":" +
-            debug_text("[P127] CALL 6000\r\n") + b":" +
-            bytes([TOK_RANDOMIZE]) + b" " + bytes([TOK_USR]) + b" " + address)
-    line = bytes([0, 10]) + le16(len(body) + 1) + body + b"\x0d"
-    area = line + b"\x80"
-    return area + b"\xaa\x0a\x00", len(area)
+    # Spectrum BASIC stores a five-byte numeric value after the 0x0E marker.
+    direct_out = (bytes([TOK_OUT]) + b" 239" +
+                  bytes([0x0E, 0x00, 0x00, 0xEF, 0x00, 0x00]) +
+                  b",1" + bytes([0x0E, 0x00, 0x00, 0x01, 0x00, 0x00]))
+
+    lines = [
+        line(10, direct_out),
+        line(11, debug_text("[P127] BASIC START\\r\\n")),
+        line(20, bytes([TOK_LOAD]) + b' "P127BOOT" ' +
+             bytes([TOK_CODE]) + b" " + address),
+        line(21, debug_text("[P127] LOAD OK\\r\\n")),
+        line(22, debug_text("[P127] CALL 6000\\r\\n")),
+        line(30, bytes([TOK_OUT]) + b" 239" +
+             bytes([0x0E, 0x00, 0x00, 0xEF, 0x00, 0x00]) +
+             b",2" + bytes([0x0E, 0x00, 0x00, 0x02, 0x00, 0x00]) +
+             b":" + bytes([TOK_RANDOMIZE, TOK_USR]) + b" " + address),
+    ]
+    area = b"".join(lines) + b"\\x80"
+    return area + b"\\xaa\\x0a\\x00", len(area)
 
 def offset(track, sector):
     if not 0 <= track < TRACKS or not 0 <= sector < SPT:
