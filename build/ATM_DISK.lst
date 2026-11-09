@@ -13,8 +13,8 @@
 # file opened: p127_host.asm
   1+  0000              ; =========================================================================
   2+  0000              ; PROJECT127 - ATM Turbo 2+ host entry
-  3+  0000              ; Version: P127_ATM_HOST v0.4.0
-  4+  0000              ; ATM page-map and contiguous allocator milestone.
+  3+  0000              ; Version: P127_ATM_HOST v0.5.0
+  4+  0000              ; ATM allocator record-copy fix.
   5+  0000              ; =========================================================================
   6+  0000
   7+  0000                      DEVICE ZXSPECTRUM128
@@ -39,7 +39,7 @@
  26+  601B 38 38                jr      c,p127_host_range_fail
  27+  601D 21 43 61             ld      hl,p127_host_range_ok
  28+  6020 CD E1 60             call    p127_host_debug_string
- 29+  6023 CD DA 66             call    atm_mem_allocator_selftest
+ 29+  6023 CD DB 66             call    atm_mem_allocator_selftest
  30+  6026 38 10                jr      c,p127_host_allocator_fail
  31+  6028 21 67 61             ld      hl,p127_host_allocator_ok
  32+  602B CD E1 60             call    p127_host_debug_string
@@ -147,13 +147,13 @@
 134+  60EA 18 F5                jr      p127_host_debug_string
 135+  60EC
 136+  60EC              p127_host_banner:
-137+  60EC 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.4.0",13,10
+137+  60EC 5B 50 31 32          db "[P127] ATM HOST ENTRY v0.5.0",13,10
 137+  60F0 37 5D 20 41
 137+  60F4 54 4D 20 48
 137+  60F8 4F 53 54 20
 137+  60FC 45 4E 54 52
 137+  6100 59 20 76 30
-137+  6104 2E 34 2E 30
+137+  6104 2E 35 2E 30
 137+  6108 0D 0A
 138+  610A 5B 50 31 32          db "[P127] TR-DOS BOOT OK",13,10
 138+  610E 37 5D 20 54
@@ -556,14 +556,14 @@
  25+++63F0
  26+++63F0                      ; Clear allocations from a previous initialization.
  27+++63F0 AF                   xor     a
- 28+++63F1 21 1F 69             ld      hl,atm_mem_allocated_bitmap
+ 28+++63F1 21 20 69             ld      hl,atm_mem_allocated_bitmap
  29+++63F4 77                   ld      (hl),a
- 30+++63F5 11 20 69             ld      de,atm_mem_allocated_bitmap+1
+ 30+++63F5 11 21 69             ld      de,atm_mem_allocated_bitmap+1
  31+++63F8 01 07 00             ld      bc,7
  32+++63FB ED B0                ldir
- 33+++63FD 21 97 67             ld      hl,atm_mem_alloc_table
+ 33+++63FD 21 98 67             ld      hl,atm_mem_alloc_table
  34+++6400 77                   ld      (hl),a
- 35+++6401 11 98 67             ld      de,atm_mem_alloc_table+1
+ 35+++6401 11 99 67             ld      de,atm_mem_alloc_table+1
  36+++6404 01 7F 01             ld      bc,383
  37+++6407 ED B0                ldir
  38+++6409                      ; Open the ATM shadow-port decoder using the proven Project112 ROM
@@ -602,19 +602,19 @@
  70+++6432
  71+++6432              ; Validate request_offset + request_length against physical capacity.
  72+++6432              atm_mem_validate_request:
- 73+++6432 2A 85 67             ld      hl,(atm_mem_request_offset)
+ 73+++6432 2A 86 67             ld      hl,(atm_mem_request_offset)
  74+++6435 22 C8 62             ld      (p127_range_offset),hl
- 75+++6438 2A 87 67             ld      hl,(atm_mem_request_offset+2)
+ 75+++6438 2A 88 67             ld      hl,(atm_mem_request_offset+2)
  76+++643B 22 CA 62             ld      (p127_range_offset+2),hl
- 77+++643E 2A 89 67             ld      hl,(atm_mem_request_length)
+ 77+++643E 2A 8A 67             ld      hl,(atm_mem_request_length)
  78+++6441 22 CC 62             ld      (p127_range_length),hl
- 79+++6444 2A 8B 67             ld      hl,(atm_mem_request_length+2)
+ 79+++6444 2A 8C 67             ld      hl,(atm_mem_request_length+2)
  80+++6447 22 CE 62             ld      (p127_range_length+2),hl
  81+++644A C3 E0 62             jp      atm_mem_validate_range
  82+++644D
  83+++644D              ; A = ceil(request_length / 16384), 1..64. Request must already be validated.
  84+++644D              atm_mem_pages_for_length:
- 85+++644D 3A 8A 67             ld      a,(atm_mem_request_length+1)
+ 85+++644D 3A 8B 67             ld      a,(atm_mem_request_length+1)
  86+++6450 E6 C0                and     #C0
  87+++6452 CB 3F                srl     a
  88+++6454 CB 3F                srl     a
@@ -623,14 +623,14 @@
  91+++645A CB 3F                srl     a
  92+++645C CB 3F                srl     a
  93+++645E 47                   ld      b,a
- 94+++645F 3A 8B 67             ld      a,(atm_mem_request_length+2)
+ 94+++645F 3A 8C 67             ld      a,(atm_mem_request_length+2)
  95+++6462 87                   add     a,a
  96+++6463 87                   add     a,a
  97+++6464 80                   add     a,b
  98+++6465 47                   ld      b,a
- 99+++6466 3A 89 67             ld      a,(atm_mem_request_length)
+ 99+++6466 3A 8A 67             ld      a,(atm_mem_request_length)
 100+++6469 4F                   ld      c,a
-101+++646A 3A 8A 67             ld      a,(atm_mem_request_length+1)
+101+++646A 3A 8B 67             ld      a,(atm_mem_request_length+1)
 102+++646D E6 3F                and     #3F
 103+++646F B1                   or      c
 104+++6470 CA 74 64             jp      z,atm_mem_pages_exact
@@ -644,28 +644,28 @@
 112+++6476              atm_mem_alloc:
 112+++6476
 113+++6476 21 00 00             ld      hl,0
-114+++6479 22 85 67             ld      (atm_mem_request_offset),hl
-115+++647C 22 87 67             ld      (atm_mem_request_offset+2),hl
-116+++647F 3A 89 67             ld      a,(atm_mem_request_length)
+114+++6479 22 86 67             ld      (atm_mem_request_offset),hl
+115+++647C 22 88 67             ld      (atm_mem_request_offset+2),hl
+116+++647F 3A 8A 67             ld      a,(atm_mem_request_length)
 117+++6482 47                   ld      b,a
-118+++6483 3A 8A 67             ld      a,(atm_mem_request_length+1)
+118+++6483 3A 8B 67             ld      a,(atm_mem_request_length+1)
 119+++6486 B0                   or      b
 120+++6487 47                   ld      b,a
-121+++6488 3A 8B 67             ld      a,(atm_mem_request_length+2)
+121+++6488 3A 8C 67             ld      a,(atm_mem_request_length+2)
 122+++648B B0                   or      b
 123+++648C 47                   ld      b,a
-124+++648D 3A 8C 67             ld      a,(atm_mem_request_length+3)
+124+++648D 3A 8D 67             ld      a,(atm_mem_request_length+3)
 125+++6490 B0                   or      b
-126+++6491 CA 32 65             jp      z,atm_mem_alloc_fail
+126+++6491 CA 33 65             jp      z,atm_mem_alloc_fail
 127+++6494 CD 32 64             call    atm_mem_validate_request
-128+++6497 DA 32 65             jp      c,atm_mem_alloc_fail
+128+++6497 DA 33 65             jp      c,atm_mem_alloc_fail
 129+++649A CD 4D 64             call    atm_mem_pages_for_length
 130+++649D B7                   or      a
-131+++649E CA 32 65             jp      z,atm_mem_alloc_fail
-132+++64A1 32 91 67             ld      (atm_mem_pages_needed),a
+131+++649E CA 33 65             jp      z,atm_mem_alloc_fail
+132+++64A1 32 92 67             ld      (atm_mem_pages_needed),a
 133+++64A4
 134+++64A4                      ; Reserve a bookkeeping slot before searching for physical pages.
-135+++64A4 21 97 67             ld      hl,atm_mem_alloc_table
+135+++64A4 21 98 67             ld      hl,atm_mem_alloc_table
 136+++64A7 06 40                ld      b,ATM_ALLOCATION_SLOTS
 137+++64A9              atm_mem_alloc_find_slot:
 138+++64A9 7E                   ld      a,(hl)
@@ -676,504 +676,507 @@
 143+++64B2 19                   add     hl,de
 144+++64B3 C1                   pop     bc
 145+++64B4 10 F3                djnz    atm_mem_alloc_find_slot
-146+++64B6 C3 32 65             jp      atm_mem_alloc_fail
+146+++64B6 C3 33 65             jp      atm_mem_alloc_fail
 147+++64B9              atm_mem_alloc_slot_found:
-148+++64B9 22 94 67             ld      (atm_mem_record_ptr),hl
+148+++64B9 22 95 67             ld      (atm_mem_record_ptr),hl
 149+++64BC
 150+++64BC AF                   xor     a
-151+++64BD 32 92 67             ld      (atm_mem_candidate),a
+151+++64BD 32 93 67             ld      (atm_mem_candidate),a
 152+++64C0
 153+++64C0              atm_mem_alloc_candidate:
-154+++64C0 3A 92 67             ld      a,(atm_mem_candidate)
+154+++64C0 3A 93 67             ld      a,(atm_mem_candidate)
 155+++64C3 FE 40                cp      ATM_PAGE_COUNT
-156+++64C5 D2 32 65             jp      nc,atm_mem_alloc_fail
+156+++64C5 D2 33 65             jp      nc,atm_mem_alloc_fail
 157+++64C8 47                   ld      b,a
-158+++64C9 3A 91 67             ld      a,(atm_mem_pages_needed)
+158+++64C9 3A 92 67             ld      a,(atm_mem_pages_needed)
 159+++64CC 4F                   ld      c,a
 160+++64CD              atm_mem_alloc_scan:
 161+++64CD 78                   ld      a,b
 162+++64CE FE 40                cp      ATM_PAGE_COUNT
-163+++64D0 D2 28 65             jp      nc,atm_mem_alloc_next_candidate
-164+++64D3 CD 35 66             call    atm_mem_page_is_free
-165+++64D6 C2 28 65             jp      nz,atm_mem_alloc_next_candidate
+163+++64D0 D2 29 65             jp      nc,atm_mem_alloc_next_candidate
+164+++64D3 CD 36 66             call    atm_mem_page_is_free
+165+++64D6 C2 29 65             jp      nz,atm_mem_alloc_next_candidate
 166+++64D9 04                   inc     b
 167+++64DA 0D                   dec     c
 168+++64DB C2 CD 64             jp      nz,atm_mem_alloc_scan
 169+++64DE
 170+++64DE                      ; Entire run is free. Mark all pages allocated.
-171+++64DE 3A 92 67             ld      a,(atm_mem_candidate)
-172+++64E1 32 93 67             ld      (atm_mem_alloc_start),a
+171+++64DE 3A 93 67             ld      a,(atm_mem_candidate)
+172+++64E1 32 94 67             ld      (atm_mem_alloc_start),a
 173+++64E4 47                   ld      b,a
-174+++64E5 3A 91 67             ld      a,(atm_mem_pages_needed)
+174+++64E5 3A 92 67             ld      a,(atm_mem_pages_needed)
 175+++64E8 4F                   ld      c,a
 176+++64E9              atm_mem_alloc_mark:
 177+++64E9 78                   ld      a,b
-178+++64EA CD 67 66             call    atm_mem_page_set_allocated
+178+++64EA CD 68 66             call    atm_mem_page_set_allocated
 179+++64ED 04                   inc     b
 180+++64EE 0D                   dec     c
 181+++64EF C2 E9 64             jp      nz,atm_mem_alloc_mark
 182+++64F2
 183+++64F2                      ; Record exact allocation identity: start page, page count, byte length.
-184+++64F2 2A 94 67             ld      hl,(atm_mem_record_ptr)
-185+++64F5 3A 93 67             ld      a,(atm_mem_alloc_start)
+184+++64F2 2A 95 67             ld      hl,(atm_mem_record_ptr)
+185+++64F5 3A 94 67             ld      a,(atm_mem_alloc_start)
 186+++64F8 77                   ld      (hl),a
 187+++64F9 23                   inc     hl
-188+++64FA 3A 91 67             ld      a,(atm_mem_pages_needed)
+188+++64FA 3A 92 67             ld      a,(atm_mem_pages_needed)
 189+++64FD 77                   ld      (hl),a
 190+++64FE 23                   inc     hl
-191+++64FF 11 89 67             ld      de,atm_mem_request_length
-192+++6502 01 04 00             ld      bc,4
-193+++6505 ED B0                ldir
-194+++6507
-195+++6507                      ; Convert page index to a 32-bit byte offset (page << 14).
-196+++6507 3A 93 67             ld      a,(atm_mem_alloc_start)
-197+++650A E6 03                and     3
-198+++650C 87                   add     a,a
-199+++650D 87                   add     a,a
-200+++650E 87                   add     a,a
-201+++650F 87                   add     a,a
-202+++6510 87                   add     a,a
-203+++6511 87                   add     a,a
-204+++6512 32 8E 67             ld      (atm_mem_result_offset+1),a
-205+++6515 3A 93 67             ld      a,(atm_mem_alloc_start)
-206+++6518 CB 3F                srl     a
-207+++651A CB 3F                srl     a
-208+++651C 32 8F 67             ld      (atm_mem_result_offset+2),a
-209+++651F AF                   xor     a
-210+++6520 32 8D 67             ld      (atm_mem_result_offset),a
-211+++6523 32 90 67             ld      (atm_mem_result_offset+3),a
-212+++6526 B7                   or      a
-213+++6527 C9                   ret
-214+++6528
-215+++6528              atm_mem_alloc_next_candidate:
-216+++6528 3A 92 67             ld      a,(atm_mem_candidate)
-217+++652B 3C                   inc     a
-218+++652C 32 92 67             ld      (atm_mem_candidate),a
-219+++652F C3 C0 64             jp      atm_mem_alloc_candidate
-220+++6532
-221+++6532              atm_mem_alloc_fail:
-222+++6532 37                   scf
-223+++6533 C9                   ret
-224+++6534
-225+++6534              ; FREE: request_offset + request_length identify the original allocation.
-226+++6534              ; Both the base and the rounded page extent must match allocated pages.
-227+++6534              atm_mem_free:
-227+++6534
-228+++6534 3A 85 67             ld      a,(atm_mem_request_offset)
-229+++6537 B7                   or      a
-230+++6538 C2 FB 65             jp      nz,atm_mem_free_fail_01
-231+++653B 3A 88 67             ld      a,(atm_mem_request_offset+3)
-232+++653E B7                   or      a
-233+++653F C2 02 66             jp      nz,atm_mem_free_fail_02
-234+++6542 3A 86 67             ld      a,(atm_mem_request_offset+1)
-235+++6545 E6 3F                and     #3F
-236+++6547 C2 09 66             jp      nz,atm_mem_free_fail_03
-237+++654A 3A 89 67             ld      a,(atm_mem_request_length)
-238+++654D 47                   ld      b,a
-239+++654E 3A 8A 67             ld      a,(atm_mem_request_length+1)
-240+++6551 B0                   or      b
-241+++6552 47                   ld      b,a
-242+++6553 3A 8B 67             ld      a,(atm_mem_request_length+2)
-243+++6556 B0                   or      b
-244+++6557 47                   ld      b,a
-245+++6558 3A 8C 67             ld      a,(atm_mem_request_length+3)
-246+++655B B0                   or      b
-247+++655C CA 10 66             jp      z,atm_mem_free_fail_04
-248+++655F CD 32 64             call    atm_mem_validate_request
-249+++6562 DA 17 66             jp      c,atm_mem_free_fail_05
-250+++6565
-251+++6565                      ; Page index = (offset >> 14).
-252+++6565 3A 87 67             ld      a,(atm_mem_request_offset+2)
-253+++6568 87                   add     a,a
-254+++6569 87                   add     a,a
-255+++656A 47                   ld      b,a
-256+++656B 3A 86 67             ld      a,(atm_mem_request_offset+1)
-257+++656E CB 3F                srl     a
-258+++6570 CB 3F                srl     a
-259+++6572 CB 3F                srl     a
-260+++6574 CB 3F                srl     a
-261+++6576 CB 3F                srl     a
-262+++6578 CB 3F                srl     a
-263+++657A E6 03                and     3
-264+++657C B0                   or      b
-265+++657D 32 93 67             ld      (atm_mem_alloc_start),a
-266+++6580
-267+++6580                      ; Require an exact base+length match in the allocation table.
-268+++6580 21 97 67             ld      hl,atm_mem_alloc_table
-269+++6583 06 40                ld      b,ATM_ALLOCATION_SLOTS
-270+++6585              atm_mem_free_find_record:
-271+++6585 7E                   ld      a,(hl)
-272+++6586 B7                   or      a
-273+++6587 CA BF 65             jp      z,atm_mem_free_next_record
-274+++658A 57                   ld      d,a
-275+++658B 3A 93 67             ld      a,(atm_mem_alloc_start)
-276+++658E BA                   cp      d
-277+++658F C2 BF 65             jp      nz,atm_mem_free_next_record
-278+++6592 E5                   push    hl
-279+++6593 23                   inc     hl
-280+++6594 23                   inc     hl
-281+++6595 11 89 67             ld      de,atm_mem_request_length
-282+++6598 1A                   ld      a,(de)
-283+++6599 BE                   cp      (hl)
-284+++659A C2 BE 65             jp      nz,atm_mem_free_record_mismatch
-285+++659D 13                   inc     de
-286+++659E 23                   inc     hl
-287+++659F 1A                   ld      a,(de)
-288+++65A0 BE                   cp      (hl)
-289+++65A1 C2 BE 65             jp      nz,atm_mem_free_record_mismatch
-290+++65A4 13                   inc     de
-291+++65A5 23                   inc     hl
-292+++65A6 1A                   ld      a,(de)
-293+++65A7 BE                   cp      (hl)
-294+++65A8 C2 BE 65             jp      nz,atm_mem_free_record_mismatch
-295+++65AB 13                   inc     de
-296+++65AC 23                   inc     hl
-297+++65AD 1A                   ld      a,(de)
-298+++65AE BE                   cp      (hl)
-299+++65AF C2 BE 65             jp      nz,atm_mem_free_record_mismatch
-300+++65B2 E1                   pop     hl
-301+++65B3 22 94 67             ld      (atm_mem_record_ptr),hl
-302+++65B6 23                   inc     hl
-303+++65B7 7E                   ld      a,(hl)
-304+++65B8 32 91 67             ld      (atm_mem_pages_needed),a
-305+++65BB C3 CA 65             jp      atm_mem_free_record_found
-306+++65BE              atm_mem_free_record_mismatch:
-307+++65BE E1                   pop     hl
-308+++65BF              atm_mem_free_next_record:
-309+++65BF C5                   push    bc
-310+++65C0 11 06 00             ld      de,6
-311+++65C3 19                   add     hl,de
-312+++65C4 C1                   pop     bc
-313+++65C5 10 BE                djnz    atm_mem_free_find_record
-314+++65C7 C3 2C 66             jp      atm_mem_free_fail
-315+++65CA              atm_mem_free_record_found:
-316+++65CA
-317+++65CA                      ; Validate every page before changing any bitmap bit.
-318+++65CA 3A 93 67             ld      a,(atm_mem_alloc_start)
-319+++65CD 47                   ld      b,a
-320+++65CE 3A 91 67             ld      a,(atm_mem_pages_needed)
-321+++65D1 4F                   ld      c,a
-322+++65D2              atm_mem_free_check:
-323+++65D2 78                   ld      a,b
-324+++65D3 FE 40                cp      ATM_PAGE_COUNT
-325+++65D5 D2 1E 66             jp      nc,atm_mem_free_fail_06
-326+++65D8 CD 8E 66             call    atm_mem_page_is_allocated
-327+++65DB CA 25 66             jp      z,atm_mem_free_fail_07
-328+++65DE 04                   inc     b
-329+++65DF 0D                   dec     c
-330+++65E0 C2 D2 65             jp      nz,atm_mem_free_check
-331+++65E3
-332+++65E3 3A 93 67             ld      a,(atm_mem_alloc_start)
-333+++65E6 47                   ld      b,a
-334+++65E7 3A 91 67             ld      a,(atm_mem_pages_needed)
-335+++65EA 4F                   ld      c,a
-336+++65EB              atm_mem_free_clear:
-337+++65EB 78                   ld      a,b
-338+++65EC CD B2 66             call    atm_mem_page_clear_allocated
-339+++65EF 04                   inc     b
-340+++65F0 0D                   dec     c
-341+++65F1 C2 EB 65             jp      nz,atm_mem_free_clear
-342+++65F4                      ; Release the exact allocation record only after all page bits clear.
-343+++65F4 2A 94 67             ld      hl,(atm_mem_record_ptr)
-344+++65F7 AF                   xor     a
-345+++65F8 77                   ld      (hl),a
-346+++65F9 B7                   or      a
-347+++65FA C9                   ret
-348+++65FB              atm_mem_free_fail_01:
-349+++65FB 3E 01                ld      a,1
-350+++65FD 32 96 67             ld      (atm_mem_free_error),a
-351+++6600 37                   scf
-352+++6601 C9                   ret
-353+++6602              atm_mem_free_fail_02:
-354+++6602 3E 02                ld      a,2
-355+++6604 32 96 67             ld      (atm_mem_free_error),a
-356+++6607 37                   scf
-357+++6608 C9                   ret
-358+++6609              atm_mem_free_fail_03:
-359+++6609 3E 03                ld      a,3
-360+++660B 32 96 67             ld      (atm_mem_free_error),a
-361+++660E 37                   scf
-362+++660F C9                   ret
-363+++6610              atm_mem_free_fail_04:
-364+++6610 3E 04                ld      a,4
-365+++6612 32 96 67             ld      (atm_mem_free_error),a
-366+++6615 37                   scf
-367+++6616 C9                   ret
-368+++6617              atm_mem_free_fail_05:
-369+++6617 3E 05                ld      a,5
-370+++6619 32 96 67             ld      (atm_mem_free_error),a
-371+++661C 37                   scf
-372+++661D C9                   ret
-373+++661E              atm_mem_free_fail_06:
-374+++661E 3E 06                ld      a,6
-375+++6620 32 96 67             ld      (atm_mem_free_error),a
-376+++6623 37                   scf
-377+++6624 C9                   ret
-378+++6625              atm_mem_free_fail_07:
-379+++6625 3E 07                ld      a,7
-380+++6627 32 96 67             ld      (atm_mem_free_error),a
-381+++662A 37                   scf
-382+++662B C9                   ret
-383+++662C              atm_mem_free_fail:
-384+++662C 3E FF                ld      a,255
-385+++662E 32 96 67             ld      (atm_mem_free_error),a
-386+++6631 37                   scf
-387+++6632 C9                   ret
-388+++6633 37                   scf
-389+++6634 C9                   ret
-390+++6635
-391+++6635              ; A=page. Z if neither reserved nor allocated.
-392+++6635              atm_mem_page_is_free:
-393+++6635 C5                   push    bc
-394+++6636 4F                   ld      c,a
-395+++6637 E6 07                and     7
-396+++6639 47                   ld      b,a
-397+++663A 79                   ld      a,c
-398+++663B CB 3F                srl     a
-399+++663D CB 3F                srl     a
-400+++663F CB 3F                srl     a
-401+++6641 4F                   ld      c,a
-402+++6642 1E 01                ld      e,1
-403+++6644 78                   ld      a,b
-404+++6645 B7                   or      a
-405+++6646 CA 4D 66             jp      z,atm_mem_page_free_mask_ready
-406+++6649              atm_mem_page_free_mask_loop:
-407+++6649 CB 23                sla     e
-408+++664B 10 FC                djnz    atm_mem_page_free_mask_loop
-409+++664D              atm_mem_page_free_mask_ready:
-410+++664D 79                   ld      a,c
-411+++664E 4F                   ld      c,a
-412+++664F 06 00                ld      b,0
-413+++6651 21 17 69             ld      hl,atm_mem_reserved_bitmap
-414+++6654 09                   add     hl,bc
-415+++6655 7E                   ld      a,(hl)
-416+++6656 A3                   and     e
-417+++6657 C2 62 66             jp      nz,atm_mem_page_used
-418+++665A 21 1F 69             ld      hl,atm_mem_allocated_bitmap
-419+++665D 09                   add     hl,bc
-420+++665E 7E                   ld      a,(hl)
-421+++665F A3                   and     e
-422+++6660 C1                   pop     bc
-423+++6661 C9                   ret
-424+++6662              atm_mem_page_used:
-425+++6662 3E 01                ld      a,1
-426+++6664 B7                   or      a
-427+++6665 C1                   pop     bc
-428+++6666 C9                   ret
-429+++6667
-430+++6667              ; A=page. Sets its bit in the allocation bitmap.
-431+++6667              atm_mem_page_set_allocated:
-432+++6667 C5                   push    bc
-433+++6668 4F                   ld      c,a
-434+++6669 E6 07                and     7
-435+++666B 47                   ld      b,a
-436+++666C 79                   ld      a,c
-437+++666D CB 3F                srl     a
-438+++666F CB 3F                srl     a
-439+++6671 CB 3F                srl     a
-440+++6673 4F                   ld      c,a
-441+++6674 1E 01                ld      e,1
-442+++6676 78                   ld      a,b
-443+++6677 B7                   or      a
-444+++6678 CA 7F 66             jp      z,atm_mem_page_set_mask_ready
-445+++667B              atm_mem_page_set_mask_loop:
-446+++667B CB 23                sla     e
-447+++667D 10 FC                djnz    atm_mem_page_set_mask_loop
-448+++667F              atm_mem_page_set_mask_ready:
-449+++667F 7B                   ld      a,e
-450+++6680 F5                   push    af
-451+++6681 79                   ld      a,c
-452+++6682 4F                   ld      c,a
-453+++6683 06 00                ld      b,0
-454+++6685 21 1F 69             ld      hl,atm_mem_allocated_bitmap
-455+++6688 09                   add     hl,bc
-456+++6689 F1                   pop     af
-457+++668A B6                   or      (hl)
-458+++668B 77                   ld      (hl),a
-459+++668C C1                   pop     bc
-460+++668D C9                   ret
-461+++668E
-462+++668E              ; A=page. Returns NZ if its allocation bit is set.
-463+++668E              atm_mem_page_is_allocated:
-464+++668E C5                   push    bc
-465+++668F 4F                   ld      c,a
-466+++6690 E6 07                and     7
-467+++6692 47                   ld      b,a
-468+++6693 79                   ld      a,c
-469+++6694 CB 3F                srl     a
-470+++6696 CB 3F                srl     a
-471+++6698 CB 3F                srl     a
-472+++669A 4F                   ld      c,a
-473+++669B 1E 01                ld      e,1
-474+++669D 78                   ld      a,b
-475+++669E B7                   or      a
-476+++669F CA A6 66             jp      z,atm_mem_page_alloc_test_ready
-477+++66A2              atm_mem_page_alloc_test_loop:
-478+++66A2 CB 23                sla     e
-479+++66A4 10 FC                djnz    atm_mem_page_alloc_test_loop
-480+++66A6              atm_mem_page_alloc_test_ready:
-481+++66A6 79                   ld      a,c
-482+++66A7 4F                   ld      c,a
-483+++66A8 06 00                ld      b,0
-484+++66AA 21 1F 69             ld      hl,atm_mem_allocated_bitmap
-485+++66AD 09                   add     hl,bc
-486+++66AE 7E                   ld      a,(hl)
-487+++66AF A3                   and     e
-488+++66B0 C1                   pop     bc
-489+++66B1 C9                   ret
-490+++66B2
-491+++66B2              ; A=page. Clears its allocation bit.
-492+++66B2              atm_mem_page_clear_allocated:
-493+++66B2 C5                   push    bc
-494+++66B3 4F                   ld      c,a
-495+++66B4 E6 07                and     7
-496+++66B6 47                   ld      b,a
-497+++66B7 79                   ld      a,c
-498+++66B8 CB 3F                srl     a
-499+++66BA CB 3F                srl     a
-500+++66BC CB 3F                srl     a
-501+++66BE 4F                   ld      c,a
-502+++66BF 1E 01                ld      e,1
-503+++66C1 78                   ld      a,b
-504+++66C2 B7                   or      a
-505+++66C3 CA CA 66             jp      z,atm_mem_page_clear_mask_ready
-506+++66C6              atm_mem_page_clear_mask_loop:
-507+++66C6 CB 23                sla     e
-508+++66C8 10 FC                djnz    atm_mem_page_clear_mask_loop
-509+++66CA              atm_mem_page_clear_mask_ready:
-510+++66CA 7B                   ld      a,e
-511+++66CB 2F                   cpl
-512+++66CC F5                   push    af
-513+++66CD 79                   ld      a,c
-514+++66CE 4F                   ld      c,a
-515+++66CF 06 00                ld      b,0
-516+++66D1 21 1F 69             ld      hl,atm_mem_allocated_bitmap
-517+++66D4 09                   add     hl,bc
-518+++66D5 F1                   pop     af
-519+++66D6 A6                   and     (hl)
-520+++66D7 77                   ld      (hl),a
-521+++66D8 C1                   pop     bc
-522+++66D9 C9                   ret
-523+++66DA
-524+++66DA              ; Runtime allocator smoke test. Verifies a 16 KiB + 1 byte allocation crosses
-525+++66DA              ; the physical page boundary, then verifies a one-byte allocation and FREE.
-526+++66DA              atm_mem_allocator_selftest:
-526+++66DA
-527+++66DA 21 01 40             ld      hl,#4001
-528+++66DD 22 89 67             ld      (atm_mem_request_length),hl
-529+++66E0 21 00 00             ld      hl,0
-530+++66E3 22 8B 67             ld      (atm_mem_request_length+2),hl
-531+++66E6 CD 76 64             call    atm_mem_alloc
-532+++66E9 DA 5A 67             jp      c,atm_mem_allocator_fail_01
-533+++66EC 3A 8D 67             ld      a,(atm_mem_result_offset)
-534+++66EF B7                   or      a
-535+++66F0 C2 5E 67             jp      nz,atm_mem_allocator_fail_02
-536+++66F3 3A 8E 67             ld      a,(atm_mem_result_offset+1)
-537+++66F6 B7                   or      a
-538+++66F7 C2 62 67             jp      nz,atm_mem_allocator_fail_03
-539+++66FA 3A 8F 67             ld      a,(atm_mem_result_offset+2)
-540+++66FD FE 02                cp      2
-541+++66FF C2 66 67             jp      nz,atm_mem_allocator_fail_04
-542+++6702 3A 90 67             ld      a,(atm_mem_result_offset+3)
-543+++6705 B7                   or      a
-544+++6706 C2 6A 67             jp      nz,atm_mem_allocator_fail_05
-545+++6709 2A 8D 67             ld      hl,(atm_mem_result_offset)
-546+++670C 22 85 67             ld      (atm_mem_request_offset),hl
-547+++670F 2A 8F 67             ld      hl,(atm_mem_result_offset+2)
-548+++6712 22 87 67             ld      (atm_mem_request_offset+2),hl
-549+++6715 CD 34 65             call    atm_mem_free
-550+++6718 DA 6E 67             jp      c,atm_mem_allocator_free_fail_06
-551+++671B
-552+++671B 21 01 00             ld      hl,1
-553+++671E 22 89 67             ld      (atm_mem_request_length),hl
-554+++6721 21 00 00             ld      hl,0
-555+++6724 22 8B 67             ld      (atm_mem_request_length+2),hl
-556+++6727 CD 76 64             call    atm_mem_alloc
-557+++672A DA 75 67             jp      c,atm_mem_allocator_fail_07
-558+++672D 3A 8D 67             ld      a,(atm_mem_result_offset)
-559+++6730 B7                   or      a
-560+++6731 C2 79 67             jp      nz,atm_mem_allocator_fail_08
-561+++6734 3A 8E 67             ld      a,(atm_mem_result_offset+1)
-562+++6737 B7                   or      a
-563+++6738 C2 7D 67             jp      nz,atm_mem_allocator_fail_09
-564+++673B 3A 8F 67             ld      a,(atm_mem_result_offset+2)
-565+++673E FE 01                cp      1
-566+++6740 C2 81 67             jp      nz,atm_mem_allocator_fail_10
-567+++6743 3A 90 67             ld      a,(atm_mem_result_offset+3)
-568+++6746 B7                   or      a
-569+++6747 C2 83 67             jp      nz,atm_mem_allocator_selftest_fail
-570+++674A 2A 8D 67             ld      hl,(atm_mem_result_offset)
-571+++674D 22 85 67             ld      (atm_mem_request_offset),hl
-572+++6750 2A 8F 67             ld      hl,(atm_mem_result_offset+2)
-573+++6753 22 87 67             ld      (atm_mem_request_offset+2),hl
-574+++6756 CD 34 65             call    atm_mem_free
-575+++6759 C9                   ret
-576+++675A
-577+++675A              atm_mem_allocator_fail_01:
-578+++675A 3E 01                ld      a,1
-579+++675C 18 25                jr      atm_mem_allocator_selftest_fail
-580+++675E              atm_mem_allocator_fail_02:
-581+++675E 3E 02                ld      a,2
-582+++6760 18 21                jr      atm_mem_allocator_selftest_fail
-583+++6762              atm_mem_allocator_fail_03:
-584+++6762 3E 03                ld      a,3
-585+++6764 18 1D                jr      atm_mem_allocator_selftest_fail
-586+++6766              atm_mem_allocator_fail_04:
-587+++6766 3E 04                ld      a,4
-588+++6768 18 19                jr      atm_mem_allocator_selftest_fail
-589+++676A              atm_mem_allocator_fail_05:
-590+++676A 3E 05                ld      a,5
-591+++676C 18 15                jr      atm_mem_allocator_selftest_fail
-592+++676E              atm_mem_allocator_free_fail_06:
-593+++676E 3A 96 67             ld      a,(atm_mem_free_error)
-594+++6771 F6 80                or      #80
-595+++6773 18 0E                jr      atm_mem_allocator_selftest_fail
-596+++6775              atm_mem_allocator_fail_07:
-597+++6775 3E 07                ld      a,7
-598+++6777 18 0A                jr      atm_mem_allocator_selftest_fail
-599+++6779              atm_mem_allocator_fail_08:
-600+++6779 3E 08                ld      a,8
-601+++677B 18 06                jr      atm_mem_allocator_selftest_fail
-602+++677D              atm_mem_allocator_fail_09:
-603+++677D 3E 09                ld      a,9
-604+++677F 18 02                jr      atm_mem_allocator_selftest_fail
-605+++6781              atm_mem_allocator_fail_10:
-606+++6781 3E 0A                ld      a,10
-607+++6783              atm_mem_allocator_selftest_fail:
-608+++6783 37                   scf
-609+++6784 C9                   ret
-610+++6785
-611+++6785 00 00 00 00  atm_mem_request_offset:     defs 4,0
-612+++6789 00 00 00 00  atm_mem_request_length:     defs 4,0
-613+++678D 00 00 00 00  atm_mem_result_offset:      defs 4,0
-614+++6791 00           atm_mem_pages_needed:       db 0
-615+++6792 00           atm_mem_candidate:          db 0
-616+++6793 00           atm_mem_alloc_start:        db 0
-617+++6794 00 00        atm_mem_record_ptr:         dw 0
-618+++6796 00           atm_mem_free_error:         db 0
-619+++6797              ; 64 records * 6 bytes: start page, page count, exact UINT32 byte length.
-620+++6797 00 00 00...  atm_mem_alloc_table:        defs 384,0
-621+++6917
-622+++6917              ; Page 0,1,2,3,5,7 are reserved: $AF in bitmap byte zero.
-623+++6917              atm_mem_reserved_bitmap:
-624+++6917 AF 00 00 00          db #AF,0,0,0,0,0,0,0
-624+++691B 00 00 00 00
-625+++691F              atm_mem_allocated_bitmap:
-626+++691F 00 00 00...          defs 8,0
-627+++6927
+191+++64FF                      ; LDIR copies from HL to DE: preserve the caller's length in the
+192+++64FF                      ; allocation record, not the other way around.
+193+++64FF 11 8A 67             ld      de,atm_mem_request_length
+194+++6502 EB                   ex      de,hl
+195+++6503 01 04 00             ld      bc,4
+196+++6506 ED B0                ldir
+197+++6508
+198+++6508                      ; Convert page index to a 32-bit byte offset (page << 14).
+199+++6508 3A 94 67             ld      a,(atm_mem_alloc_start)
+200+++650B E6 03                and     3
+201+++650D 87                   add     a,a
+202+++650E 87                   add     a,a
+203+++650F 87                   add     a,a
+204+++6510 87                   add     a,a
+205+++6511 87                   add     a,a
+206+++6512 87                   add     a,a
+207+++6513 32 8F 67             ld      (atm_mem_result_offset+1),a
+208+++6516 3A 94 67             ld      a,(atm_mem_alloc_start)
+209+++6519 CB 3F                srl     a
+210+++651B CB 3F                srl     a
+211+++651D 32 90 67             ld      (atm_mem_result_offset+2),a
+212+++6520 AF                   xor     a
+213+++6521 32 8E 67             ld      (atm_mem_result_offset),a
+214+++6524 32 91 67             ld      (atm_mem_result_offset+3),a
+215+++6527 B7                   or      a
+216+++6528 C9                   ret
+217+++6529
+218+++6529              atm_mem_alloc_next_candidate:
+219+++6529 3A 93 67             ld      a,(atm_mem_candidate)
+220+++652C 3C                   inc     a
+221+++652D 32 93 67             ld      (atm_mem_candidate),a
+222+++6530 C3 C0 64             jp      atm_mem_alloc_candidate
+223+++6533
+224+++6533              atm_mem_alloc_fail:
+225+++6533 37                   scf
+226+++6534 C9                   ret
+227+++6535
+228+++6535              ; FREE: request_offset + request_length identify the original allocation.
+229+++6535              ; Both the base and the rounded page extent must match allocated pages.
+230+++6535              atm_mem_free:
+230+++6535
+231+++6535 3A 86 67             ld      a,(atm_mem_request_offset)
+232+++6538 B7                   or      a
+233+++6539 C2 FC 65             jp      nz,atm_mem_free_fail_01
+234+++653C 3A 89 67             ld      a,(atm_mem_request_offset+3)
+235+++653F B7                   or      a
+236+++6540 C2 03 66             jp      nz,atm_mem_free_fail_02
+237+++6543 3A 87 67             ld      a,(atm_mem_request_offset+1)
+238+++6546 E6 3F                and     #3F
+239+++6548 C2 0A 66             jp      nz,atm_mem_free_fail_03
+240+++654B 3A 8A 67             ld      a,(atm_mem_request_length)
+241+++654E 47                   ld      b,a
+242+++654F 3A 8B 67             ld      a,(atm_mem_request_length+1)
+243+++6552 B0                   or      b
+244+++6553 47                   ld      b,a
+245+++6554 3A 8C 67             ld      a,(atm_mem_request_length+2)
+246+++6557 B0                   or      b
+247+++6558 47                   ld      b,a
+248+++6559 3A 8D 67             ld      a,(atm_mem_request_length+3)
+249+++655C B0                   or      b
+250+++655D CA 11 66             jp      z,atm_mem_free_fail_04
+251+++6560 CD 32 64             call    atm_mem_validate_request
+252+++6563 DA 18 66             jp      c,atm_mem_free_fail_05
+253+++6566
+254+++6566                      ; Page index = (offset >> 14).
+255+++6566 3A 88 67             ld      a,(atm_mem_request_offset+2)
+256+++6569 87                   add     a,a
+257+++656A 87                   add     a,a
+258+++656B 47                   ld      b,a
+259+++656C 3A 87 67             ld      a,(atm_mem_request_offset+1)
+260+++656F CB 3F                srl     a
+261+++6571 CB 3F                srl     a
+262+++6573 CB 3F                srl     a
+263+++6575 CB 3F                srl     a
+264+++6577 CB 3F                srl     a
+265+++6579 CB 3F                srl     a
+266+++657B E6 03                and     3
+267+++657D B0                   or      b
+268+++657E 32 94 67             ld      (atm_mem_alloc_start),a
+269+++6581
+270+++6581                      ; Require an exact base+length match in the allocation table.
+271+++6581 21 98 67             ld      hl,atm_mem_alloc_table
+272+++6584 06 40                ld      b,ATM_ALLOCATION_SLOTS
+273+++6586              atm_mem_free_find_record:
+274+++6586 7E                   ld      a,(hl)
+275+++6587 B7                   or      a
+276+++6588 CA C0 65             jp      z,atm_mem_free_next_record
+277+++658B 57                   ld      d,a
+278+++658C 3A 94 67             ld      a,(atm_mem_alloc_start)
+279+++658F BA                   cp      d
+280+++6590 C2 C0 65             jp      nz,atm_mem_free_next_record
+281+++6593 E5                   push    hl
+282+++6594 23                   inc     hl
+283+++6595 23                   inc     hl
+284+++6596 11 8A 67             ld      de,atm_mem_request_length
+285+++6599 1A                   ld      a,(de)
+286+++659A BE                   cp      (hl)
+287+++659B C2 BF 65             jp      nz,atm_mem_free_record_mismatch
+288+++659E 13                   inc     de
+289+++659F 23                   inc     hl
+290+++65A0 1A                   ld      a,(de)
+291+++65A1 BE                   cp      (hl)
+292+++65A2 C2 BF 65             jp      nz,atm_mem_free_record_mismatch
+293+++65A5 13                   inc     de
+294+++65A6 23                   inc     hl
+295+++65A7 1A                   ld      a,(de)
+296+++65A8 BE                   cp      (hl)
+297+++65A9 C2 BF 65             jp      nz,atm_mem_free_record_mismatch
+298+++65AC 13                   inc     de
+299+++65AD 23                   inc     hl
+300+++65AE 1A                   ld      a,(de)
+301+++65AF BE                   cp      (hl)
+302+++65B0 C2 BF 65             jp      nz,atm_mem_free_record_mismatch
+303+++65B3 E1                   pop     hl
+304+++65B4 22 95 67             ld      (atm_mem_record_ptr),hl
+305+++65B7 23                   inc     hl
+306+++65B8 7E                   ld      a,(hl)
+307+++65B9 32 92 67             ld      (atm_mem_pages_needed),a
+308+++65BC C3 CB 65             jp      atm_mem_free_record_found
+309+++65BF              atm_mem_free_record_mismatch:
+310+++65BF E1                   pop     hl
+311+++65C0              atm_mem_free_next_record:
+312+++65C0 C5                   push    bc
+313+++65C1 11 06 00             ld      de,6
+314+++65C4 19                   add     hl,de
+315+++65C5 C1                   pop     bc
+316+++65C6 10 BE                djnz    atm_mem_free_find_record
+317+++65C8 C3 2D 66             jp      atm_mem_free_fail
+318+++65CB              atm_mem_free_record_found:
+319+++65CB
+320+++65CB                      ; Validate every page before changing any bitmap bit.
+321+++65CB 3A 94 67             ld      a,(atm_mem_alloc_start)
+322+++65CE 47                   ld      b,a
+323+++65CF 3A 92 67             ld      a,(atm_mem_pages_needed)
+324+++65D2 4F                   ld      c,a
+325+++65D3              atm_mem_free_check:
+326+++65D3 78                   ld      a,b
+327+++65D4 FE 40                cp      ATM_PAGE_COUNT
+328+++65D6 D2 1F 66             jp      nc,atm_mem_free_fail_06
+329+++65D9 CD 8F 66             call    atm_mem_page_is_allocated
+330+++65DC CA 26 66             jp      z,atm_mem_free_fail_07
+331+++65DF 04                   inc     b
+332+++65E0 0D                   dec     c
+333+++65E1 C2 D3 65             jp      nz,atm_mem_free_check
+334+++65E4
+335+++65E4 3A 94 67             ld      a,(atm_mem_alloc_start)
+336+++65E7 47                   ld      b,a
+337+++65E8 3A 92 67             ld      a,(atm_mem_pages_needed)
+338+++65EB 4F                   ld      c,a
+339+++65EC              atm_mem_free_clear:
+340+++65EC 78                   ld      a,b
+341+++65ED CD B3 66             call    atm_mem_page_clear_allocated
+342+++65F0 04                   inc     b
+343+++65F1 0D                   dec     c
+344+++65F2 C2 EC 65             jp      nz,atm_mem_free_clear
+345+++65F5                      ; Release the exact allocation record only after all page bits clear.
+346+++65F5 2A 95 67             ld      hl,(atm_mem_record_ptr)
+347+++65F8 AF                   xor     a
+348+++65F9 77                   ld      (hl),a
+349+++65FA B7                   or      a
+350+++65FB C9                   ret
+351+++65FC              atm_mem_free_fail_01:
+352+++65FC 3E 01                ld      a,1
+353+++65FE 32 97 67             ld      (atm_mem_free_error),a
+354+++6601 37                   scf
+355+++6602 C9                   ret
+356+++6603              atm_mem_free_fail_02:
+357+++6603 3E 02                ld      a,2
+358+++6605 32 97 67             ld      (atm_mem_free_error),a
+359+++6608 37                   scf
+360+++6609 C9                   ret
+361+++660A              atm_mem_free_fail_03:
+362+++660A 3E 03                ld      a,3
+363+++660C 32 97 67             ld      (atm_mem_free_error),a
+364+++660F 37                   scf
+365+++6610 C9                   ret
+366+++6611              atm_mem_free_fail_04:
+367+++6611 3E 04                ld      a,4
+368+++6613 32 97 67             ld      (atm_mem_free_error),a
+369+++6616 37                   scf
+370+++6617 C9                   ret
+371+++6618              atm_mem_free_fail_05:
+372+++6618 3E 05                ld      a,5
+373+++661A 32 97 67             ld      (atm_mem_free_error),a
+374+++661D 37                   scf
+375+++661E C9                   ret
+376+++661F              atm_mem_free_fail_06:
+377+++661F 3E 06                ld      a,6
+378+++6621 32 97 67             ld      (atm_mem_free_error),a
+379+++6624 37                   scf
+380+++6625 C9                   ret
+381+++6626              atm_mem_free_fail_07:
+382+++6626 3E 07                ld      a,7
+383+++6628 32 97 67             ld      (atm_mem_free_error),a
+384+++662B 37                   scf
+385+++662C C9                   ret
+386+++662D              atm_mem_free_fail:
+387+++662D 3E FF                ld      a,255
+388+++662F 32 97 67             ld      (atm_mem_free_error),a
+389+++6632 37                   scf
+390+++6633 C9                   ret
+391+++6634 37                   scf
+392+++6635 C9                   ret
+393+++6636
+394+++6636              ; A=page. Z if neither reserved nor allocated.
+395+++6636              atm_mem_page_is_free:
+396+++6636 C5                   push    bc
+397+++6637 4F                   ld      c,a
+398+++6638 E6 07                and     7
+399+++663A 47                   ld      b,a
+400+++663B 79                   ld      a,c
+401+++663C CB 3F                srl     a
+402+++663E CB 3F                srl     a
+403+++6640 CB 3F                srl     a
+404+++6642 4F                   ld      c,a
+405+++6643 1E 01                ld      e,1
+406+++6645 78                   ld      a,b
+407+++6646 B7                   or      a
+408+++6647 CA 4E 66             jp      z,atm_mem_page_free_mask_ready
+409+++664A              atm_mem_page_free_mask_loop:
+410+++664A CB 23                sla     e
+411+++664C 10 FC                djnz    atm_mem_page_free_mask_loop
+412+++664E              atm_mem_page_free_mask_ready:
+413+++664E 79                   ld      a,c
+414+++664F 4F                   ld      c,a
+415+++6650 06 00                ld      b,0
+416+++6652 21 18 69             ld      hl,atm_mem_reserved_bitmap
+417+++6655 09                   add     hl,bc
+418+++6656 7E                   ld      a,(hl)
+419+++6657 A3                   and     e
+420+++6658 C2 63 66             jp      nz,atm_mem_page_used
+421+++665B 21 20 69             ld      hl,atm_mem_allocated_bitmap
+422+++665E 09                   add     hl,bc
+423+++665F 7E                   ld      a,(hl)
+424+++6660 A3                   and     e
+425+++6661 C1                   pop     bc
+426+++6662 C9                   ret
+427+++6663              atm_mem_page_used:
+428+++6663 3E 01                ld      a,1
+429+++6665 B7                   or      a
+430+++6666 C1                   pop     bc
+431+++6667 C9                   ret
+432+++6668
+433+++6668              ; A=page. Sets its bit in the allocation bitmap.
+434+++6668              atm_mem_page_set_allocated:
+435+++6668 C5                   push    bc
+436+++6669 4F                   ld      c,a
+437+++666A E6 07                and     7
+438+++666C 47                   ld      b,a
+439+++666D 79                   ld      a,c
+440+++666E CB 3F                srl     a
+441+++6670 CB 3F                srl     a
+442+++6672 CB 3F                srl     a
+443+++6674 4F                   ld      c,a
+444+++6675 1E 01                ld      e,1
+445+++6677 78                   ld      a,b
+446+++6678 B7                   or      a
+447+++6679 CA 80 66             jp      z,atm_mem_page_set_mask_ready
+448+++667C              atm_mem_page_set_mask_loop:
+449+++667C CB 23                sla     e
+450+++667E 10 FC                djnz    atm_mem_page_set_mask_loop
+451+++6680              atm_mem_page_set_mask_ready:
+452+++6680 7B                   ld      a,e
+453+++6681 F5                   push    af
+454+++6682 79                   ld      a,c
+455+++6683 4F                   ld      c,a
+456+++6684 06 00                ld      b,0
+457+++6686 21 20 69             ld      hl,atm_mem_allocated_bitmap
+458+++6689 09                   add     hl,bc
+459+++668A F1                   pop     af
+460+++668B B6                   or      (hl)
+461+++668C 77                   ld      (hl),a
+462+++668D C1                   pop     bc
+463+++668E C9                   ret
+464+++668F
+465+++668F              ; A=page. Returns NZ if its allocation bit is set.
+466+++668F              atm_mem_page_is_allocated:
+467+++668F C5                   push    bc
+468+++6690 4F                   ld      c,a
+469+++6691 E6 07                and     7
+470+++6693 47                   ld      b,a
+471+++6694 79                   ld      a,c
+472+++6695 CB 3F                srl     a
+473+++6697 CB 3F                srl     a
+474+++6699 CB 3F                srl     a
+475+++669B 4F                   ld      c,a
+476+++669C 1E 01                ld      e,1
+477+++669E 78                   ld      a,b
+478+++669F B7                   or      a
+479+++66A0 CA A7 66             jp      z,atm_mem_page_alloc_test_ready
+480+++66A3              atm_mem_page_alloc_test_loop:
+481+++66A3 CB 23                sla     e
+482+++66A5 10 FC                djnz    atm_mem_page_alloc_test_loop
+483+++66A7              atm_mem_page_alloc_test_ready:
+484+++66A7 79                   ld      a,c
+485+++66A8 4F                   ld      c,a
+486+++66A9 06 00                ld      b,0
+487+++66AB 21 20 69             ld      hl,atm_mem_allocated_bitmap
+488+++66AE 09                   add     hl,bc
+489+++66AF 7E                   ld      a,(hl)
+490+++66B0 A3                   and     e
+491+++66B1 C1                   pop     bc
+492+++66B2 C9                   ret
+493+++66B3
+494+++66B3              ; A=page. Clears its allocation bit.
+495+++66B3              atm_mem_page_clear_allocated:
+496+++66B3 C5                   push    bc
+497+++66B4 4F                   ld      c,a
+498+++66B5 E6 07                and     7
+499+++66B7 47                   ld      b,a
+500+++66B8 79                   ld      a,c
+501+++66B9 CB 3F                srl     a
+502+++66BB CB 3F                srl     a
+503+++66BD CB 3F                srl     a
+504+++66BF 4F                   ld      c,a
+505+++66C0 1E 01                ld      e,1
+506+++66C2 78                   ld      a,b
+507+++66C3 B7                   or      a
+508+++66C4 CA CB 66             jp      z,atm_mem_page_clear_mask_ready
+509+++66C7              atm_mem_page_clear_mask_loop:
+510+++66C7 CB 23                sla     e
+511+++66C9 10 FC                djnz    atm_mem_page_clear_mask_loop
+512+++66CB              atm_mem_page_clear_mask_ready:
+513+++66CB 7B                   ld      a,e
+514+++66CC 2F                   cpl
+515+++66CD F5                   push    af
+516+++66CE 79                   ld      a,c
+517+++66CF 4F                   ld      c,a
+518+++66D0 06 00                ld      b,0
+519+++66D2 21 20 69             ld      hl,atm_mem_allocated_bitmap
+520+++66D5 09                   add     hl,bc
+521+++66D6 F1                   pop     af
+522+++66D7 A6                   and     (hl)
+523+++66D8 77                   ld      (hl),a
+524+++66D9 C1                   pop     bc
+525+++66DA C9                   ret
+526+++66DB
+527+++66DB              ; Runtime allocator smoke test. Verifies a 16 KiB + 1 byte allocation crosses
+528+++66DB              ; the physical page boundary, then verifies a one-byte allocation and FREE.
+529+++66DB              atm_mem_allocator_selftest:
+529+++66DB
+530+++66DB 21 01 40             ld      hl,#4001
+531+++66DE 22 8A 67             ld      (atm_mem_request_length),hl
+532+++66E1 21 00 00             ld      hl,0
+533+++66E4 22 8C 67             ld      (atm_mem_request_length+2),hl
+534+++66E7 CD 76 64             call    atm_mem_alloc
+535+++66EA DA 5B 67             jp      c,atm_mem_allocator_fail_01
+536+++66ED 3A 8E 67             ld      a,(atm_mem_result_offset)
+537+++66F0 B7                   or      a
+538+++66F1 C2 5F 67             jp      nz,atm_mem_allocator_fail_02
+539+++66F4 3A 8F 67             ld      a,(atm_mem_result_offset+1)
+540+++66F7 B7                   or      a
+541+++66F8 C2 63 67             jp      nz,atm_mem_allocator_fail_03
+542+++66FB 3A 90 67             ld      a,(atm_mem_result_offset+2)
+543+++66FE FE 02                cp      2
+544+++6700 C2 67 67             jp      nz,atm_mem_allocator_fail_04
+545+++6703 3A 91 67             ld      a,(atm_mem_result_offset+3)
+546+++6706 B7                   or      a
+547+++6707 C2 6B 67             jp      nz,atm_mem_allocator_fail_05
+548+++670A 2A 8E 67             ld      hl,(atm_mem_result_offset)
+549+++670D 22 86 67             ld      (atm_mem_request_offset),hl
+550+++6710 2A 90 67             ld      hl,(atm_mem_result_offset+2)
+551+++6713 22 88 67             ld      (atm_mem_request_offset+2),hl
+552+++6716 CD 35 65             call    atm_mem_free
+553+++6719 DA 6F 67             jp      c,atm_mem_allocator_free_fail_06
+554+++671C
+555+++671C 21 01 00             ld      hl,1
+556+++671F 22 8A 67             ld      (atm_mem_request_length),hl
+557+++6722 21 00 00             ld      hl,0
+558+++6725 22 8C 67             ld      (atm_mem_request_length+2),hl
+559+++6728 CD 76 64             call    atm_mem_alloc
+560+++672B DA 76 67             jp      c,atm_mem_allocator_fail_07
+561+++672E 3A 8E 67             ld      a,(atm_mem_result_offset)
+562+++6731 B7                   or      a
+563+++6732 C2 7A 67             jp      nz,atm_mem_allocator_fail_08
+564+++6735 3A 8F 67             ld      a,(atm_mem_result_offset+1)
+565+++6738 B7                   or      a
+566+++6739 C2 7E 67             jp      nz,atm_mem_allocator_fail_09
+567+++673C 3A 90 67             ld      a,(atm_mem_result_offset+2)
+568+++673F FE 01                cp      1
+569+++6741 C2 82 67             jp      nz,atm_mem_allocator_fail_10
+570+++6744 3A 91 67             ld      a,(atm_mem_result_offset+3)
+571+++6747 B7                   or      a
+572+++6748 C2 84 67             jp      nz,atm_mem_allocator_selftest_fail
+573+++674B 2A 8E 67             ld      hl,(atm_mem_result_offset)
+574+++674E 22 86 67             ld      (atm_mem_request_offset),hl
+575+++6751 2A 90 67             ld      hl,(atm_mem_result_offset+2)
+576+++6754 22 88 67             ld      (atm_mem_request_offset+2),hl
+577+++6757 CD 35 65             call    atm_mem_free
+578+++675A C9                   ret
+579+++675B
+580+++675B              atm_mem_allocator_fail_01:
+581+++675B 3E 01                ld      a,1
+582+++675D 18 25                jr      atm_mem_allocator_selftest_fail
+583+++675F              atm_mem_allocator_fail_02:
+584+++675F 3E 02                ld      a,2
+585+++6761 18 21                jr      atm_mem_allocator_selftest_fail
+586+++6763              atm_mem_allocator_fail_03:
+587+++6763 3E 03                ld      a,3
+588+++6765 18 1D                jr      atm_mem_allocator_selftest_fail
+589+++6767              atm_mem_allocator_fail_04:
+590+++6767 3E 04                ld      a,4
+591+++6769 18 19                jr      atm_mem_allocator_selftest_fail
+592+++676B              atm_mem_allocator_fail_05:
+593+++676B 3E 05                ld      a,5
+594+++676D 18 15                jr      atm_mem_allocator_selftest_fail
+595+++676F              atm_mem_allocator_free_fail_06:
+596+++676F 3A 97 67             ld      a,(atm_mem_free_error)
+597+++6772 F6 80                or      #80
+598+++6774 18 0E                jr      atm_mem_allocator_selftest_fail
+599+++6776              atm_mem_allocator_fail_07:
+600+++6776 3E 07                ld      a,7
+601+++6778 18 0A                jr      atm_mem_allocator_selftest_fail
+602+++677A              atm_mem_allocator_fail_08:
+603+++677A 3E 08                ld      a,8
+604+++677C 18 06                jr      atm_mem_allocator_selftest_fail
+605+++677E              atm_mem_allocator_fail_09:
+606+++677E 3E 09                ld      a,9
+607+++6780 18 02                jr      atm_mem_allocator_selftest_fail
+608+++6782              atm_mem_allocator_fail_10:
+609+++6782 3E 0A                ld      a,10
+610+++6784              atm_mem_allocator_selftest_fail:
+611+++6784 37                   scf
+612+++6785 C9                   ret
+613+++6786
+614+++6786 00 00 00 00  atm_mem_request_offset:     defs 4,0
+615+++678A 00 00 00 00  atm_mem_request_length:     defs 4,0
+616+++678E 00 00 00 00  atm_mem_result_offset:      defs 4,0
+617+++6792 00           atm_mem_pages_needed:       db 0
+618+++6793 00           atm_mem_candidate:          db 0
+619+++6794 00           atm_mem_alloc_start:        db 0
+620+++6795 00 00        atm_mem_record_ptr:         dw 0
+621+++6797 00           atm_mem_free_error:         db 0
+622+++6798              ; 64 records * 6 bytes: start page, page count, exact UINT32 byte length.
+623+++6798 00 00 00...  atm_mem_alloc_table:        defs 384,0
+624+++6918
+625+++6918              ; Page 0,1,2,3,5,7 are reserved: $AF in bitmap byte zero.
+626+++6918              atm_mem_reserved_bitmap:
+627+++6918 AF 00 00 00          db #AF,0,0,0,0,0,0,0
+627+++691C 00 00 00 00
+628+++6920              atm_mem_allocated_bitmap:
+629+++6920 00 00 00...          defs 8,0
+630+++6928
 # file closed: atm_memory_manager.asm
-158++ 6927
+158++ 6928
 # file closed: atm_memory_backend.asm
-164+  6927
-165+  6927              p127_host_program_end:
-166+  6927                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
-167+  6927                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
-168+  6927
+164+  6928
+165+  6928              p127_host_program_end:
+166+  6928                      ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
+167+  6928                      ASSERT p127_host_entry=P127_HOST_ENTRY_POINT
+168+  6928
 # file closed: p127_host.asm
- 12   6927                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
- 13   6927
- 14   6927                      PAGE 0
- 15   6927                      ORG #E000
+ 12   6928                      SAVETRD "disk_A.trd", "p127host.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
+ 13   6928
+ 14   6928                      PAGE 0
+ 15   6928                      ORG #E000
  16   E000                      INCLUDE "atm_host/boot_loader.generated.asm"
 # file opened: boot_loader.generated.asm
   1+  E000              ; =========================================================================
@@ -1361,72 +1364,72 @@ Value    Label
 0x0040   ATM_ALLOCATION_SLOTS
 0x6476   atm_mem_alloc
 0x64C0   atm_mem_alloc_candidate
-0x6532   atm_mem_alloc_fail
+0x6533   atm_mem_alloc_fail
 0x64A9   atm_mem_alloc_find_slot
 0x64E9   atm_mem_alloc_mark
-0x6528   atm_mem_alloc_next_candidate
+0x6529   atm_mem_alloc_next_candidate
 0x64CD   atm_mem_alloc_scan
 0x64B9   atm_mem_alloc_slot_found
-0x6793   atm_mem_alloc_start
-0x6797   atm_mem_alloc_table
-0x691F   atm_mem_allocated_bitmap
-0x675A   atm_mem_allocator_fail_01
-0x675E   atm_mem_allocator_fail_02
-0x6762   atm_mem_allocator_fail_03
-0x6766   atm_mem_allocator_fail_04
-0x676A   atm_mem_allocator_fail_05
-0x6775   atm_mem_allocator_fail_07
-0x6779   atm_mem_allocator_fail_08
-0x677D   atm_mem_allocator_fail_09
-0x6781   atm_mem_allocator_fail_10
-0x676E   atm_mem_allocator_free_fail_06
-0x66DA   atm_mem_allocator_selftest
-0x6783   atm_mem_allocator_selftest_fail
-0x6792   atm_mem_candidate
+0x6794   atm_mem_alloc_start
+0x6798   atm_mem_alloc_table
+0x6920   atm_mem_allocated_bitmap
+0x675B   atm_mem_allocator_fail_01
+0x675F   atm_mem_allocator_fail_02
+0x6763   atm_mem_allocator_fail_03
+0x6767   atm_mem_allocator_fail_04
+0x676B   atm_mem_allocator_fail_05
+0x6776   atm_mem_allocator_fail_07
+0x677A   atm_mem_allocator_fail_08
+0x677E   atm_mem_allocator_fail_09
+0x6782   atm_mem_allocator_fail_10
+0x676F   atm_mem_allocator_free_fail_06
+0x66DB   atm_mem_allocator_selftest
+0x6784   atm_mem_allocator_selftest_fail
+0x6793   atm_mem_candidate
 0x63DE   atm_mem_capabilities
-0x6534   atm_mem_free
-0x65D2   atm_mem_free_check
-0x65EB   atm_mem_free_clear
-0x6796   atm_mem_free_error
-0x662C   atm_mem_free_fail
-0x65FB   atm_mem_free_fail_01
-0x6602   atm_mem_free_fail_02
-0x6609   atm_mem_free_fail_03
-0x6610   atm_mem_free_fail_04
-0x6617   atm_mem_free_fail_05
-0x661E   atm_mem_free_fail_06
-0x6625   atm_mem_free_fail_07
-0x6585   atm_mem_free_find_record
-0x65BF   atm_mem_free_next_record
-0x65CA   atm_mem_free_record_found
-0x65BE   atm_mem_free_record_mismatch
+0x6535   atm_mem_free
+0x65D3   atm_mem_free_check
+0x65EC   atm_mem_free_clear
+0x6797   atm_mem_free_error
+0x662D   atm_mem_free_fail
+0x65FC   atm_mem_free_fail_01
+0x6603   atm_mem_free_fail_02
+0x660A   atm_mem_free_fail_03
+0x6611   atm_mem_free_fail_04
+0x6618   atm_mem_free_fail_05
+0x661F   atm_mem_free_fail_06
+0x6626   atm_mem_free_fail_07
+0x6586   atm_mem_free_find_record
+0x65C0   atm_mem_free_next_record
+0x65CB   atm_mem_free_record_found
+0x65BF   atm_mem_free_record_mismatch
 0x63F0   atm_mem_init
 0x641F X atm_mem_map_page
 0x6430   atm_mem_map_page_invalid
 0x640E   atm_mem_open_shadow_ports
-0x66A2   atm_mem_page_alloc_test_loop
-0x66A6   atm_mem_page_alloc_test_ready
-0x66B2   atm_mem_page_clear_allocated
-0x66C6   atm_mem_page_clear_mask_loop
-0x66CA   atm_mem_page_clear_mask_ready
-0x6649   atm_mem_page_free_mask_loop
-0x664D   atm_mem_page_free_mask_ready
-0x668E   atm_mem_page_is_allocated
-0x6635   atm_mem_page_is_free
-0x6667   atm_mem_page_set_allocated
-0x667B   atm_mem_page_set_mask_loop
-0x667F   atm_mem_page_set_mask_ready
-0x6662   atm_mem_page_used
+0x66A3   atm_mem_page_alloc_test_loop
+0x66A7   atm_mem_page_alloc_test_ready
+0x66B3   atm_mem_page_clear_allocated
+0x66C7   atm_mem_page_clear_mask_loop
+0x66CB   atm_mem_page_clear_mask_ready
+0x664A   atm_mem_page_free_mask_loop
+0x664E   atm_mem_page_free_mask_ready
+0x668F   atm_mem_page_is_allocated
+0x6636   atm_mem_page_is_free
+0x6668   atm_mem_page_set_allocated
+0x667C   atm_mem_page_set_mask_loop
+0x6680   atm_mem_page_set_mask_ready
+0x6663   atm_mem_page_used
 0x6474   atm_mem_pages_exact
 0x644D   atm_mem_pages_for_length
-0x6791   atm_mem_pages_needed
+0x6792   atm_mem_pages_needed
 0x62DC X atm_mem_query_caps
 0x62F2   atm_mem_range_selftest
-0x6794   atm_mem_record_ptr
-0x6789   atm_mem_request_length
-0x6785   atm_mem_request_offset
-0x6917   atm_mem_reserved_bitmap
-0x678D   atm_mem_result_offset
+0x6795   atm_mem_record_ptr
+0x678A   atm_mem_request_length
+0x6786   atm_mem_request_offset
+0x6918   atm_mem_reserved_bitmap
+0x678E   atm_mem_result_offset
 0x63DC   atm_mem_selftest_fail
 0x63C2   atm_mem_selftest_fail_1
 0x63C6   atm_mem_selftest_fail_2
@@ -1486,7 +1489,7 @@ Value    Label
 0x6000   P127_HOST_LOAD_ADDRESS
 0x61C5   p127_host_memory_init_error
 0x6030   p127_host_memory_init_fail
-0x6927 X p127_host_program_end
+0x6928 X p127_host_program_end
 0x6000   p127_host_program_start
 0x61E3   p127_host_range_error
 0x6055   p127_host_range_fail
