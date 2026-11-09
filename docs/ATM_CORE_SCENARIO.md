@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.50**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
+Scenario revision: **0.8.51**  
+Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
 ## Fixed architecture requirements
@@ -692,3 +692,15 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Advanced `src/kernel/p127_mem.asm` to v0.4.3; scenario revision 0.8.50. No boot flow, page-state logic, hardware mapping, DMA, IRQ, IM or EI behavior changed.
 - Acceptance: rerun SjASMPlus; expected result is all three passes complete with zero errors. Runtime marker still required after a successful build.
 - Assistant has not run the assembler or emulator in this environment.
+
+
+### 2026-11-09 — Stage 2.24 runtime acceptance: allocator negative paths and exhaustive page sweep
+
+- User supplied the complete #EF runtime log. It contains both `MEM PAGE TEST PASS` and `MEM NEGATIVE-PATH TEST PASS; DOUBLE-FREE/RANGE/RESERVE GUARDED`.
+- The physical W3 batch also completed: all 57 allocatable pages (`#06`, `#08`–`#3F`) were filled, then verified in reverse order. The log confirms `PHYSICAL RAM: 57/57 FREE PAGES VERIFIED`, W3=P0 restoration, UI active, and the full free-page sweep/allocator/reservation marker.
+- The subsequent `PAGE ALLOC/FREE + GUARDED W3 LEASE API PASS; IM/EI DISABLED` confirms the guarded allocator/W3 lease API test still passes after the negative-path tests.
+- Stage 2.24 and `src/kernel/p127_mem.asm` v0.4.3 are accepted from the user's runtime evidence. The negative-path checks reject double-free, page ID 64, overlapping reservation and out-of-range reservation without corrupting first-fit allocator state.
+- The log also confirms that the earlier map transaction, resident stack, UI quiesce/ownership, W3 rollback/recovery, IRQ frame/batch/table/contract preflights, resident trampoline/window and handoff guard diagnostics all pass. IRQ source remains unresolved; IM/EI, physical page-port OUT and IRQ vector activation remain disabled.
+- Acceptance is limited to the exercised software page-state and guarded W3 path. It does not authorize general W0/W1/W2 remapping, unrestricted application mapping, DMA or interrupt enablement. The seven reserved pages remain outside the 57-page sweep.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.51. The assembler and emulator were not independently run here; acceptance is based on the user's supplied runtime log.
+- Next: begin Stage 3 planning/implementation for the UINT32 memory-range API and top-down program arena. First derive the physical address/range contract from the actual kernel end and reservations; retain overflow/bounds checks and do not infer that the current W3-only lease can transparently access arbitrary physical pages.
