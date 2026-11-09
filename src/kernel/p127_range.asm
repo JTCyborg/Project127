@@ -1,6 +1,6 @@
 ; ============================================================================
 ; Project127 ATM Core — UINT32 physical range validator
-; Module version: 0.1.0
+; Module version: 0.1.1
 ; ABI:
 ;   p127_range_start  = 4-byte little-endian physical start address
 ;   p127_range_length = 4-byte little-endian byte length
@@ -11,7 +11,7 @@
 ; ============================================================================
 P127_RANGE_VERSION_MAJOR EQU 0
 P127_RANGE_VERSION_MINOR EQU 1
-P127_RANGE_VERSION_PATCH EQU 0
+P127_RANGE_VERSION_PATCH EQU 1
 P127_RANGE_LIMIT         EQU 0100000h
 
 p127_range_validate:
@@ -117,7 +117,7 @@ p127_range_selftest:
         ld      (hl),a
         inc     hl
         ld      (hl),a
-        ld      a,1
+        ld      a,010h
         ld      (p127_range_length+2),a
         ld      a,0
         ld      (p127_range_length),a

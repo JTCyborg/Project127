@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.52**  
+Scenario revision: **0.8.53**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -41,7 +41,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 |---|---:|---|
 | `src/boot/p127_boot.asm` | 0.7.3 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.3 | Software page-state manager; allocator negative-path tests use absolute JP failure branches to remain in range under SjASMPlus |
-| `src/kernel/p127_range.asm` | 0.1.0 | UINT32 end-exclusive physical range validator; 1 MiB bounds/overflow self-test; arithmetic only, no mapping or memory access |
+| `src/kernel/p127_range.asm` | 0.1.1 | UINT32 end-exclusive physical range validator; 1 MiB bounds/overflow self-test; arithmetic only, no mapping or memory access |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -716,3 +716,10 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Boot module advanced to v0.7.4; scenario revision 0.8.52.
 - This stage is strictly arithmetic/accounting. It does not access physical RAM, switch page windows, change the current W3-only lease, allocate the top-down program arena, or enable DMA/IRQ/IM/EI. The top-down arena remains blocked on a verified kernel-end and reservation contract.
 - Build and emulator verification are pending the user's SjASMPlus/Unreal Speccy run. No successful build or runtime is claimed.
+
+
+### 2026-11-09 — Stage 3.1 test-vector correction v0.1.1
+
+- During final source review, corrected the full-address-space regression vector: the 32-bit length must be `0x00100000` (byte 2 = `0x10`), not `0x00010000`. The validator itself was unchanged.
+- Advanced `src/kernel/p127_range.asm` to v0.1.1 and scenario revision to 0.8.53.
+- Build/runtime verification remains pending. The full-span test now exercises the exact 1 MiB physical limit.
