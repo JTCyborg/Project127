@@ -120,7 +120,7 @@ p127_storage_rw_done:
 P127_Storage_Flush:
         ld      a,(p127_storage_available)
         or      a
-        jr      z,p127_storage_not_ready
+        jp      z,p127_storage_not_ready
         ld      a,#E7                 ; FLUSH CACHE
         ld      bc,P127_NEMO_STATUS_CMD
         out     (c),a
@@ -176,7 +176,7 @@ p127_storage_wait_ready:
         bit     7,a
         jr      nz,.tick
         bit     0,a
-        jr      nz,p127_storage_ata_error
+        jp      nz,p127_storage_ata_error
         bit     6,a
         jr      nz,p127_storage_ok
 .tick:
