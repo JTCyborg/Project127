@@ -57,6 +57,23 @@ p127_host_entry:
         call    P127_DebugConsole_Init
         ld      a,1
         ld      (p127_host_console_ready),a
+        call    P127_RTC_SelfTest
+        jr      c,p127_host_rtc_format_fail
+        ld      hl,p127_rtc_log_selftest
+        call    p127_host_debug_string
+        call    P127_RTC_Init
+        jr      c,p127_host_rtc_unavailable
+        ld      hl,p127_rtc_log_available
+        call    p127_host_debug_string
+        jr      p127_host_rtc_done
+p127_host_rtc_unavailable:
+        ld      hl,p127_rtc_log_unavailable
+        call    p127_host_debug_string
+        jr      p127_host_rtc_done
+p127_host_rtc_format_fail:
+        ld      hl,p127_rtc_log_selftest_fail
+        call    p127_host_debug_string
+p127_host_rtc_done:
         ld      hl,p127_host_ui_ready
         call    p127_host_debug_string
         jp      p127_host_idle
