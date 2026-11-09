@@ -1,6 +1,6 @@
 ; ============================================================================
 ; Project127 ATM Core — physical page-state manager
-; Module version: 0.4.2
+; Module version: 0.4.3
 ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
 ;      free A=page, C=invalid/not allocated.
 ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
@@ -10,7 +10,7 @@
 ; ============================================================================
 P127_MEM_VERSION_MAJOR EQU 0
 P127_MEM_VERSION_MINOR EQU 4
-P127_MEM_VERSION_PATCH EQU 2
+P127_MEM_VERSION_PATCH EQU 3
 P127_MEM_PAGE_COUNT    EQU 64
 P127_MEM_PAGE_SIZE     EQU 04000h
 P127_MEM_FREE          EQU 0
@@ -160,25 +160,25 @@ p127_mem_error:
 p127_mem_selftest:
         ld      a,0
         call    p127_mem_free
-        jr      nc,p127_mem_test_fail
+        jp      nc,p127_mem_test_fail
         ld      a,1
         call    p127_mem_free
-        jr      nc,p127_mem_test_fail
+        jp      nc,p127_mem_test_fail
         ld      a,2
         call    p127_mem_free
-        jr      nc,p127_mem_test_fail
+        jp      nc,p127_mem_test_fail
         ld      a,3
         call    p127_mem_free
-        jr      nc,p127_mem_test_fail
+        jp      nc,p127_mem_test_fail
         ld      a,5
         call    p127_mem_free
-        jr      nc,p127_mem_test_fail
+        jp      nc,p127_mem_test_fail
         ld      a,P127_IRQ_TABLE_PAGE
         call    p127_mem_free
-        jr      nc,p127_mem_test_fail
+        jp      nc,p127_mem_test_fail
         ld      a,7
         call    p127_mem_free
-        jr      nc,p127_mem_test_fail
+        jp      nc,p127_mem_test_fail
         call    p127_mem_alloc
         ret     c
         ld      (p127_mem_test_page),a
@@ -190,7 +190,7 @@ p127_mem_selftest:
         ld      b,a
         ld      a,(p127_mem_test_page)
         cp      b
-        jr      nz,p127_mem_test_fail
+        jp      nz,p127_mem_test_fail
         ld      a,b
         call    p127_mem_free
         ret     c
