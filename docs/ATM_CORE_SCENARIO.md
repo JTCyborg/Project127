@@ -1,7 +1,7 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.50**  
-Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
+Scenario revision: **0.8.53**  
+Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
 ## Fixed architecture requirements
@@ -24,7 +24,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 0 — Bootstrap baseline | **PASS (baseline)** | BASIC `boot.B` loads `P127BOOT.C` at #6000; original four BOOT0 diagnostic lines retained. |
 | 1 — Physical page-state manager | **PASS (runtime accepted)** | 64-entry page-state table; video and active boot-map reservations; allocate/free/reallocate smoke test. |
 | 2 — Physical memory map | **PARTIALLY VERIFIED (software reservations runtime accepted)** | Project112/ATM2+ docs confirm page dispatcher encoding and video pages. Current bootstrap map: window 0=TR-DOS ROM; window 1=RAM page 5 (P127BOOT.C); window 2=RAM page 2 (resident UI/stack); window 3=RAM page 0 (host/staging). Reserve live RAM pages 0 and 2; page 5 is already reserved with video union. Low-kernel relocation and top-down arena still pending. |
-| 3 — UINT32 memory/range API | PLANNED — UPDATED | Overflow-safe range validation, top-down arena allocation/free, copy/fill/compare across page boundaries, collision checks against kernel/video/device reservations. |
+| 3 — UINT32 memory/range API | **STAGE 3.1 IMPLEMENTED — BUILD/RUNTIME PENDING** | UINT32 half-open range validation against the 1 MiB physical limit, including addition overflow, exact-end and zero-length semantics. Top-down arena, reservations/collision checks and cross-page copy/fill/compare remain pending. |
 | 4 — Page mapper | **SOFTWARE MODEL + HANDOFF GUARD v0.2.2 RUNTIME ACCEPTED** | Page encoding, four shadow-port addresses, bootstrap shadow map and validation self-test. Hardware OUT writes remain disabled. |
 | 5 — Process/context manager | **SOFTWARE PREFLIGHT + MAP TRANSACTION RUNTIME ACCEPTED** — stack probe v0.1.0, resident-window contract v0.1.0, W3 ownership v0.2.0, rollback/recovery v0.3.0, resident layout preflight v0.1.0, P4 table-slot preflight v0.3.0, map transaction v0.3.0 | Implement resident interrupt-entry/return and controlled physical W3 mapping. Physical remap remains blocked; independent physical stack backing and IFF/IM/vector handling are not proven. |
 | 6 — Managed program address space | PLANNED | Loader, logical address space, cross-page memory API, relocation/ABI; document legacy-binary compatibility. |
@@ -41,6 +41,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 |---|---:|---|
 | `src/boot/p127_boot.asm` | 0.7.3 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.3 | Software page-state manager; allocator negative-path tests use absolute JP failure branches to remain in range under SjASMPlus |
+| `src/kernel/p127_range.asm` | 0.1.1 | UINT32 end-exclusive physical range validator; 1 MiB bounds/overflow self-test; arithmetic only, no mapping or memory access |
 | `src/kernel/p127_map.asm` | 0.3.0 | Software mapper plus full-map transaction snapshot, commit, accept, post-commit fault injection and rollback; no OUT |
 | `src/ui/p127_console.asm` | 0.1.2 | ATM RG6 80x25 console; screen/log output mirrored to #EF |
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
@@ -692,3 +693,33 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Advanced `src/kernel/p127_mem.asm` to v0.4.3; scenario revision 0.8.50. No boot flow, page-state logic, hardware mapping, DMA, IRQ, IM or EI behavior changed.
 - Acceptance: rerun SjASMPlus; expected result is all three passes complete with zero errors. Runtime marker still required after a successful build.
 - Assistant has not run the assembler or emulator in this environment.
+
+
+### 2026-11-09 — Stage 2.24 runtime acceptance: allocator negative paths and exhaustive page sweep
+
+- User supplied the complete #EF runtime log. It contains both `MEM PAGE TEST PASS` and `MEM NEGATIVE-PATH TEST PASS; DOUBLE-FREE/RANGE/RESERVE GUARDED`.
+- The physical W3 batch also completed: all 57 allocatable pages (`#06`, `#08`–`#3F`) were filled, then verified in reverse order. The log confirms `PHYSICAL RAM: 57/57 FREE PAGES VERIFIED`, W3=P0 restoration, UI active, and the full free-page sweep/allocator/reservation marker.
+- The subsequent `PAGE ALLOC/FREE + GUARDED W3 LEASE API PASS; IM/EI DISABLED` confirms the guarded allocator/W3 lease API test still passes after the negative-path tests.
+- Stage 2.24 and `src/kernel/p127_mem.asm` v0.4.3 are accepted from the user's runtime evidence. The negative-path checks reject double-free, page ID 64, overlapping reservation and out-of-range reservation without corrupting first-fit allocator state.
+- The log also confirms that the earlier map transaction, resident stack, UI quiesce/ownership, W3 rollback/recovery, IRQ frame/batch/table/contract preflights, resident trampoline/window and handoff guard diagnostics all pass. IRQ source remains unresolved; IM/EI, physical page-port OUT and IRQ vector activation remain disabled.
+- Acceptance is limited to the exercised software page-state and guarded W3 path. It does not authorize general W0/W1/W2 remapping, unrestricted application mapping, DMA or interrupt enablement. The seven reserved pages remain outside the 57-page sweep.
+- No source module changed in this acceptance update. Scenario revision advanced to 0.8.51. The assembler and emulator were not independently run here; acceptance is based on the user's supplied runtime log.
+- Next: begin Stage 3 planning/implementation for the UINT32 memory-range API and top-down program arena. First derive the physical address/range contract from the actual kernel end and reservations; retain overflow/bounds checks and do not infer that the current W3-only lease can transparently access arbitrary physical pages.
+
+
+### 2026-11-09 — Stage 3.1: UINT32 physical range contract v0.1.0
+
+- Added `src/kernel/p127_range.asm` v0.1.0. The API accepts a 32-bit little-endian physical start and 32-bit length, computes the end-exclusive address with explicit carry detection, and accepts only ranges contained in the physical 1 MiB address space.
+- Contract: ranges are half-open `[start, start+length)`; zero-length ranges are valid when start is at or below 1 MiB; the exact final byte and the full `[0,1 MiB)` range are valid; arithmetic wrap, start beyond the limit, and end beyond 1 MiB are rejected.
+- Added startup regression checks for zero-length at zero, final physical byte, one-byte overrun, full 1 MiB span, zero-length exactly at the limit, one byte starting at the limit, and UINT32 addition overflow.
+- Integrated the self-test after the existing page allocator tests. New expected marker: `[P127] UINT32 RANGE 1MB BOUNDS TEST PASS; NO MAP/OUT`.
+- Boot module advanced to v0.7.4; scenario revision 0.8.52.
+- This stage is strictly arithmetic/accounting. It does not access physical RAM, switch page windows, change the current W3-only lease, allocate the top-down program arena, or enable DMA/IRQ/IM/EI. The top-down arena remains blocked on a verified kernel-end and reservation contract.
+- Build and emulator verification are pending the user's SjASMPlus/Unreal Speccy run. No successful build or runtime is claimed.
+
+
+### 2026-11-09 — Stage 3.1 test-vector correction v0.1.1
+
+- During final source review, corrected the full-address-space regression vector: the 32-bit length must be `0x00100000` (byte 2 = `0x10`), not `0x00010000`. The validator itself was unchanged.
+- Advanced `src/kernel/p127_range.asm` to v0.1.1 and scenario revision to 0.8.53.
+- Build/runtime verification remains pending. The full-span test now exercises the exact 1 MiB physical limit.
