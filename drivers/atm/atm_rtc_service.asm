@@ -184,6 +184,9 @@ P127_RTC_Close:
         ld a,#C6
         jp #3D2F
 p127_rtc_close_done:
+        ; The ROM trampoline may leave alternate CPU windows selected.
+        ; Restore the Project127 host/staging pages exactly as the console does.
+        call P127_Console_Restore
         pop bc
         pop af
         ret
