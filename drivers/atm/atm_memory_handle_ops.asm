@@ -94,10 +94,14 @@ atm_mem_handle_copy_forward_loop:
         jp      atm_mem_restore_window3
 
 atm_mem_handle_fill::
+        ld      a,3
+        ld      (atm_mem_handle_test_stage),a
         ld      a,(atm_mem_handle_destination)
         ld      hl,atm_mem_handle_destination_offset
         call    atm_mem_handle_validate_range
         ret     c
+        ld      a,#31
+        ld      (atm_mem_handle_test_stage),a
         ld      hl,atm_mem_handle_destination_offset
         ld      de,atm_mem_destination_cursor
         ld      bc,4
@@ -109,14 +113,22 @@ atm_mem_handle_fill::
         call    atm_mem_remaining_is_zero
         ret     z
 atm_mem_handle_fill_loop:
+        ld      a,#32
+        ld      (atm_mem_handle_test_stage),a
         ld      a,(atm_mem_handle_destination)
         ld      hl,atm_mem_destination_cursor
         call    atm_mem_handle_resolve
         ret     c
+        ld      a,#33
+        ld      (atm_mem_handle_test_stage),a
         call    atm_mem_map_work_offset
         ret     c
+        ld      a,#34
+        ld      (atm_mem_handle_test_stage),a
         ld      a,(atm_mem_handle_fill_value)
         ld      (hl),a
+        ld      a,#35
+        ld      (atm_mem_handle_test_stage),a
         call    atm_mem_destination_inc
         call    atm_mem_length_dec
         call    atm_mem_remaining_is_zero
