@@ -367,9 +367,9 @@ p127_trdos_dir_error: EQU 0x00008100
 p127_trdos_dir_index: EQU 0x000080FF
 p127_trdos_dir_length: EQU 0x000080FD
 P127_TRDOS_ENTRY_SIZE: EQU 0x00000010
-p127_trdos_service_end: EQU 0x00008907
+p127_trdos_service_end: EQU 0x000088FF
 p127_trdos_test_directory: EQU 0x00008101
-p127_trdos_test_directory_end: EQU 0x00008907
+p127_trdos_test_directory_end: EQU 0x000088FF
 p127_trdos_test_fail: EQU 0x000080F9
 p127_trdos_test_fail_1: EQU 0x000080E3
 p127_trdos_test_fail_2: EQU 0x000080E7

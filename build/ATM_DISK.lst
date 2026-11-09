@@ -3294,29 +3294,27 @@
 180+  8101              p127_trdos_test_directory:
 181+  8101                      ; Slots 0-1 are free; slot 2 is a one-sector BASIC file.
 182+  8101 00 00 00...          defs 2*P127_TRDOS_ENTRY_SIZE,0
-183+  8121 54 45 53 54          db "TEST    ",'B',0,0,1,1,0
+183+  8121 54 45 53 54          db "TEST    ",'B',0,0,1,1,0,0
 183+  8125 20 20 20 20
 183+  8129 42 00 00 01
-183+  812D 01 00
-184+  812F 00 00 00...          defs 5,0
-185+  8134                      ; Slots 3-126 are free; slot 127 is a 512-byte CODE file.
-186+  8134 00 00 00...          defs (P127_TRDOS_DIR_ENTRIES-3-1)*P127_TRDOS_ENTRY_SIZE,0
-187+  88F4 4C 41 53 54          db "LAST    ",'C',0,0,0,2,0
-187+  88F8 20 20 20 20
-187+  88FC 43 00 00 00
-187+  8900 02 00
-188+  8902 00 00 00...          defs 5,0
-189+  8907              p127_trdos_test_directory_end:
-190+  8907              p127_trdos_service_end:
-atm_trdos_service.asm(191): error: [ASSERT] Assertion failed:  p127_trdos_test_directory_end-p127_trdos_test_directory=P127_TRDOS_DIR_BYTES
-191+  8907                      ASSERT p127_trdos_test_directory_end-p127_trdos_test_directory=P127_TRDOS_DIR_BYTES
-192+  8907                      ASSERT p127_trdos_service_end<=#A000
-193+  8907
+183+  812D 01 00 00
+184+  8130                      ; Slots 3-126 are free; slot 127 is a 512-byte CODE file.
+185+  8130 00 00 00...          defs (P127_TRDOS_DIR_ENTRIES-3-1)*P127_TRDOS_ENTRY_SIZE,0
+186+  88F0 4C 41 53 54          db "LAST    ",'C',0,0,0,2,0,0
+186+  88F4 20 20 20 20
+186+  88F8 43 00 00 00
+186+  88FC 02 00 00
+187+  88FF              p127_trdos_test_directory_end:
+188+  88FF              p127_trdos_service_end:
+atm_trdos_service.asm(189): error: [ASSERT] Assertion failed:  p127_trdos_test_directory_end-p127_trdos_test_directory=P127_TRDOS_DIR_BYTES
+189+  88FF                      ASSERT p127_trdos_test_directory_end-p127_trdos_test_directory=P127_TRDOS_DIR_BYTES
+190+  88FF                      ASSERT p127_trdos_service_end<=#A000
+191+  88FF
 # file closed: atm_trdos_service.asm
- 17   8907
- 18   8907                      ; Keep the proven single-file TR-DOS boot path.
- 19   8907                      PAGE 0
- 20   8907                      ORG #A000
+ 17   88FF
+ 18   88FF                      ; Keep the proven single-file TR-DOS boot path.
+ 19   88FF                      PAGE 0
+ 20   88FF                      ORG #A000
  21   A000                      INCLUDE "atm_host/p127_screen_console.asm"
 # file opened: p127_screen_console.asm
   1+  A000              ; =========================================================================
@@ -4265,9 +4263,9 @@ Value    Label
 0x80FF   p127_trdos_dir_index
 0x80FD   p127_trdos_dir_length
 0x0010   P127_TRDOS_ENTRY_SIZE
-0x8907   p127_trdos_service_end
+0x88FF   p127_trdos_service_end
 0x8101   p127_trdos_test_directory
-0x8907   p127_trdos_test_directory_end
+0x88FF   p127_trdos_test_directory_end
 0x80F9   p127_trdos_test_fail
 0x80E3   p127_trdos_test_fail_1
 0x80E7   p127_trdos_test_fail_2
