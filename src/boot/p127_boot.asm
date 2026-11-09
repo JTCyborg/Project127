@@ -12,8 +12,12 @@ P127_DEBUG_PORT    EQU 00EFh
         ORG P127_LOAD_ADDRESS
 
 p127_entry:
+        ; Match Project126: prove the BASIC USR jump reached the host entry
+        ; before DI, stack setup, paging changes or any subroutine call.
+        ld      bc, P127_DEBUG_PORT
+        ld      a, '>'
+        out     (c), a
         jp      p127_start
-        defs    6, 0
 
 p127_start:
         di
