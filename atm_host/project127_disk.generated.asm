@@ -15,6 +15,11 @@
         ORG #8000
         INCLUDE "drivers/atm/atm_trdos_service.asm"
 
+        ; ATM native RG6 text framebuffer service.
+        PAGE 0
+        ORG #9000
+        INCLUDE "drivers/atm/atm_video_service.asm"
+
         ; Keep the proven single-file TR-DOS boot path.
         PAGE 0
         ORG #A000
