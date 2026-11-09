@@ -990,3 +990,6 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - This is source implementation only. SjASMPlus build and Unreal Speccy hardware/runtime verification are pending the user's rebuild; the assistant did not run an assembler or emulator. Stage 10.1 is not runtime-accepted.
 - Next unit after the read transport is confirmed: parse and validate the complete BPB with 32-bit arithmetic, then derive and read all sectors of the FAT16 root directory. Do not port the legacy one-sector root parser or expose disk writes.
 - Scenario revision: 0.8.79.
+
+
+- Stage 10.1 source review correction: restored the pre-existing p127_msg_irq_fail diagnostic string in boot stage 0.7.13. This preserves the IRQ failure path link target; no HDD behavior changed. Scenario revision: 0.8.80.
