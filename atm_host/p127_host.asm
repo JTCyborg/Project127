@@ -1,6 +1,6 @@
 ; =========================================================================
 ; PROJECT127 - ATM Turbo 2+ host entry
-; Version: P127_ATM_HOST v0.10.0
+; Version: P127_ATM_HOST v0.11.0
 ; ATM handle pin/unpin reference counting.
 ; =========================================================================
 
@@ -45,6 +45,11 @@ p127_host_entry:
         call    atm_mem_scatter_pin_selftest
         jp      c,p127_host_pin_fail
         ld      hl,p127_host_pin_ok
+        call    p127_host_debug_string
+        call    P127_DebugConsole_Init
+        ld      a,1
+        ld      (p127_host_console_ready),a
+        ld      hl,p127_host_ui_ready
         call    p127_host_debug_string
         jp      p127_host_idle
 p127_host_handle_ops_fail:
@@ -185,16 +190,29 @@ p127_host_debug_hex_digit:
         jr      p127_host_debug_char
 
 p127_host_debug_string:
+        push    hl
+        ld      a,(p127_host_console_ready)
+        or      a
+        jr      z,.debug_no_screen
+        pop     hl
+        push    hl
+        call    P127_DebugConsole_String
+.debug_no_screen:
+        pop     hl
+.debug_serial:
         ld      a,(hl)
         or      a
         ret     z
         ld      bc,#00EF
         out     (c),a
         inc     hl
-        jr      p127_host_debug_string
+        jr      .debug_serial
 
+p127_host_console_ready: db 0
+p127_host_ui_ready:
+        db "[P127] PROJECT126-STYLE HOST CONSOLE READY",13,10,0
 p127_host_banner:
-        db "[P127] ATM HOST ENTRY v0.9.1",13,10
+        db "[P127] ATM HOST ENTRY v0.11.0",13,10
         db "[P127] TR-DOS BOOT OK",13,10
         db "[P127] ATM RAM RANGE CORE 1 MiB",13,10,0
 p127_host_range_ok:
@@ -237,6 +255,10 @@ p127_host_diag_capacity:
         db " CAPACITY=",0
 
         INCLUDE "drivers/atm/atm_memory_backend.asm"
+
+        PAGE 0
+        ORG #A000
+        INCLUDE "atm_host/p127_screen_console.asm"
 
 p127_host_program_end:
         ASSERT p127_host_program_start=P127_HOST_LOAD_ADDRESS
