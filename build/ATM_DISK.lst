@@ -70,8 +70,8 @@
  57+  6079 CD 00 A0             call    P127_DebugConsole_Init
  58+  607C 3E 01                ld      a,1
  59+  607E 32 D2 61             ld      (p127_host_console_ready),a
- 60+  6081 CD D8 92             call    P127_RTC_Startup
- 61+  6084 21 10 93             ld      hl,p127_host_ui_ready
+ 60+  6081 CD 43 93             call    P127_RTC_Startup
+ 61+  6084 21 B2 93             ld      hl,p127_host_ui_ready
  62+  6087 CD BA 61             call    p127_host_debug_string
  63+  608A C3 82 61             jp      p127_host_idle
  64+  608D              p127_host_handle_ops_fail:
@@ -3580,100 +3580,100 @@
  24+  9200              P127_RTC_Init:
  24+  9200
  25+  9200 AF                   xor a
- 26+  9201 32 FF 93             ld (p127_rtc_available),a
- 27+  9204 32 00 94             ld (p127_rtc_backend),a
+ 26+  9201 32 A1 94             ld (p127_rtc_available),a
+ 27+  9204 32 A2 94             ld (p127_rtc_backend),a
  28+  9207                      ; Project126 order: native GLUK first, then SMUC fallback.
  29+  9207 CD 23 92             call P127_RTC_ProbeBackend
  30+  920A 30 10                jr nc,p127_rtc_init_available
  31+  920C 3E 01                ld a,1
- 32+  920E 32 00 94             ld (p127_rtc_backend),a
+ 32+  920E 32 A2 94             ld (p127_rtc_backend),a
  33+  9211 CD 23 92             call P127_RTC_ProbeBackend
  34+  9214 30 06                jr nc,p127_rtc_init_available
  35+  9216 AF                   xor a
- 36+  9217 32 FF 93             ld (p127_rtc_available),a
+ 36+  9217 32 A1 94             ld (p127_rtc_available),a
  37+  921A 37                   scf
  38+  921B C9                   ret
  39+  921C              p127_rtc_init_available:
  40+  921C 3E 01                ld a,1
- 41+  921E 32 FF 93             ld (p127_rtc_available),a
+ 41+  921E 32 A1 94             ld (p127_rtc_available),a
  42+  9221 B7                   or a
  43+  9222 C9                   ret
  44+  9223
  45+  9223              ; Probe the currently selected backend. Carry means no valid RTC response.
  46+  9223              ; Status D must report VRT=1 and Status A must have divider bits #20.
  47+  9223              P127_RTC_ProbeBackend:
- 48+  9223 CD 3D 93             call P127_RTC_Open
+ 48+  9223 CD DF 93             call P127_RTC_Open
  49+  9226 3E 0D                ld a,#0D
- 50+  9228 CD 79 93             call P127_RTC_ReadReg
+ 50+  9228 CD 1B 94             call P127_RTC_ReadReg
  51+  922B FE 80                cp #80
  52+  922D 20 1C                jr nz,p127_rtc_probe_bad
  53+  922F 3E 0A                ld a,#0A
- 54+  9231 CD 79 93             call P127_RTC_ReadReg
+ 54+  9231 CD 1B 94             call P127_RTC_ReadReg
  55+  9234 E6 70                and #70
  56+  9236 FE 20                cp #20
  57+  9238 20 11                jr nz,p127_rtc_probe_bad
  58+  923A 3E 0B                ld a,#0B
- 59+  923C CD 79 93             call P127_RTC_ReadReg
- 60+  923F 32 01 94             ld (p127_rtc_status_b),a
- 61+  9242 CD 98 93             call P127_RTC_ReadSnapshot
+ 59+  923C CD 1B 94             call P127_RTC_ReadReg
+ 60+  923F 32 A3 94             ld (p127_rtc_status_b),a
+ 61+  9242 CD 3A 94             call P127_RTC_ReadSnapshot
  62+  9245 F5                   push af
- 63+  9246 CD 58 93             call P127_RTC_Close
+ 63+  9246 CD FA 93             call P127_RTC_Close
  64+  9249 F1                   pop af
  65+  924A C9                   ret
  66+  924B              p127_rtc_probe_bad:
- 67+  924B CD 58 93             call P127_RTC_Close
+ 67+  924B CD FA 93             call P127_RTC_Close
  68+  924E 37                   scf
  69+  924F C9                   ret
  70+  9250
  71+  9250              ; Returns A=hour, B=minute, C=second, all binary.
  72+  9250              P127_RTC_ReadTime:
  72+  9250
- 73+  9250 3A FF 93             ld a,(p127_rtc_available)
+ 73+  9250 3A A1 94             ld a,(p127_rtc_available)
  74+  9253 B7                   or a
  75+  9254 28 57                jr z,p127_rtc_read_unavailable
- 76+  9256 CD 3D 93             call P127_RTC_Open
- 77+  9259 CD 98 93             call P127_RTC_ReadSnapshot
+ 76+  9256 CD DF 93             call P127_RTC_Open
+ 77+  9259 CD 3A 94             call P127_RTC_ReadSnapshot
  78+  925C F5                   push af
- 79+  925D CD 58 93             call P127_RTC_Close
+ 79+  925D CD FA 93             call P127_RTC_Close
  80+  9260 F1                   pop af
  81+  9261 D8                   ret c
  82+  9262
- 83+  9262 3A 04 94             ld a,(p127_rtc_hours)
+ 83+  9262 3A A6 94             ld a,(p127_rtc_hours)
  84+  9265 47                   ld b,a
- 85+  9266 3A 01 94             ld a,(p127_rtc_status_b)
+ 85+  9266 3A A3 94             ld a,(p127_rtc_status_b)
  86+  9269 CB 4F                bit 1,a
  87+  926B 20 2A                jr nz,p127_rtc_hour_24
  88+  926D 78                   ld a,b
  89+  926E E6 80                and #80
- 90+  9270 32 05 94             ld (p127_rtc_pm),a
+ 90+  9270 32 A7 94             ld (p127_rtc_pm),a
  91+  9273 78                   ld a,b
  92+  9274 E6 7F                and #7F
- 93+  9276 CD E0 93             call P127_RTC_ToBinary
- 94+  9279 32 06 94             ld (p127_rtc_hour_tmp),a
- 95+  927C 3A 05 94             ld a,(p127_rtc_pm)
+ 93+  9276 CD 82 94             call P127_RTC_ToBinary
+ 94+  9279 32 A8 94             ld (p127_rtc_hour_tmp),a
+ 95+  927C 3A A7 94             ld a,(p127_rtc_pm)
  96+  927F B7                   or a
  97+  9280 28 0B                jr z,p127_rtc_hour_am
- 98+  9282 3A 06 94             ld a,(p127_rtc_hour_tmp)
+ 98+  9282 3A A8 94             ld a,(p127_rtc_hour_tmp)
  99+  9285 FE 0C                cp 12
 100+  9287 28 12                jr z,p127_rtc_hour_ready
 101+  9289 C6 0C                add a,12
 102+  928B 18 0E                jr p127_rtc_hour_ready
 103+  928D              p127_rtc_hour_am:
-104+  928D 3A 06 94             ld a,(p127_rtc_hour_tmp)
+104+  928D 3A A8 94             ld a,(p127_rtc_hour_tmp)
 105+  9290 FE 0C                cp 12
 106+  9292 20 07                jr nz,p127_rtc_hour_ready
 107+  9294 AF                   xor a
 108+  9295 18 04                jr p127_rtc_hour_ready
 109+  9297              p127_rtc_hour_24:
 110+  9297 78                   ld a,b
-111+  9298 CD E0 93             call P127_RTC_ToBinary
+111+  9298 CD 82 94             call P127_RTC_ToBinary
 112+  929B              p127_rtc_hour_ready:
 113+  929B F5                   push af
-114+  929C 3A 03 94             ld a,(p127_rtc_minutes)
-115+  929F CD E0 93             call P127_RTC_ToBinary
+114+  929C 3A A5 94             ld a,(p127_rtc_minutes)
+115+  929F CD 82 94             call P127_RTC_ToBinary
 116+  92A2 47                   ld b,a
-117+  92A3 3A 02 94             ld a,(p127_rtc_seconds)
-118+  92A6 CD E0 93             call P127_RTC_ToBinary
+117+  92A3 3A A4 94             ld a,(p127_rtc_seconds)
+118+  92A6 CD 82 94             call P127_RTC_ToBinary
 119+  92A9 4F                   ld c,a
 120+  92AA F1                   pop af
 121+  92AB B7                   or a
@@ -3682,299 +3682,440 @@
 124+  92AD 37                   scf
 125+  92AE C9                   ret
 126+  92AF
-127+  92AF              ; Hardware-free format conversion self-test.
-128+  92AF              P127_RTC_SelfTest:
-128+  92AF
-129+  92AF 3E 42                ld a,#42
-130+  92B1 CD EA 93             call P127_RTC_BCDToBinary
-131+  92B4 FE 2A                cp 42
-132+  92B6 20 14                jr nz,p127_rtc_test_fail_1
-133+  92B8 3E 09                ld a,#09
-134+  92BA CD EA 93             call P127_RTC_BCDToBinary
-135+  92BD FE 09                cp 9
-136+  92BF 20 0F                jr nz,p127_rtc_test_fail_2
-137+  92C1 3E 59                ld a,#59
-138+  92C3 CD EA 93             call P127_RTC_BCDToBinary
-139+  92C6 FE 3B                cp 59
-140+  92C8 20 0A                jr nz,p127_rtc_test_fail_3
-141+  92CA AF                   xor a
-142+  92CB C9                   ret
-143+  92CC              p127_rtc_test_fail_1:
-144+  92CC 3E 01                ld a,1
-145+  92CE 18 06                jr p127_rtc_test_fail
-146+  92D0              p127_rtc_test_fail_2:
-147+  92D0 3E 02                ld a,2
-148+  92D2 18 02                jr p127_rtc_test_fail
-149+  92D4              p127_rtc_test_fail_3:
-150+  92D4 3E 03                ld a,3
-151+  92D6              p127_rtc_test_fail:
-152+  92D6 37                   scf
-153+  92D7 C9                   ret
-154+  92D8
-155+  92D8              ; Startup diagnostics are kept in this service module so the host
-156+  92D8              ; resident image remains within its established #6000-#7FFF load window.
-157+  92D8              P127_RTC_Startup:
-157+  92D8
-158+  92D8 CD AF 92             call P127_RTC_SelfTest
-159+  92DB 38 2D                jr c,p127_rtc_start_format_fail
-160+  92DD 21 7C 94             ld hl,p127_rtc_log_selftest
-161+  92E0 CD BA 61             call p127_host_debug_string
-162+  92E3 CD 00 92             call P127_RTC_Init
-163+  92E6 38 1B                jr c,p127_rtc_start_unavailable
-164+  92E8 3A 00 94             ld a,(p127_rtc_backend)
-165+  92EB B7                   or a
-166+  92EC 20 08                jr nz,p127_rtc_start_smuc
-167+  92EE 21 07 94             ld hl,p127_rtc_log_gluk
-168+  92F1 CD BA 61             call p127_host_debug_string
-169+  92F4 18 06                jr p127_rtc_start_available_log
-170+  92F6              p127_rtc_start_smuc:
-171+  92F6 21 21 94             ld hl,p127_rtc_log_smuc
-172+  92F9 CD BA 61             call p127_host_debug_string
-173+  92FC              p127_rtc_start_available_log:
-174+  92FC 21 3B 94             ld hl,p127_rtc_log_available
-175+  92FF CD BA 61             call p127_host_debug_string
-176+  9302 C9                   ret
-177+  9303              p127_rtc_start_unavailable:
-178+  9303 21 5A 94             ld hl,p127_rtc_log_unavailable
-179+  9306 CD BA 61             call p127_host_debug_string
-180+  9309 C9                   ret
-181+  930A              p127_rtc_start_format_fail:
-182+  930A 21 9E 94             ld hl,p127_rtc_log_selftest_fail
-183+  930D C3 BA 61             jp p127_host_debug_string
-184+  9310
-185+  9310              p127_host_ui_ready:
-186+  9310 5B 50 31 32          db "[P127] PROJECT126-STYLE HOST CONSOLE READY",13,10,0
-186+  9314 37 5D 20 50
-186+  9318 52 4F 4A 45
-186+  931C 43 54 31 32
-186+  9320 36 2D 53 54
-186+  9324 59 4C 45 20
-186+  9328 48 4F 53 54
-186+  932C 20 43 4F 4E
-186+  9330 53 4F 4C 45
-186+  9334 20 52 45 41
-186+  9338 44 59 0D 0A
-186+  933C 00
-187+  933D
-188+  933D              ; Open native ATM DS12887 register gate.
-189+  933D              P127_RTC_Open:
-190+  933D F5                   push af
-191+  933E C5                   push bc
-192+  933F 3A 00 94             ld a,(p127_rtc_backend)
-193+  9342 B7                   or a
-194+  9343 20 09                jr nz,p127_rtc_open_smuc
-195+  9345 01 F7 EF             ld bc,#EFF7
-196+  9348 3E 80                ld a,#80
-197+  934A ED 79                out (c),a
-198+  934C 18 07                jr p127_rtc_open_done
-199+  934E              p127_rtc_open_smuc:
-200+  934E                      ; Project126 SMUC address/read mode. Do not write zero to FFBA:
-201+  934E                      ; #71 preserves the multiplexed ISA/NVRAM control pattern.
-202+  934E 01 BA FF             ld bc,#FFBA
-203+  9351 3E 71                ld a,#71
-204+  9353 ED 79                out (c),a
-205+  9355              p127_rtc_open_done:
-206+  9355 C1                   pop bc
-207+  9356 F1                   pop af
-208+  9357 C9                   ret
-209+  9358
-210+  9358              ; Close gate and restore the known-working DOSEN + RG6 mode.
-211+  9358              P127_RTC_Close:
-212+  9358 F5                   push af
-213+  9359 C5                   push bc
-214+  935A 3A 00 94             ld a,(p127_rtc_backend)
-215+  935D B7                   or a
-216+  935E 20 16                jr nz,p127_rtc_close_smuc
-217+  9360 01 70 93             ld bc,p127_rtc_close_done
-218+  9363 C5                   push bc
-219+  9364 01 53 2A             ld bc,#2A53
-220+  9367 C5                   push bc
-221+  9368 01 77 01             ld bc,#0177
-222+  936B 3E C6                ld a,#C6
-223+  936D C3 2F 3D             jp #3D2F
-224+  9370              p127_rtc_close_done:
-225+  9370                      ; Native GLUK gate closure uses the same ROM trampoline as Project126.
-226+  9370 CD 51 A2             call P127_Console_Restore
-227+  9373 C1                   pop bc
-228+  9374 F1                   pop af
-229+  9375 C9                   ret
-230+  9376              p127_rtc_close_smuc:
-231+  9376                      ; Project126 leaves the SMUC RTC address/read selector in place.
-232+  9376 C1                   pop bc
-233+  9377 F1                   pop af
-234+  9378 C9                   ret
-235+  9379
-236+  9379              ; A=register index, returns A=data. Caller opened gate.
-237+  9379              P127_RTC_ReadReg:
-238+  9379 C5                   push bc
-239+  937A 4F                   ld c,a
-240+  937B 3A 00 94             ld a,(p127_rtc_backend)
-241+  937E B7                   or a
-242+  937F 20 0D                jr nz,p127_rtc_read_smuc
-243+  9381 79                   ld a,c
-244+  9382 01 F7 DF             ld bc,#DFF7
-245+  9385 ED 79                out (c),a
-246+  9387 01 F7 BF             ld bc,#BFF7
-247+  938A ED 78                in a,(c)
-248+  938C C1                   pop bc
-249+  938D C9                   ret
-250+  938E              p127_rtc_read_smuc:
-251+  938E 79                   ld a,c
-252+  938F 01 BA DF             ld bc,#DFBA
-253+  9392 ED 79                out (c),a
-254+  9394 ED 78                in a,(c)
-255+  9396 C1                   pop bc
-256+  9397 C9                   ret
-257+  9398
-258+  9398              ; Wait for UIP clear and take a stable seconds/minutes/hours snapshot.
-259+  9398              P127_RTC_ReadSnapshot:
-260+  9398 06 04                ld b,4
-261+  939A              p127_rtc_snapshot_retry:
-262+  939A CD CC 93             call P127_RTC_WaitUIP
-263+  939D D8                   ret c
-264+  939E 3E 00                ld a,#00
-265+  93A0 CD 79 93             call P127_RTC_ReadReg
-266+  93A3 32 02 94             ld (p127_rtc_seconds),a
-267+  93A6 3E 02                ld a,#02
-268+  93A8 CD 79 93             call P127_RTC_ReadReg
-269+  93AB 32 03 94             ld (p127_rtc_minutes),a
-270+  93AE 3E 04                ld a,#04
-271+  93B0 CD 79 93             call P127_RTC_ReadReg
-272+  93B3 32 04 94             ld (p127_rtc_hours),a
-273+  93B6 3E 00                ld a,#00
-274+  93B8 CD 79 93             call P127_RTC_ReadReg
-275+  93BB 4F                   ld c,a
-276+  93BC 3A 02 94             ld a,(p127_rtc_seconds)
-277+  93BF B9                   cp c
-278+  93C0 28 04                jr z,p127_rtc_snapshot_ok
-279+  93C2 10 D6                djnz p127_rtc_snapshot_retry
-280+  93C4 37                   scf
-281+  93C5 C9                   ret
-282+  93C6              p127_rtc_snapshot_ok:
-283+  93C6 79                   ld a,c
-284+  93C7 32 02 94             ld (p127_rtc_seconds),a
-285+  93CA B7                   or a
-286+  93CB C9                   ret
-287+  93CC
-288+  93CC              P127_RTC_WaitUIP:
-289+  93CC C5                   push bc
-290+  93CD 06 00                ld b,0
-291+  93CF              p127_rtc_uip_loop:
-292+  93CF 3E 0A                ld a,#0A
-293+  93D1 CD 79 93             call P127_RTC_ReadReg
-294+  93D4 CB 7F                bit 7,a
-295+  93D6 28 05                jr z,p127_rtc_uip_ready
-296+  93D8 10 F5                djnz p127_rtc_uip_loop
-297+  93DA 37                   scf
-298+  93DB C1                   pop bc
-299+  93DC C9                   ret
-300+  93DD              p127_rtc_uip_ready:
-301+  93DD B7                   or a
-302+  93DE C1                   pop bc
-303+  93DF C9                   ret
-304+  93E0
-305+  93E0              ; Convert A according to Status B bit 2 (binary=1, BCD=0).
-306+  93E0              P127_RTC_ToBinary:
-307+  93E0 C5                   push bc
-308+  93E1 47                   ld b,a
-309+  93E2 3A 01 94             ld a,(p127_rtc_status_b)
-310+  93E5 CB 57                bit 2,a
-311+  93E7 78                   ld a,b
-312+  93E8 C1                   pop bc
-313+  93E9 C0                   ret nz
-314+  93EA              P127_RTC_BCDToBinary:
-315+  93EA C5                   push bc
-316+  93EB 47                   ld b,a
-317+  93EC E6 0F                and #0F
-318+  93EE 4F                   ld c,a
-319+  93EF 78                   ld a,b
-320+  93F0 E6 F0                and #F0
-321+  93F2 0F                   rrca
-322+  93F3 0F                   rrca
-323+  93F4 0F                   rrca
-324+  93F5 0F                   rrca
-325+  93F6 47                   ld b,a
-326+  93F7 87                   add a,a
-327+  93F8 57                   ld d,a
-328+  93F9 87                   add a,a
-329+  93FA 87                   add a,a
-330+  93FB 82                   add a,d
-331+  93FC 81                   add a,c
-332+  93FD C1                   pop bc
-333+  93FE C9                   ret
-334+  93FF
-335+  93FF 00           p127_rtc_available: db 0
-336+  9400 00           p127_rtc_backend: db 0       ; 0=GLUK DFF7/BFF7, 1=SMUC DFBA/FFBA
-337+  9401 00           p127_rtc_status_b: db 0
-338+  9402 00           p127_rtc_seconds: db 0
-339+  9403 00           p127_rtc_minutes: db 0
-340+  9404 00           p127_rtc_hours: db 0
-341+  9405 00           p127_rtc_pm: db 0
-342+  9406 00           p127_rtc_hour_tmp: db 0
-343+  9407
-344+  9407              p127_rtc_log_gluk:
-345+  9407 5B 50 31 32          db "[P127] RTC BACKEND GLUK",13,10,0
-345+  940B 37 5D 20 52
-345+  940F 54 43 20 42
-345+  9413 41 43 4B 45
-345+  9417 4E 44 20 47
-345+  941B 4C 55 4B 0D
-345+  941F 0A 00
-346+  9421              p127_rtc_log_smuc:
-347+  9421 5B 50 31 32          db "[P127] RTC BACKEND SMUC",13,10,0
-347+  9425 37 5D 20 52
-347+  9429 54 43 20 42
-347+  942D 41 43 4B 45
-347+  9431 4E 44 20 53
-347+  9435 4D 55 43 0D
-347+  9439 0A 00
-348+  943B              p127_rtc_log_available:
-349+  943B 5B 50 31 32          db "[P127] RTC DS12887 AVAILABLE",13,10,0
-349+  943F 37 5D 20 52
-349+  9443 54 43 20 44
-349+  9447 53 31 32 38
-349+  944B 38 37 20 41
-349+  944F 56 41 49 4C
-349+  9453 41 42 4C 45
-349+  9457 0D 0A 00
-350+  945A              p127_rtc_log_unavailable:
-351+  945A 5B 50 31 32          db "[P127] RTC DS12887 NOT DETECTED",13,10,0
-351+  945E 37 5D 20 52
-351+  9462 54 43 20 44
-351+  9466 53 31 32 38
-351+  946A 38 37 20 4E
-351+  946E 4F 54 20 44
-351+  9472 45 54 45 43
-351+  9476 54 45 44 0D
-351+  947A 0A 00
-352+  947C              p127_rtc_log_selftest:
-353+  947C 5B 50 31 32          db "[P127] RTC FORMAT SELFTEST PASS",13,10,0
-353+  9480 37 5D 20 52
-353+  9484 54 43 20 46
-353+  9488 4F 52 4D 41
-353+  948C 54 20 53 45
-353+  9490 4C 46 54 45
-353+  9494 53 54 20 50
-353+  9498 41 53 53 0D
-353+  949C 0A 00
-354+  949E              p127_rtc_log_selftest_fail:
-355+  949E 5B 50 31 32          db "[P127] RTC FORMAT SELFTEST FAIL",13,10,0
-355+  94A2 37 5D 20 52
-355+  94A6 54 43 20 46
-355+  94AA 4F 52 4D 41
-355+  94AE 54 20 53 45
-355+  94B2 4C 46 54 45
-355+  94B6 53 54 20 46
-355+  94BA 41 49 4C 0D
-355+  94BE 0A 00
-356+  94C0              p127_rtc_service_end:
-357+  94C0                      ASSERT p127_rtc_service_end<=#A000
-358+  94C0
+127+  92AF              ; Runtime test: read valid time, then poll until the seconds field changes.
+128+  92AF              ; Four bounded ~0.2-0.4s polling intervals prevent a hung RTC from stalling boot.
+129+  92AF              ; The final sampled time is retained for the startup diagnostic.
+130+  92AF              P127_RTC_RuntimeSelfTest:
+130+  92AF
+131+  92AF CD 50 92             call P127_RTC_ReadTime
+132+  92B2 D8                   ret c
+133+  92B3 CD EF 92             call P127_RTC_ValidateTime
+134+  92B6 D8                   ret c
+135+  92B7 79                   ld a,c
+136+  92B8 32 A9 94             ld (p127_rtc_previous_second),a
+137+  92BB 3E 04                ld a,4
+138+  92BD 32 AA 94             ld (p127_rtc_tick_attempts),a
+139+  92C0              p127_rtc_tick_wait:
+140+  92C0 01 FF FF             ld bc,#FFFF
+141+  92C3              p127_rtc_tick_delay:
+142+  92C3 0B                   dec bc
+143+  92C4 78                   ld a,b
+144+  92C5 B1                   or c
+145+  92C6 20 FB                jr nz,p127_rtc_tick_delay
+146+  92C8 CD 50 92             call P127_RTC_ReadTime
+147+  92CB D8                   ret c
+148+  92CC CD EF 92             call P127_RTC_ValidateTime
+149+  92CF D8                   ret c
+150+  92D0 32 AB 94             ld (p127_rtc_last_hour),a
+151+  92D3 78                   ld a,b
+152+  92D4 32 AC 94             ld (p127_rtc_last_minute),a
+153+  92D7 79                   ld a,c
+154+  92D8 32 AD 94             ld (p127_rtc_last_second),a
+155+  92DB 57                   ld d,a
+156+  92DC 3A A9 94             ld a,(p127_rtc_previous_second)
+157+  92DF BA                   cp d
+158+  92E0 20 0B                jr nz,p127_rtc_tick_pass
+159+  92E2 3A AA 94             ld a,(p127_rtc_tick_attempts)
+160+  92E5 3D                   dec a
+161+  92E6 32 AA 94             ld (p127_rtc_tick_attempts),a
+162+  92E9 20 D5                jr nz,p127_rtc_tick_wait
+163+  92EB 37                   scf
+164+  92EC C9                   ret
+165+  92ED              p127_rtc_tick_pass:
+166+  92ED B7                   or a
+167+  92EE C9                   ret
+168+  92EF
+169+  92EF              ; A=hour, B=minute, C=second. Carry if any field is out of range.
+170+  92EF              P127_RTC_ValidateTime:
+171+  92EF F5                   push af
+172+  92F0 FE 18                cp 24
+173+  92F2 30 0D                jr nc,p127_rtc_time_invalid
+174+  92F4 78                   ld a,b
+175+  92F5 FE 3C                cp 60
+176+  92F7 30 08                jr nc,p127_rtc_time_invalid
+177+  92F9 79                   ld a,c
+178+  92FA FE 3C                cp 60
+179+  92FC 30 03                jr nc,p127_rtc_time_invalid
+180+  92FE F1                   pop af
+181+  92FF B7                   or a
+182+  9300 C9                   ret
+183+  9301              p127_rtc_time_invalid:
+184+  9301 F1                   pop af
+185+  9302 37                   scf
+186+  9303 C9                   ret
+187+  9304
+188+  9304              ; A=0..99, HL=two-character ASCII destination.
+189+  9304              P127_RTC_Format2:
+190+  9304 06 00                ld b,0
+191+  9306              p127_rtc_format_tens:
+192+  9306 FE 0A                cp 10
+193+  9308 38 05                jr c,p127_rtc_format_ones
+194+  930A D6 0A                sub 10
+195+  930C 04                   inc b
+196+  930D 18 F7                jr p127_rtc_format_tens
+197+  930F              p127_rtc_format_ones:
+198+  930F 57                   ld d,a
+199+  9310 78                   ld a,b
+200+  9311 C6 30                add a,'0'
+201+  9313 77                   ld (hl),a
+202+  9314 23                   inc hl
+203+  9315 7A                   ld a,d
+204+  9316 C6 30                add a,'0'
+205+  9318 77                   ld (hl),a
+206+  9319 C9                   ret
+207+  931A
+208+  931A              ; Hardware-free format conversion self-test.
+209+  931A              P127_RTC_SelfTest:
+209+  931A
+210+  931A 3E 42                ld a,#42
+211+  931C CD 8C 94             call P127_RTC_BCDToBinary
+212+  931F FE 2A                cp 42
+213+  9321 20 14                jr nz,p127_rtc_test_fail_1
+214+  9323 3E 09                ld a,#09
+215+  9325 CD 8C 94             call P127_RTC_BCDToBinary
+216+  9328 FE 09                cp 9
+217+  932A 20 0F                jr nz,p127_rtc_test_fail_2
+218+  932C 3E 59                ld a,#59
+219+  932E CD 8C 94             call P127_RTC_BCDToBinary
+220+  9331 FE 3B                cp 59
+221+  9333 20 0A                jr nz,p127_rtc_test_fail_3
+222+  9335 AF                   xor a
+223+  9336 C9                   ret
+224+  9337              p127_rtc_test_fail_1:
+225+  9337 3E 01                ld a,1
+226+  9339 18 06                jr p127_rtc_test_fail
+227+  933B              p127_rtc_test_fail_2:
+228+  933B 3E 02                ld a,2
+229+  933D 18 02                jr p127_rtc_test_fail
+230+  933F              p127_rtc_test_fail_3:
+231+  933F 3E 03                ld a,3
+232+  9341              p127_rtc_test_fail:
+233+  9341 37                   scf
+234+  9342 C9                   ret
+235+  9343
+236+  9343              ; Startup diagnostics are kept in this service module so the host
+237+  9343              ; resident image remains within its established #6000-#7FFF load window.
+238+  9343              P127_RTC_Startup:
+238+  9343
+239+  9343 CD 1A 93             call P127_RTC_SelfTest
+240+  9346 38 64                jr c,p127_rtc_start_format_fail
+241+  9348 21 87 95             ld hl,p127_rtc_log_selftest
+242+  934B CD BA 61             call p127_host_debug_string
+243+  934E CD 00 92             call P127_RTC_Init
+244+  9351 38 52                jr c,p127_rtc_start_unavailable
+245+  9353 3A A2 94             ld a,(p127_rtc_backend)
+246+  9356 B7                   or a
+247+  9357 20 08                jr nz,p127_rtc_start_smuc
+248+  9359 21 B7 94             ld hl,p127_rtc_log_gluk
+249+  935C CD BA 61             call p127_host_debug_string
+250+  935F 18 06                jr p127_rtc_start_available_log
+251+  9361              p127_rtc_start_smuc:
+252+  9361 21 D1 94             ld hl,p127_rtc_log_smuc
+253+  9364 CD BA 61             call p127_host_debug_string
+254+  9367              p127_rtc_start_available_log:
+255+  9367 21 EB 94             ld hl,p127_rtc_log_available
+256+  936A CD BA 61             call p127_host_debug_string
+257+  936D CD AF 92             call P127_RTC_RuntimeSelfTest
+258+  9370 38 2C                jr c,p127_rtc_start_runtime_fail
+259+  9372 21 0A 95             ld hl,p127_rtc_log_runtime_pass
+260+  9375 CD BA 61             call p127_host_debug_string
+261+  9378 21 54 95             ld hl,p127_rtc_log_time
+262+  937B CD BA 61             call p127_host_debug_string
+263+  937E 3A AB 94             ld a,(p127_rtc_last_hour)
+264+  9381 21 AE 94             ld hl,p127_rtc_time_buffer
+265+  9384 CD 04 93             call P127_RTC_Format2
+266+  9387 3A AC 94             ld a,(p127_rtc_last_minute)
+267+  938A 23                   inc hl
+268+  938B 23                   inc hl
+269+  938C CD 04 93             call P127_RTC_Format2
+270+  938F 3A AD 94             ld a,(p127_rtc_last_second)
+271+  9392 23                   inc hl
+272+  9393 23                   inc hl
+273+  9394 CD 04 93             call P127_RTC_Format2
+274+  9397 21 AE 94             ld hl,p127_rtc_time_buffer
+275+  939A CD BA 61             call p127_host_debug_string
+276+  939D C9                   ret
+277+  939E              p127_rtc_start_runtime_fail:
+278+  939E 21 2F 95             ld hl,p127_rtc_log_runtime_fail
+279+  93A1 CD BA 61             call p127_host_debug_string
+280+  93A4 C9                   ret
+281+  93A5              p127_rtc_start_unavailable:
+282+  93A5 21 65 95             ld hl,p127_rtc_log_unavailable
+283+  93A8 CD BA 61             call p127_host_debug_string
+284+  93AB C9                   ret
+285+  93AC              p127_rtc_start_format_fail:
+286+  93AC 21 A9 95             ld hl,p127_rtc_log_selftest_fail
+287+  93AF C3 BA 61             jp p127_host_debug_string
+288+  93B2
+289+  93B2              p127_host_ui_ready:
+290+  93B2 5B 50 31 32          db "[P127] PROJECT126-STYLE HOST CONSOLE READY",13,10,0
+290+  93B6 37 5D 20 50
+290+  93BA 52 4F 4A 45
+290+  93BE 43 54 31 32
+290+  93C2 36 2D 53 54
+290+  93C6 59 4C 45 20
+290+  93CA 48 4F 53 54
+290+  93CE 20 43 4F 4E
+290+  93D2 53 4F 4C 45
+290+  93D6 20 52 45 41
+290+  93DA 44 59 0D 0A
+290+  93DE 00
+291+  93DF
+292+  93DF              ; Open native ATM DS12887 register gate.
+293+  93DF              P127_RTC_Open:
+294+  93DF F5                   push af
+295+  93E0 C5                   push bc
+296+  93E1 3A A2 94             ld a,(p127_rtc_backend)
+297+  93E4 B7                   or a
+298+  93E5 20 09                jr nz,p127_rtc_open_smuc
+299+  93E7 01 F7 EF             ld bc,#EFF7
+300+  93EA 3E 80                ld a,#80
+301+  93EC ED 79                out (c),a
+302+  93EE 18 07                jr p127_rtc_open_done
+303+  93F0              p127_rtc_open_smuc:
+304+  93F0                      ; Project126 SMUC address/read mode. Do not write zero to FFBA:
+305+  93F0                      ; #71 preserves the multiplexed ISA/NVRAM control pattern.
+306+  93F0 01 BA FF             ld bc,#FFBA
+307+  93F3 3E 71                ld a,#71
+308+  93F5 ED 79                out (c),a
+309+  93F7              p127_rtc_open_done:
+310+  93F7 C1                   pop bc
+311+  93F8 F1                   pop af
+312+  93F9 C9                   ret
+313+  93FA
+314+  93FA              ; Close gate and restore the known-working DOSEN + RG6 mode.
+315+  93FA              P127_RTC_Close:
+316+  93FA F5                   push af
+317+  93FB C5                   push bc
+318+  93FC 3A A2 94             ld a,(p127_rtc_backend)
+319+  93FF B7                   or a
+320+  9400 20 16                jr nz,p127_rtc_close_smuc
+321+  9402 01 12 94             ld bc,p127_rtc_close_done
+322+  9405 C5                   push bc
+323+  9406 01 53 2A             ld bc,#2A53
+324+  9409 C5                   push bc
+325+  940A 01 77 01             ld bc,#0177
+326+  940D 3E C6                ld a,#C6
+327+  940F C3 2F 3D             jp #3D2F
+328+  9412              p127_rtc_close_done:
+329+  9412                      ; Native GLUK gate closure uses the same ROM trampoline as Project126.
+330+  9412 CD 51 A2             call P127_Console_Restore
+331+  9415 C1                   pop bc
+332+  9416 F1                   pop af
+333+  9417 C9                   ret
+334+  9418              p127_rtc_close_smuc:
+335+  9418                      ; Project126 leaves the SMUC RTC address/read selector in place.
+336+  9418 C1                   pop bc
+337+  9419 F1                   pop af
+338+  941A C9                   ret
+339+  941B
+340+  941B              ; A=register index, returns A=data. Caller opened gate.
+341+  941B              P127_RTC_ReadReg:
+342+  941B C5                   push bc
+343+  941C 4F                   ld c,a
+344+  941D 3A A2 94             ld a,(p127_rtc_backend)
+345+  9420 B7                   or a
+346+  9421 20 0D                jr nz,p127_rtc_read_smuc
+347+  9423 79                   ld a,c
+348+  9424 01 F7 DF             ld bc,#DFF7
+349+  9427 ED 79                out (c),a
+350+  9429 01 F7 BF             ld bc,#BFF7
+351+  942C ED 78                in a,(c)
+352+  942E C1                   pop bc
+353+  942F C9                   ret
+354+  9430              p127_rtc_read_smuc:
+355+  9430 79                   ld a,c
+356+  9431 01 BA DF             ld bc,#DFBA
+357+  9434 ED 79                out (c),a
+358+  9436 ED 78                in a,(c)
+359+  9438 C1                   pop bc
+360+  9439 C9                   ret
+361+  943A
+362+  943A              ; Wait for UIP clear and take a stable seconds/minutes/hours snapshot.
+363+  943A              P127_RTC_ReadSnapshot:
+364+  943A 06 04                ld b,4
+365+  943C              p127_rtc_snapshot_retry:
+366+  943C CD 6E 94             call P127_RTC_WaitUIP
+367+  943F D8                   ret c
+368+  9440 3E 00                ld a,#00
+369+  9442 CD 1B 94             call P127_RTC_ReadReg
+370+  9445 32 A4 94             ld (p127_rtc_seconds),a
+371+  9448 3E 02                ld a,#02
+372+  944A CD 1B 94             call P127_RTC_ReadReg
+373+  944D 32 A5 94             ld (p127_rtc_minutes),a
+374+  9450 3E 04                ld a,#04
+375+  9452 CD 1B 94             call P127_RTC_ReadReg
+376+  9455 32 A6 94             ld (p127_rtc_hours),a
+377+  9458 3E 00                ld a,#00
+378+  945A CD 1B 94             call P127_RTC_ReadReg
+379+  945D 4F                   ld c,a
+380+  945E 3A A4 94             ld a,(p127_rtc_seconds)
+381+  9461 B9                   cp c
+382+  9462 28 04                jr z,p127_rtc_snapshot_ok
+383+  9464 10 D6                djnz p127_rtc_snapshot_retry
+384+  9466 37                   scf
+385+  9467 C9                   ret
+386+  9468              p127_rtc_snapshot_ok:
+387+  9468 79                   ld a,c
+388+  9469 32 A4 94             ld (p127_rtc_seconds),a
+389+  946C B7                   or a
+390+  946D C9                   ret
+391+  946E
+392+  946E              P127_RTC_WaitUIP:
+393+  946E C5                   push bc
+394+  946F 06 00                ld b,0
+395+  9471              p127_rtc_uip_loop:
+396+  9471 3E 0A                ld a,#0A
+397+  9473 CD 1B 94             call P127_RTC_ReadReg
+398+  9476 CB 7F                bit 7,a
+399+  9478 28 05                jr z,p127_rtc_uip_ready
+400+  947A 10 F5                djnz p127_rtc_uip_loop
+401+  947C 37                   scf
+402+  947D C1                   pop bc
+403+  947E C9                   ret
+404+  947F              p127_rtc_uip_ready:
+405+  947F B7                   or a
+406+  9480 C1                   pop bc
+407+  9481 C9                   ret
+408+  9482
+409+  9482              ; Convert A according to Status B bit 2 (binary=1, BCD=0).
+410+  9482              P127_RTC_ToBinary:
+411+  9482 C5                   push bc
+412+  9483 47                   ld b,a
+413+  9484 3A A3 94             ld a,(p127_rtc_status_b)
+414+  9487 CB 57                bit 2,a
+415+  9489 78                   ld a,b
+416+  948A C1                   pop bc
+417+  948B C0                   ret nz
+418+  948C              P127_RTC_BCDToBinary:
+419+  948C C5                   push bc
+420+  948D 47                   ld b,a
+421+  948E E6 0F                and #0F
+422+  9490 4F                   ld c,a
+423+  9491 78                   ld a,b
+424+  9492 E6 F0                and #F0
+425+  9494 0F                   rrca
+426+  9495 0F                   rrca
+427+  9496 0F                   rrca
+428+  9497 0F                   rrca
+429+  9498 47                   ld b,a
+430+  9499 87                   add a,a
+431+  949A 57                   ld d,a
+432+  949B 87                   add a,a
+433+  949C 87                   add a,a
+434+  949D 82                   add a,d
+435+  949E 81                   add a,c
+436+  949F C1                   pop bc
+437+  94A0 C9                   ret
+438+  94A1
+439+  94A1 00           p127_rtc_available: db 0
+440+  94A2 00           p127_rtc_backend: db 0       ; 0=GLUK DFF7/BFF7, 1=SMUC DFBA/FFBA
+441+  94A3 00           p127_rtc_status_b: db 0
+442+  94A4 00           p127_rtc_seconds: db 0
+443+  94A5 00           p127_rtc_minutes: db 0
+444+  94A6 00           p127_rtc_hours: db 0
+445+  94A7 00           p127_rtc_pm: db 0
+446+  94A8 00           p127_rtc_hour_tmp: db 0
+447+  94A9 00           p127_rtc_previous_second: db 0
+448+  94AA 00           p127_rtc_tick_attempts: db 0
+449+  94AB 00           p127_rtc_last_hour: db 0
+450+  94AC 00           p127_rtc_last_minute: db 0
+451+  94AD 00           p127_rtc_last_second: db 0
+452+  94AE 30 30 3A 30  p127_rtc_time_buffer: db "00:00:00",0
+452+  94B2 30 3A 30 30
+452+  94B6 00
+453+  94B7
+454+  94B7              p127_rtc_log_gluk:
+455+  94B7 5B 50 31 32          db "[P127] RTC BACKEND GLUK",13,10,0
+455+  94BB 37 5D 20 52
+455+  94BF 54 43 20 42
+455+  94C3 41 43 4B 45
+455+  94C7 4E 44 20 47
+455+  94CB 4C 55 4B 0D
+455+  94CF 0A 00
+456+  94D1              p127_rtc_log_smuc:
+457+  94D1 5B 50 31 32          db "[P127] RTC BACKEND SMUC",13,10,0
+457+  94D5 37 5D 20 52
+457+  94D9 54 43 20 42
+457+  94DD 41 43 4B 45
+457+  94E1 4E 44 20 53
+457+  94E5 4D 55 43 0D
+457+  94E9 0A 00
+458+  94EB              p127_rtc_log_available:
+459+  94EB 5B 50 31 32          db "[P127] RTC DS12887 AVAILABLE",13,10,0
+459+  94EF 37 5D 20 52
+459+  94F3 54 43 20 44
+459+  94F7 53 31 32 38
+459+  94FB 38 37 20 41
+459+  94FF 56 41 49 4C
+459+  9503 41 42 4C 45
+459+  9507 0D 0A 00
+460+  950A              p127_rtc_log_runtime_pass:
+461+  950A 5B 50 31 32          db "[P127] RTC READ/TICK SELFTEST PASS",13,10,0
+461+  950E 37 5D 20 52
+461+  9512 54 43 20 52
+461+  9516 45 41 44 2F
+461+  951A 54 49 43 4B
+461+  951E 20 53 45 4C
+461+  9522 46 54 45 53
+461+  9526 54 20 50 41
+461+  952A 53 53 0D 0A
+461+  952E 00
+462+  952F              p127_rtc_log_runtime_fail:
+463+  952F 5B 50 31 32          db "[P127] RTC READ/TICK SELFTEST FAIL",13,10,0
+463+  9533 37 5D 20 52
+463+  9537 54 43 20 52
+463+  953B 45 41 44 2F
+463+  953F 54 49 43 4B
+463+  9543 20 53 45 4C
+463+  9547 46 54 45 53
+463+  954B 54 20 46 41
+463+  954F 49 4C 0D 0A
+463+  9553 00
+464+  9554              p127_rtc_log_time:
+465+  9554 5B 50 31 32          db "[P127] RTC TIME ",0
+465+  9558 37 5D 20 52
+465+  955C 54 43 20 54
+465+  9560 49 4D 45 20
+465+  9564 00
+466+  9565              p127_rtc_log_unavailable:
+467+  9565 5B 50 31 32          db "[P127] RTC DS12887 NOT DETECTED",13,10,0
+467+  9569 37 5D 20 52
+467+  956D 54 43 20 44
+467+  9571 53 31 32 38
+467+  9575 38 37 20 4E
+467+  9579 4F 54 20 44
+467+  957D 45 54 45 43
+467+  9581 54 45 44 0D
+467+  9585 0A 00
+468+  9587              p127_rtc_log_selftest:
+469+  9587 5B 50 31 32          db "[P127] RTC FORMAT SELFTEST PASS",13,10,0
+469+  958B 37 5D 20 52
+469+  958F 54 43 20 46
+469+  9593 4F 52 4D 41
+469+  9597 54 20 53 45
+469+  959B 4C 46 54 45
+469+  959F 53 54 20 50
+469+  95A3 41 53 53 0D
+469+  95A7 0A 00
+470+  95A9              p127_rtc_log_selftest_fail:
+471+  95A9 5B 50 31 32          db "[P127] RTC FORMAT SELFTEST FAIL",13,10,0
+471+  95AD 37 5D 20 52
+471+  95B1 54 43 20 46
+471+  95B5 4F 52 4D 41
+471+  95B9 54 20 53 45
+471+  95BD 4C 46 54 45
+471+  95C1 53 54 20 46
+471+  95C5 41 49 4C 0D
+471+  95C9 0A 00
+472+  95CB              p127_rtc_service_end:
+473+  95CB                      ASSERT p127_rtc_service_end<=#A000
+474+  95CB
 # file closed: atm_rtc_service.asm
- 26   94C0
- 27   94C0                      ; Keep the proven single-file TR-DOS boot path.
- 28   94C0                      PAGE 0
- 29   94C0                      ORG #A000
+ 26   95CB
+ 27   95CB                      ; Keep the proven single-file TR-DOS boot path.
+ 28   95CB                      PAGE 0
+ 29   95CB                      ORG #A000
  30   A000                      INCLUDE "atm_host/p127_screen_console.asm"
 # file opened: p127_screen_console.asm
   1+  A000              ; =========================================================================
@@ -4907,7 +5048,7 @@ Value    Label
 0x631A   p127_host_trdos_error
 0x60A5   p127_host_trdos_fail
 0x62EF   p127_host_trdos_ok
-0x9310   p127_host_ui_ready
+0x93B2   p127_host_ui_ready
 0x9160   p127_host_video_error
 0x912C   p127_host_video_ok
 0x0012   P127_MEM_CAPS_SIZE
@@ -4919,57 +5060,76 @@ Value    Label
 0x6514   p127_range_nonzero
 0x6568   p127_range_offset
 0x6564   p127_range_valid
-0x93FF   p127_rtc_available
-0x9400   p127_rtc_backend
-0x93EA   P127_RTC_BCDToBinary
-0x9358   P127_RTC_Close
-0x9370   p127_rtc_close_done
-0x9376   p127_rtc_close_smuc
+0x94A1   p127_rtc_available
+0x94A2   p127_rtc_backend
+0x948C   P127_RTC_BCDToBinary
+0x93FA   P127_RTC_Close
+0x9412   p127_rtc_close_done
+0x9418   p127_rtc_close_smuc
+0x9304   P127_RTC_Format2
+0x930F   p127_rtc_format_ones
+0x9306   p127_rtc_format_tens
 0x9297   p127_rtc_hour_24
 0x928D   p127_rtc_hour_am
 0x929B   p127_rtc_hour_ready
-0x9406   p127_rtc_hour_tmp
-0x9404   p127_rtc_hours
+0x94A8   p127_rtc_hour_tmp
+0x94A6   p127_rtc_hours
 0x9200   P127_RTC_Init
 0x921C   p127_rtc_init_available
-0x943B   p127_rtc_log_available
-0x9407   p127_rtc_log_gluk
-0x947C   p127_rtc_log_selftest
-0x949E   p127_rtc_log_selftest_fail
-0x9421   p127_rtc_log_smuc
-0x945A   p127_rtc_log_unavailable
-0x9403   p127_rtc_minutes
-0x933D   P127_RTC_Open
-0x9355   p127_rtc_open_done
-0x934E   p127_rtc_open_smuc
-0x9405   p127_rtc_pm
+0x94AB   p127_rtc_last_hour
+0x94AC   p127_rtc_last_minute
+0x94AD   p127_rtc_last_second
+0x94EB   p127_rtc_log_available
+0x94B7   p127_rtc_log_gluk
+0x952F   p127_rtc_log_runtime_fail
+0x950A   p127_rtc_log_runtime_pass
+0x9587   p127_rtc_log_selftest
+0x95A9   p127_rtc_log_selftest_fail
+0x94D1   p127_rtc_log_smuc
+0x9554   p127_rtc_log_time
+0x9565   p127_rtc_log_unavailable
+0x94A5   p127_rtc_minutes
+0x93DF   P127_RTC_Open
+0x93F7   p127_rtc_open_done
+0x93F0   p127_rtc_open_smuc
+0x94A7   p127_rtc_pm
+0x94A9   p127_rtc_previous_second
 0x924B   p127_rtc_probe_bad
 0x9223   P127_RTC_ProbeBackend
-0x938E   p127_rtc_read_smuc
+0x9430   p127_rtc_read_smuc
 0x92AD   p127_rtc_read_unavailable
-0x9379   P127_RTC_ReadReg
-0x9398   P127_RTC_ReadSnapshot
-0x9250 X P127_RTC_ReadTime
-0x9402   p127_rtc_seconds
-0x92AF   P127_RTC_SelfTest
-0x94C0   p127_rtc_service_end
-0x93C6   p127_rtc_snapshot_ok
-0x939A   p127_rtc_snapshot_retry
-0x92FC   p127_rtc_start_available_log
-0x930A   p127_rtc_start_format_fail
-0x92F6   p127_rtc_start_smuc
-0x9303   p127_rtc_start_unavailable
-0x92D8   P127_RTC_Startup
-0x9401   p127_rtc_status_b
-0x92D6   p127_rtc_test_fail
-0x92CC   p127_rtc_test_fail_1
-0x92D0   p127_rtc_test_fail_2
-0x92D4   p127_rtc_test_fail_3
-0x93E0   P127_RTC_ToBinary
-0x93CF   p127_rtc_uip_loop
-0x93DD   p127_rtc_uip_ready
+0x941B   P127_RTC_ReadReg
+0x943A   P127_RTC_ReadSnapshot
+0x9250   P127_RTC_ReadTime
+0x92AF   P127_RTC_RuntimeSelfTest
+0x94A4   p127_rtc_seconds
+0x931A   P127_RTC_SelfTest
+0x95CB   p127_rtc_service_end
+0x9468   p127_rtc_snapshot_ok
+0x943C   p127_rtc_snapshot_retry
+0x9367   p127_rtc_start_available_log
+0x93AC   p127_rtc_start_format_fail
+0x939E   p127_rtc_start_runtime_fail
+0x9361   p127_rtc_start_smuc
+0x93A5   p127_rtc_start_unavailable
+0x9343   P127_RTC_Startup
+0x94A3   p127_rtc_status_b
+0x9341   p127_rtc_test_fail
+0x9337   p127_rtc_test_fail_1
+0x933B   p127_rtc_test_fail_2
+0x933F   p127_rtc_test_fail_3
+0x94AA   p127_rtc_tick_attempts
+0x92C3   p127_rtc_tick_delay
+0x92ED   p127_rtc_tick_pass
+0x92C0   p127_rtc_tick_wait
+0x94AE   p127_rtc_time_buffer
+0x9301   p127_rtc_time_invalid
+0x9482   P127_RTC_ToBinary
+0x9471   p127_rtc_uip_loop
+0x947F   p127_rtc_uip_ready
+0x92EF   P127_RTC_ValidateTime
 0x0100 X P127_RTC_VERSION
-0x93CC   P127_RTC_WaitUIP
+0x946E   P127_RTC_WaitUIP
 0x8019   p127_trdos_catalog_bad_length
 0x8000   p127_trdos_catalog_begin
 0x8081   p127_trdos_catalog_count
