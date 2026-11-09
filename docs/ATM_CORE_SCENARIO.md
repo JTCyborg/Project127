@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.47**  
+Scenario revision: **0.8.46**  
 Status: **BOOT0, console, page-state self-test, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -650,13 +650,3 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - The fixed-row writes occur only after W3=P0 restoration, HANDOFF release, UI resume, page frees, reservation/free-state audit and allocator reuse validation. They do not run while W3 is leased.
 - Physical-memory module advanced to v0.4.2. The allocator, page-map API, memory patterns, W3 ownership protocol and interrupt policy are unchanged. No W0/W1/W2 remapping or IM/EI enablement is introduced.
 - Scenario revision 0.8.46. Build and emulator verification are pending the user's rebuild/run; this commit does not claim that screen output is already runtime-confirmed.
-
-
-### 2026-11-09 — Stage 2.23: live physical-page progress on ATM screen v0.4.3
-
-- User clarified that the page-ID messages were already replayed after the exhaustive test; the unresolved requirement is to see the current page operation while the sweep is running.
-- Audited the actual console renderer: its normal character writer maps both W1=P7 and W3=P3, while the physical-memory sweep owns and repeatedly remaps W3. Calling that renderer during the sweep would overwrite the page currently under test, so it must not be used.
-- Added a bounded live progress renderer in `src/kernel/p127_physmem.asm`. Before each FILL/VERIFY operation it temporarily maps only W1 to reserved video character page P7, writes the current operation and page ID into status rows 2/3, and restores W1=P5. W3 is never touched by this renderer; the active physical test page remains mapped throughout. The existing P3 character attributes are reused and are not rewritten.
-- The renderer checks that the software shadow says W1=P5 before touching the screen. If that precondition is not met, screen mirroring is skipped while the #EF diagnostic remains available. Code and stack remain in W2; IM/EI policy and the page sweep algorithm are unchanged.
-- The post-test W3 FILL/VERIFY replay and final status lines remain as before. During the sweep, rows 2/3 now show the current FILL or VERIFY page ID and update on each page.
-- Physical-memory module advanced to v0.4.3. Scenario revision 0.8.47. SjASMPlus build and emulator screen verification are pending the user's run; no build or live-display success is claimed.
