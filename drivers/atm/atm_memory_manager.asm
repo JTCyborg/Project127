@@ -491,41 +491,41 @@ atm_mem_allocator_selftest::
         ld      hl,0
         ld      (atm_mem_request_length+2),hl
         call    atm_mem_alloc
-        jp      c,atm_mem_allocator_selftest_fail
+        jp      c,atm_mem_allocator_fail_01
         ld      a,(atm_mem_result_offset)
         or      a
-        jp      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_fail_02
         ld      a,(atm_mem_result_offset+1)
         or      a
-        jp      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_fail_03
         ld      a,(atm_mem_result_offset+2)
         cp      2
-        jp      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_fail_04
         ld      a,(atm_mem_result_offset+3)
         or      a
-        jp      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_fail_05
         ld      hl,(atm_mem_result_offset)
         ld      (atm_mem_request_offset),hl
         ld      hl,(atm_mem_result_offset+2)
         ld      (atm_mem_request_offset+2),hl
         call    atm_mem_free
-        jp      c,atm_mem_allocator_selftest_fail
+        jp      c,atm_mem_allocator_fail_06
 
         ld      hl,1
         ld      (atm_mem_request_length),hl
         ld      hl,0
         ld      (atm_mem_request_length+2),hl
         call    atm_mem_alloc
-        jp      c,atm_mem_allocator_selftest_fail
+        jp      c,atm_mem_allocator_fail_07
         ld      a,(atm_mem_result_offset)
         or      a
-        jp      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_fail_08
         ld      a,(atm_mem_result_offset+1)
         or      a
-        jp      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_fail_09
         ld      a,(atm_mem_result_offset+2)
         cp      1
-        jp      nz,atm_mem_allocator_selftest_fail
+        jp      nz,atm_mem_allocator_fail_10
         ld      a,(atm_mem_result_offset+3)
         or      a
         jp      nz,atm_mem_allocator_selftest_fail
@@ -536,6 +536,35 @@ atm_mem_allocator_selftest::
         call    atm_mem_free
         ret
 
+atm_mem_allocator_fail_01:
+        ld      a,1
+        jr      atm_mem_allocator_selftest_fail
+atm_mem_allocator_fail_02:
+        ld      a,2
+        jr      atm_mem_allocator_selftest_fail
+atm_mem_allocator_fail_03:
+        ld      a,3
+        jr      atm_mem_allocator_selftest_fail
+atm_mem_allocator_fail_04:
+        ld      a,4
+        jr      atm_mem_allocator_selftest_fail
+atm_mem_allocator_fail_05:
+        ld      a,5
+        jr      atm_mem_allocator_selftest_fail
+atm_mem_allocator_fail_06:
+        ld      a,6
+        jr      atm_mem_allocator_selftest_fail
+atm_mem_allocator_fail_07:
+        ld      a,7
+        jr      atm_mem_allocator_selftest_fail
+atm_mem_allocator_fail_08:
+        ld      a,8
+        jr      atm_mem_allocator_selftest_fail
+atm_mem_allocator_fail_09:
+        ld      a,9
+        jr      atm_mem_allocator_selftest_fail
+atm_mem_allocator_fail_10:
+        ld      a,10
 atm_mem_allocator_selftest_fail:
         scf
         ret
