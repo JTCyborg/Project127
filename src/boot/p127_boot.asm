@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.4.1
+; Project127 — boot stage 0.5.0
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -56,6 +56,17 @@ p127_start:
         call    p127_mem_selftest
         jr      c,p127_mem_failed
         ld      hl,p127_msg_mem_pass
+        call    p127_puts
+
+        ; Stage 2.4: pure software mapper model; hardware OUT remains disabled.
+        call    p127_map_init
+        call    p127_map_selftest
+        jp      c,p127_map_failed
+        ld      hl,p127_msg_map_pass
+        call    p127_puts
+        jr      p127_idle
+p127_map_failed:
+        ld      hl,p127_msg_map_fail
         call    p127_puts
         jr      p127_idle
 p127_mem_map_failed:
@@ -122,7 +133,7 @@ p127_msg_mem_pass:
 p127_msg_mem_fail:
         db      "[P127] MEM PAGE TEST FAIL", 13, 10, 0
 
-        INCLUDE "src/kernel/p127_mem.asm"
+        INCLUDE "src/kernel/p127_mem.asm"\n        INCLUDE "src/kernel/p127_map.asm"
 
 p127_end:
         ASSERT  p127_entry = P127_LOAD_ADDRESS
