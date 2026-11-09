@@ -9,7 +9,7 @@
 
         PAGE 0
         INCLUDE "atm_host/p127_host.asm"
-        SAVETRD "disk_A.trd", "P127HOST.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
+        SAVETRD "disk_A.trd", "@@HOST_NAME@@.C", P127_HOST_LOAD_ADDRESS, p127_host_program_end-P127_HOST_LOAD_ADDRESS
 
         PAGE 0
         ORG #E000
