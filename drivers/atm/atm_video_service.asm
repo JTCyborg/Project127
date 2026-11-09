@@ -314,4 +314,4 @@ p127_video_host_fail_handler:
         jp p127_host_idle
 
 p127_atm_video_service_end:
-        ASSERT p127_atm_video_service_end<=#A000
+        ASSERT p127_atm_video_service_end<=#9400
