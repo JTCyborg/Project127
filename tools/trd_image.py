@@ -47,7 +47,7 @@ def basic_loader():
              b":" + bytes([TOK_RANDOMIZE, TOK_USR]) + b" " + address),
     ]
     area = b"".join(lines) + b"\x80"
-    return area + b"\\xaa\\x0a\\x00", len(area)
+    return area + b"\xaa\x0a\x00", len(area)
 
 def offset(track, sector):
     if not 0 <= track < TRACKS or not 0 <= sector < SPT:
