@@ -414,7 +414,8 @@ atm_mem_ops_selftest::
         ld      (atm_mem_destination_offset),hl
         ld      hl,(atm_mem_test_source+2)
         ld      (atm_mem_source_offset+2),hl
-        adc     hl,0
+        ld      de,0
+        adc     hl,de
         ld      (atm_mem_destination_offset+2),hl
         ld      hl,4
         ld      (atm_mem_op_length),hl
