@@ -1030,3 +1030,16 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - No controller protocol, TR-DOS boot path, memory mapping, or ATA write behavior was changed. A real runtime fix requires correcting the Unreal Speccy NEMO dispatch so it remains reachable in the relevant ATM/TR-DOS state; Project127's current probe is retained to verify that fix.
 - SjASMPlus and Unreal Speccy were not executed in this environment. Stage 10.1 remains runtime-pending.
 - Scenario revision: 0.8.83.
+
+
+### 2026-11-10 — IRQ Stage 1: ATM frame interrupt source audit v0.1.0
+
+- Audited the upstream `alfishe/unreal-speccy` Z80 core at revision `a685b6f9227ec9dbb595b6cef38addbcd083d6ac`; this replaces the earlier blanket statement that the ATM IRQ source is unknown.
+- `z80_main.inl` sets `cpu.int_pend = true` at the beginning of each Spectrum frame. During the configured interrupt window (`cpu.t < conf.intlen`), it accepts the pending interrupt only when CPU `IFF1` is set, the EI delay has elapsed (`cpu.t != cpu.eipos`), and, for ATM710/ATM3, hardware gate bit `#20` of `comp.pFF77` is set. It then calls `handle_int(&cpu, cpu.IntVec())`.
+- `mainloop.cpp` independently uses `comp.pFF77 & #20` as the ATM hardware interrupt-enable gate. `atm.cpp::set_atm_FF77` stores the register value and updates the emulator's interrupt-gate state from the same bit. ATM DOS reset setup enables this bit in the existing emulator implementation.
+- `z80/op_system.h::handle_int` confirms IM0/IM1 dispatch to fixed address `#0038`; IM2 obtains a 16-bit handler address from the word at `(I * 256 + IntVec())`. Interrupt entry pushes PC, clears IFF1/IFF2, and clears the pending request.
+- Project127's current code still has no installed vector or active handler. Physical page P4 is reserved for a future IM2 table, but the table is not initialized or permanently mapped. W3 is currently a leased window and is restored to P0; it cannot be assumed to expose P4 during an interrupt. The existing frame/context/batch tests remain synthetic DI-only contract tests.
+- No `IM`, `EI`, vector write, new page-port `OUT`, or change to the W3 lease was made. Do not enable interrupts based only on identifying the frame source: the stable vector-table mapping and resident ISR/stack/window contract must be completed first.
+- Next implementation unit: design and verify a permanently addressable interrupt vector/entry layout compatible with the existing P4 reservation and W3 lease ownership. Only after that should the resident handler and controlled live frame-IRQ test be implemented.
+- This is an upstream source audit and documentation checkpoint, not live IRQ acceptance. SjASMPlus and Unreal Speccy were not run by the assistant.
+- Scenario revision: 0.8.84.
