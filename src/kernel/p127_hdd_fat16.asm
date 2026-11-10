@@ -105,6 +105,10 @@ p127_hdd_fat_add_fat_loop:
         call    p127_puts
 
 p127_hdd_fat_sector_loop:
+        ld      hl,(p127_hdd_fat_entries_left)
+        ld      a,h
+        or      l
+        jp      z,p127_hdd_fat_complete
         ld      hl,(p127_hdd_fat_sectors_left)
         ld      a,h
         or      l
@@ -256,6 +260,8 @@ p127_hdd_fat_emit_entry:
 
         ; Copy the base name until its first padding space.
         ld      de,p127_hdd_fat_name
+        xor     a
+        ld      (p127_hdd_fat_name_len),a
         ld      b,8
 p127_hdd_fat_name_base_loop:
         ld      a,(hl)
@@ -264,17 +270,12 @@ p127_hdd_fat_name_base_loop:
         jr      z,p127_hdd_fat_name_base_done
         ld      (de),a
         inc     de
+        ld      a,(p127_hdd_fat_name_len)
+        inc     a
+        ld      (p127_hdd_fat_name_len),a
         djnz    p127_hdd_fat_name_base_loop
 p127_hdd_fat_name_base_done:
-        ld      hl,p127_hdd_fat_name
-        or      a
-        sbc     hl,de
-        ; DE-name is the base-name length. Recompute it without relying on
-        ; the arithmetic result's sign.
-        ld      hl,p127_hdd_fat_name
-        ld      a,e
-        sub     l
-        ld      (p127_hdd_fat_name_len),a
+        ld      a,(p127_hdd_fat_name_len)
         or      a
         jr      z,p127_hdd_fat_emit_done
 
@@ -353,7 +354,7 @@ p127_hdd_fat_emit_done:
         pop     af
         ret
 
-p127_hdd_fat_msg_begin: db "[HDD] FAT16 ROOT DIRECTORY",13,10,0
+p127_hdd_fat_msg_begin: db "[HDD] DRIVER=NEMO-DIVIDE LBA28 0.1.2 FAT16 0.1.0",13,10,"[HDD] FAT16 ROOT DIRECTORY",13,10,0
 p127_hdd_fat_msg_root:  db "[HDD] ROOT SCAN BEGIN",13,10,0
 p127_hdd_fat_msg_file:  db "[HDD] ",0
 p127_hdd_fat_msg_dir:   db " <DIR>",0
