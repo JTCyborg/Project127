@@ -396,7 +396,7 @@ p127_msg_layout_fail: db "[P127] KERNEL IMAGE LAYOUT FAIL",13,10,0
 p127_msg_mem_init: db "[P127] MEM INIT 1MB/64P",13,10,0
 p127_msg_video_reserved: db "[P127] VIDEO RAM RESERVED P1,P3,P5,P7",13,10,0
 p127_msg_boot_reserved: db "[P127] BOOT MAP RESERVED P0,P2; P5 ACTIVE",13,10,0
-p127_msg_irq_page_reserved: db "[P127] IRQ TABLE PAGE RESERVED P4; IM2 DISABLED",13,10,0
+p127_msg_irq_page_reserved: db "[P127] IRQ TABLE USES RESERVED BOOT PAGE P2/W2; IM2 DISABLED",13,10,0
 p127_msg_irq_page_pass: db "[P127] IRQ TABLE SLOT PREFLIGHT PASS; OUT DISABLED",13,10,0
 p127_msg_irq_page_fail: db "[P127] IRQ TABLE PAGE RESERVE FAIL",13,10,0
 p127_msg_boot_reserve_fail: db "[P127] BOOT RAM RESERVE FAIL",13,10,0
