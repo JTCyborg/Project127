@@ -1,6 +1,6 @@
 ; ============================================================================
 ; Project127 ATM Core — physical page-state manager
-; Module version: 0.4.3
+; Module version: 0.4.4
 ; ABI: reserve A=first page, B=count; alloc -> A=page, C=exhausted;
 ;      free A=page, C=invalid/not allocated.
 ; Model: 64 physical 16 KiB page IDs = exactly 1 MiB.
@@ -10,7 +10,7 @@
 ; ============================================================================
 P127_MEM_VERSION_MAJOR EQU 0
 P127_MEM_VERSION_MINOR EQU 4
-P127_MEM_VERSION_PATCH EQU 3
+P127_MEM_VERSION_PATCH EQU 4
 P127_MEM_PAGE_COUNT    EQU 64
 P127_MEM_PAGE_SIZE     EQU 04000h
 P127_MEM_FREE          EQU 0
@@ -110,12 +110,15 @@ p127_mem_reserve_boot:
         call    p127_mem_reserve
         ret
 
-; Reserve the currently unused physical page dedicated to the future IM2
-; vector table. This is accounting only: page 4 is NOT mapped into W3 here.
+; The IM2 table now resides in W2/P2, which is already RESERVED by the
+; active bootstrap map (resident UI/stack). Do not reserve P2 a second time:
+; validate the existing ownership instead. No table bytes are written here.
 p127_mem_reserve_irq_table:
-        ld      a,P127_IRQ_TABLE_PAGE
-        ld      b,1
-        call    p127_mem_reserve
+        ld      hl,p127_mem_page_state+P127_IRQ_TABLE_PAGE
+        ld      a,(hl)
+        cp      P127_MEM_RESERVED
+        jp      nz,p127_mem_error
+        or      a
         ret
 
 ; Allocate the first free physical page.
