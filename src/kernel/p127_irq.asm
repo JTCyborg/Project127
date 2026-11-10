@@ -245,9 +245,9 @@ p127_irq_install_masked:
 
         ; Verify I and IFF2 after DI; LD A,I reports IFF2 in P/V.
         ld      a,i
+        jp      pe,p127_irq_reject     ; test IFF2 before CP changes flags
         cp      P127_IRQ_TABLE_I
         jp      nz,p127_irq_reject
-        jp      pe,p127_irq_reject
         ld      hl,(P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE)
         ld      de,p127_irq_entry
         or      a
