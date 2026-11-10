@@ -132,23 +132,23 @@
  123+ 6104 21 E6 6C             ld      hl,p127_msg_w3_recovery_pass
  124+ 6107 CD 21 63             call    p127_puts
  125+ 610A CD 04 92             call    p127_irq_init
- 126+ 610D CD 30 92             call    p127_irq_selftest
+ 126+ 610D CD 36 92             call    p127_irq_selftest
  127+ 6110 DA 96 62             jp      c,p127_irq_failed
- 128+ 6113 CD 81 92             call    p127_irq_gate_selftest
+ 128+ 6113 CD 87 92             call    p127_irq_gate_selftest
  129+ 6116 DA 96 62             jp      c,p127_irq_failed
- 130+ 6119 CD 02 94             call    p127_irq_table_preflight
+ 130+ 6119 CD 11 94             call    p127_irq_table_preflight
  131+ 611C DA 96 62             jp      c,p127_irq_failed
- 132+ 611F CD 91 94             call    p127_irq_context_selftest
+ 132+ 611F CD B9 94             call    p127_irq_context_selftest
  133+ 6122 DA 96 62             jp      c,p127_irq_failed
  134+ 6125 21 3A 6D             ld      hl,p127_msg_irq_context_pass
  135+ 6128 CD 21 63             call    p127_puts
- 136+ 612B CD B5 92             call    p127_irq_batch_selftest
+ 136+ 612B CD BB 92             call    p127_irq_batch_selftest
  137+ 612E DA 96 62             jp      c,p127_irq_failed
  138+ 6131 21 6D 6D             ld      hl,p127_msg_irq_batch_pass
  139+ 6134 CD 21 63             call    p127_puts
  140+ 6137                      ; Install only the confirmed ATM710 #FF IM2 vector. Keep DI set:
  141+ 6137                      ; no live interrupt delivery until the dispatcher/source is validated.
- 142+ 6137 CD 46 93             call    p127_irq_install_masked
+ 142+ 6137 CD 4C 93             call    p127_irq_install_masked
  143+ 613A DA 9F 62             jp      c,p127_irq_install_failed
  144+ 613D 21 E4 6D             ld      hl,p127_msg_irq_install_pass
  145+ 6140 CD 21 63             call    p127_puts
@@ -1247,7 +1247,7 @@
   24++6FA4 C2 E3 6F             jp      nz,p127_layout_reject
   25++6FA7
   26++6FA7                      ; Require a non-empty image and an end no higher than the UI window.
-  27++6FA7 21 BB 95             ld      hl,p127_end
+  27++6FA7 21 E5 95             ld      hl,p127_end
   28++6FAA 11 00 60             ld      de,p127_entry
   29++6FAD B7                   or      a
   30++6FAE ED 52                sbc     hl,de
@@ -1258,7 +1258,7 @@
   35++6FBA FE 41                cp      041h
   36++6FBC D2 E3 6F             jp      nc,p127_layout_reject
   37++6FBF
-  38++6FBF 21 BB 95             ld      hl,p127_end
+  38++6FBF 21 E5 95             ld      hl,p127_end
   39++6FC2 11 00 A0             ld      de,P127_LAYOUT_LIMIT
   40++6FC5 B7                   or      a
   41++6FC6 ED 52                sbc     hl,de
@@ -6169,620 +6169,649 @@
 # file opened: p127_irq.asm
    1++9204              ; ============================================================================
    2++9204              ; Project127 — interrupt safety contract / preflight
-   3++9204              ; Module version: 0.5.0
-   4++9204              ; This is a DI-only bootstrap with a masked IM2 vector installer.
-   5++9204              ; IM2/vector setup is allowed; EI and hardware page OUT remain forbidden.
+   3++9204              ; Module version: 0.6.0
+   4++9204              ; Masked IM2 installer with the legacy host-frame ISR chain.
+   5++9204              ; Normal boot remains DI-only; live activation is still opt-in.
    6++9204              ; ============================================================================
    7++9204              P127_IRQ_VERSION_MAJOR EQU 0
-   8++9204              P127_IRQ_VERSION_MINOR EQU 5
+   8++9204              P127_IRQ_VERSION_MINOR EQU 6
    9++9204              P127_IRQ_VERSION_PATCH EQU 0
   10++9204              P127_IRQ_MASKED EQU 1
   11++9204              P127_IRQ_VECTOR_NONE EQU 0
   12++9204              P127_IRQ_MODE_UNSET EQU 0
-  13++9204
-  14++9204              ; Boot owns the CPU in a DI-protected phase. A stock Z80 cannot read IM0/1/2
-  15++9204              ; directly; LD A,I exposes IFF2 in P/V but is not a general IFF restore path.
-  16++9204              ; Therefore this module never guesses prior interrupt state and never EI/IM.
-  17++9204              ; The boot installer may establish the vector, mapping and handler ownership
-  18++9204              ; tuple while DI remains asserted. Interrupts stay disabled until a separate
-  19++9204              ; controlled source/acknowledge test validates live delivery and RETI.
-  20++9204              P127_IRQ_READY_VECTOR EQU 1
-  21++9204              P127_IRQ_READY_MAP EQU 2
-  22++9204              P127_IRQ_READY_HANDLER EQU 4
-  23++9204              P127_IRQ_READY_ALL EQU 7
-  24++9204
-  25++9204              p127_irq_init:
-  26++9204 F3                   di
-  27++9205 3E 01                ld      a,P127_IRQ_MASKED
-  28++9207 32 B7 95             ld      (p127_irq_mask_state),a
-  29++920A AF                   xor     a
-  30++920B 32 B8 95             ld      (p127_irq_vector_owner),a
-  31++920E 32 B9 95             ld      (p127_irq_mode_policy),a
-  32++9211 32 BA 95             ld      (p127_irq_ready_flags),a
-  33++9214 B7                   or      a
-  34++9215 C9                   ret
-  35++9216
-  36++9216              ; OUT: carry clear only while the documented DI-only/no-vector contract holds.
-  37++9216              p127_irq_validate:
-  38++9216 3A B7 95             ld      a,(p127_irq_mask_state)
-  39++9219 FE 01                cp      P127_IRQ_MASKED
-  40++921B C2 2A 94             jp      nz,p127_irq_reject
-  41++921E 3A B8 95             ld      a,(p127_irq_vector_owner)
-  42++9221 FE 00                cp      P127_IRQ_VECTOR_NONE
-  43++9223 C2 2A 94             jp      nz,p127_irq_reject
-  44++9226 3A B9 95             ld      a,(p127_irq_mode_policy)
-  45++9229 FE 00                cp      P127_IRQ_MODE_UNSET
-  46++922B C2 2A 94             jp      nz,p127_irq_reject
-  47++922E B7                   or      a
-  48++922F C9                   ret
-  49++9230
-  50++9230              ; Fault-injection tests reject enabled-state, vector-owner and guessed-IM claims.
-  51++9230              p127_irq_selftest:
-  52++9230 CD 04 92             call    p127_irq_init
-  53++9233 CD 16 92             call    p127_irq_validate
-  54++9236 DA 2C 94             jp      c,p127_irq_test_fail
-  55++9239 AF                   xor     a
-  56++923A 32 B7 95             ld      (p127_irq_mask_state),a
-  57++923D CD 16 92             call    p127_irq_validate
-  58++9240 D2 2C 94             jp      nc,p127_irq_test_fail
-  59++9243 3E 01                ld      a,P127_IRQ_MASKED
-  60++9245 32 B7 95             ld      (p127_irq_mask_state),a
-  61++9248 3E 01                ld      a,1
-  62++924A 32 B8 95             ld      (p127_irq_vector_owner),a
-  63++924D CD 16 92             call    p127_irq_validate
-  64++9250 D2 2C 94             jp      nc,p127_irq_test_fail
-  65++9253 AF                   xor     a
-  66++9254 32 B8 95             ld      (p127_irq_vector_owner),a
-  67++9257 3E 01                ld      a,1
-  68++9259 32 B9 95             ld      (p127_irq_mode_policy),a
-  69++925C CD 16 92             call    p127_irq_validate
-  70++925F D2 2C 94             jp      nc,p127_irq_test_fail
-  71++9262 CD 04 92             call    p127_irq_init
-  72++9265 CD 16 92             call    p127_irq_validate
-  73++9268 C9                   ret
-  74++9269
-  75++9269
-  76++9269              ; Readiness gate only. Carry is set unless vector ownership, mapped table,
-  77++9269              ; and resident handler are all explicitly committed. This routine NEVER EI.
-  78++9269              p127_irq_enable_preflight:
-  79++9269 3A BA 95             ld      a,(p127_irq_ready_flags)
-  80++926C FE 07                cp      P127_IRQ_READY_ALL
-  81++926E C2 2A 94             jp      nz,p127_irq_reject
-  82++9271 3A B8 95             ld      a,(p127_irq_vector_owner)
-  83++9274 B7                   or      a
-  84++9275 CA 2A 94             jp      z,p127_irq_reject
-  85++9278 3A B9 95             ld      a,(p127_irq_mode_policy)
-  86++927B B7                   or      a
-  87++927C CA 2A 94             jp      z,p127_irq_reject
-  88++927F B7                   or      a
-  89++9280 C9                   ret
-  90++9281
-  91++9281              ; Prove the gate is closed by default and opens only for the complete
-  92++9281              ; synthetic prerequisite tuple. Restore the real safe boot tuple afterward.
-  93++9281              p127_irq_gate_selftest:
-  94++9281 CD 04 92             call    p127_irq_init
-  95++9284 CD 69 92             call    p127_irq_enable_preflight
-  96++9287 D2 2C 94             jp      nc,p127_irq_test_fail
-  97++928A 3E 01                ld      a,P127_IRQ_READY_VECTOR
-  98++928C 32 BA 95             ld      (p127_irq_ready_flags),a
-  99++928F CD 69 92             call    p127_irq_enable_preflight
- 100++9292 D2 2C 94             jp      nc,p127_irq_test_fail
- 101++9295 3E 07                ld      a,P127_IRQ_READY_ALL
- 102++9297 32 BA 95             ld      (p127_irq_ready_flags),a
- 103++929A 3E 01                ld      a,1
- 104++929C 32 B8 95             ld      (p127_irq_vector_owner),a
- 105++929F 3E 02                ld      a,2
- 106++92A1 32 B9 95             ld      (p127_irq_mode_policy),a
- 107++92A4 CD 69 92             call    p127_irq_enable_preflight
- 108++92A7 DA 2C 94             jp      c,p127_irq_test_fail
- 109++92AA CD 04 92             call    p127_irq_init
- 110++92AD CD 69 92             call    p127_irq_enable_preflight
- 111++92B0 D2 2C 94             jp      nc,p127_irq_test_fail
- 112++92B3 B7                   or      a
- 113++92B4 C9                   ret
- 114++92B5
- 115++92B5              ; Stage 2.16 batch: exhaust the complete 3-bit readiness mask and all
- 116++92B5              ; prerequisite failure paths in one boot. This is a software contract test:
- 117++92B5              ; it does not model or claim an ATM interrupt source/vector/acknowledge cycle.
- 118++92B5              ; On success the real boot tuple is restored to DI + no owner + no mode.
- 119++92B5              p127_irq_batch_selftest:
- 120++92B5 CD 04 92             call    p127_irq_init
- 121++92B8 CD 16 92             call    p127_irq_validate
- 122++92BB DA 2C 94             jp      c,p127_irq_test_fail
- 123++92BE
- 124++92BE                      ; Exhaust all eight combinations of VECTOR/MAP/HANDLER readiness.
- 125++92BE                      ; A nonzero synthetic owner/mode is supplied only for this gate test.
- 126++92BE 3E 01                ld      a,1
- 127++92C0 32 B8 95             ld      (p127_irq_vector_owner),a
- 128++92C3 32 B9 95             ld      (p127_irq_mode_policy),a
- 129++92C6 06 00                ld      b,0
- 130++92C8              p127_irq_batch_mask_loop:
- 131++92C8 78                   ld      a,b
- 132++92C9 32 BA 95             ld      (p127_irq_ready_flags),a
- 133++92CC CD 69 92             call    p127_irq_enable_preflight
- 134++92CF D2 DA 92             jp      nc,p127_irq_batch_mask_open
- 135++92D2 78                   ld      a,b
- 136++92D3 FE 07                cp      P127_IRQ_READY_ALL
- 137++92D5 CA 2C 94             jp      z,p127_irq_test_fail
- 138++92D8 18 06                jr      p127_irq_batch_mask_next
- 139++92DA              p127_irq_batch_mask_open:
- 140++92DA 78                   ld      a,b
- 141++92DB FE 07                cp      P127_IRQ_READY_ALL
- 142++92DD C2 2C 94             jp      nz,p127_irq_test_fail
- 143++92E0              p127_irq_batch_mask_next:
- 144++92E0 04                   inc     b
- 145++92E1 78                   ld      a,b
- 146++92E2 FE 08                cp      8
- 147++92E4 20 E2                jr      nz,p127_irq_batch_mask_loop
- 148++92E6
- 149++92E6                      ; All readiness bits without vector ownership must remain closed.
- 150++92E6 3E 07                ld      a,P127_IRQ_READY_ALL
- 151++92E8 32 BA 95             ld      (p127_irq_ready_flags),a
- 152++92EB AF                   xor     a
- 153++92EC 32 B8 95             ld      (p127_irq_vector_owner),a
- 154++92EF 3E 01                ld      a,1
- 155++92F1 32 B9 95             ld      (p127_irq_mode_policy),a
- 156++92F4 CD 69 92             call    p127_irq_enable_preflight
- 157++92F7 D2 2C 94             jp      nc,p127_irq_test_fail
- 158++92FA
- 159++92FA                      ; All readiness bits without a selected policy must remain closed.
- 160++92FA 3E 01                ld      a,1
- 161++92FC 32 B8 95             ld      (p127_irq_vector_owner),a
- 162++92FF AF                   xor     a
- 163++9300 32 B9 95             ld      (p127_irq_mode_policy),a
- 164++9303 CD 69 92             call    p127_irq_enable_preflight
- 165++9306 D2 2C 94             jp      nc,p127_irq_test_fail
- 166++9309
- 167++9309                      ; Contract validator must reject each forbidden boot-state mutation.
- 168++9309 CD 04 92             call    p127_irq_init
- 169++930C AF                   xor     a
- 170++930D 32 B7 95             ld      (p127_irq_mask_state),a
- 171++9310 CD 16 92             call    p127_irq_validate
- 172++9313 D2 2C 94             jp      nc,p127_irq_test_fail
- 173++9316
- 174++9316 3E 01                ld      a,P127_IRQ_MASKED
- 175++9318 32 B7 95             ld      (p127_irq_mask_state),a
- 176++931B 3E 01                ld      a,1
- 177++931D 32 B8 95             ld      (p127_irq_vector_owner),a
- 178++9320 CD 16 92             call    p127_irq_validate
- 179++9323 D2 2C 94             jp      nc,p127_irq_test_fail
- 180++9326
- 181++9326 AF                   xor     a
- 182++9327 32 B8 95             ld      (p127_irq_vector_owner),a
- 183++932A 3E 01                ld      a,1
- 184++932C 32 B9 95             ld      (p127_irq_mode_policy),a
- 185++932F CD 16 92             call    p127_irq_validate
- 186++9332 D2 2C 94             jp      nc,p127_irq_test_fail
- 187++9335
- 188++9335                      ; Restore and verify the actual safe boot state; gate remains closed.
- 189++9335 CD 04 92             call    p127_irq_init
- 190++9338 CD 16 92             call    p127_irq_validate
- 191++933B DA 2C 94             jp      c,p127_irq_test_fail
- 192++933E CD 69 92             call    p127_irq_enable_preflight
- 193++9341 D2 2C 94             jp      nc,p127_irq_test_fail
- 194++9344 B7                   or      a
- 195++9345 C9                   ret
- 196++9346
- 197++9346              ; Stage 2.17 — install a deterministic ATM710 IM2 vector while masked.
- 198++9346              ; unreal.ini selects FloatBus=0 and FloatDOS=0, so TMainZ80::IntVec()
- 199++9346              ; supplies #FF in normal and TR-DOS operation. This routine installs only
- 200++9346              ; that vector slot, loads I=#B0 and selects IM2. It never executes EI.
- 201++9346              ; The handler and stack both reside in fixed W2/P2; W3 is not involved.
- 202++9346              P127_IRQ_VECTOR_VALUE EQU 0FFh
- 203++9346              P127_IRQ_OWNER_IM2 EQU 1
- 204++9346              P127_IRQ_POLICY_IM2 EQU 2
- 205++9346
- 206++9346              p127_irq_install_masked:
- 207++9346 F3                   di
- 208++9347 CD 02 94             call    p127_irq_table_preflight
- 209++934A DA 2A 94             jp      c,p127_irq_reject
- 210++934D
- 211++934D                      ; The linked handler must execute from the fixed W2/P2 mapping.
- 212++934D 21 31 94             ld      hl,p127_irq_entry
- 213++9350 11 00 80             ld      de,08000h
- 214++9353 B7                   or      a
- 215++9354 ED 52                sbc     hl,de
- 216++9356 DA 2A 94             jp      c,p127_irq_reject
- 217++9359 21 31 94             ld      hl,p127_irq_entry
- 218++935C 11 00 A0             ld      de,0A000h
- 219++935F B7                   or      a
- 220++9360 ED 52                sbc     hl,de
- 221++9362 D2 2A 94             jp      nc,p127_irq_reject
- 222++9365
- 223++9365                      ; IM2 vector #FF fetches a little-endian word at #B0FF/#B100.
- 224++9365 21 31 94             ld      hl,p127_irq_entry
- 225++9368 22 FF B0             ld      (P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE),hl
- 226++936B 2A FF B0             ld      hl,(P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE)
- 227++936E 11 31 94             ld      de,p127_irq_entry
- 228++9371 B7                   or      a
- 229++9372 ED 52                sbc     hl,de
- 230++9374 C2 2A 94             jp      nz,p127_irq_reject
- 231++9377
- 232++9377 3E B0                ld      a,P127_IRQ_TABLE_I
- 233++9379 ED 47                ld      i,a
- 234++937B ED 5E                im      2
- 235++937D
- 236++937D 3E 01                ld      a,P127_IRQ_MASKED
- 237++937F 32 B7 95             ld      (p127_irq_mask_state),a
- 238++9382 3E 01                ld      a,P127_IRQ_OWNER_IM2
- 239++9384 32 B8 95             ld      (p127_irq_vector_owner),a
- 240++9387 3E 02                ld      a,P127_IRQ_POLICY_IM2
- 241++9389 32 B9 95             ld      (p127_irq_mode_policy),a
- 242++938C 3E 07                ld      a,P127_IRQ_READY_ALL
- 243++938E 32 BA 95             ld      (p127_irq_ready_flags),a
- 244++9391
- 245++9391                      ; Verify I and IFF2 after DI; LD A,I reports IFF2 in P/V.
- 246++9391 ED 57                ld      a,i
- 247++9393 EA 2A 94             jp      pe,p127_irq_reject     ; test IFF2 before CP changes flags
- 248++9396 FE B0                cp      P127_IRQ_TABLE_I
- 249++9398 C2 2A 94             jp      nz,p127_irq_reject
- 250++939B 2A FF B0             ld      hl,(P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE)
- 251++939E 11 31 94             ld      de,p127_irq_entry
- 252++93A1 B7                   or      a
- 253++93A2 ED 52                sbc     hl,de
- 254++93A4 C2 2A 94             jp      nz,p127_irq_reject
+  13++9204              P127_IRQ_HOST_VECTOR EQU 0038h
+  14++9204
+  15++9204              ; Boot owns the CPU in a DI-protected phase. A stock Z80 cannot read IM0/1/2
+  16++9204              ; directly; LD A,I exposes IFF2 in P/V but is not a general IFF restore path.
+  17++9204              ; Therefore this module never guesses prior interrupt state and never EI/IM.
+  18++9204              ; The boot installer may establish the vector, mapping and handler ownership
+  19++9204              ; tuple while DI remains asserted. Interrupts stay disabled until a separate
+  20++9204              ; controlled source/acknowledge test validates live delivery and RETI.
+  21++9204              P127_IRQ_READY_VECTOR EQU 1
+  22++9204              P127_IRQ_READY_MAP EQU 2
+  23++9204              P127_IRQ_READY_HANDLER EQU 4
+  24++9204              P127_IRQ_READY_ALL EQU 7
+  25++9204
+  26++9204              p127_irq_init:
+  27++9204 F3                   di
+  28++9205 3E 01                ld      a,P127_IRQ_MASKED
+  29++9207 32 E1 95             ld      (p127_irq_mask_state),a
+  30++920A AF                   xor     a
+  31++920B 32 E2 95             ld      (p127_irq_vector_owner),a
+  32++920E 32 E3 95             ld      (p127_irq_mode_policy),a
+  33++9211 32 E4 95             ld      (p127_irq_ready_flags),a
+  34++9214 32 C9 95             ld      (p127_irq_host_chain_enabled),a
+  35++9217 32 CA 95             ld      (p127_irq_host_chain_busy),a
+  36++921A B7                   or      a
+  37++921B C9                   ret
+  38++921C
+  39++921C              ; OUT: carry clear only while the documented DI-only/no-vector contract holds.
+  40++921C              p127_irq_validate:
+  41++921C 3A E1 95             ld      a,(p127_irq_mask_state)
+  42++921F FE 01                cp      P127_IRQ_MASKED
+  43++9221 C2 39 94             jp      nz,p127_irq_reject
+  44++9224 3A E2 95             ld      a,(p127_irq_vector_owner)
+  45++9227 FE 00                cp      P127_IRQ_VECTOR_NONE
+  46++9229 C2 39 94             jp      nz,p127_irq_reject
+  47++922C 3A E3 95             ld      a,(p127_irq_mode_policy)
+  48++922F FE 00                cp      P127_IRQ_MODE_UNSET
+  49++9231 C2 39 94             jp      nz,p127_irq_reject
+  50++9234 B7                   or      a
+  51++9235 C9                   ret
+  52++9236
+  53++9236              ; Fault-injection tests reject enabled-state, vector-owner and guessed-IM claims.
+  54++9236              p127_irq_selftest:
+  55++9236 CD 04 92             call    p127_irq_init
+  56++9239 CD 1C 92             call    p127_irq_validate
+  57++923C DA 3B 94             jp      c,p127_irq_test_fail
+  58++923F AF                   xor     a
+  59++9240 32 E1 95             ld      (p127_irq_mask_state),a
+  60++9243 CD 1C 92             call    p127_irq_validate
+  61++9246 D2 3B 94             jp      nc,p127_irq_test_fail
+  62++9249 3E 01                ld      a,P127_IRQ_MASKED
+  63++924B 32 E1 95             ld      (p127_irq_mask_state),a
+  64++924E 3E 01                ld      a,1
+  65++9250 32 E2 95             ld      (p127_irq_vector_owner),a
+  66++9253 CD 1C 92             call    p127_irq_validate
+  67++9256 D2 3B 94             jp      nc,p127_irq_test_fail
+  68++9259 AF                   xor     a
+  69++925A 32 E2 95             ld      (p127_irq_vector_owner),a
+  70++925D 3E 01                ld      a,1
+  71++925F 32 E3 95             ld      (p127_irq_mode_policy),a
+  72++9262 CD 1C 92             call    p127_irq_validate
+  73++9265 D2 3B 94             jp      nc,p127_irq_test_fail
+  74++9268 CD 04 92             call    p127_irq_init
+  75++926B CD 1C 92             call    p127_irq_validate
+  76++926E C9                   ret
+  77++926F
+  78++926F
+  79++926F              ; Readiness gate only. Carry is set unless vector ownership, mapped table,
+  80++926F              ; and resident handler are all explicitly committed. This routine NEVER EI.
+  81++926F              p127_irq_enable_preflight:
+  82++926F 3A E4 95             ld      a,(p127_irq_ready_flags)
+  83++9272 FE 07                cp      P127_IRQ_READY_ALL
+  84++9274 C2 39 94             jp      nz,p127_irq_reject
+  85++9277 3A E2 95             ld      a,(p127_irq_vector_owner)
+  86++927A B7                   or      a
+  87++927B CA 39 94             jp      z,p127_irq_reject
+  88++927E 3A E3 95             ld      a,(p127_irq_mode_policy)
+  89++9281 B7                   or      a
+  90++9282 CA 39 94             jp      z,p127_irq_reject
+  91++9285 B7                   or      a
+  92++9286 C9                   ret
+  93++9287
+  94++9287              ; Prove the gate is closed by default and opens only for the complete
+  95++9287              ; synthetic prerequisite tuple. Restore the real safe boot tuple afterward.
+  96++9287              p127_irq_gate_selftest:
+  97++9287 CD 04 92             call    p127_irq_init
+  98++928A CD 6F 92             call    p127_irq_enable_preflight
+  99++928D D2 3B 94             jp      nc,p127_irq_test_fail
+ 100++9290 3E 01                ld      a,P127_IRQ_READY_VECTOR
+ 101++9292 32 E4 95             ld      (p127_irq_ready_flags),a
+ 102++9295 CD 6F 92             call    p127_irq_enable_preflight
+ 103++9298 D2 3B 94             jp      nc,p127_irq_test_fail
+ 104++929B 3E 07                ld      a,P127_IRQ_READY_ALL
+ 105++929D 32 E4 95             ld      (p127_irq_ready_flags),a
+ 106++92A0 3E 01                ld      a,1
+ 107++92A2 32 E2 95             ld      (p127_irq_vector_owner),a
+ 108++92A5 3E 02                ld      a,2
+ 109++92A7 32 E3 95             ld      (p127_irq_mode_policy),a
+ 110++92AA CD 6F 92             call    p127_irq_enable_preflight
+ 111++92AD DA 3B 94             jp      c,p127_irq_test_fail
+ 112++92B0 CD 04 92             call    p127_irq_init
+ 113++92B3 CD 6F 92             call    p127_irq_enable_preflight
+ 114++92B6 D2 3B 94             jp      nc,p127_irq_test_fail
+ 115++92B9 B7                   or      a
+ 116++92BA C9                   ret
+ 117++92BB
+ 118++92BB              ; Stage 2.16 batch: exhaust the complete 3-bit readiness mask and all
+ 119++92BB              ; prerequisite failure paths in one boot. This is a software contract test:
+ 120++92BB              ; it does not model or claim an ATM interrupt source/vector/acknowledge cycle.
+ 121++92BB              ; On success the real boot tuple is restored to DI + no owner + no mode.
+ 122++92BB              p127_irq_batch_selftest:
+ 123++92BB CD 04 92             call    p127_irq_init
+ 124++92BE CD 1C 92             call    p127_irq_validate
+ 125++92C1 DA 3B 94             jp      c,p127_irq_test_fail
+ 126++92C4
+ 127++92C4                      ; Exhaust all eight combinations of VECTOR/MAP/HANDLER readiness.
+ 128++92C4                      ; A nonzero synthetic owner/mode is supplied only for this gate test.
+ 129++92C4 3E 01                ld      a,1
+ 130++92C6 32 E2 95             ld      (p127_irq_vector_owner),a
+ 131++92C9 32 E3 95             ld      (p127_irq_mode_policy),a
+ 132++92CC 06 00                ld      b,0
+ 133++92CE              p127_irq_batch_mask_loop:
+ 134++92CE 78                   ld      a,b
+ 135++92CF 32 E4 95             ld      (p127_irq_ready_flags),a
+ 136++92D2 CD 6F 92             call    p127_irq_enable_preflight
+ 137++92D5 D2 E0 92             jp      nc,p127_irq_batch_mask_open
+ 138++92D8 78                   ld      a,b
+ 139++92D9 FE 07                cp      P127_IRQ_READY_ALL
+ 140++92DB CA 3B 94             jp      z,p127_irq_test_fail
+ 141++92DE 18 06                jr      p127_irq_batch_mask_next
+ 142++92E0              p127_irq_batch_mask_open:
+ 143++92E0 78                   ld      a,b
+ 144++92E1 FE 07                cp      P127_IRQ_READY_ALL
+ 145++92E3 C2 3B 94             jp      nz,p127_irq_test_fail
+ 146++92E6              p127_irq_batch_mask_next:
+ 147++92E6 04                   inc     b
+ 148++92E7 78                   ld      a,b
+ 149++92E8 FE 08                cp      8
+ 150++92EA 20 E2                jr      nz,p127_irq_batch_mask_loop
+ 151++92EC
+ 152++92EC                      ; All readiness bits without vector ownership must remain closed.
+ 153++92EC 3E 07                ld      a,P127_IRQ_READY_ALL
+ 154++92EE 32 E4 95             ld      (p127_irq_ready_flags),a
+ 155++92F1 AF                   xor     a
+ 156++92F2 32 E2 95             ld      (p127_irq_vector_owner),a
+ 157++92F5 3E 01                ld      a,1
+ 158++92F7 32 E3 95             ld      (p127_irq_mode_policy),a
+ 159++92FA CD 6F 92             call    p127_irq_enable_preflight
+ 160++92FD D2 3B 94             jp      nc,p127_irq_test_fail
+ 161++9300
+ 162++9300                      ; All readiness bits without a selected policy must remain closed.
+ 163++9300 3E 01                ld      a,1
+ 164++9302 32 E2 95             ld      (p127_irq_vector_owner),a
+ 165++9305 AF                   xor     a
+ 166++9306 32 E3 95             ld      (p127_irq_mode_policy),a
+ 167++9309 CD 6F 92             call    p127_irq_enable_preflight
+ 168++930C D2 3B 94             jp      nc,p127_irq_test_fail
+ 169++930F
+ 170++930F                      ; Contract validator must reject each forbidden boot-state mutation.
+ 171++930F CD 04 92             call    p127_irq_init
+ 172++9312 AF                   xor     a
+ 173++9313 32 E1 95             ld      (p127_irq_mask_state),a
+ 174++9316 CD 1C 92             call    p127_irq_validate
+ 175++9319 D2 3B 94             jp      nc,p127_irq_test_fail
+ 176++931C
+ 177++931C 3E 01                ld      a,P127_IRQ_MASKED
+ 178++931E 32 E1 95             ld      (p127_irq_mask_state),a
+ 179++9321 3E 01                ld      a,1
+ 180++9323 32 E2 95             ld      (p127_irq_vector_owner),a
+ 181++9326 CD 1C 92             call    p127_irq_validate
+ 182++9329 D2 3B 94             jp      nc,p127_irq_test_fail
+ 183++932C
+ 184++932C AF                   xor     a
+ 185++932D 32 E2 95             ld      (p127_irq_vector_owner),a
+ 186++9330 3E 01                ld      a,1
+ 187++9332 32 E3 95             ld      (p127_irq_mode_policy),a
+ 188++9335 CD 1C 92             call    p127_irq_validate
+ 189++9338 D2 3B 94             jp      nc,p127_irq_test_fail
+ 190++933B
+ 191++933B                      ; Restore and verify the actual safe boot state; gate remains closed.
+ 192++933B CD 04 92             call    p127_irq_init
+ 193++933E CD 1C 92             call    p127_irq_validate
+ 194++9341 DA 3B 94             jp      c,p127_irq_test_fail
+ 195++9344 CD 6F 92             call    p127_irq_enable_preflight
+ 196++9347 D2 3B 94             jp      nc,p127_irq_test_fail
+ 197++934A B7                   or      a
+ 198++934B C9                   ret
+ 199++934C
+ 200++934C              ; Stage 2.17 — install a deterministic ATM710 IM2 vector while masked.
+ 201++934C              ; unreal.ini selects FloatBus=0 and FloatDOS=0, so TMainZ80::IntVec()
+ 202++934C              ; supplies #FF in normal and TR-DOS operation. This routine installs only
+ 203++934C              ; that vector slot, loads I=#B0 and selects IM2. It never executes EI.
+ 204++934C              ; The handler and stack both reside in fixed W2/P2; W3 is not involved.
+ 205++934C              P127_IRQ_VECTOR_VALUE EQU 0FFh
+ 206++934C              P127_IRQ_OWNER_IM2 EQU 1
+ 207++934C              P127_IRQ_POLICY_IM2 EQU 2
+ 208++934C
+ 209++934C              p127_irq_install_masked:
+ 210++934C F3                   di
+ 211++934D CD 11 94             call    p127_irq_table_preflight
+ 212++9350 DA 39 94             jp      c,p127_irq_reject
+ 213++9353
+ 214++9353                      ; The linked handler must execute from the fixed W2/P2 mapping.
+ 215++9353 21 40 94             ld      hl,p127_irq_entry
+ 216++9356 11 00 80             ld      de,08000h
+ 217++9359 B7                   or      a
+ 218++935A ED 52                sbc     hl,de
+ 219++935C DA 39 94             jp      c,p127_irq_reject
+ 220++935F 21 40 94             ld      hl,p127_irq_entry
+ 221++9362 11 00 A0             ld      de,0A000h
+ 222++9365 B7                   or      a
+ 223++9366 ED 52                sbc     hl,de
+ 224++9368 D2 39 94             jp      nc,p127_irq_reject
+ 225++936B
+ 226++936B                      ; IM2 vector #FF fetches a little-endian word at #B0FF/#B100.
+ 227++936B 21 40 94             ld      hl,p127_irq_entry
+ 228++936E 22 FF B0             ld      (P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE),hl
+ 229++9371 2A FF B0             ld      hl,(P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE)
+ 230++9374 11 40 94             ld      de,p127_irq_entry
+ 231++9377 B7                   or      a
+ 232++9378 ED 52                sbc     hl,de
+ 233++937A C2 39 94             jp      nz,p127_irq_reject
+ 234++937D
+ 235++937D 3E B0                ld      a,P127_IRQ_TABLE_I
+ 236++937F ED 47                ld      i,a
+ 237++9381 ED 5E                im      2
+ 238++9383
+ 239++9383 3E 01                ld      a,P127_IRQ_MASKED
+ 240++9385 32 E1 95             ld      (p127_irq_mask_state),a
+ 241++9388 3E 01                ld      a,P127_IRQ_OWNER_IM2
+ 242++938A 32 E2 95             ld      (p127_irq_vector_owner),a
+ 243++938D 3E 02                ld      a,P127_IRQ_POLICY_IM2
+ 244++938F 32 E3 95             ld      (p127_irq_mode_policy),a
+ 245++9392 3E 07                ld      a,P127_IRQ_READY_ALL
+ 246++9394 32 E4 95             ld      (p127_irq_ready_flags),a
+ 247++9397
+ 248++9397                      ; Verify I and IFF2 after DI; LD A,I reports IFF2 in P/V.
+ 249++9397 ED 57                ld      a,i
+ 250++9399 EA 39 94             jp      pe,p127_irq_reject     ; test IFF2 before CP changes flags
+ 251++939C FE B0                cp      P127_IRQ_TABLE_I
+ 252++939E C2 39 94             jp      nz,p127_irq_reject
+ 253++93A1 2A FF B0             ld      hl,(P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE)
+ 254++93A4 11 40 94             ld      de,p127_irq_entry
  255++93A7 B7                   or      a
- 256++93A8 C9                   ret
- 257++93A9
- 258++93A9
- 259++93A9              ; Stage 2.18 — bounded one-shot live ATM frame IRQ probe.
- 260++93A9              ; No FF77 writes: the host's existing ATM frame gate is left untouched.
- 261++93A9              ; The handler DI's immediately on entry, disarms itself and RETI's with
- 262++93A9              ; IFF2 clear. Thus even a continuously asserted frame source can enter once.
- 263++93A9              P127_IRQ_LIVE_TIMEOUT EQU 0FFFFh
- 264++93A9
- 265++93A9              p127_irq_live_test:
- 266++93A9 F3                   di
- 267++93AA CD 02 94             call    p127_irq_table_preflight
- 268++93AD DA FB 93             jp      c,p127_irq_live_fail
- 269++93B0 3A B7 95             ld      a,(p127_irq_mask_state)
- 270++93B3 FE 01                cp      P127_IRQ_MASKED
- 271++93B5 C2 FB 93             jp      nz,p127_irq_live_fail
- 272++93B8 AF                   xor     a
- 273++93B9 32 9F 95             ld      (p127_irq_live_count),a
- 274++93BC 32 A0 95             ld      (p127_irq_live_armed),a
- 275++93BF 11 5A A5             ld      de,0A55Ah
- 276++93C2 3E 01                ld      a,1
- 277++93C4 32 A0 95             ld      (p127_irq_live_armed),a
- 278++93C7 FB                   ei
- 279++93C8 00                   nop
- 280++93C9 01 FF FF             ld      bc,P127_IRQ_LIVE_TIMEOUT
- 281++93CC              p127_irq_live_wait:
- 282++93CC 3A 9F 95             ld      a,(p127_irq_live_count)
- 283++93CF B7                   or      a
- 284++93D0 20 0C                jr      nz,p127_irq_live_seen
- 285++93D2 0B                   dec     bc
- 286++93D3 78                   ld      a,b
- 287++93D4 B1                   or      c
- 288++93D5 20 F5                jr      nz,p127_irq_live_wait
- 289++93D7 F3                   di
- 290++93D8 AF                   xor     a
- 291++93D9 32 A0 95             ld      (p127_irq_live_armed),a
- 292++93DC 37                   scf
- 293++93DD C9                   ret
- 294++93DE              p127_irq_live_seen:
- 295++93DE F3                   di
- 296++93DF AF                   xor     a
- 297++93E0 32 A0 95             ld      (p127_irq_live_armed),a
- 298++93E3 3A 9F 95             ld      a,(p127_irq_live_count)
- 299++93E6 FE 01                cp      1
- 300++93E8 C2 FB 93             jp      nz,p127_irq_live_fail
- 301++93EB 21 5A A5             ld      hl,0A55Ah
- 302++93EE B7                   or      a
- 303++93EF ED 52                sbc     hl,de
- 304++93F1 C2 FB 93             jp      nz,p127_irq_live_fail
- 305++93F4 ED 57                ld      a,i
- 306++93F6 EA FB 93             jp      pe,p127_irq_live_fail
- 307++93F9 B7                   or      a
- 308++93FA C9                   ret
- 309++93FB              p127_irq_live_fail:
- 310++93FB F3                   di
- 311++93FC AF                   xor     a
- 312++93FD 32 A0 95             ld      (p127_irq_live_armed),a
- 313++9400 37                   scf
- 314++9401 C9                   ret
- 315++9402
- 316++9402              ; Linked placement assertions: entry code is in fixed W2/P2 and outside the
- 317++9402              ; IM2 vector slot. The runtime mapping preflight separately validates W2->P2.
- 318++9402              ASSERT p127_irq_entry >= 08000h
- 319++9402              ASSERT p127_irq_entry < 0A000h
- 320++9402              ASSERT p127_irq_entry < P127_IRQ_TABLE_BASE
- 321++9402              ASSERT P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE+1 < 0B7F0h
- 322++9402
- 323++9402              ; Validate the future IM2 table reservation and address geometry.
- 324++9402              ; The table is in fixed W2/P2; W3 remains free for leased remapping.
- 325++9402              ; No table bytes are written, no I register is loaded, and no IM is selected.
- 326++9402              p127_irq_table_preflight:
- 327++9402 21 AE 75             ld      hl,p127_mem_page_state+P127_IRQ_TABLE_PAGE
- 328++9405 7E                   ld      a,(hl)
- 329++9406 FE 01                cp      1                       ; P127_MEM_RESERVED
- 330++9408 C2 2A 94             jp      nz,p127_irq_reject
- 331++940B 3A 9F 84             ld      a,(p127_map_shadow+P127_IRQ_TABLE_WINDOW)
- 332++940E FE 02                cp      P127_IRQ_TABLE_PAGE
- 333++9410 C2 2A 94             jp      nz,p127_irq_reject      ; fixed W2 still maps reserved P2
- 334++9413 21 00 B0             ld      hl,P127_IRQ_TABLE_BASE
- 335++9416 7C                   ld      a,h
- 336++9417 FE B0                cp      P127_IRQ_TABLE_I
- 337++9419 C2 2A 94             jp      nz,p127_irq_reject
- 338++941C 21 01 B1             ld      hl,P127_IRQ_TABLE_END
- 339++941F 11 01 B1             ld      de,0B101h
- 340++9422 B7                   or      a
- 341++9423 ED 52                sbc     hl,de
- 342++9425 C2 2A 94             jp      nz,p127_irq_reject
- 343++9428 B7                   or      a
- 344++9429 C9                   ret
- 345++942A
- 346++942A                      ASSERT P127_IRQ_TABLE_WINDOW = 2
- 347++942A                      ASSERT P127_IRQ_TABLE_PAGE = 2
- 348++942A                      ASSERT P127_IRQ_TABLE_BASE = 0B000h
- 349++942A                      ASSERT P127_IRQ_TABLE_I = 0B0h
- 350++942A                      ASSERT P127_IRQ_TABLE_BYTES = 257
- 351++942A                      ASSERT P127_IRQ_TABLE_END = 0B101h
- 352++942A                      ASSERT P127_IRQ_TABLE_END <= 10000h
- 353++942A                      ASSERT P127_IRQ_TABLE_END < 0B7F0h
- 354++942A
- 355++942A              p127_irq_reject:
- 356++942A 37                   scf
- 357++942B C9                   ret
- 358++942C              p127_irq_test_fail:
- 359++942C CD 04 92             call    p127_irq_init
- 360++942F 37                   scf
- 361++9430 C9                   ret
- 362++9431
- 363++9431
- 364++9431              ; Stage 2.15: resident interrupt frame protocol.
- 365++9431              ; Hardware vector installation and IM selection are deliberately separate.
- 366++9431              ; Entry contract: CPU has already pushed the interrupted PC; W1/P5 code and
- 367++9431              ; W2/P2 stack remain mapped. The dispatcher may freely clobber all registers.
- 368++9431              ; RETI restores IFF1 from IFF2; this routine never executes EI or IM.
- 369++9431              p127_irq_entry:
- 370++9431 F3                   di                              ; one-shot safety: RETI must stay masked
- 371++9432 F5                   push    af
- 372++9433 C5                   push    bc
- 373++9434 D5                   push    de
- 374++9435 E5                   push    hl
- 375++9436 DD E5                push    ix
- 376++9438 FD E5                push    iy
- 377++943A D9                   exx
- 378++943B C5                   push    bc
- 379++943C D5                   push    de
- 380++943D E5                   push    hl
- 381++943E D9                   exx
- 382++943F 08                   ex      af,af'
- 383++9440 F5                   push    af
- 384++9441 08                   ex      af,af'
- 385++9442
- 386++9442 CD 57 94             call    p127_irq_dispatch
- 387++9445
- 388++9445 08                   ex      af,af'
- 389++9446 F1                   pop     af
- 390++9447 08                   ex      af,af'
- 391++9448 D9                   exx
- 392++9449 E1                   pop     hl
- 393++944A D1                   pop     de
- 394++944B C1                   pop     bc
- 395++944C D9                   exx
- 396++944D FD E1                pop     iy
- 397++944F DD E1                pop     ix
- 398++9451 E1                   pop     hl
- 399++9452 D1                   pop     de
- 400++9453 C1                   pop     bc
- 401++9454 F1                   pop     af
- 402++9455 ED 4D                reti
- 403++9457
- 404++9457              ; The source dispatcher is intentionally inert until an ATM interrupt
- 405++9457              ; source, acknowledgement policy and vector ownership are specified.
- 406++9457              ; The test-only branch aggressively clobbers both register banks so the
- 407++9457              ; frame round-trip can be checked without enabling asynchronous IRQs.
- 408++9457              p127_irq_dispatch:
- 409++9457                      ; Consume exactly one live frame interrupt while the probe is armed.
- 410++9457 3A A0 95             ld      a,(p127_irq_live_armed)
- 411++945A B7                   or      a
- 412++945B 28 0B                jr      z,p127_irq_dispatch_test
- 413++945D AF                   xor     a
- 414++945E 32 A0 95             ld      (p127_irq_live_armed),a
- 415++9461 3A 9F 95             ld      a,(p127_irq_live_count)
- 416++9464 3C                   inc     a
- 417++9465 32 9F 95             ld      (p127_irq_live_count),a
- 418++9468              p127_irq_dispatch_test:
- 419++9468 3A A1 95             ld      a,(p127_irq_test_clobber)
- 420++946B B7                   or      a
- 421++946C C8                   ret     z
- 422++946D 3E EE                ld      a,0EEh
- 423++946F 01 EE EE             ld      bc,0EEEEh
- 424++9472 11 DD DD             ld      de,0DDDDh
- 425++9475 21 CC CC             ld      hl,0CCCCh
- 426++9478 DD 21 BB BB          ld      ix,0BBBBh
- 427++947C FD 21 AA AA          ld      iy,0AAAAh
- 428++9480 D9                   exx
- 429++9481 01 99 99             ld      bc,09999h
- 430++9484 11 88 88             ld      de,08888h
- 431++9487 21 77 77             ld      hl,07777h
- 432++948A D9                   exx
- 433++948B 08                   ex      af,af'
- 434++948C 3E DD                ld      a,0DDh
- 435++948E B7                   or      a
- 436++948F 08                   ex      af,af'
- 437++9490 C9                   ret
- 438++9491
- 439++9491              ; CALL-based synthetic entry test. It saves the caller's complete register
- 440++9491              ; set, loads sentinels into primary/alternate banks, invokes the same entry
- 441++9491              ; routine used by a future vector, and verifies exact register restoration.
- 442++9491              ; DI is mandatory here: RETI copies IFF2 to IFF1, and both must remain zero.
- 443++9491              p127_irq_context_selftest:
- 444++9491 F3                   di
- 445++9492 F5                   push    af
- 446++9493 C5                   push    bc
- 447++9494 D5                   push    de
- 448++9495 E5                   push    hl
- 449++9496 DD E5                push    ix
- 450++9498 FD E5                push    iy
- 451++949A D9                   exx
- 452++949B C5                   push    bc
- 453++949C D5                   push    de
- 454++949D E5                   push    hl
- 455++949E D9                   exx
- 456++949F 08                   ex      af,af'
- 457++94A0 F5                   push    af
- 458++94A1 08                   ex      af,af'
- 459++94A2
- 460++94A2 AF                   xor     a
- 461++94A3 32 A2 95             ld      (p127_irq_context_result),a
- 462++94A6 3E 01                ld      a,1
- 463++94A8 32 A1 95             ld      (p127_irq_test_clobber),a
- 464++94AB
- 465++94AB 01 34 12             ld      bc,01234h
- 466++94AE 11 78 56             ld      de,05678h
- 467++94B1 21 BC 9A             ld      hl,09ABCh
- 468++94B4 DD 21 57 13          ld      ix,01357h
- 469++94B8 FD 21 68 24          ld      iy,02468h
- 470++94BC D9                   exx
- 471++94BD 01 CD AB             ld      bc,0ABCDh
- 472++94C0 11 76 98             ld      de,09876h
- 473++94C3 21 32 54             ld      hl,05432h
- 474++94C6 D9                   exx
- 475++94C7 08                   ex      af,af'
- 476++94C8 3E A5                ld      a,0A5h
- 477++94CA B7                   or      a
- 478++94CB 08                   ex      af,af'
- 479++94CC 3E 5A                ld      a,05Ah
- 480++94CE B7                   or      a
- 481++94CF
- 482++94CF CD 31 94             call    p127_irq_entry
- 483++94D2
- 484++94D2 ED 43 A5 95          ld      (p127_irq_test_bc),bc
- 485++94D6 ED 53 A7 95          ld      (p127_irq_test_de),de
- 486++94DA 22 A9 95             ld      (p127_irq_test_hl),hl
- 487++94DD DD 22 AB 95          ld      (p127_irq_test_ix),ix
- 488++94E1 FD 22 AD 95          ld      (p127_irq_test_iy),iy
- 489++94E5 F5                   push    af
- 490++94E6 E1                   pop     hl
- 491++94E7 22 A3 95             ld      (p127_irq_test_af),hl
- 492++94EA D9                   exx
- 493++94EB ED 43 B1 95          ld      (p127_irq_test_bc_alt),bc
- 494++94EF ED 53 B3 95          ld      (p127_irq_test_de_alt),de
- 495++94F3 22 B5 95             ld      (p127_irq_test_hl_alt),hl
- 496++94F6 D9                   exx
- 497++94F7 08                   ex      af,af'
- 498++94F8 F5                   push    af
- 499++94F9 E1                   pop     hl
- 500++94FA 22 AF 95             ld      (p127_irq_test_af_alt),hl
- 501++94FD 08                   ex      af,af'
- 502++94FE
- 503++94FE AF                   xor     a
- 504++94FF 32 A1 95             ld      (p127_irq_test_clobber),a
- 505++9502
- 506++9502 2A A3 95             ld      hl,(p127_irq_test_af)
- 507++9505 11 0C 5A             ld      de,05A0Ch
- 508++9508 B7                   or      a
- 509++9509 ED 52                sbc     hl,de
- 510++950B C2 84 95             jp      nz,p127_irq_context_restore
- 511++950E 2A A5 95             ld      hl,(p127_irq_test_bc)
- 512++9511 11 34 12             ld      de,01234h
- 513++9514 B7                   or      a
- 514++9515 ED 52                sbc     hl,de
- 515++9517 C2 84 95             jp      nz,p127_irq_context_restore
- 516++951A 2A A7 95             ld      hl,(p127_irq_test_de)
- 517++951D 11 78 56             ld      de,05678h
- 518++9520 B7                   or      a
- 519++9521 ED 52                sbc     hl,de
- 520++9523 C2 84 95             jp      nz,p127_irq_context_restore
- 521++9526 2A A9 95             ld      hl,(p127_irq_test_hl)
- 522++9529 11 BC 9A             ld      de,09ABCh
- 523++952C B7                   or      a
- 524++952D ED 52                sbc     hl,de
- 525++952F C2 84 95             jp      nz,p127_irq_context_restore
- 526++9532 2A AB 95             ld      hl,(p127_irq_test_ix)
- 527++9535 11 57 13             ld      de,01357h
- 528++9538 B7                   or      a
- 529++9539 ED 52                sbc     hl,de
- 530++953B C2 84 95             jp      nz,p127_irq_context_restore
- 531++953E 2A AD 95             ld      hl,(p127_irq_test_iy)
- 532++9541 11 68 24             ld      de,02468h
- 533++9544 B7                   or      a
- 534++9545 ED 52                sbc     hl,de
- 535++9547 C2 84 95             jp      nz,p127_irq_context_restore
- 536++954A 2A AF 95             ld      hl,(p127_irq_test_af_alt)
- 537++954D 11 A4 A5             ld      de,0A5A4h
- 538++9550 B7                   or      a
- 539++9551 ED 52                sbc     hl,de
- 540++9553 C2 84 95             jp      nz,p127_irq_context_restore
- 541++9556 2A B1 95             ld      hl,(p127_irq_test_bc_alt)
- 542++9559 11 CD AB             ld      de,0ABCDh
- 543++955C B7                   or      a
- 544++955D ED 52                sbc     hl,de
- 545++955F C2 84 95             jp      nz,p127_irq_context_restore
- 546++9562 2A B3 95             ld      hl,(p127_irq_test_de_alt)
- 547++9565 11 76 98             ld      de,09876h
- 548++9568 B7                   or      a
- 549++9569 ED 52                sbc     hl,de
- 550++956B C2 84 95             jp      nz,p127_irq_context_restore
- 551++956E 2A B5 95             ld      hl,(p127_irq_test_hl_alt)
- 552++9571 11 32 54             ld      de,05432h
- 553++9574 B7                   or      a
- 554++9575 ED 52                sbc     hl,de
- 555++9577 C2 84 95             jp      nz,p127_irq_context_restore
- 556++957A
- 557++957A                      ; LD A,I exposes IFF2 in P/V; after DI + RETI it must still be zero.
- 558++957A ED 57                ld      a,i
- 559++957C EA 84 95             jp      pe,p127_irq_context_restore
- 560++957F 3E 01                ld      a,1
- 561++9581 32 A2 95             ld      (p127_irq_context_result),a
- 562++9584
- 563++9584              p127_irq_context_restore:
- 564++9584 AF                   xor     a
- 565++9585 32 A1 95             ld      (p127_irq_test_clobber),a
- 566++9588 08                   ex      af,af'
- 567++9589 F1                   pop     af
- 568++958A 08                   ex      af,af'
- 569++958B D9                   exx
- 570++958C E1                   pop     hl
- 571++958D D1                   pop     de
- 572++958E C1                   pop     bc
- 573++958F D9                   exx
- 574++9590 FD E1                pop     iy
- 575++9592 DD E1                pop     ix
- 576++9594 E1                   pop     hl
- 577++9595 D1                   pop     de
- 578++9596 C1                   pop     bc
- 579++9597 F1                   pop     af
- 580++9598 3A A2 95             ld      a,(p127_irq_context_result)
- 581++959B B7                   or      a
- 582++959C C0                   ret     nz
- 583++959D 37                   scf
- 584++959E C9                   ret
- 585++959F
- 586++959F 00           p127_irq_live_count: db 0
- 587++95A0 00           p127_irq_live_armed: db 0
- 588++95A1 00           p127_irq_test_clobber: db 0
- 589++95A2 00           p127_irq_context_result: db 0
- 590++95A3 00 00        p127_irq_test_af: dw 0
- 591++95A5 00 00        p127_irq_test_bc: dw 0
- 592++95A7 00 00        p127_irq_test_de: dw 0
- 593++95A9 00 00        p127_irq_test_hl: dw 0
- 594++95AB 00 00        p127_irq_test_ix: dw 0
- 595++95AD 00 00        p127_irq_test_iy: dw 0
- 596++95AF 00 00        p127_irq_test_af_alt: dw 0
- 597++95B1 00 00        p127_irq_test_bc_alt: dw 0
- 598++95B3 00 00        p127_irq_test_de_alt: dw 0
- 599++95B5 00 00        p127_irq_test_hl_alt: dw 0
- 600++95B7
- 601++95B7 00           p127_irq_mask_state: db 0
- 602++95B8 00           p127_irq_vector_owner: db 0
- 603++95B9 00           p127_irq_mode_policy: db 0
- 604++95BA 00           p127_irq_ready_flags: db 0
- 605++95BB
+ 256++93A8 ED 52                sbc     hl,de
+ 257++93AA C2 39 94             jp      nz,p127_irq_reject
+ 258++93AD
+ 259++93AD                      ; Legacy Project127 frame path chains the pre-existing host ISR at
+ 260++93AD                      ; #0038 after saving the complete register frame. Keep a re-entry
+ 261++93AD                      ; guard because the chained ROM handler may execute EI before RET.
+ 262++93AD 3E 01                ld      a,1
+ 263++93AF 32 C9 95             ld      (p127_irq_host_chain_enabled),a
+ 264++93B2 AF                   xor     a
+ 265++93B3 32 CA 95             ld      (p127_irq_host_chain_busy),a
+ 266++93B6 B7                   or      a
+ 267++93B7 C9                   ret
+ 268++93B8
+ 269++93B8
+ 270++93B8              ; Stage 2.18 — bounded one-shot live ATM frame IRQ probe.
+ 271++93B8              ; No FF77 writes: the host's existing ATM frame gate is left untouched.
+ 272++93B8              ; The handler DI's immediately on entry, disarms itself and RETI's with
+ 273++93B8              ; IFF2 clear. Thus even a continuously asserted frame source can enter once.
+ 274++93B8              P127_IRQ_LIVE_TIMEOUT EQU 0FFFFh
+ 275++93B8
+ 276++93B8              p127_irq_live_test:
+ 277++93B8 F3                   di
+ 278++93B9 CD 11 94             call    p127_irq_table_preflight
+ 279++93BC DA 0A 94             jp      c,p127_irq_live_fail
+ 280++93BF 3A E1 95             ld      a,(p127_irq_mask_state)
+ 281++93C2 FE 01                cp      P127_IRQ_MASKED
+ 282++93C4 C2 0A 94             jp      nz,p127_irq_live_fail
+ 283++93C7 AF                   xor     a
+ 284++93C8 32 C7 95             ld      (p127_irq_live_count),a
+ 285++93CB 32 C8 95             ld      (p127_irq_live_armed),a
+ 286++93CE 11 5A A5             ld      de,0A55Ah
+ 287++93D1 3E 01                ld      a,1
+ 288++93D3 32 C8 95             ld      (p127_irq_live_armed),a
+ 289++93D6 FB                   ei
+ 290++93D7 00                   nop
+ 291++93D8 01 FF FF             ld      bc,P127_IRQ_LIVE_TIMEOUT
+ 292++93DB              p127_irq_live_wait:
+ 293++93DB 3A C7 95             ld      a,(p127_irq_live_count)
+ 294++93DE B7                   or      a
+ 295++93DF 20 0C                jr      nz,p127_irq_live_seen
+ 296++93E1 0B                   dec     bc
+ 297++93E2 78                   ld      a,b
+ 298++93E3 B1                   or      c
+ 299++93E4 20 F5                jr      nz,p127_irq_live_wait
+ 300++93E6 F3                   di
+ 301++93E7 AF                   xor     a
+ 302++93E8 32 C8 95             ld      (p127_irq_live_armed),a
+ 303++93EB 37                   scf
+ 304++93EC C9                   ret
+ 305++93ED              p127_irq_live_seen:
+ 306++93ED F3                   di
+ 307++93EE AF                   xor     a
+ 308++93EF 32 C8 95             ld      (p127_irq_live_armed),a
+ 309++93F2 3A C7 95             ld      a,(p127_irq_live_count)
+ 310++93F5 FE 01                cp      1
+ 311++93F7 C2 0A 94             jp      nz,p127_irq_live_fail
+ 312++93FA 21 5A A5             ld      hl,0A55Ah
+ 313++93FD B7                   or      a
+ 314++93FE ED 52                sbc     hl,de
+ 315++9400 C2 0A 94             jp      nz,p127_irq_live_fail
+ 316++9403 ED 57                ld      a,i
+ 317++9405 EA 0A 94             jp      pe,p127_irq_live_fail
+ 318++9408 B7                   or      a
+ 319++9409 C9                   ret
+ 320++940A              p127_irq_live_fail:
+ 321++940A F3                   di
+ 322++940B AF                   xor     a
+ 323++940C 32 C8 95             ld      (p127_irq_live_armed),a
+ 324++940F 37                   scf
+ 325++9410 C9                   ret
+ 326++9411
+ 327++9411              ; Linked placement assertions: entry code is in fixed W2/P2 and outside the
+ 328++9411              ; IM2 vector slot. The runtime mapping preflight separately validates W2->P2.
+ 329++9411              ASSERT p127_irq_entry >= 08000h
+ 330++9411              ASSERT p127_irq_entry < 0A000h
+ 331++9411              ASSERT p127_irq_entry < P127_IRQ_TABLE_BASE
+ 332++9411              ASSERT P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE+1 < 0B7F0h
+ 333++9411
+ 334++9411              ; Validate the future IM2 table reservation and address geometry.
+ 335++9411              ; The table is in fixed W2/P2; W3 remains free for leased remapping.
+ 336++9411              ; No table bytes are written, no I register is loaded, and no IM is selected.
+ 337++9411              p127_irq_table_preflight:
+ 338++9411 21 AE 75             ld      hl,p127_mem_page_state+P127_IRQ_TABLE_PAGE
+ 339++9414 7E                   ld      a,(hl)
+ 340++9415 FE 01                cp      1                       ; P127_MEM_RESERVED
+ 341++9417 C2 39 94             jp      nz,p127_irq_reject
+ 342++941A 3A 9F 84             ld      a,(p127_map_shadow+P127_IRQ_TABLE_WINDOW)
+ 343++941D FE 02                cp      P127_IRQ_TABLE_PAGE
+ 344++941F C2 39 94             jp      nz,p127_irq_reject      ; fixed W2 still maps reserved P2
+ 345++9422 21 00 B0             ld      hl,P127_IRQ_TABLE_BASE
+ 346++9425 7C                   ld      a,h
+ 347++9426 FE B0                cp      P127_IRQ_TABLE_I
+ 348++9428 C2 39 94             jp      nz,p127_irq_reject
+ 349++942B 21 01 B1             ld      hl,P127_IRQ_TABLE_END
+ 350++942E 11 01 B1             ld      de,0B101h
+ 351++9431 B7                   or      a
+ 352++9432 ED 52                sbc     hl,de
+ 353++9434 C2 39 94             jp      nz,p127_irq_reject
+ 354++9437 B7                   or      a
+ 355++9438 C9                   ret
+ 356++9439
+ 357++9439                      ASSERT P127_IRQ_TABLE_WINDOW = 2
+ 358++9439                      ASSERT P127_IRQ_TABLE_PAGE = 2
+ 359++9439                      ASSERT P127_IRQ_TABLE_BASE = 0B000h
+ 360++9439                      ASSERT P127_IRQ_TABLE_I = 0B0h
+ 361++9439                      ASSERT P127_IRQ_TABLE_BYTES = 257
+ 362++9439                      ASSERT P127_IRQ_TABLE_END = 0B101h
+ 363++9439                      ASSERT P127_IRQ_TABLE_END <= 10000h
+ 364++9439                      ASSERT P127_IRQ_TABLE_END < 0B7F0h
+ 365++9439
+ 366++9439              p127_irq_reject:
+ 367++9439 37                   scf
+ 368++943A C9                   ret
+ 369++943B              p127_irq_test_fail:
+ 370++943B CD 04 92             call    p127_irq_init
+ 371++943E 37                   scf
+ 372++943F C9                   ret
+ 373++9440
+ 374++9440
+ 375++9440              ; Stage 2.15/2.19: resident interrupt frame protocol.
+ 376++9440              ; Entry contract: CPU has pushed the interrupted PC; W2/P2 code and stack
+ 377++9440              ; remain mapped. Save the full frame, chain the legacy host #0038 handler,
+ 378++9440              ; then DI again before the local dispatcher. RETI exits in the masked state.
+ 379++9440              p127_irq_entry:
+ 380++9440 F3                   di                              ; one-shot safety: RETI must stay masked
+ 381++9441 F5                   push    af
+ 382++9442 C5                   push    bc
+ 383++9443 D5                   push    de
+ 384++9444 E5                   push    hl
+ 385++9445 DD E5                push    ix
+ 386++9447 FD E5                push    iy
+ 387++9449 D9                   exx
+ 388++944A C5                   push    bc
+ 389++944B D5                   push    de
+ 390++944C E5                   push    hl
+ 391++944D D9                   exx
+ 392++944E 08                   ex      af,af'
+ 393++944F F5                   push    af
+ 394++9450 08                   ex      af,af'
+ 395++9451
+ 396++9451                      ; Match the archived on_int -> oldimer ordering. #0038 remains the
+ 397++9451                      ; host ROM's original frame service; it is called, never overwritten.
+ 398++9451                      ; The guard suppresses recursive host chaining if that service's EI
+ 399++9451                      ; opens a frame window before its RET. The nested entry still RETI's.
+ 400++9451 3A C9 95             ld      a,(p127_irq_host_chain_enabled)
+ 401++9454 B7                   or      a
+ 402++9455 28 13                jr      z,p127_irq_entry_dispatch
+ 403++9457 3A CA 95             ld      a,(p127_irq_host_chain_busy)
+ 404++945A B7                   or      a
+ 405++945B 20 0D                jr      nz,p127_irq_entry_dispatch
+ 406++945D 3E 01                ld      a,1
+ 407++945F 32 CA 95             ld      (p127_irq_host_chain_busy),a
+ 408++9462 CD 38 00             call    P127_IRQ_HOST_VECTOR
+ 409++9465 F3                   di
+ 410++9466 AF                   xor     a
+ 411++9467 32 CA 95             ld      (p127_irq_host_chain_busy),a
+ 412++946A              p127_irq_entry_dispatch:
+ 413++946A CD 7F 94             call    p127_irq_dispatch
+ 414++946D
+ 415++946D 08                   ex      af,af'
+ 416++946E F1                   pop     af
+ 417++946F 08                   ex      af,af'
+ 418++9470 D9                   exx
+ 419++9471 E1                   pop     hl
+ 420++9472 D1                   pop     de
+ 421++9473 C1                   pop     bc
+ 422++9474 D9                   exx
+ 423++9475 FD E1                pop     iy
+ 424++9477 DD E1                pop     ix
+ 425++9479 E1                   pop     hl
+ 426++947A D1                   pop     de
+ 427++947B C1                   pop     bc
+ 428++947C F1                   pop     af
+ 429++947D ED 4D                reti
+ 430++947F
+ 431++947F              ; The source dispatcher is intentionally inert until an ATM interrupt
+ 432++947F              ; source, acknowledgement policy and vector ownership are specified.
+ 433++947F              ; The test-only branch aggressively clobbers both register banks so the
+ 434++947F              ; frame round-trip can be checked without enabling asynchronous IRQs.
+ 435++947F              p127_irq_dispatch:
+ 436++947F                      ; Consume exactly one live frame interrupt while the probe is armed.
+ 437++947F 3A C8 95             ld      a,(p127_irq_live_armed)
+ 438++9482 B7                   or      a
+ 439++9483 28 0B                jr      z,p127_irq_dispatch_test
+ 440++9485 AF                   xor     a
+ 441++9486 32 C8 95             ld      (p127_irq_live_armed),a
+ 442++9489 3A C7 95             ld      a,(p127_irq_live_count)
+ 443++948C 3C                   inc     a
+ 444++948D 32 C7 95             ld      (p127_irq_live_count),a
+ 445++9490              p127_irq_dispatch_test:
+ 446++9490 3A CB 95             ld      a,(p127_irq_test_clobber)
+ 447++9493 B7                   or      a
+ 448++9494 C8                   ret     z
+ 449++9495 3E EE                ld      a,0EEh
+ 450++9497 01 EE EE             ld      bc,0EEEEh
+ 451++949A 11 DD DD             ld      de,0DDDDh
+ 452++949D 21 CC CC             ld      hl,0CCCCh
+ 453++94A0 DD 21 BB BB          ld      ix,0BBBBh
+ 454++94A4 FD 21 AA AA          ld      iy,0AAAAh
+ 455++94A8 D9                   exx
+ 456++94A9 01 99 99             ld      bc,09999h
+ 457++94AC 11 88 88             ld      de,08888h
+ 458++94AF 21 77 77             ld      hl,07777h
+ 459++94B2 D9                   exx
+ 460++94B3 08                   ex      af,af'
+ 461++94B4 3E DD                ld      a,0DDh
+ 462++94B6 B7                   or      a
+ 463++94B7 08                   ex      af,af'
+ 464++94B8 C9                   ret
+ 465++94B9
+ 466++94B9              ; CALL-based synthetic entry test. It saves the caller's complete register
+ 467++94B9              ; set, loads sentinels into primary/alternate banks, invokes the same entry
+ 468++94B9              ; routine used by a future vector, and verifies exact register restoration.
+ 469++94B9              ; DI is mandatory here: RETI copies IFF2 to IFF1, and both must remain zero.
+ 470++94B9              p127_irq_context_selftest:
+ 471++94B9 F3                   di
+ 472++94BA F5                   push    af
+ 473++94BB C5                   push    bc
+ 474++94BC D5                   push    de
+ 475++94BD E5                   push    hl
+ 476++94BE DD E5                push    ix
+ 477++94C0 FD E5                push    iy
+ 478++94C2 D9                   exx
+ 479++94C3 C5                   push    bc
+ 480++94C4 D5                   push    de
+ 481++94C5 E5                   push    hl
+ 482++94C6 D9                   exx
+ 483++94C7 08                   ex      af,af'
+ 484++94C8 F5                   push    af
+ 485++94C9 08                   ex      af,af'
+ 486++94CA
+ 487++94CA AF                   xor     a
+ 488++94CB 32 CC 95             ld      (p127_irq_context_result),a
+ 489++94CE 3E 01                ld      a,1
+ 490++94D0 32 CB 95             ld      (p127_irq_test_clobber),a
+ 491++94D3
+ 492++94D3 01 34 12             ld      bc,01234h
+ 493++94D6 11 78 56             ld      de,05678h
+ 494++94D9 21 BC 9A             ld      hl,09ABCh
+ 495++94DC DD 21 57 13          ld      ix,01357h
+ 496++94E0 FD 21 68 24          ld      iy,02468h
+ 497++94E4 D9                   exx
+ 498++94E5 01 CD AB             ld      bc,0ABCDh
+ 499++94E8 11 76 98             ld      de,09876h
+ 500++94EB 21 32 54             ld      hl,05432h
+ 501++94EE D9                   exx
+ 502++94EF 08                   ex      af,af'
+ 503++94F0 3E A5                ld      a,0A5h
+ 504++94F2 B7                   or      a
+ 505++94F3 08                   ex      af,af'
+ 506++94F4 3E 5A                ld      a,05Ah
+ 507++94F6 B7                   or      a
+ 508++94F7
+ 509++94F7 CD 40 94             call    p127_irq_entry
+ 510++94FA
+ 511++94FA ED 43 CF 95          ld      (p127_irq_test_bc),bc
+ 512++94FE ED 53 D1 95          ld      (p127_irq_test_de),de
+ 513++9502 22 D3 95             ld      (p127_irq_test_hl),hl
+ 514++9505 DD 22 D5 95          ld      (p127_irq_test_ix),ix
+ 515++9509 FD 22 D7 95          ld      (p127_irq_test_iy),iy
+ 516++950D F5                   push    af
+ 517++950E E1                   pop     hl
+ 518++950F 22 CD 95             ld      (p127_irq_test_af),hl
+ 519++9512 D9                   exx
+ 520++9513 ED 43 DB 95          ld      (p127_irq_test_bc_alt),bc
+ 521++9517 ED 53 DD 95          ld      (p127_irq_test_de_alt),de
+ 522++951B 22 DF 95             ld      (p127_irq_test_hl_alt),hl
+ 523++951E D9                   exx
+ 524++951F 08                   ex      af,af'
+ 525++9520 F5                   push    af
+ 526++9521 E1                   pop     hl
+ 527++9522 22 D9 95             ld      (p127_irq_test_af_alt),hl
+ 528++9525 08                   ex      af,af'
+ 529++9526
+ 530++9526 AF                   xor     a
+ 531++9527 32 CB 95             ld      (p127_irq_test_clobber),a
+ 532++952A
+ 533++952A 2A CD 95             ld      hl,(p127_irq_test_af)
+ 534++952D 11 0C 5A             ld      de,05A0Ch
+ 535++9530 B7                   or      a
+ 536++9531 ED 52                sbc     hl,de
+ 537++9533 C2 AC 95             jp      nz,p127_irq_context_restore
+ 538++9536 2A CF 95             ld      hl,(p127_irq_test_bc)
+ 539++9539 11 34 12             ld      de,01234h
+ 540++953C B7                   or      a
+ 541++953D ED 52                sbc     hl,de
+ 542++953F C2 AC 95             jp      nz,p127_irq_context_restore
+ 543++9542 2A D1 95             ld      hl,(p127_irq_test_de)
+ 544++9545 11 78 56             ld      de,05678h
+ 545++9548 B7                   or      a
+ 546++9549 ED 52                sbc     hl,de
+ 547++954B C2 AC 95             jp      nz,p127_irq_context_restore
+ 548++954E 2A D3 95             ld      hl,(p127_irq_test_hl)
+ 549++9551 11 BC 9A             ld      de,09ABCh
+ 550++9554 B7                   or      a
+ 551++9555 ED 52                sbc     hl,de
+ 552++9557 C2 AC 95             jp      nz,p127_irq_context_restore
+ 553++955A 2A D5 95             ld      hl,(p127_irq_test_ix)
+ 554++955D 11 57 13             ld      de,01357h
+ 555++9560 B7                   or      a
+ 556++9561 ED 52                sbc     hl,de
+ 557++9563 C2 AC 95             jp      nz,p127_irq_context_restore
+ 558++9566 2A D7 95             ld      hl,(p127_irq_test_iy)
+ 559++9569 11 68 24             ld      de,02468h
+ 560++956C B7                   or      a
+ 561++956D ED 52                sbc     hl,de
+ 562++956F C2 AC 95             jp      nz,p127_irq_context_restore
+ 563++9572 2A D9 95             ld      hl,(p127_irq_test_af_alt)
+ 564++9575 11 A4 A5             ld      de,0A5A4h
+ 565++9578 B7                   or      a
+ 566++9579 ED 52                sbc     hl,de
+ 567++957B C2 AC 95             jp      nz,p127_irq_context_restore
+ 568++957E 2A DB 95             ld      hl,(p127_irq_test_bc_alt)
+ 569++9581 11 CD AB             ld      de,0ABCDh
+ 570++9584 B7                   or      a
+ 571++9585 ED 52                sbc     hl,de
+ 572++9587 C2 AC 95             jp      nz,p127_irq_context_restore
+ 573++958A 2A DD 95             ld      hl,(p127_irq_test_de_alt)
+ 574++958D 11 76 98             ld      de,09876h
+ 575++9590 B7                   or      a
+ 576++9591 ED 52                sbc     hl,de
+ 577++9593 C2 AC 95             jp      nz,p127_irq_context_restore
+ 578++9596 2A DF 95             ld      hl,(p127_irq_test_hl_alt)
+ 579++9599 11 32 54             ld      de,05432h
+ 580++959C B7                   or      a
+ 581++959D ED 52                sbc     hl,de
+ 582++959F C2 AC 95             jp      nz,p127_irq_context_restore
+ 583++95A2
+ 584++95A2                      ; LD A,I exposes IFF2 in P/V; after DI + RETI it must still be zero.
+ 585++95A2 ED 57                ld      a,i
+ 586++95A4 EA AC 95             jp      pe,p127_irq_context_restore
+ 587++95A7 3E 01                ld      a,1
+ 588++95A9 32 CC 95             ld      (p127_irq_context_result),a
+ 589++95AC
+ 590++95AC              p127_irq_context_restore:
+ 591++95AC AF                   xor     a
+ 592++95AD 32 CB 95             ld      (p127_irq_test_clobber),a
+ 593++95B0 08                   ex      af,af'
+ 594++95B1 F1                   pop     af
+ 595++95B2 08                   ex      af,af'
+ 596++95B3 D9                   exx
+ 597++95B4 E1                   pop     hl
+ 598++95B5 D1                   pop     de
+ 599++95B6 C1                   pop     bc
+ 600++95B7 D9                   exx
+ 601++95B8 FD E1                pop     iy
+ 602++95BA DD E1                pop     ix
+ 603++95BC E1                   pop     hl
+ 604++95BD D1                   pop     de
+ 605++95BE C1                   pop     bc
+ 606++95BF F1                   pop     af
+ 607++95C0 3A CC 95             ld      a,(p127_irq_context_result)
+ 608++95C3 B7                   or      a
+ 609++95C4 C0                   ret     nz
+ 610++95C5 37                   scf
+ 611++95C6 C9                   ret
+ 612++95C7
+ 613++95C7 00           p127_irq_live_count: db 0
+ 614++95C8 00           p127_irq_live_armed: db 0
+ 615++95C9 00           p127_irq_host_chain_enabled: db 0
+ 616++95CA 00           p127_irq_host_chain_busy: db 0
+ 617++95CB 00           p127_irq_test_clobber: db 0
+ 618++95CC 00           p127_irq_context_result: db 0
+ 619++95CD 00 00        p127_irq_test_af: dw 0
+ 620++95CF 00 00        p127_irq_test_bc: dw 0
+ 621++95D1 00 00        p127_irq_test_de: dw 0
+ 622++95D3 00 00        p127_irq_test_hl: dw 0
+ 623++95D5 00 00        p127_irq_test_ix: dw 0
+ 624++95D7 00 00        p127_irq_test_iy: dw 0
+ 625++95D9 00 00        p127_irq_test_af_alt: dw 0
+ 626++95DB 00 00        p127_irq_test_bc_alt: dw 0
+ 627++95DD 00 00        p127_irq_test_de_alt: dw 0
+ 628++95DF 00 00        p127_irq_test_hl_alt: dw 0
+ 629++95E1
+ 630++95E1 00           p127_irq_mask_state: db 0
+ 631++95E2 00           p127_irq_vector_owner: db 0
+ 632++95E3 00           p127_irq_mode_policy: db 0
+ 633++95E4 00           p127_irq_ready_flags: db 0
+ 634++95E5
 # file closed: p127_irq.asm
- 492+ 95BB
- 493+ 95BB              p127_end:
- 494+ 95BB                      ASSERT  p127_entry = P127_LOAD_ADDRESS
- 495+ 95BB                      ASSERT  p127_end > p127_entry
- 496+ 95BB                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
- 497+ 95BB
+ 492+ 95E5
+ 493+ 95E5              p127_end:
+ 494+ 95E5                      ASSERT  p127_entry = P127_LOAD_ADDRESS
+ 495+ 95E5                      ASSERT  p127_end > p127_entry
+ 496+ 95E5                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
+ 497+ 95E5
 # file closed: p127_boot.asm
-   8  95BB
-   9  95BB              ; BASIC boot file is assembly data, not a Python-generated byte array.
-  10  95BB                      ORG     #B000
+   8  95E5
+   9  95E5              ; BASIC boot file is assembly data, not a Python-generated byte array.
+  10  95E5                      ORG     #B000
   11  B000              CLEAR       EQU #FD
   12  B000              LOAD        EQU #EF
   13  B000              CODE        EQU #AF
