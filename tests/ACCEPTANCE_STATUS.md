@@ -155,3 +155,11 @@ The earlier PHYSMEM ERROR=08 is resolved in this runtime by the P4 reservation c
 - Therefore the exact IM2 vector is **#FF only under the non-floating-bus configuration**. With floating bus enabled, a single #FF slot is not safe. Before live activation, the runtime configuration must be confirmed (or the Project127 IRQ mode must deliberately avoid dependence on a fixed IM2 vector).
 - With `I=#B0` and vector `#FF`, the IM2 pointer bytes are at `#B0FF/#B100`; the existing 257-byte reserved W2/P2 table region `#B000..#B100` includes both bytes. No bytes are written yet.
 - Keep IM/EI disabled until the active emulator configuration, handler location, stack mapping, and return path have all been verified.
+
+### Active Unreal Speccy configuration — verified from repository unreal.ini
+
+- `[ULA]`: `FloatBus=0`, `FloatDOS=0`.
+- Active model/preset: `HIMEM=ATM710`, `Preset=ATM1_2_3.5MHz`; the selected preset also specifies `floatBus=0,floatDOS=0`.
+- Thus, for the committed Project127 emulator configuration, `CF_Z80FBUS` remains clear in normal and TR-DOS operation, and `TMainZ80::IntVec()` returns the deterministic IM2 vector `0xFF`.
+- With the existing candidate `I=0xB0`, the only vector slot required by this configuration is `#B0FF/#B100`. The table remains uninitialized until the handler address and executable mapping are verified.
+- This confirms the vector condition from the repository's `unreal.ini`; it does not by itself prove the user's local INI has no uncommitted overrides or that the live IRQ path is safe.
