@@ -344,3 +344,24 @@ The user's 17:05:39 ATM Turbo 2+ runtime confirms the prior memory, video, RTC, 
 - No Project127 source code is changed to write FF77. The register's full value is not readable through the audited I/O read path, so a safe read/modify/write is unavailable. Do not substitute a guessed #20 or #E3 value: that would overwrite unrelated ATM state.
 - The next safe route is an explicit emulator-side test setup that owns the complete FF77 value (or a dedicated emulator debug/control hook), followed by the already bounded one-shot live IRQ test. Normal Project127 boot remains DI-only and the live probe remains skipped.
 - Source/configuration audit only; no assembler build or emulator run was performed for this note. IRQ remains unaccepted.
+
+
+### Latest integrated runtime — 2026-11-10 19:02
+
+The user's supplied ATM Turbo 2+ runtime log confirms:
+
+- DS12887 RTC probe/read through GLUK/SMUC succeeds; observed time `19:02:11`.
+- Memory/page-management path passes: 1 MiB/64 pages, bounds and negative-path checks, 57/57 free physical pages, W3/P0/UI restoration, allocator exhaustion/recovery, PIN/UNPIN and cross-page logical span copy.
+- TR-DOS directory acquisition completes: 8 sectors / 2048 bytes; two entries (`boot .B`, `P127BOOT.C`) are listed.
+- ATM video RG3/RG2/RG0/RG6 cycle and P7/P3 full-page CRC16 pass; UI restored.
+- Speaker #FE D4 tone begins and ends; this remains a smoke test only.
+- HDD transport now reports `DRIVER=NEMO-DIVIDE LBA28 0.1.2`, status `50`, Master Ready, and successful LBA 63 read with BPB/55AA validation. FAT16 root scan completes and lists seven entries (IO.SYS, MSDOS.SYS, DOS, COMMAND.COM, WINA20.386, CONFIG.SYS, AUTOEXEC.BAT). This accepts the current read-only root-directory scan only; cluster-chain/file loading and writes remain unaccepted.
+- Keyboard diagnostic enters ZX fallback, prints the idle matrix and exits. No key transition is present, so key press/release detection is not newly accepted; ATM XT mode remains untested.
+
+IRQ remains unchanged and unaccepted:
+
+- IM2 #FF vector is installed at #B0FF with I=#B0 while DI is active; table/vector/trampoline/window preflights pass.
+- Live IRQ is explicitly skipped because the FF77 gate is not controlled. No live handler entry, host #0038 chain execution, or RETI roundtrip is evidenced. Normal boot remains DI-only.
+- This run is consistent with the prior FF77 gate diagnosis but does not independently prove the runtime FF77 value. Do not write a guessed FF77 byte. Next IRQ step remains a controlled emulator-side gate setup (or a debug/control hook that owns the complete FF77 value), then the bounded one-shot live test.
+
+This entry records user-supplied runtime evidence only. No independent build or emulator run is claimed.
