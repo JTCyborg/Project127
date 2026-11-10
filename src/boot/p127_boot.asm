@@ -143,17 +143,11 @@ p127_start:
         jp      c,p127_irq_install_failed
         ld      hl,p127_msg_irq_install_pass
         call    p127_puts
-        ; Bounded live test: the handler self-disarms on its first entry.
-        ; A missing host frame INT is reported as TIMEOUT, not boot failure.
-        call    p127_irq_live_test
-        jp      c,p127_irq_live_timeout
-        ld      hl,p127_msg_irq_live_pass
+        ; Live IRQ activation is deliberately not automatic. The ATM710
+        ; FF77 INT gate must be explicitly established without disturbing
+        ; the current mode bits before a separately requested live test.
+        ld      hl,p127_msg_irq_live_skipped
         call    p127_puts
-        jr      p127_irq_live_reported
-p127_irq_live_timeout:
-        ld      hl,p127_msg_irq_live_timeout
-        call    p127_puts
-p127_irq_live_reported:
         ld      hl,p127_msg_irq_page_pass
         call    p127_puts
         ld      hl,p127_msg_irq_pass
@@ -472,6 +466,7 @@ p127_msg_irq_install_pass: db "[P127] IM2 VECTOR #FF INSTALLED AT B0FF; I=B0; DI
 p127_msg_irq_install_fail: db "[P127] IM2 MASKED INSTALL/VERIFY FAIL",13,10,0
 p127_msg_irq_live_pass: db "[P127] IRQ LIVE ONE-SHOT PASS; RETI RETURNED; DI RESTORED",13,10,0
 p127_msg_irq_live_timeout: db "[P127] IRQ LIVE TEST TIMEOUT/STATE FAIL; DI RESTORED",13,10,0
+p127_msg_irq_live_skipped: db "[P127] IRQ LIVE TEST SKIPPED; ATM FF77 GATE NOT CONTROLLED; DI",13,10,0
 p127_msg_irq_pass: db "[P127] IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED",13,10,0
 p127_msg_trampoline_preflight_pass: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT PASS; OUT DISABLED",13,10,0
 p127_msg_trampoline_preflight_fail: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT FAIL",13,10,0
