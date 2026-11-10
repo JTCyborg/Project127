@@ -658,6 +658,17 @@ p127_video_mode_selftest:
         ld      hl,p127_video_sig_after_attr_odd
         cp      (hl)
         jr      nz,p127_video_test_fail
+        ; Compare complete-page CRCs: P7 character plane and P3 attributes.
+        ld      hl,p127_video_crc_before
+        ld      de,p127_video_crc_after
+        ld      b,4
+p127_video_crc_compare_loop:
+        ld      a,(de)
+        cp      (hl)
+        jr      nz,p127_video_test_fail
+        inc     hl
+        inc     de
+        djnz    p127_video_crc_compare_loop
         or      a
         ret
 
@@ -768,6 +779,28 @@ p127_video_capture_after:
         ld      a,(#C1C1)
         ld      (p127_video_sig_after_attr_odd),a
 p127_video_capture_done:
+        ; Full-page CRC-16/CCITT over the complete 16 KiB P7 and P3 windows.
+        ; This is read-only: no VRAM byte is overwritten by the test.
+        call    p127_video_crc16_pages
+        ld      a,(p127_video_capture_phase)
+        or      a
+        jr      nz,p127_video_crc_store_after
+        ld      hl,p127_video_crc_before
+        jr      p127_video_crc_store
+p127_video_crc_store_after:
+        ld      hl,p127_video_crc_after
+p127_video_crc_store:
+        ld      a,(p127_video_crc_p7)
+        ld      (hl),a
+        inc     hl
+        ld      a,(p127_video_crc_p7+1)
+        ld      (hl),a
+        inc     hl
+        ld      a,(p127_video_crc_p3)
+        ld      (hl),a
+        inc     hl
+        ld      a,(p127_video_crc_p3+1)
+        ld      (hl),a
         call    p126_screen_restore_host_pages
         call    p127_w3_ui_leave
         pop     hl
@@ -780,6 +813,56 @@ p127_video_capture_refused:
         pop     de
         pop     bc
         scf
+        ret
+
+; Calculate CRC-16/CCITT (poly #1021, init #FFFF) over both mapped
+; 16 KiB pages. W1=#4000..#7FFF is P7; W3=#C000..#FFFF is P3.
+; OUT: p127_video_crc_p7 and p127_video_crc_p3, low byte first.
+p127_video_crc16_pages:
+        push    bc
+        push    de
+        push    hl
+        ld      hl,#4000
+        call    p127_video_crc16_page
+        ld      (p127_video_crc_p7),de
+        ld      hl,#C000
+        call    p127_video_crc16_page
+        ld      (p127_video_crc_p3),de
+        pop     hl
+        pop     de
+        pop     bc
+        ret
+
+; IN HL=window base. OUT DE=CRC-16/CCITT.
+p127_video_crc16_page:
+        ld      de,#FFFF
+        ld      bc,#4000
+p127_video_crc16_byte:
+        ld      a,(hl)
+        xor     d
+        ld      d,a
+        ld      a,8
+        ld      (p127_video_crc_bits),a
+p127_video_crc16_bit:
+        sla     e
+        rl      d
+        jr      nc,p127_video_crc16_no_poly
+        ld      a,d
+        xor     #10
+        ld      d,a
+        ld      a,e
+        xor     #21
+        ld      e,a
+p127_video_crc16_no_poly:
+        ld      a,(p127_video_crc_bits)
+        dec     a
+        ld      (p127_video_crc_bits),a
+        jr      nz,p127_video_crc16_bit
+        inc     hl
+        dec     bc
+        ld      a,b
+        or      c
+        jr      nz,p127_video_crc16_byte
         ret
 
 ; Visible dwell without IRQ/PIT dependencies (IM/EI remain disabled).
@@ -811,3 +894,9 @@ p127_video_sig_after_char_even: db 0
 p127_video_sig_after_char_odd:  db 0
 p127_video_sig_after_attr_even: db 0
 p127_video_sig_after_attr_odd:  db 0
+p127_video_crc_bits: db 0
+p127_video_crc_p7:   dw 0
+p127_video_crc_p3:   dw 0
+p127_video_crc_before: ds 4,0
+p127_video_crc_after:  ds 4,0
+
