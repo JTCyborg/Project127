@@ -77,9 +77,10 @@ ATM host owns all physical keyboard reads. `src/kernel/p127_keyboard.asm` v0.2.2
 Expected runtime markers with ATMKBD enabled:
 
 ```text
-[KBD v0.2.0] ATM XT KEYBOARD PROBE; IRQ DISABLED
-[KBD] ATM XT MODE ACTIVE; R2/R3/R4/R5 + LASTSCAN
+[KBD] INIT
+[KBD] ATM XT ACTIVE
 [KBD] LAST=.. R2=.. R3=.. R4=.. R5=..
+[KBD] DONE
 ```
 
 The monitor now exits automatically after 10 seconds without a new make/break or modifier/matrix transition, prints `[KBD] DONE`, and returns to the normal boot idle loop. The timeout uses the ATM Turbo 2+ 7 MHz software-pacing estimate; it still requires runtime timing confirmation. Runtime acceptance remains pending until the user tests ordinary keys, function/navigation keys, modifiers, extended keys, make/break events, and the idle exit in the configured emulator.
