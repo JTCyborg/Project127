@@ -91,3 +91,10 @@ Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE pat
 - Project127's existing IRQ tests verify only synthetic frame/context and DI-only readiness contracts. No vector bytes are installed, no permanent P4 mapping is established, and no live handler has run.
 - P4 remains reserved for a future IM2 table but is not permanently mapped; W3 remains a leased window restored to P0. Therefore neither an IM2 table nor live EI is safe yet.
 - No live IRQ acceptance. Keep IM/EI disabled until stable vector mapping, resident handler, stack/window ownership and acknowledgement/return behavior are implemented and tested.
+
+
+### IRQ — stable IM2 table location preflight updated; live IRQ pending
+
+- Candidate table moved from remappable W3/P4 at #C000 to fixed W2/P2 at #B000..#B100. The region is beyond the resident image end (#B000 exclusive) and below the scratch-stack/guard area.
+- Preflight now checks P2 reservation and the W2->P2 mapping.
+- The table remains uninitialized and IM2/IM/EI remain disabled pending confirmation of the emulator's interrupt vector byte and implementation of the resident handler.
