@@ -98,3 +98,10 @@ Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE pat
 - Candidate table moved from remappable W3/P4 at #C000 to fixed W2/P2 at #B000..#B100. The region is beyond the resident image end (#B000 exclusive) and below the scratch-stack/guard area.
 - Preflight now checks P2 reservation and the W2->P2 mapping.
 - The table remains uninitialized and IM2/IM/EI remain disabled pending confirmation of the emulator's interrupt vector byte and implementation of the resident handler.
+
+### IRQ — interrupt-vector implementation audit blocker
+
+- At upstream Unreal Speccy revision `a685b6f9227ec9dbb595b6cef38addbcd083d6ac`, `z80/defs.h` declares `Z80::IntVec()` as a pure virtual method, and `gsz80.h` declares `TGsZ80::IntVec()` as an override.
+- The inspected `gsz80.cpp` contains the `TGsZ80` method definitions for memory, M1, IN/OUT and RETN, but no `TGsZ80::IntVec()` definition. The declaration alone does not establish the returned vector byte.
+- The frame loop passes `cpu.IntVec()` to `handle_int()`; IM2 uses that byte together with I to read the little-endian handler address. Therefore the exact vector cannot be inferred from the frame source or from the IM1 fixed address `#0038`.
+- Do not initialize the IM2 table with a guessed vector and do not enable IM/EI. Continue tracing the concrete runtime implementation/selected CPU class and its linked definition before writing vector bytes.
