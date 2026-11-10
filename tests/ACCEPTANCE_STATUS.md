@@ -83,6 +83,3 @@ The boot test reports:
 This is a smoke test, not full VRAM verification: it checks four sentinel bytes only. It does not yet prove every byte of all four reserved video pages is preserved, nor does it independently validate pixel geometry/rendering in RG2/RG0/RG3. The emulator build and runtime result are still pending.
 
 Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE path.
-
-
-Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE path.
