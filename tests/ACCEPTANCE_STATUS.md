@@ -79,7 +79,7 @@ The legacy `113/src/key_hal.asm` remains a behavioral reference only; it reads s
 Expected runtime markers:
 
 ```text
-[KBD] ATM 8X5 MATRIX MONITOR; ACTIVE-LOW; IRQ DISABLED
+[KBD v0.1.0] ATM 8X5 MATRIX MONITOR; ACTIVE-LOW; IRQ DISABLED
 [KBD] MATRIX=1F 1F 1F 1F 1F 1F 1F 1F
 [KBD] DMA OK
 ```
