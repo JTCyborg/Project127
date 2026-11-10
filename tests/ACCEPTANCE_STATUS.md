@@ -311,3 +311,16 @@ This entry records only the user's supplied emulator runtime evidence; it is not
 - Boot reports either `IRQ LIVE ONE-SHOT PASS; RETI RETURNED; DI RESTORED` or `IRQ LIVE TEST TIMEOUT/STATE FAIL; DI RESTORED`. A timeout is diagnostic, not a boot halt, and does not claim IRQ acceptance.
 - Source change only; clean build and emulator runtime confirmation are still required. PASS marker is live-delivery evidence; TIMEOUT means no interrupt was delivered within the bounded window. The test exits masked.
 
+
+
+### Latest integrated runtime — 2026-11-10 17:05
+
+The user's 17:05:39 ATM Turbo 2+ runtime confirms the prior memory, video, RTC, TR-DOS, HDD root-scan and keyboard-monitor results. The IRQ-specific observations are:
+
+- Masked IM2 vector installation at #B0FF succeeds; table, mask/vector, trampoline and resident-window preflights pass.
+- The newly added live probe reports `IRQ LIVE TEST TIMEOUT/STATE FAIL; DI RESTORED`. No live handler entry or real RETI return occurred. This run does not pass IRQ acceptance.
+- Source audit of the matching Unreal Speccy ATM710 path explains a likely missing prerequisite: `set_atm_FF77()` assigns `cpu.int_gate = (comp.pFF77 & 0x20) != 0`. The ordinary/default reset path calls `set_atm_FF77(0,0)`, which closes the gate; the DOS reset path writes `0xE3`, which opens it. The emulator frame loop only calls `handle_int()` when `cpu.int_pend`, `cpu.iff1`, the EI-delay condition, and `cpu.int_gate` all permit delivery. The supplied runtime log does not identify which reset path/state established FF77, so the closed gate is a strong candidate, not yet proven for this exact run.
+- The prior implementation violated the documented prerequisite by executing EI automatically without first establishing the ATM FF77 gate. Corrected boot behavior: the live probe is no longer invoked automatically; normal startup remains DI-only and prints `IRQ LIVE TEST SKIPPED; ATM FF77 GATE NOT CONTROLLED; DI`. The bounded probe routine remains available for a later explicitly controlled test.
+- Do not write a guessed FF77 byte: the emulator's read path exposes only the low video-mode nibble, not the full FF77 value, so a read/modify/write cannot safely preserve all unrelated bits. Before re-enabling the probe, establish the exact startup FF77 state and a safe way to enable bit 5 without clobbering other state (or provide an explicit test setup that owns the whole register).
+- This is based on user-supplied runtime evidence and source inspection; no independent build or emulator run is claimed.
+
