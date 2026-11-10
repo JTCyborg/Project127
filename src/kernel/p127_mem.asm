@@ -243,7 +243,10 @@ p127_mem_stress_round_begin:
         ld      (p127_mem_stress_count),a
         ld      hl,p127_mem_stress_pages
 p127_mem_stress_alloc:
+        ; p127_mem_alloc uses HL as its page-state scan pointer.
+        push    hl
         call    p127_mem_alloc
+        pop     hl
         jp      c,p127_mem_stress_fail
         ld      (hl),a
         inc     hl
@@ -263,7 +266,10 @@ p127_mem_stress_alloc:
 p127_mem_stress_free:
         dec     hl
         ld      a,(hl)
+        ; p127_mem_free also uses HL to address the page-state table.
+        push    hl
         call    p127_mem_free
+        pop     hl
         jp      c,p127_mem_stress_fail
         ld      a,(p127_mem_stress_count)
         dec     a
