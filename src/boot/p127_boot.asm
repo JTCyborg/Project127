@@ -1,5 +1,5 @@
 ; ============================================================================
-; Project127 — boot stage 0.7.13
+; Project127 — boot stage 0.7.15
 ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
 ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
 ; ============================================================================
@@ -190,9 +190,12 @@ p127_start:
         ; Stage 10.1: read-only Nemo IDE LBA28 transport check.
         ; The completed TR-DOS snapshot at #C800 is reused as sector staging.
         call    p127_hdd_probe_read
-        jp      c,p127_idle
+        jp      c,p127_keyboard_monitor
         call    p127_hdd_list_root
-        jp      p127_idle
+        ; ATM keyboard monitor runs after startup diagnostics. It probes the
+        ; Unreal Speccy ATM_KBD interface on ULA #FE; ZX matrix is fallback.
+        ; This is ATM-side polling only; IM/EI remain disabled.
+        jp      p127_keyboard_monitor
 
 p127_trdos_failed:
         ld      hl,p127_msg_trdos_failed

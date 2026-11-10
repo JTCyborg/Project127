@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.83**  
+Scenario revision: **0.8.84**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -30,7 +30,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | 6 — Managed program address space | **STAGE 6.1/6.2/6.3 PASS (user runtime log)** | 4 MiB logical page table; complete source/destination preflight; non-overlapping copy; 64-byte resident bounce buffer; page-boundary chunking through guarded W3 lease; exact completed-byte count and explicit partial-write semantics. Cross-page copy and W3 restoration runtime-accepted. |
 | 7 — TR-DOS and filesystem services | **STAGE 7.1 PASS (user runtime accepted, 2026-11-10)** | Project126 legacy pre-video mapping; isolated ROM scratch stack; read track 0 sectors 1–8; parse/report the P0 #C800 snapshot after UI initialization. User log confirms R0/r0 through R7/r7, 8 sectors / 2048 bytes, 2 entries and DIRECTORY DUMP COMPLETE. |
 | 8 — Video service | PLANNED | All ATM/Spectrum modes, framebuffer ownership and DMA/display handoff. |
-| 9 — RTC and input | **STAGE 9.1 PASS (user runtime accepted, 2026-11-10)** | Read-only DS12887 probe/read API. GLUK primary, SMUC fallback; UIP-bounded stable snapshot; BCD/binary and 12/24-hour conversion; restore ATM DOSEN/RG6 after GLUK access. Keyboard and live clock refresh remain deferred. |
+| 9 — RTC and input | **STAGE 9.1 PASS; STAGE 9.2 ATM XT PROTOCOL IMPLEMENTED / RUNTIME PENDING** | DS12887 read-only service accepted. ATM keyboard v0.2.0 uses the Unreal Speccy ATM_KBD handshake through ULA #FE; reads mode-2 R2/R3/R4/R5 and mode-3 LASTSCAN for make/break events; logs register/event state. Requires emulator [Input] ATMKBD=1; ZX 8x5 matrix remains diagnostic fallback only. ATM-side polling; no NeoGS/DMA/IRQ/IM/EI dependency. Live clock refresh remains deferred. |
 | 10 — Physical storage | PLANNED | Nemo IDE/SMUC IDENTIFY, READ, WRITE, FLUSH with LBA and RAM bounds checks. |
 | 11 — Audio and timer/events | PLANNED | Speaker/audio, timer, interrupt dispatch and event queues. |
 | 12 — Integration/acceptance | PLANNED | Multi-page program, context-switch, video coexistence, storage and peripheral regression suite. |
@@ -39,7 +39,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
 | Module | Version | State |
 |---|---:|---|
-| `src/boot/p127_boot.asm` | 0.7.11 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
+| `src/boot/p127_boot.asm` | 0.7.15 | BOOT0 preserved; reserves P4 for future IM2 table and runs its software preflight |
 | `src/kernel/p127_mem.asm` | 0.4.3 | Software page-state manager; allocator negative-path tests use absolute JP failure branches to remain in range under SjASMPlus |
 | `src/kernel/p127_range.asm` | 0.1.2 | UINT32 end-exclusive physical range validator; 1 MiB bounds/overflow self-test; arithmetic only, no mapping or memory access |
 | `src/kernel/p127_arena.asm` | 0.1.2 | Map-derived highest contiguous FREE run; bounded allocation and LIFO release; accounting only, no mapping |
@@ -52,6 +52,7 @@ Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 | `src/kernel/p127_handoff.asm` | 0.1.0 | Resident stack-switch integrity probe; no physical remap |
 | `src/kernel/p127_irq.asm` | 0.5.0 | DI-only contract; 16-check exhaustive readiness-mask/prerequisite batch runtime accepted; P4 IM2 table reservation and address preflight; no EI/IM or physical mapping |
 | `src/kernel/p127_physmem.asm` | 0.4.3 | Exhaustive free-page W3 sweep; guarded W3 lease API; visible W3 replay after ATM video-bank reinitialization; W3/P0 recovery |
+| `src/kernel/p127_keyboard.asm` | 0.2.0 | ATM_KBD #FE handshake; mode-2 R2/R3/R4/R5 plus mode-3 LASTSCAN make/break polling; ZX matrix diagnostic fallback; ATM-side only, no NeoGS/DMA/IRQ/IM/EI |
 | `src/kernel/p127_resident.asm` | 0.4.0 | Fixed W1/P5 resident code/data + W2/P2 live-stack address preflight; W3 ownership and software rollback; no page OUT |
 | `src/kernel/p127_hdd.asm` | 0.1.2 | Read-only Nemo IDE LBA28 probe; captures Status before/after Master select and Drive/Head readback; ATA READ SECTORS only |
 | `src/main.asm` | existing | Build entry; assembles boot and included kernel modules |
