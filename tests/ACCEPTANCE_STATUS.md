@@ -197,3 +197,13 @@ The user's 15:52 ATM Turbo 2+ runtime log shows no new failure and reconfirms th
 - IRQ frame/batch/table/mask/trampoline/window preflights passed, but the runtime still reports vector disabled and IM/EI/OUT disabled. No live IRQ was delivered or accepted.
 
 The diagnostic text `SOURCE UNRESOLVED` in the IRQ batch marker is stale relative to the repository source audit, which has already identified the ATM host `TMainZ80::IntVec()` implementation and the configured #FF vector condition. It must not be interpreted as evidence that the upstream source audit is still unresolved. The live IRQ handler/activation path remains unverified; keep IM/EI disabled.
+
+
+### IRQ — masked IM2 vector installation staged — 2026-11-10
+
+- The boot path now installs the configured ATM710 IM2 vector while DI is asserted: vector byte #FF, I register #B0, pointer slot #B0FF/#B100.
+- The slot receives the linked `p127_irq_entry` address and is read back for verification. The installer checks the reserved P2/W2 mapping and verifies that the handler address lies in fixed W2/P2 (#8000..#9FFF).
+- The handler and stack use the fixed W2/P2 mapping; no W3 remap or hardware page OUT is involved.
+- The installer selects IM 2 but never executes EI. IFF2 is checked after DI using the P/V flag from `LD A,I`; the check branches before any flag-changing instruction.
+- The batch diagnostic message now reflects the source audit rather than claiming the source is unresolved.
+- This is a source change only. Build and emulator runtime confirmation are pending. Do not claim live IRQ delivery, handler dispatch, or RETI under a real interrupt. Keep EI disabled until the next runtime log confirms the masked install marker and a separate controlled live-IRQ test is designed.
