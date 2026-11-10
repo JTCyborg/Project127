@@ -102,3 +102,16 @@ Implemented on 2026-11-10:
   `[P127] ATM VIDEO RG3/RG2/RG0/RG6 CYCLE + P7/P3 FULL-PAGE CRC16 PASS; UI RESTORED`
 
 Runtime verification of this new code is pending. It is intentionally not recorded as PASS until a new emulator log confirms the marker.
+
+
+### ATM video CRC false-positive correction — 2026-11-10
+
+The first emulator run with full-page CRC stopped at `ATM VIDEO MODE CYCLE/VRAM RESTORE FAIL`. Source inspection identified a deterministic self-test side effect: each mode switch writes an 8-byte trampoline at P3:`#FFEC`, so the subsequent full-page P3 CRC necessarily differed from the pre-cycle CRC.
+
+Correction committed:
+
+- Save the original eight bytes at P3:`#FFEC` before writing the trampoline.
+- Restore those exact bytes immediately after the trampoline jumps back to resident code and before P3 is unmapped.
+- Keep the CRC scan over the complete 16 KiB pages; no address range is excluded.
+
+The correction is not runtime-verified yet. A fresh emulator run must reach the new `P7/P3 FULL-PAGE CRC16 PASS` marker before the video preservation check can be marked PASS.
