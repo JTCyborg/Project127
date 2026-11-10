@@ -82,7 +82,7 @@ Expected runtime markers with ATMKBD enabled:
 [KBD] LAST=.. R2=.. R3=.. R4=.. R5=..
 ```
 
-The monitor now exits automatically after 10 seconds without a new make/break or modifier/matrix transition, prints `[KBD] TEST DONE`, and returns to the normal boot idle loop. The timeout uses the ATM Turbo 2+ 7 MHz software-pacing estimate; it still requires runtime timing confirmation. Runtime acceptance remains pending until the user tests ordinary keys, function/navigation keys, modifiers, extended keys, make/break events, and the idle exit in the configured emulator.
+The monitor now exits automatically after 10 seconds without a new make/break or modifier/matrix transition, prints `[KBD] DONE`, and returns to the normal boot idle loop. The timeout uses the ATM Turbo 2+ 7 MHz software-pacing estimate; it still requires runtime timing confirmation. Runtime acceptance remains pending until the user tests ordinary keys, function/navigation keys, modifiers, extended keys, make/break events, and the idle exit in the configured emulator.
 ### Explicitly deferred
 
 - HDD/FAT16 functional acceptance. The latest runtime log did show a successful NEMO IDE LBA28 probe, sector 63 read, and FAT16 root-directory listing (7 files); this is recorded as an observation only, not acceptance.
