@@ -1,6 +1,6 @@
 ; ============================================================================
 ; Project127 — ATM XT keyboard interface
-; Version: 0.2.0
+; Version: 0.2.1
 ;
 ; ATM Turbo 2+ host reads the Unreal Speccy ATM_KBD interface through ULA
 ; port #FE. The emulator must have [Input] ATMKBD=1.
@@ -267,11 +267,11 @@ p127_keyboard_scan_matrix:
         ret
 
 p127_kbd_msg_init:
-        db "[KBD v0.2.0] ATM XT KEYBOARD PROBE; IRQ DISABLED",13,10,0
+        db "[KBD v0.2.1] INIT",13,10,0
 p127_kbd_msg_xt_ready:
-        db "[KBD] ATM XT MODE ACTIVE; R2/R3/R4/R5 + LASTSCAN",13,10,0
+        db "[KBD] ATM XT ACTIVE",13,10,0
 p127_kbd_msg_legacy:
-        db "[KBD] ATMKBD NOT DETECTED; ZX MATRIX FALLBACK ONLY",13,10,0
+        db "[KBD] ZX MATRIX FALLBACK",13,10,0
 p127_kbd_msg_event:
         db "[KBD] LAST=",0
 p127_kbd_msg_r2:
