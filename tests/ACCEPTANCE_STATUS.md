@@ -63,19 +63,28 @@ Reference mode matrix (Project112):
 | 2 | ATM EGA | #C0 (RG=0) | 320x200x16 |
 | 3 | ATM hardware text | #C6 (RG=6) | 80x25 |
 
-### Keyboard/input — IN PROGRESS
+### Keyboard/input — IMPLEMENTED; RUNTIME PENDING
 
-Next implementation stage. ATM host owns keyboard matrix reads; the NeoGS side must receive the resulting snapshot through the project's DMA/host transport. NeoGS must not perform direct reads from physical keyboard ports.
+ATM host owns all physical keyboard reads. The new `src/kernel/p127_keyboard.asm` v0.1.0 implements:
 
-Audit findings:
+- Complete eight-row / five-column active-low Spectrum matrix scan on the ATM host using row selects #FE, #FD, #FB, #F7, #EF, #DF, #BF and #7F on port #FE.
+- Stable eight-byte snapshot and change detection; the initial snapshot is always published, subsequent transfers occur only when one or more row bytes change.
+- Raw eight-byte matrix diagnostics on #EF and the existing console.
+- Host-to-NeoGS DMA mailbox using the established Project125 contract: GSCOM command #10, NeoGS arms ZX DMA at physical #00F000, ATM writes eight bytes through the #0000 DMA aperture, then sends #FF as the end marker.
+- Bounded CBIT waits (eight independent #FFFF windows). No DBIT/GSDAT payload transfer, no ATM-side DMA register programming, no keyboard IRQ, and no IM/EI enablement.
+- Boot enters a live keyboard monitor after the existing startup diagnostics. The monitor reports changed matrix snapshots and DMA completion/failure.
 
-- The legacy reference is `113/src/key_hal.asm`.
-- Its current implementation initializes an eight-byte matrix buffer but reads only six rows (#FE, #FD, #FB, #F7, #EF, #DF). It is therefore not copied unchanged as a complete matrix scanner.
-- Project127 currently has no dedicated keyboard module or checked-in DMA transport module. The DMA register/channel/protocol contract must be identified from an existing project reference before implementing the NeoGS handoff; do not invent port addresses or a private protocol.
-- Required first implementation: complete eight-row, five-column active-low matrix scan on ATM; stable eight-byte snapshot; raw matrix diagnostics; deterministic no-key and pressed-key self-tests.
-- Required integration: DMA publication of the snapshot to NeoGS using the verified existing transport contract, with sequence/length/integrity checks and no interrupt dependency.
+The legacy `113/src/key_hal.asm` remains a behavioral reference only; it reads six rows and is not copied unchanged.
 
-Keyboard acceptance remains pending until the user supplies a runtime log confirming the scan and DMA handoff.
+Expected runtime markers:
+
+```text
+[KBD] ATM 8X5 MATRIX MONITOR; ACTIVE-LOW; IRQ DISABLED
+[KBD] MATRIX=1F 1F 1F 1F 1F 1F 1F 1F
+[KBD] DMA OK
+```
+
+The matrix line is expected to change when keys are pressed/released; the corresponding row bit is cleared for a pressed key. Keyboard/DMA acceptance remains pending until a user emulator run confirms all eight rows and successful DMA handoff. The NeoGS receiver must implement the documented Project125 `CMD_HOST_INPUT` mailbox contract.
 
 ### Explicitly deferred
 
