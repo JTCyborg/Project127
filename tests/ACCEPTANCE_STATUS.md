@@ -334,3 +334,13 @@ The user's 17:05:39 ATM Turbo 2+ runtime confirms the prior memory, video, RTC, 
 - The host chain is armed only after the masked IM2 installer has passed its table/handler checks. `p127_irq_init` clears both chain flags, so the synthetic CALL-based register test does not call the host ROM handler.
 - Normal boot still does not execute EI and the live probe remains skipped. No FF77 writes, guessed gate values, peripheral acknowledge sequence, PIC/PIT model, or live-IRQ PASS claim were added.
 - Source-level change only. A clean assembler build and emulator run are still required to verify the #0038 chain and its re-entry behavior. IRQ acceptance remains open.
+
+
+### IRQ — committed Unreal Speccy reset configuration audit — 2026-11-10
+
+- Inspected the repository's committed `unreal.ini` rather than inferring the active reset mode from TR-DOS activity. It explicitly contains `RESET=MENU`, not `RESET=DOS`; the ATM710 preset is `ATM1_2_3.5MHz`, with `FloatBus=0` and `FloatDOS=0`. The committed input configuration also has `ATMKBD=0`.
+- Cross-checking the previously audited Unreal Speccy reset code: the ordinary/default reset path initializes FF77 to zero (interrupt gate bit #20 closed), whereas the DOS reset path initializes FF77 to #E3 (gate bit #20 open). Therefore the repository's configured MENU reset path points to the closed-gate explanation for the live IRQ timeout. This is a source/configuration conclusion; the exact FF77 value in the user's running emulator has not been read back.
+- The fixed #FF IM2 vector remains correct for the committed `FloatBus=0` / `FloatDOS=0` configuration. That does not open the FF77 gate.
+- No Project127 source code is changed to write FF77. The register's full value is not readable through the audited I/O read path, so a safe read/modify/write is unavailable. Do not substitute a guessed #20 or #E3 value: that would overwrite unrelated ATM state.
+- The next safe route is an explicit emulator-side test setup that owns the complete FF77 value (or a dedicated emulator debug/control hook), followed by the already bounded one-shot live IRQ test. Normal Project127 boot remains DI-only and the live probe remains skipped.
+- Source/configuration audit only; no assembler build or emulator run was performed for this note. IRQ remains unaccepted.
