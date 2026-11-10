@@ -63,31 +63,26 @@ Reference mode matrix (Project112):
 | 2 | ATM EGA | #C0 (RG=0) | 320x200x16 |
 | 3 | ATM hardware text | #C6 (RG=6) | 80x25 |
 
-### Keyboard/input — IMPLEMENTED; RUNTIME PENDING
+### Keyboard/input — ATM XT protocol implemented; runtime pending
 
-ATM host owns all physical keyboard reads. The new `src/kernel/p127_keyboard.asm` v0.1.0 implements:
+ATM host owns all physical keyboard reads. `src/kernel/p127_keyboard.asm` v0.2.0 now implements the Unreal Speccy ATM_KBD interface through ULA port #FE:
 
-- Complete eight-row / five-column active-low Spectrum matrix scan on the ATM host using row selects #FE, #FD, #FB, #F7, #EF, #DF, #BF and #7F on port #FE.
-- Stable eight-byte snapshot and change detection; the initial snapshot is always published, subsequent transfers occur only when one or more row bytes change.
-- Raw eight-byte matrix diagnostics on #EF and the existing console.
-- Host-to-NeoGS DMA mailbox using the established Project125 contract: GSCOM command #10, NeoGS arms ZX DMA at physical #00F000, ATM writes eight bytes through the #0000 DMA aperture, then sends #FF as the end marker.
-- Bounded CBIT waits (eight independent #FFFF windows). No DBIT/GSDAT payload transfer, no ATM-side DMA register programming, no keyboard IRQ, and no IM/EI enablement.
-- Boot enters a live keyboard monitor after the existing startup diagnostics. The monitor reports changed matrix snapshots and DMA completion/failure.
+- Performs the documented #55/#AA handshake and command #08 mode selection.
+- Enters ATM_KBD mode 2 and reads R2/R3/R4/R5; R2 is read-to-clear, while R3/R4/R5 expose key/modifier/extended-key metadata.
+- Temporarily switches to mode 3 to read and clear LASTSCAN, then returns to mode 2. LASTSCAN bit 7 denotes key release.
+- Logs each key event with LASTSCAN and R2/R3/R4/R5, and reports modifier/register state changes.
+- Requires `[Input] ATMKBD=1` in the Unreal Speccy configuration. If the ATM_KBD handshake is absent, it explicitly falls back to the ordinary ZX 8x5 matrix diagnostic; that fallback is not full PC-keyboard support.
+- All polling is ATM-side, paced in software, and independent of PIT/IRQ. No NeoGS implementation, DMA transport, IM or EI is assumed.
 
-The legacy `113/src/key_hal.asm` remains a behavioral reference only; it reads six rows and is not copied unchanged.
-
-Expected runtime markers:
+Expected runtime markers with ATMKBD enabled:
 
 ```text
-[KBD v0.1.0] ATM 8X5 MATRIX MONITOR; ACTIVE-LOW; IRQ DISABLED
-[KBD] MATRIX=1F 1F 1F 1F 1F 1F 1F 1F
-[KBD] DMA OK
+[KBD v0.2.0] ATM XT KEYBOARD PROBE; IRQ DISABLED
+[KBD] ATM XT MODE ACTIVE; R2/R3/R4/R5 + LASTSCAN
+[KBD] LAST=.. R2=.. R3=.. R4=.. R5=..
 ```
 
-The matrix line is expected to change when keys are pressed/released; the corresponding row bit is cleared for a pressed key. Keyboard/DMA acceptance remains pending until a user emulator run confirms all eight rows and successful DMA handoff. The NeoGS receiver must implement the documented Project125 `CMD_HOST_INPUT` mailbox contract.
-
-Build verification: GitHub Actions run [42790764590](https://github.com/JTCyborg/Project127/actions/runs/42790764590) assembled the complete `src/main.asm` TR-DOS image with SjASMPlus 1.24.0: 0 errors, 0 warnings, 7924 lines; output image size 655360 bytes. This is source/build verification only, not emulator runtime acceptance.
-
+Runtime acceptance remains pending until the user tests ordinary keys, function/navigation keys, modifiers, extended keys, and make/break events in the configured emulator.
 ### Explicitly deferred
 
 - HDD/FAT16 functional acceptance. The latest runtime log did show a successful NEMO IDE LBA28 probe, sector 63 read, and FAT16 root-directory listing (7 files); this is recorded as an observation only, not acceptance.
