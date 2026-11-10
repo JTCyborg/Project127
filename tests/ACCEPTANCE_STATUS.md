@@ -147,3 +147,11 @@ The earlier PHYSMEM ERROR=08 is resolved in this runtime by the P4 reservation c
 - The earlier `TGsZ80::IntVec()` lead is a separate GS Z80 core path, not the ATM host CPU path. `gsz80.h` declares that override; the ATM frame loop instead calls `cpu.IntVec()` on `TMainZ80`.
 - The current upstream source inspection confirms the `TMainZ80::IntVec()` declaration but has not located its concrete definition or established its returned byte. Do not infer the vector from the frame cadence, FF77 gate, IM1 address, or the GS core.
 - Project127 remains DI-only: no IM selection, no EI, no IM2 table contents, and no live IRQ handler. Next source-audit step is to locate the linked `TMainZ80::IntVec()` implementation and trace its return value in the exact Unreal Speccy build used for runtime testing.
+
+### IRQ vector value — concrete implementation found
+
+- The concrete ATM CPU implementation is in Unreal Speccy `vars.cpp`, `TMainZ80::IntVec()`: it returns `0xFF` when `CF_Z80FBUS` is clear; when that flag is set it returns the low byte of `rdtsc()`, so the vector is variable.
+- `memory.cpp::set_banks()` clears and recalculates `CF_Z80FBUS`. It sets the flag when `conf.floatbus` is enabled (normal bus) or `conf.floatdos` is enabled while TR-DOS ports are active. The config parser's default for `FloatBus` is 0, but the user's active emulator configuration has not been inspected.
+- Therefore the exact IM2 vector is **#FF only under the non-floating-bus configuration**. With floating bus enabled, a single #FF slot is not safe. Before live activation, the runtime configuration must be confirmed (or the Project127 IRQ mode must deliberately avoid dependence on a fixed IM2 vector).
+- With `I=#B0` and vector `#FF`, the IM2 pointer bytes are at `#B0FF/#B100`; the existing 257-byte reserved W2/P2 table region `#B000..#B100` includes both bytes. No bytes are written yet.
+- Keep IM/EI disabled until the active emulator configuration, handler location, stack mapping, and return path have all been verified.
