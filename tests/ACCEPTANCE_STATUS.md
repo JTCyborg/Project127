@@ -230,3 +230,24 @@ IRQ update:
 - Interrupts remain disabled: no `EI` was executed, no live frame interrupt was delivered to the handler, and no real interrupt/RETI roundtrip has been accepted. Keep live IRQ activation as the next IRQ test stage.
 - This is user-confirmed emulator runtime evidence; it does not establish a separate clean rebuild in CI or live IRQ delivery.
 
+
+### Latest integrated runtime — 2026-11-10 16:38
+
+The user's latest ATM Turbo 2+ runtime log reports no new failures and reconfirms the integrated diagnostics:
+
+- DS12887 RTC probe through GLUK/SMUC succeeded; time read returned `16:38:16`.
+- TR-DOS directory read completed: 8 sectors / 2048 bytes, with `boot.B` and `P127BOOT.C`.
+- Kernel image size remains `0x3494`; P5/P2 bounds pass.
+- Memory/page-management checks pass, including the complete W3 sweep (57/57 free pages), P0/UI restoration, allocator exhaustion/recovery, PIN/UNPIN and cross-page span copy.
+- ATM video RG3/RG2/RG0/RG6 cycle and P7/P3 full-page CRC16 pass; UI restored.
+- NEMO-DIVIDE LBA28 master probe, LBA 63 sector read and seven-entry FAT16 root scan succeed. Full FAT16 functional acceptance remains deferred.
+- Speaker #FE D4 tone begin/end markers are present; audio acceptance remains deferred.
+- Keyboard monitor starts in ZX fallback and ends with `[KBD] DONE`. This log contains no matrix-change sample, so no key-press detection is newly claimed. ATM XT extended-key mode remains untested.
+
+IRQ update:
+
+- The synthetic `IRQ FRAME ROUNDTRIP PASS; VECTOR DISABLED` marker is an earlier software-only test and does not contradict the subsequent installer marker.
+- The runtime again reports `IM2 VECTOR #FF INSTALLED AT B0FF; I=B0; DI; EI DISABLED`, followed by successful table-slot, mask/vector, resident-trampoline and resident-window preflights.
+- The masked IM2 installation is therefore reconfirmed by this run. No `EI` was executed and no live frame interrupt, hardware handler entry or real interrupt/RETI roundtrip was observed. Live IRQ acceptance remains open; keep interrupts disabled.
+
+This entry records user-supplied runtime evidence only; it is not an independent CI/build result.
