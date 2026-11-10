@@ -7,14 +7,14 @@
 Verified by the user's ATM Turbo 2+ emulator run:
 
 - 1 MiB / 64-page initialization.
-- Fixed reservations: video P1/P3/P5/P7; active boot map P0/P2. The IRQ table occupies #B000..#B100 inside already-reserved W2/P2; it is not a separate physical-page reservation.
+- Fixed reservations: video P1/P3/P5/P7; boot map P0/P2/P4. The IRQ table occupies #B000..#B100 inside already-reserved W2/P2; it is not a separate physical-page reservation.
 - Page-state and negative-path checks: double-free, range and reserved-page guards.
 - UINT32 1 MiB bounds and top-down P8..P63 arena checks.
 - Logical page-table/boundary translation and logical-span preflight.
 - Map transaction commit/rollback.
 - Resident stack, UI quiesce/W3 ownership, W3 rollback/recovery.
 - IRQ frame/batch/table/mask/vector contract preflights; vector remains disabled.
-- Full physical W3 sweep: 57/57 free pages filled and verified; P0 restored and UI resumed.
+- Full physical W3 sweep: 57/57 free pages filled and verified; P0 restored and UI resumed. Confirmed by the user's 2026-11-10 runtime after adding the missing P4 boot reservation.
 - Allocator allocate/free and guarded W3 lease API.
 - Eight full-pool allocator exhaustion/recovery cycles; first-fit restored.
 - Reference-counted physical PIN/UNPIN self-test; FREE correctly guarded while pinned.
@@ -32,7 +32,7 @@ Key runtime markers:
 [P127] LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED
 ```
 
-Memory/page-management acceptance is closed for this checkpoint.
+Memory/page-management acceptance is closed for this checkpoint. Latest runtime confirms the full W3 sweep and allocator/pin/span-copy self-tests.
 
 ### ATM video — PASS
 
@@ -74,7 +74,7 @@ The user's 2026-11-10 runtime log confirms:
 This closes the requested keyboard diagnostic stage. The run did not activate ATM XT mode, so the #55/#AA handshake, R2/R3/R4/R5 extended-key protocol, and function/navigation keys through ATM_KBD are not claimed as tested. The timeout duration is based on the software-pacing estimate and has not been independently timed.
 ### Explicitly deferred
 
-- HDD/FAT16 functional acceptance. The latest runtime log did show a successful NEMO IDE LBA28 probe, sector 63 read, and FAT16 root-directory listing (7 files); this is recorded as an observation only, not acceptance.
+- HDD/FAT16 functional acceptance remains deferred. Latest runtime confirms NEMO IDE LBA28 master-ready, LBA 63 sector read (512 bytes, BPB, 55AA), and FAT16 root-directory listing of 7 files (IO.SYS, MSDOS.SYS, DOS, COMMAND.COM, WINA20.386, CONFIG.SYS, AUTOEXEC.BAT). This is a successful probe/directory-read observation, not full FAT16 write/cluster-chain acceptance.
 - Beeper/audio acceptance. The log showed the #FE tone test beginning and ending; this stage remains deferred.
 - NeoGS DMA/IPC.
 - IRQ activation: source remains unresolved; IM/EI and interrupt vector remain disabled.
@@ -123,3 +123,43 @@ Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE pat
 - Fixed the source by reserving P4 during boot-map initialization, retaining the 57-page physical sweep and P4 reservation checks, and updating the boot diagnostic to report P0/P2/P4. P4 is not mapped or accessed by this change.
 - The temporary six-reservation/58-page adjustment in commit `f8cfdf0` was superseded; the intended seven-page reservation invariant is restored.
 - Runtime confirmation is pending a fresh build and emulator run.
+
+### Latest integrated runtime — 2026-11-10 15:37
+
+The user's latest complete boot log confirms:
+
+- Boot memory map reports P0/P2/P4 and P5 active; kernel image bounds pass.
+- Physical W3 full free-page sweep passes: pages P6 and P8..P63 were filled and verified in descending order; 57/57 free pages verified; P0 restored and UI active.
+- Page allocator/free, guarded W3 lease, 8x full-pool exhaustion/recovery, PIN/UNPIN reference-count and cross-page logical span-copy tests all pass.
+- ATM video mode cycle and P7/P3 full-page CRC16 pass; UI restored.
+- NEMO-DIVIDE LBA28 probe and FAT16 root directory scan pass at probe level: 7 root entries listed.
+- Speaker smoke-test begin/end markers observed; no audio acceptance inferred.
+- Keyboard monitor used ZX fallback and ended normally. No ATM XT extended-key protocol claim is added.
+- IRQ source/vector remains unresolved; IM/EI stay disabled.
+
+The earlier PHYSMEM ERROR=08 is resolved in this runtime by the P4 reservation correction. The corrected W3 sweep has now been confirmed by the user.
+
+### IRQ source audit — concrete ATM CPU path clarified
+
+- In Unreal Speccy, the ATM/Spectrum frame loop in `z80_main.inl` calls `handle_int(&cpu, cpu.IntVec())`. The active object is declared as `extern TMainZ80 cpu` in `vars.h`; `TMainZ80` derives from `Z80` and declares its own `IntVec()` override.
+- The ATM frame source is a pending INT once per Spectrum frame. For ATM710/ATM3, the hardware gate is `comp.pFF77 & 0x20`; `set_atm_FF77()` mirrors that bit to `cpu.int_gate`. The interrupt is accepted only when the Z80 IFF1/EI-delay conditions and the ATM gate allow it.
+- `handle_int()` uses fixed address `#0038` for IM0/IM1. In IM2 it forms the table address from `I * 256 + vector`, reads the little-endian handler address, pushes the return PC, and clears IFF1/IFF2.
+- The earlier `TGsZ80::IntVec()` lead is a separate GS Z80 core path, not the ATM host CPU path. `gsz80.h` declares that override; the ATM frame loop instead calls `cpu.IntVec()` on `TMainZ80`.
+- The current upstream source inspection confirms the `TMainZ80::IntVec()` declaration but has not located its concrete definition or established its returned byte. Do not infer the vector from the frame cadence, FF77 gate, IM1 address, or the GS core.
+- Project127 remains DI-only: no IM selection, no EI, no IM2 table contents, and no live IRQ handler. Next source-audit step is to locate the linked `TMainZ80::IntVec()` implementation and trace its return value in the exact Unreal Speccy build used for runtime testing.
+
+### IRQ vector value — concrete implementation found
+
+- The concrete ATM CPU implementation is in Unreal Speccy `vars.cpp`, `TMainZ80::IntVec()`: it returns `0xFF` when `CF_Z80FBUS` is clear; when that flag is set it returns the low byte of `rdtsc()`, so the vector is variable.
+- `memory.cpp::set_banks()` clears and recalculates `CF_Z80FBUS`. It sets the flag when `conf.floatbus` is enabled (normal bus) or `conf.floatdos` is enabled while TR-DOS ports are active. The config parser's default for `FloatBus` is 0, but the user's active emulator configuration has not been inspected.
+- Therefore the exact IM2 vector is **#FF only under the non-floating-bus configuration**. With floating bus enabled, a single #FF slot is not safe. Before live activation, the runtime configuration must be confirmed (or the Project127 IRQ mode must deliberately avoid dependence on a fixed IM2 vector).
+- With `I=#B0` and vector `#FF`, the IM2 pointer bytes are at `#B0FF/#B100`; the existing 257-byte reserved W2/P2 table region `#B000..#B100` includes both bytes. No bytes are written yet.
+- Keep IM/EI disabled until the active emulator configuration, handler location, stack mapping, and return path have all been verified.
+
+### Active Unreal Speccy configuration — verified from repository unreal.ini
+
+- `[ULA]`: `FloatBus=0`, `FloatDOS=0`.
+- Active model/preset: `HIMEM=ATM710`, `Preset=ATM1_2_3.5MHz`; the selected preset also specifies `floatBus=0,floatDOS=0`.
+- Thus, for the committed Project127 emulator configuration, `CF_Z80FBUS` remains clear in normal and TR-DOS operation, and `TMainZ80::IntVec()` returns the deterministic IM2 vector `0xFF`.
+- With the existing candidate `I=0xB0`, the only vector slot required by this configuration is `#B0FF/#B100`. The table remains uninitialized until the handler address and executable mapping are verified.
+- This confirms the vector condition from the repository's `unreal.ini`; it does not by itself prove the user's local INI has no uncommitted overrides or that the live IRQ path is safe.
