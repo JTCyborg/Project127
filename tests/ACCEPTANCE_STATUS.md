@@ -34,36 +34,15 @@ Key runtime markers:
 
 Memory/page-management acceptance is closed for this checkpoint.
 
-### Explicitly deferred
+### ATM video — SMOKE TEST PASS; FULL ACCEPTANCE PENDING
 
-- HDD/FAT16 functional testing (the user's latest log showed a successful root listing, but this stage is intentionally deferred).
-- Beeper/audio.
-- NeoGS DMA/IPC.
-- IRQ activation: source remains unresolved; IM/EI and interrupt vector remain disabled.
+Verified by the user's 2026-11-10 emulator run. The boot log contains:
 
-## Next acceptance stage — ATM video
+```text
+[P127] ATM VIDEO RG3/RG2/RG0/RG6 CYCLE + VRAM SIGNATURE PASS; UI RESTORED
+```
 
-The next work item is the ATM video stage:
-
-1. Enumerate and verify supported ATM display modes against the established Project112/ATM implementation.
-2. Verify mode changes and return to the system UI.
-3. Verify video-memory page selection and preservation across mode changes.
-4. Verify that UI ownership and the boot memory map are restored after each test.
-
-### Reference mode matrix (Project112)
-
-The existing Project112 implementation defines four modes in this order:
-
-| Index | Mode | Register value | Geometry |
-|---:|---|---:|---|
-| 0 | Sinclair / ZX | #C3 (RG=3) | 256x192 |
-| 1 | ATM 640 multicolor | #C2 (RG=2) | 640x200 |
-| 2 | ATM EGA | #C0 (RG=0) | 320x200x16 |
-| 3 | ATM hardware text | #C6 (RG=6) | 80x25 |
-
-Reference sources: `Project112/112/src/video_mode_control.asm`, `mode_standard.asm`, and `mode_atm.asm`. Project112 uses a trampoline at #FFEC for the mode-register write through #0177 and explicitly restores the Sinclair mapping when returning to index 0.
-
-### Project127 implementation checkpoint
+This confirms that the boot-time test completed the RG3 -> RG2 -> RG0 -> RG6 mode cycle, compared its four VRAM sentinel bytes successfully, and returned the UI to its expected state.
 
 Implemented in `src/ui/p127_console.asm` and invoked from `src/boot/p127_boot.asm` after TR-DOS directory diagnostics:
 
@@ -75,11 +54,28 @@ Implemented in `src/ui/p127_console.asm` and invoked from `src/boot/p127_boot.as
 - Captures four representative bytes (even/odd character planes and even/odd attribute planes) before and after the cycle, then compares them.
 - Returns to RG6 before the post-cycle signature check.
 
-The boot test reports:
+Reference mode matrix (Project112):
 
-- `[P127] ATM VIDEO RG3/RG2/RG0/RG6 CYCLE + VRAM SIGNATURE PASS; UI RESTORED`
-- or `[P127] ATM VIDEO MODE CYCLE/VRAM RESTORE FAIL`
+| Index | Mode | Register value | Geometry |
+|---:|---|---:|---|
+| 0 | Sinclair / ZX | #C3 (RG=3) | 256x192 |
+| 1 | ATM 640 multicolor | #C2 (RG=2) | 640x200 |
+| 2 | ATM EGA | #C0 (RG=0) | 320x200x16 |
+| 3 | ATM hardware text | #C6 (RG=6) | 80x25 |
 
-This is a smoke test, not full VRAM verification: it checks four sentinel bytes only. It does not yet prove every byte of all four reserved video pages is preserved, nor does it independently validate pixel geometry/rendering in RG2/RG0/RG3. The emulator build and runtime result are still pending.
+Reference sources: `Project112/112/src/video_mode_control.asm`, `mode_standard.asm`, and `mode_atm.asm`.
 
-Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE path.
+The smoke test checks four sentinel bytes only. It does not prove that every byte of all four reserved video pages is preserved, nor does it independently validate pixel geometry/rendering in RG2/RG0/RG3. Therefore the video stage is not yet fully accepted. Remaining work:
+
+1. Verify visible output and geometry in RG3, RG2 and RG0.
+2. Expand video-memory preservation checks beyond the four sentinels.
+3. Verify page selection, UI ownership and restoration after every mode change.
+
+### Explicitly deferred
+
+- HDD/FAT16 functional acceptance. The latest runtime log did show a successful NEMO IDE LBA28 probe, sector 63 read, and FAT16 root-directory listing (7 files); this is recorded as an observation only, not acceptance.
+- Beeper/audio acceptance. The log showed the #FE tone test beginning and ending; this stage remains deferred.
+- NeoGS DMA/IPC.
+- IRQ activation: source remains unresolved; IM/EI and interrupt vector remain disabled.
+
+Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE path while it is deferred.
