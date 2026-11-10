@@ -458,10 +458,14 @@ p127_mem_test_page:
         db      0
 p127_mem_page_state:
         ds      P127_MEM_PAGE_COUNT,0
+p127_mem_page_state_end:
 ; Per-page PIN reference count. FREE is rejected while this byte is nonzero.
 p127_mem_pin_count:
         ds      P127_MEM_PAGE_COUNT,0
+p127_mem_pin_count_end:
 p127_mem_end:
 
         ASSERT  P127_MEM_PAGE_COUNT*P127_MEM_PAGE_SIZE = 100000h
-        ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
+        ASSERT  p127_mem_page_state_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
+        ASSERT  p127_mem_pin_count_end-p127_mem_pin_count = P127_MEM_PAGE_COUNT
+        ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT*2
