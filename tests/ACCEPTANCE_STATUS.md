@@ -63,16 +63,26 @@ The existing Project112 implementation defines four modes in this order:
 
 Reference sources: `Project112/112/src/video_mode_control.asm`, `mode_standard.asm`, and `mode_atm.asm`. Project112 uses a trampoline at #FFEC for the mode-register write through #0177 and explicitly restores the Sinclair mapping when returning to index 0.
 
-### Project127 baseline and gap
+### Project127 implementation checkpoint
 
-- `src/ui/p127_console.asm` currently initializes only RG6 80x25 and maps alternate video pages P7/P3.
-- `src/kernel/p127_physmem.asm` reapplies that RG6 setup after its W3 sweep.
-- No Project127 mode-cycle/test API currently exists in the inspected source.
-- Project112's mode-switch code must be adapted to Project127's resident layout and W3/UI ownership rules; it must not be copied blindly.
-- The four reserved video pages P1/P3/P5/P7 must remain reserved throughout all tests. Do not use them as allocator scratch pages.
+Implemented in `src/ui/p127_console.asm` and invoked from `src/boot/p127_boot.asm` after TR-DOS directory diagnostics:
 
-The next implementation step is a bounded mode-switch test that cycles the four register modes and always restores RG6 + the original Project127 UI mapping, followed by an emulator run. VRAM preservation requires a separate non-destructive test strategy; changing display mode alone does not prove that contents were retained.
+- Uses Project112's four complete mode bytes: #C3, #C2, #C0, #C6.
+- Switches through the #FFEC trampoline and ATM shadow service #0177.
+- Acquires the existing W3 UI lease before mapping video pages P7/P3.
+- Restores host pages P5/P0 and releases the UI lease after each mode change.
+- Holds each graphics mode briefly using a software delay; no PIT/IRQ dependency.
+- Captures four representative bytes (even/odd character planes and even/odd attribute planes) before and after the cycle, then compares them.
+- Returns to RG6 before the post-cycle signature check.
+
+The boot test reports:
+
+- `[P127] ATM VIDEO RG3/RG2/RG0/RG6 CYCLE + VRAM SIGNATURE PASS; UI RESTORED`
+- or `[P127] ATM VIDEO MODE CYCLE/VRAM RESTORE FAIL`
+
+This is a smoke test, not full VRAM verification: it checks four sentinel bytes only. It does not yet prove every byte of all four reserved video pages is preserved, nor does it independently validate pixel geometry/rendering in RG2/RG0/RG3. The emulator build and runtime result are still pending.
 
 Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE path.
+
 
 Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE path.
