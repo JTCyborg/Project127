@@ -8743,368 +8743,347 @@
   19+ AD9F              P127_KBD_PORT              EQU #FE
   20+ AD9F              P127_KBD_MODE_XT           EQU 2
   21+ AD9F              P127_KBD_MODE_EVENT        EQU 3
-  22+ AD9F              ; 5120 paced windows ~= 10 s at the ATM Turbo 2+ 7 MHz test clock.
-  23+ AD9F              P127_KBD_IDLE_WINDOWS       EQU #1400
+  22+ AD9F              ; 41 full 16-bit software delays ~= 10 s at 7 MHz.
+  23+ AD9F              P127_KBD_IDLE_WINDOWS       EQU 41
   24+ AD9F              P127_KBD_ROW_MASK          EQU #1F
   25+ AD9F
   26+ AD9F              ; Public boot monitor. All reads are performed by the ATM Z80.
   27+ AD9F              p127_keyboard_monitor:
   28+ AD9F AF                   xor     a
-  29+ ADA0 32 2F B0             ld      (p127_kbd_xt_active),a
-  30+ ADA3 32 48 B0             ld      (p127_kbd_snapshot_valid),a
-  31+ ADA6 21 8E AF             ld      hl,p127_kbd_msg_init
+  29+ ADA0 32 EE AF             ld      (p127_kbd_xt_active),a
+  30+ ADA3 32 07 B0             ld      (p127_kbd_snapshot_valid),a
+  31+ ADA6 21 68 AF             ld      hl,p127_kbd_msg_init
   32+ ADA9 CD 06 63             call    p127_puts
-  33+ ADAC CD 27 B0             call    p127_keyboard_reset_idle
-  34+ ADAF
-  35+ ADAF 3E 02                ld      a,P127_KBD_MODE_XT
-  36+ ADB1 CD FE AD             call    p127_keyboard_set_mode
-  37+ ADB4 38 0D                jr      c,p127_keyboard_legacy_init
-  38+ ADB6
-  39+ ADB6 3E 01                ld      a,1
-  40+ ADB8 32 2F B0             ld      (p127_kbd_xt_active),a
-  41+ ADBB 21 A2 AF             ld      hl,p127_kbd_msg_xt_ready
-  42+ ADBE CD 06 63             call    p127_puts
-  43+ ADC1 18 06                jr      p127_keyboard_monitor_loop
-  44+ ADC3
-  45+ ADC3              p127_keyboard_legacy_init:
-  46+ ADC3 21 B8 AF             ld      hl,p127_kbd_msg_legacy
-  47+ ADC6 CD 06 63             call    p127_puts
-  48+ ADC9
-  49+ ADC9              p127_keyboard_monitor_loop:
-  50+ ADC9 AF                   xor     a
-  51+ ADCA 32 26 B0             ld      (p127_kbd_activity),a
-  52+ ADCD 3A 2F B0             ld      a,(p127_kbd_xt_active)
-  53+ ADD0 B7                   or      a
-  54+ ADD1 28 05                jr      z,p127_keyboard_monitor_legacy
-  55+ ADD3 CD 44 AE             call    p127_keyboard_poll_xt
-  56+ ADD6 18 03                jr      p127_keyboard_monitor_pace
-  57+ ADD8              p127_keyboard_monitor_legacy:
-  58+ ADD8 CD E8 AE             call    p127_keyboard_poll_matrix
-  59+ ADDB              p127_keyboard_monitor_pace:
-  60+ ADDB                      ; Any make/break or modifier/matrix transition restarts the idle window.
-  61+ ADDB 3A 26 B0             ld      a,(p127_kbd_activity)
-  62+ ADDE B7                   or      a
-  63+ ADDF C4 27 B0             call    nz,p127_keyboard_reset_idle
-  64+ ADE2                      ; Bounded software pacing; no PIT or interrupt dependency.
-  65+ ADE2 11 00 02             ld      de,#0200
-  66+ ADE5              p127_keyboard_monitor_delay:
-  67+ ADE5 1B                   dec     de
-  68+ ADE6 7A                   ld      a,d
-  69+ ADE7 B3                   or      e
-  70+ ADE8 20 FB                jr      nz,p127_keyboard_monitor_delay
-  71+ ADEA 2A 24 B0             ld      hl,(p127_kbd_idle_windows)
-  72+ ADED 2B                   dec     hl
-  73+ ADEE 22 24 B0             ld      (p127_kbd_idle_windows),hl
-  74+ ADF1 7C                   ld      a,h
-  75+ ADF2 B5                   or      l
-  76+ ADF3 20 D4                jr      nz,p127_keyboard_monitor_loop
-  77+ ADF5 21 04 B0             ld      hl,p127_kbd_msg_done
-  78+ ADF8 CD 06 63             call    p127_puts
-  79+ ADFB C3 02 63             jp      p127_idle
-  80+ ADFE
-  81+ ADFE              ; Enter ATM_KBD mode A using the exact Unreal Speccy ATM_KBD::read handshake.
-  82+ ADFE              ; Carry is set if any of the three protocol responses is unexpected.
-  83+ ADFE              p127_keyboard_set_mode:
-  84+ ADFE 32 2E B0             ld      (p127_kbd_requested_mode),a
-  85+ AE01 01 FE 55             ld      bc,#55FE
-  86+ AE04 ED 78                in      a,(c)
-  87+ AE06 FE AA                cp      #AA
-  88+ AE08 20 17                jr      nz,p127_keyboard_mode_fail
-  89+ AE0A 01 FE 08             ld      bc,#08FE
-  90+ AE0D ED 78                in      a,(c)
-  91+ AE0F FE 08                cp      8
-  92+ AE11 20 0E                jr      nz,p127_keyboard_mode_fail
-  93+ AE13 3A 2E B0             ld      a,(p127_kbd_requested_mode)
-  94+ AE16 47                   ld      b,a
-  95+ AE17 0E FE                ld      c,P127_KBD_PORT
-  96+ AE19 ED 78                in      a,(c)
-  97+ AE1B FE FF                cp      #FF
-  98+ AE1D 20 02                jr      nz,p127_keyboard_mode_fail
-  99+ AE1F B7                   or      a
- 100+ AE20 C9                   ret
- 101+ AE21              p127_keyboard_mode_fail:
- 102+ AE21 37                   scf
- 103+ AE22 C9                   ret
- 104+ AE23
- 105+ AE23              ; Read mode 2 registers. R2 is read-to-clear; R3/R4/R5 are state registers.
- 106+ AE23              p127_keyboard_read_mode2:
- 107+ AE23 01 FE 00             ld      bc,#00FE
- 108+ AE26 ED 78                in      a,(c)
- 109+ AE28 32 31 B0             ld      (p127_kbd_r2),a
- 110+ AE2B 01 FE 40             ld      bc,#40FE
- 111+ AE2E ED 78                in      a,(c)
- 112+ AE30 32 32 B0             ld      (p127_kbd_r3),a
- 113+ AE33 01 FE 80             ld      bc,#80FE
- 114+ AE36 ED 78                in      a,(c)
- 115+ AE38 32 33 B0             ld      (p127_kbd_r4),a
- 116+ AE3B 01 FE C0             ld      bc,#C0FE
- 117+ AE3E ED 78                in      a,(c)
- 118+ AE40 32 34 B0             ld      (p127_kbd_r5),a
- 119+ AE43 C9                   ret
- 120+ AE44
- 121+ AE44              ; Poll one event plus the current ATM modifier/extended-key registers.
- 122+ AE44              ; lastscan bit 7 means key release. R5 carries key-class/extended metadata.
- 123+ AE44              p127_keyboard_poll_xt:
- 124+ AE44 CD 23 AE             call    p127_keyboard_read_mode2
- 125+ AE47 3E 03                ld      a,P127_KBD_MODE_EVENT
- 126+ AE49 CD FE AD             call    p127_keyboard_set_mode
- 127+ AE4C 38 4D                jr      c,p127_keyboard_xt_recover
- 128+ AE4E 01 FE 00             ld      bc,#00FE
- 129+ AE51 ED 78                in      a,(c)
- 130+ AE53 32 30 B0             ld      (p127_kbd_lastscan),a
- 131+ AE56
- 132+ AE56 3E 02                ld      a,P127_KBD_MODE_XT
- 133+ AE58 CD FE AD             call    p127_keyboard_set_mode
- 134+ AE5B 38 3E                jr      c,p127_keyboard_xt_recover
- 135+ AE5D
- 136+ AE5D 3A 30 B0             ld      a,(p127_kbd_lastscan)
- 137+ AE60 B7                   or      a
- 138+ AE61 20 1D                jr      nz,p127_keyboard_xt_activity
- 139+ AE63 3A 32 B0             ld      a,(p127_kbd_r3)
- 140+ AE66 47                   ld      b,a
- 141+ AE67 3A 35 B0             ld      a,(p127_kbd_prev_r3)
- 142+ AE6A B8                   cp      b
- 143+ AE6B 20 13                jr      nz,p127_keyboard_xt_activity
- 144+ AE6D 3A 33 B0             ld      a,(p127_kbd_r4)
- 145+ AE70 47                   ld      b,a
- 146+ AE71 3A 36 B0             ld      a,(p127_kbd_prev_r4)
- 147+ AE74 B8                   cp      b
- 148+ AE75 20 09                jr      nz,p127_keyboard_xt_activity
- 149+ AE77 3A 34 B0             ld      a,(p127_kbd_r5)
- 150+ AE7A 47                   ld      b,a
- 151+ AE7B 3A 37 B0             ld      a,(p127_kbd_prev_r5)
- 152+ AE7E B8                   cp      b
- 153+ AE7F C8                   ret     z
- 154+ AE80
- 155+ AE80              p127_keyboard_xt_activity:
- 156+ AE80 3E 01                ld      a,1
- 157+ AE82 32 26 B0             ld      (p127_kbd_activity),a
- 158+ AE85              p127_keyboard_xt_log:
- 159+ AE85 CD A1 AE             call    p127_keyboard_log_xt
- 160+ AE88 3A 32 B0             ld      a,(p127_kbd_r3)
- 161+ AE8B 32 35 B0             ld      (p127_kbd_prev_r3),a
- 162+ AE8E 3A 33 B0             ld      a,(p127_kbd_r4)
- 163+ AE91 32 36 B0             ld      (p127_kbd_prev_r4),a
- 164+ AE94 3A 34 B0             ld      a,(p127_kbd_r5)
- 165+ AE97 32 37 B0             ld      (p127_kbd_prev_r5),a
- 166+ AE9A C9                   ret
- 167+ AE9B
- 168+ AE9B              ; If mode switching fails, retry the mode-2 handshake on the next pass.
- 169+ AE9B              p127_keyboard_xt_recover:
- 170+ AE9B 3E 02                ld      a,P127_KBD_MODE_XT
- 171+ AE9D CD FE AD             call    p127_keyboard_set_mode
- 172+ AEA0 C9                   ret
- 173+ AEA1
- 174+ AEA1              p127_keyboard_log_xt:
- 175+ AEA1 21 D3 AF             ld      hl,p127_kbd_msg_event
- 176+ AEA4 CD 06 63             call    p127_puts
- 177+ AEA7 3A 30 B0             ld      a,(p127_kbd_lastscan)
- 178+ AEAA CD 22 63             call    p127_put_hex8
- 179+ AEAD 21 DF AF             ld      hl,p127_kbd_msg_r2
- 180+ AEB0 CD 06 63             call    p127_puts
- 181+ AEB3 3A 31 B0             ld      a,(p127_kbd_r2)
- 182+ AEB6 CD 22 63             call    p127_put_hex8
- 183+ AEB9 21 E4 AF             ld      hl,p127_kbd_msg_r3
- 184+ AEBC CD 06 63             call    p127_puts
- 185+ AEBF 3A 32 B0             ld      a,(p127_kbd_r3)
- 186+ AEC2 CD 22 63             call    p127_put_hex8
- 187+ AEC5 21 E9 AF             ld      hl,p127_kbd_msg_r4
- 188+ AEC8 CD 06 63             call    p127_puts
- 189+ AECB 3A 33 B0             ld      a,(p127_kbd_r4)
- 190+ AECE CD 22 63             call    p127_put_hex8
- 191+ AED1 21 EE AF             ld      hl,p127_kbd_msg_r5
- 192+ AED4 CD 06 63             call    p127_puts
- 193+ AED7 3A 34 B0             ld      a,(p127_kbd_r5)
- 194+ AEDA CD 22 63             call    p127_put_hex8
- 195+ AEDD 3E 0D                ld      a,13
- 196+ AEDF CD 38 63             call    p127_put_char
- 197+ AEE2 3E 0A                ld      a,10
- 198+ AEE4 CD 38 63             call    p127_put_char
- 199+ AEE7 C9                   ret
- 200+ AEE8
- 201+ AEE8              ; Compatibility fallback when ATMKBD=1 is not enabled in the emulator.
- 202+ AEE8              p127_keyboard_poll_matrix:
- 203+ AEE8 CD 3D AF             call    p127_keyboard_scan_matrix
- 204+ AEEB 3A 48 B0             ld      a,(p127_kbd_snapshot_valid)
- 205+ AEEE B7                   or      a
- 206+ AEEF 28 11                jr      z,p127_keyboard_matrix_changed
- 207+ AEF1 21 38 B0             ld      hl,p127_kbd_matrix
- 208+ AEF4 11 40 B0             ld      de,p127_kbd_previous
- 209+ AEF7 06 08                ld      b,8
- 210+ AEF9              p127_keyboard_matrix_compare:
- 211+ AEF9 1A                   ld      a,(de)
- 212+ AEFA BE                   cp      (hl)
- 213+ AEFB 20 05                jr      nz,p127_keyboard_matrix_changed
- 214+ AEFD 13                   inc     de
- 215+ AEFE 23                   inc     hl
- 216+ AEFF 10 F8                djnz    p127_keyboard_matrix_compare
- 217+ AF01 C9                   ret
- 218+ AF02              p127_keyboard_matrix_changed:
- 219+ AF02 3E 01                ld      a,1
- 220+ AF04 32 26 B0             ld      (p127_kbd_activity),a
- 221+ AF07 21 38 B0             ld      hl,p127_kbd_matrix
- 222+ AF0A 11 40 B0             ld      de,p127_kbd_previous
- 223+ AF0D 01 08 00             ld      bc,8
- 224+ AF10 ED B0                ldir
- 225+ AF12 3E 01                ld      a,1
- 226+ AF14 32 48 B0             ld      (p127_kbd_snapshot_valid),a
- 227+ AF17 21 F3 AF             ld      hl,p127_kbd_msg_matrix
- 228+ AF1A CD 06 63             call    p127_puts
- 229+ AF1D 21 38 B0             ld      hl,p127_kbd_matrix
- 230+ AF20 06 08                ld      b,8
- 231+ AF22              p127_keyboard_matrix_log_loop:
- 232+ AF22 C5                   push    bc
- 233+ AF23 E5                   push    hl
- 234+ AF24 7E                   ld      a,(hl)
- 235+ AF25 CD 22 63             call    p127_put_hex8
- 236+ AF28 3E 20                ld      a,' '
- 237+ AF2A CD 38 63             call    p127_put_char
- 238+ AF2D E1                   pop     hl
- 239+ AF2E C1                   pop     bc
- 240+ AF2F 23                   inc     hl
- 241+ AF30 10 F0                djnz    p127_keyboard_matrix_log_loop
- 242+ AF32 3E 0D                ld      a,13
- 243+ AF34 CD 38 63             call    p127_put_char
- 244+ AF37 3E 0A                ld      a,10
- 245+ AF39 CD 38 63             call    p127_put_char
- 246+ AF3C C9                   ret
- 247+ AF3D
- 248+ AF3D              p127_keyboard_scan_matrix:
- 249+ AF3D C5                   push    bc
- 250+ AF3E D5                   push    de
- 251+ AF3F E5                   push    hl
- 252+ AF40 0E FE                ld      c,P127_KBD_PORT
- 253+ AF42 06 FE                ld      b,#FE
- 254+ AF44 ED 78                in      a,(c)
- 255+ AF46 E6 1F                and     P127_KBD_ROW_MASK
- 256+ AF48 32 38 B0             ld      (p127_kbd_matrix+0),a
- 257+ AF4B 06 FD                ld      b,#FD
- 258+ AF4D ED 78                in      a,(c)
- 259+ AF4F E6 1F                and     P127_KBD_ROW_MASK
- 260+ AF51 32 39 B0             ld      (p127_kbd_matrix+1),a
- 261+ AF54 06 FB                ld      b,#FB
- 262+ AF56 ED 78                in      a,(c)
- 263+ AF58 E6 1F                and     P127_KBD_ROW_MASK
- 264+ AF5A 32 3A B0             ld      (p127_kbd_matrix+2),a
- 265+ AF5D 06 F7                ld      b,#F7
- 266+ AF5F ED 78                in      a,(c)
- 267+ AF61 E6 1F                and     P127_KBD_ROW_MASK
- 268+ AF63 32 3B B0             ld      (p127_kbd_matrix+3),a
- 269+ AF66 06 EF                ld      b,#EF
- 270+ AF68 ED 78                in      a,(c)
- 271+ AF6A E6 1F                and     P127_KBD_ROW_MASK
- 272+ AF6C 32 3C B0             ld      (p127_kbd_matrix+4),a
- 273+ AF6F 06 DF                ld      b,#DF
- 274+ AF71 ED 78                in      a,(c)
- 275+ AF73 E6 1F                and     P127_KBD_ROW_MASK
- 276+ AF75 32 3D B0             ld      (p127_kbd_matrix+5),a
- 277+ AF78 06 BF                ld      b,#BF
- 278+ AF7A ED 78                in      a,(c)
- 279+ AF7C E6 1F                and     P127_KBD_ROW_MASK
- 280+ AF7E 32 3E B0             ld      (p127_kbd_matrix+6),a
- 281+ AF81 06 7F                ld      b,#7F
- 282+ AF83 ED 78                in      a,(c)
- 283+ AF85 E6 1F                and     P127_KBD_ROW_MASK
- 284+ AF87 32 3F B0             ld      (p127_kbd_matrix+7),a
- 285+ AF8A E1                   pop     hl
- 286+ AF8B D1                   pop     de
- 287+ AF8C C1                   pop     bc
- 288+ AF8D C9                   ret
- 289+ AF8E
- 290+ AF8E              p127_kbd_msg_init:
- 291+ AF8E 5B 4B 42 44          db "[KBD v0.2.2] INIT",13,10,0
- 291+ AF92 20 76 30 2E
- 291+ AF96 32 2E 32 5D
- 291+ AF9A 20 49 4E 49
- 291+ AF9E 54 0D 0A 00
- 292+ AFA2              p127_kbd_msg_xt_ready:
- 293+ AFA2 5B 4B 42 44          db "[KBD] ATM XT ACTIVE",13,10,0
- 293+ AFA6 5D 20 41 54
- 293+ AFAA 4D 20 58 54
- 293+ AFAE 20 41 43 54
- 293+ AFB2 49 56 45 0D
- 293+ AFB6 0A 00
- 294+ AFB8              p127_kbd_msg_legacy:
- 295+ AFB8 5B 4B 42 44          db "[KBD] ZX MATRIX FALLBACK",13,10,0
- 295+ AFBC 5D 20 5A 58
- 295+ AFC0 20 4D 41 54
- 295+ AFC4 52 49 58 20
- 295+ AFC8 46 41 4C 4C
- 295+ AFCC 42 41 43 4B
- 295+ AFD0 0D 0A 00
- 296+ AFD3              p127_kbd_msg_event:
- 297+ AFD3 5B 4B 42 44          db "[KBD] LAST=",0
- 297+ AFD7 5D 20 4C 41
- 297+ AFDB 53 54 3D 00
- 298+ AFDF              p127_kbd_msg_r2:
- 299+ AFDF 20 52 32 3D          db " R2=",0
- 299+ AFE3 00
- 300+ AFE4              p127_kbd_msg_r3:
- 301+ AFE4 20 52 33 3D          db " R3=",0
- 301+ AFE8 00
- 302+ AFE9              p127_kbd_msg_r4:
- 303+ AFE9 20 52 34 3D          db " R4=",0
- 303+ AFED 00
- 304+ AFEE              p127_kbd_msg_r5:
- 305+ AFEE 20 52 35 3D          db " R5=",0
- 305+ AFF2 00
- 306+ AFF3              p127_kbd_msg_matrix:
- 307+ AFF3 5B 4B 42 44          db "[KBD] ZX MATRIX=",0
- 307+ AFF7 5D 20 5A 58
- 307+ AFFB 20 4D 41 54
- 307+ AFFF 52 49 58 3D
- 307+ B003 00
- 308+ B004              p127_kbd_msg_done:
- 309+ B004 5B 4B 42 44          db "[KBD] TEST COMPLETE; 10S IDLE",13,10,0
- 309+ B008 5D 20 54 45
- 309+ B00C 53 54 20 43
- 309+ B010 4F 4D 50 4C
- 309+ B014 45 54 45 3B
- 309+ B018 20 31 30 53
- 309+ B01C 20 49 44 4C
- 309+ B020 45 0D 0A 00
- 310+ B024
- 311+ B024              p127_kbd_idle_windows:
- 312+ B024 00 14                dw P127_KBD_IDLE_WINDOWS
- 313+ B026              p127_kbd_activity:
- 314+ B026 00                   db 0
- 315+ B027
- 316+ B027              p127_keyboard_reset_idle:
- 317+ B027 21 00 14             ld      hl,P127_KBD_IDLE_WINDOWS
- 318+ B02A 22 24 B0             ld      (p127_kbd_idle_windows),hl
- 319+ B02D C9                   ret
- 320+ B02E
- 321+ B02E              p127_kbd_requested_mode:
- 322+ B02E 00                   db 0
- 323+ B02F              p127_kbd_xt_active:
- 324+ B02F 00                   db 0
- 325+ B030              p127_kbd_lastscan:
- 326+ B030 00                   db 0
- 327+ B031              p127_kbd_r2:
- 328+ B031 00                   db 0
- 329+ B032              p127_kbd_r3:
- 330+ B032 00                   db 0
- 331+ B033              p127_kbd_r4:
- 332+ B033 00                   db 0
- 333+ B034              p127_kbd_r5:
- 334+ B034 00                   db 0
- 335+ B035              p127_kbd_prev_r3:
- 336+ B035 FF                   db #FF
- 337+ B036              p127_kbd_prev_r4:
- 338+ B036 FF                   db #FF
- 339+ B037              p127_kbd_prev_r5:
- 340+ B037 FF                   db #FF
- 341+ B038              p127_kbd_matrix:
- 342+ B038 1F 1F 1F...          ds 8,#1F
- 343+ B040              p127_kbd_previous:
- 344+ B040 1F 1F 1F...          ds 8,#1F
- 345+ B048              p127_kbd_snapshot_valid:
- 346+ B048 00                   db 0
- 347+ B049
+  33+ ADAC 3E 29                ld      a,P127_KBD_IDLE_WINDOWS
+  34+ ADAE 32 EB AF             ld      (p127_kbd_idle_windows),a
+  35+ ADB1
+  36+ ADB1 3E 02                ld      a,P127_KBD_MODE_XT
+  37+ ADB3 CD 02 AE             call    p127_keyboard_set_mode
+  38+ ADB6 38 0D                jr      c,p127_keyboard_legacy_init
+  39+ ADB8
+  40+ ADB8 3E 01                ld      a,1
+  41+ ADBA 32 EE AF             ld      (p127_kbd_xt_active),a
+  42+ ADBD 21 7C AF             ld      hl,p127_kbd_msg_xt_ready
+  43+ ADC0 CD 06 63             call    p127_puts
+  44+ ADC3 18 06                jr      p127_keyboard_monitor_loop
+  45+ ADC5
+  46+ ADC5              p127_keyboard_legacy_init:
+  47+ ADC5 21 92 AF             ld      hl,p127_kbd_msg_legacy
+  48+ ADC8 CD 06 63             call    p127_puts
+  49+ ADCB
+  50+ ADCB              p127_keyboard_monitor_loop:
+  51+ ADCB AF                   xor     a
+  52+ ADCC 32 EC AF             ld      (p127_kbd_activity),a
+  53+ ADCF 3A EE AF             ld      a,(p127_kbd_xt_active)
+  54+ ADD2 B7                   or      a
+  55+ ADD3 28 05                jr      z,p127_keyboard_monitor_legacy
+  56+ ADD5 CD 48 AE             call    p127_keyboard_poll_xt
+  57+ ADD8 18 03                jr      p127_keyboard_monitor_pace
+  58+ ADDA              p127_keyboard_monitor_legacy:
+  59+ ADDA CD EC AE             call    p127_keyboard_poll_matrix
+  60+ ADDD              p127_keyboard_monitor_pace:
+  61+ ADDD                      ; Any make/break or modifier/matrix transition restarts the idle window.
+  62+ ADDD 3A EC AF             ld      a,(p127_kbd_activity)
+  63+ ADE0 B7                   or      a
+  64+ ADE1 28 05                jr      z,p127_keyboard_monitor_delay_start
+  65+ ADE3 3E 29                ld      a,P127_KBD_IDLE_WINDOWS
+  66+ ADE5 32 EB AF             ld      (p127_kbd_idle_windows),a
+  67+ ADE8              p127_keyboard_monitor_delay_start:
+  68+ ADE8                      ; Bounded software pacing; no PIT or interrupt dependency.
+  69+ ADE8 11 FF FF             ld      de,#FFFF
+  70+ ADEB              p127_keyboard_monitor_delay:
+  71+ ADEB 1B                   dec     de
+  72+ ADEC 7A                   ld      a,d
+  73+ ADED B3                   or      e
+  74+ ADEE 20 FB                jr      nz,p127_keyboard_monitor_delay
+  75+ ADF0 3A EB AF             ld      a,(p127_kbd_idle_windows)
+  76+ ADF3 3D                   dec     a
+  77+ ADF4 32 EB AF             ld      (p127_kbd_idle_windows),a
+  78+ ADF7 20 D2                jr      nz,p127_keyboard_monitor_loop
+  79+ ADF9 21 DE AF             ld      hl,p127_kbd_msg_done
+  80+ ADFC CD 06 63             call    p127_puts
+  81+ ADFF C3 02 63             jp      p127_idle
+  82+ AE02
+  83+ AE02              ; Enter ATM_KBD mode A using the exact Unreal Speccy ATM_KBD::read handshake.
+  84+ AE02              ; Carry is set if any of the three protocol responses is unexpected.
+  85+ AE02              p127_keyboard_set_mode:
+  86+ AE02 32 ED AF             ld      (p127_kbd_requested_mode),a
+  87+ AE05 01 FE 55             ld      bc,#55FE
+  88+ AE08 ED 78                in      a,(c)
+  89+ AE0A FE AA                cp      #AA
+  90+ AE0C 20 17                jr      nz,p127_keyboard_mode_fail
+  91+ AE0E 01 FE 08             ld      bc,#08FE
+  92+ AE11 ED 78                in      a,(c)
+  93+ AE13 FE 08                cp      8
+  94+ AE15 20 0E                jr      nz,p127_keyboard_mode_fail
+  95+ AE17 3A ED AF             ld      a,(p127_kbd_requested_mode)
+  96+ AE1A 47                   ld      b,a
+  97+ AE1B 0E FE                ld      c,P127_KBD_PORT
+  98+ AE1D ED 78                in      a,(c)
+  99+ AE1F FE FF                cp      #FF
+ 100+ AE21 20 02                jr      nz,p127_keyboard_mode_fail
+ 101+ AE23 B7                   or      a
+ 102+ AE24 C9                   ret
+ 103+ AE25              p127_keyboard_mode_fail:
+ 104+ AE25 37                   scf
+ 105+ AE26 C9                   ret
+ 106+ AE27
+ 107+ AE27              ; Read mode 2 registers. R2 is read-to-clear; R3/R4/R5 are state registers.
+ 108+ AE27              p127_keyboard_read_mode2:
+ 109+ AE27 01 FE 00             ld      bc,#00FE
+ 110+ AE2A ED 78                in      a,(c)
+ 111+ AE2C 32 F0 AF             ld      (p127_kbd_r2),a
+ 112+ AE2F 01 FE 40             ld      bc,#40FE
+ 113+ AE32 ED 78                in      a,(c)
+ 114+ AE34 32 F1 AF             ld      (p127_kbd_r3),a
+ 115+ AE37 01 FE 80             ld      bc,#80FE
+ 116+ AE3A ED 78                in      a,(c)
+ 117+ AE3C 32 F2 AF             ld      (p127_kbd_r4),a
+ 118+ AE3F 01 FE C0             ld      bc,#C0FE
+ 119+ AE42 ED 78                in      a,(c)
+ 120+ AE44 32 F3 AF             ld      (p127_kbd_r5),a
+ 121+ AE47 C9                   ret
+ 122+ AE48
+ 123+ AE48              ; Poll one event plus the current ATM modifier/extended-key registers.
+ 124+ AE48              ; lastscan bit 7 means key release. R5 carries key-class/extended metadata.
+ 125+ AE48              p127_keyboard_poll_xt:
+ 126+ AE48 CD 27 AE             call    p127_keyboard_read_mode2
+ 127+ AE4B 3E 03                ld      a,P127_KBD_MODE_EVENT
+ 128+ AE4D CD 02 AE             call    p127_keyboard_set_mode
+ 129+ AE50 38 4D                jr      c,p127_keyboard_xt_recover
+ 130+ AE52 01 FE 00             ld      bc,#00FE
+ 131+ AE55 ED 78                in      a,(c)
+ 132+ AE57 32 EF AF             ld      (p127_kbd_lastscan),a
+ 133+ AE5A
+ 134+ AE5A 3E 02                ld      a,P127_KBD_MODE_XT
+ 135+ AE5C CD 02 AE             call    p127_keyboard_set_mode
+ 136+ AE5F 38 3E                jr      c,p127_keyboard_xt_recover
+ 137+ AE61
+ 138+ AE61 3A EF AF             ld      a,(p127_kbd_lastscan)
+ 139+ AE64 B7                   or      a
+ 140+ AE65 20 1D                jr      nz,p127_keyboard_xt_activity
+ 141+ AE67 3A F1 AF             ld      a,(p127_kbd_r3)
+ 142+ AE6A 47                   ld      b,a
+ 143+ AE6B 3A F4 AF             ld      a,(p127_kbd_prev_r3)
+ 144+ AE6E B8                   cp      b
+ 145+ AE6F 20 13                jr      nz,p127_keyboard_xt_activity
+ 146+ AE71 3A F2 AF             ld      a,(p127_kbd_r4)
+ 147+ AE74 47                   ld      b,a
+ 148+ AE75 3A F5 AF             ld      a,(p127_kbd_prev_r4)
+ 149+ AE78 B8                   cp      b
+ 150+ AE79 20 09                jr      nz,p127_keyboard_xt_activity
+ 151+ AE7B 3A F3 AF             ld      a,(p127_kbd_r5)
+ 152+ AE7E 47                   ld      b,a
+ 153+ AE7F 3A F6 AF             ld      a,(p127_kbd_prev_r5)
+ 154+ AE82 B8                   cp      b
+ 155+ AE83 C8                   ret     z
+ 156+ AE84
+ 157+ AE84              p127_keyboard_xt_activity:
+ 158+ AE84 3E 01                ld      a,1
+ 159+ AE86 32 EC AF             ld      (p127_kbd_activity),a
+ 160+ AE89              p127_keyboard_xt_log:
+ 161+ AE89 CD A5 AE             call    p127_keyboard_log_xt
+ 162+ AE8C 3A F1 AF             ld      a,(p127_kbd_r3)
+ 163+ AE8F 32 F4 AF             ld      (p127_kbd_prev_r3),a
+ 164+ AE92 3A F2 AF             ld      a,(p127_kbd_r4)
+ 165+ AE95 32 F5 AF             ld      (p127_kbd_prev_r4),a
+ 166+ AE98 3A F3 AF             ld      a,(p127_kbd_r5)
+ 167+ AE9B 32 F6 AF             ld      (p127_kbd_prev_r5),a
+ 168+ AE9E C9                   ret
+ 169+ AE9F
+ 170+ AE9F              ; If mode switching fails, retry the mode-2 handshake on the next pass.
+ 171+ AE9F              p127_keyboard_xt_recover:
+ 172+ AE9F 3E 02                ld      a,P127_KBD_MODE_XT
+ 173+ AEA1 CD 02 AE             call    p127_keyboard_set_mode
+ 174+ AEA4 C9                   ret
+ 175+ AEA5
+ 176+ AEA5              p127_keyboard_log_xt:
+ 177+ AEA5 21 AD AF             ld      hl,p127_kbd_msg_event
+ 178+ AEA8 CD 06 63             call    p127_puts
+ 179+ AEAB 3A EF AF             ld      a,(p127_kbd_lastscan)
+ 180+ AEAE CD 22 63             call    p127_put_hex8
+ 181+ AEB1 21 B9 AF             ld      hl,p127_kbd_msg_r2
+ 182+ AEB4 CD 06 63             call    p127_puts
+ 183+ AEB7 3A F0 AF             ld      a,(p127_kbd_r2)
+ 184+ AEBA CD 22 63             call    p127_put_hex8
+ 185+ AEBD 21 BE AF             ld      hl,p127_kbd_msg_r3
+ 186+ AEC0 CD 06 63             call    p127_puts
+ 187+ AEC3 3A F1 AF             ld      a,(p127_kbd_r3)
+ 188+ AEC6 CD 22 63             call    p127_put_hex8
+ 189+ AEC9 21 C3 AF             ld      hl,p127_kbd_msg_r4
+ 190+ AECC CD 06 63             call    p127_puts
+ 191+ AECF 3A F2 AF             ld      a,(p127_kbd_r4)
+ 192+ AED2 CD 22 63             call    p127_put_hex8
+ 193+ AED5 21 C8 AF             ld      hl,p127_kbd_msg_r5
+ 194+ AED8 CD 06 63             call    p127_puts
+ 195+ AEDB 3A F3 AF             ld      a,(p127_kbd_r5)
+ 196+ AEDE CD 22 63             call    p127_put_hex8
+ 197+ AEE1 3E 0D                ld      a,13
+ 198+ AEE3 CD 38 63             call    p127_put_char
+ 199+ AEE6 3E 0A                ld      a,10
+ 200+ AEE8 CD 38 63             call    p127_put_char
+ 201+ AEEB C9                   ret
+ 202+ AEEC
+ 203+ AEEC              ; Compatibility fallback when ATMKBD=1 is not enabled in the emulator.
+ 204+ AEEC              p127_keyboard_poll_matrix:
+ 205+ AEEC CD 41 AF             call    p127_keyboard_scan_matrix
+ 206+ AEEF 3A 07 B0             ld      a,(p127_kbd_snapshot_valid)
+ 207+ AEF2 B7                   or      a
+ 208+ AEF3 28 11                jr      z,p127_keyboard_matrix_changed
+ 209+ AEF5 21 F7 AF             ld      hl,p127_kbd_matrix
+ 210+ AEF8 11 FF AF             ld      de,p127_kbd_previous
+ 211+ AEFB 06 08                ld      b,8
+ 212+ AEFD              p127_keyboard_matrix_compare:
+ 213+ AEFD 1A                   ld      a,(de)
+ 214+ AEFE BE                   cp      (hl)
+ 215+ AEFF 20 05                jr      nz,p127_keyboard_matrix_changed
+ 216+ AF01 13                   inc     de
+ 217+ AF02 23                   inc     hl
+ 218+ AF03 10 F8                djnz    p127_keyboard_matrix_compare
+ 219+ AF05 C9                   ret
+ 220+ AF06              p127_keyboard_matrix_changed:
+ 221+ AF06 3E 01                ld      a,1
+ 222+ AF08 32 EC AF             ld      (p127_kbd_activity),a
+ 223+ AF0B 21 F7 AF             ld      hl,p127_kbd_matrix
+ 224+ AF0E 11 FF AF             ld      de,p127_kbd_previous
+ 225+ AF11 01 08 00             ld      bc,8
+ 226+ AF14 ED B0                ldir
+ 227+ AF16 3E 01                ld      a,1
+ 228+ AF18 32 07 B0             ld      (p127_kbd_snapshot_valid),a
+ 229+ AF1B 21 CD AF             ld      hl,p127_kbd_msg_matrix
+ 230+ AF1E CD 06 63             call    p127_puts
+ 231+ AF21 21 F7 AF             ld      hl,p127_kbd_matrix
+ 232+ AF24 06 08                ld      b,8
+ 233+ AF26              p127_keyboard_matrix_log_loop:
+ 234+ AF26 C5                   push    bc
+ 235+ AF27 E5                   push    hl
+ 236+ AF28 7E                   ld      a,(hl)
+ 237+ AF29 CD 22 63             call    p127_put_hex8
+ 238+ AF2C 3E 20                ld      a,' '
+ 239+ AF2E CD 38 63             call    p127_put_char
+ 240+ AF31 E1                   pop     hl
+ 241+ AF32 C1                   pop     bc
+ 242+ AF33 23                   inc     hl
+ 243+ AF34 10 F0                djnz    p127_keyboard_matrix_log_loop
+ 244+ AF36 3E 0D                ld      a,13
+ 245+ AF38 CD 38 63             call    p127_put_char
+ 246+ AF3B 3E 0A                ld      a,10
+ 247+ AF3D CD 38 63             call    p127_put_char
+ 248+ AF40 C9                   ret
+ 249+ AF41
+ 250+ AF41              p127_keyboard_scan_matrix:
+ 251+ AF41 C5                   push    bc
+ 252+ AF42 D5                   push    de
+ 253+ AF43 E5                   push    hl
+ 254+ AF44 01 FE 00             ld      bc,#00FE
+ 255+ AF47 21 60 AF             ld      hl,p127_kbd_row_selectors
+ 256+ AF4A 11 F7 AF             ld      de,p127_kbd_matrix
+ 257+ AF4D 3E 08                ld      a,8
+ 258+ AF4F              p127_keyboard_scan_matrix_loop:
+ 259+ AF4F F5                   push    af
+ 260+ AF50 46                   ld      b,(hl)
+ 261+ AF51 23                   inc     hl
+ 262+ AF52 ED 78                in      a,(c)
+ 263+ AF54 E6 1F                and     P127_KBD_ROW_MASK
+ 264+ AF56 12                   ld      (de),a
+ 265+ AF57 13                   inc     de
+ 266+ AF58 F1                   pop     af
+ 267+ AF59 3D                   dec     a
+ 268+ AF5A 20 F3                jr      nz,p127_keyboard_scan_matrix_loop
+ 269+ AF5C E1                   pop     hl
+ 270+ AF5D D1                   pop     de
+ 271+ AF5E C1                   pop     bc
+ 272+ AF5F C9                   ret
+ 273+ AF60
+ 274+ AF60              p127_kbd_row_selectors:
+ 275+ AF60 FE FD FB F7          db #FE,#FD,#FB,#F7,#EF,#DF,#BF,#7F
+ 275+ AF64 EF DF BF 7F
+ 276+ AF68
+ 277+ AF68              p127_kbd_msg_init:
+ 278+ AF68 5B 4B 42 44          db "[KBD v0.2.2] INIT",13,10,0
+ 278+ AF6C 20 76 30 2E
+ 278+ AF70 32 2E 32 5D
+ 278+ AF74 20 49 4E 49
+ 278+ AF78 54 0D 0A 00
+ 279+ AF7C              p127_kbd_msg_xt_ready:
+ 280+ AF7C 5B 4B 42 44          db "[KBD] ATM XT ACTIVE",13,10,0
+ 280+ AF80 5D 20 41 54
+ 280+ AF84 4D 20 58 54
+ 280+ AF88 20 41 43 54
+ 280+ AF8C 49 56 45 0D
+ 280+ AF90 0A 00
+ 281+ AF92              p127_kbd_msg_legacy:
+ 282+ AF92 5B 4B 42 44          db "[KBD] ZX MATRIX FALLBACK",13,10,0
+ 282+ AF96 5D 20 5A 58
+ 282+ AF9A 20 4D 41 54
+ 282+ AF9E 52 49 58 20
+ 282+ AFA2 46 41 4C 4C
+ 282+ AFA6 42 41 43 4B
+ 282+ AFAA 0D 0A 00
+ 283+ AFAD              p127_kbd_msg_event:
+ 284+ AFAD 5B 4B 42 44          db "[KBD] LAST=",0
+ 284+ AFB1 5D 20 4C 41
+ 284+ AFB5 53 54 3D 00
+ 285+ AFB9              p127_kbd_msg_r2:
+ 286+ AFB9 20 52 32 3D          db " R2=",0
+ 286+ AFBD 00
+ 287+ AFBE              p127_kbd_msg_r3:
+ 288+ AFBE 20 52 33 3D          db " R3=",0
+ 288+ AFC2 00
+ 289+ AFC3              p127_kbd_msg_r4:
+ 290+ AFC3 20 52 34 3D          db " R4=",0
+ 290+ AFC7 00
+ 291+ AFC8              p127_kbd_msg_r5:
+ 292+ AFC8 20 52 35 3D          db " R5=",0
+ 292+ AFCC 00
+ 293+ AFCD              p127_kbd_msg_matrix:
+ 294+ AFCD 5B 4B 42 44          db "[KBD] ZX MATRIX=",0
+ 294+ AFD1 5D 20 5A 58
+ 294+ AFD5 20 4D 41 54
+ 294+ AFD9 52 49 58 3D
+ 294+ AFDD 00
+ 295+ AFDE              p127_kbd_msg_done:
+ 296+ AFDE 5B 4B 42 44          db "[KBD] DONE",13,10,0
+ 296+ AFE2 5D 20 44 4F
+ 296+ AFE6 4E 45 0D 0A
+ 296+ AFEA 00
+ 297+ AFEB
+ 298+ AFEB              p127_kbd_idle_windows:
+ 299+ AFEB 29                   db P127_KBD_IDLE_WINDOWS
+ 300+ AFEC              p127_kbd_activity:
+ 301+ AFEC 00                   db 0
+ 302+ AFED
+ 303+ AFED              p127_kbd_requested_mode:
+ 304+ AFED 00                   db 0
+ 305+ AFEE              p127_kbd_xt_active:
+ 306+ AFEE 00                   db 0
+ 307+ AFEF              p127_kbd_lastscan:
+ 308+ AFEF 00                   db 0
+ 309+ AFF0              p127_kbd_r2:
+ 310+ AFF0 00                   db 0
+ 311+ AFF1              p127_kbd_r3:
+ 312+ AFF1 00                   db 0
+ 313+ AFF2              p127_kbd_r4:
+ 314+ AFF2 00                   db 0
+ 315+ AFF3              p127_kbd_r5:
+ 316+ AFF3 00                   db 0
+ 317+ AFF4              p127_kbd_prev_r3:
+ 318+ AFF4 FF                   db #FF
+ 319+ AFF5              p127_kbd_prev_r4:
+ 320+ AFF5 FF                   db #FF
+ 321+ AFF6              p127_kbd_prev_r5:
+ 322+ AFF6 FF                   db #FF
+ 323+ AFF7              p127_kbd_matrix:
+ 324+ AFF7 1F 1F 1F...          ds 8,#1F
+ 325+ AFFF              p127_kbd_previous:
+ 326+ AFFF 1F 1F 1F...          ds 8,#1F
+ 327+ B007              p127_kbd_snapshot_valid:
+ 328+ B007 00                   db 0
+ 329+ B008
 # file closed: p127_keyboard.asm
-  95  B049              p127_image_end:
+  95  B008              p127_image_end:
 main.asm(96): error: [ASSERT] Assertion failed:  p127_image_end <= #B000
-  96  B049                      ASSERT p127_image_end <= #B000
-  97  B049                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_image_end-P127_LOAD_ADDRESS
-  98  B049
+  96  B008                      ASSERT p127_image_end <= #B000
+  97  B008                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_image_end-P127_LOAD_ADDRESS
+  98  B008
 # file closed: main.asm
