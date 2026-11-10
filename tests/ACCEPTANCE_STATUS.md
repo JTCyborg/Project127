@@ -63,27 +63,15 @@ Reference mode matrix (Project112):
 | 2 | ATM EGA | #C0 (RG=0) | 320x200x16 |
 | 3 | ATM hardware text | #C6 (RG=6) | 80x25 |
 
-### Keyboard/input — ATM XT protocol implemented; runtime pending
+### Keyboard/input — ZX fallback diagnostic runtime PASS; ATM XT mode not exercised
 
-ATM host owns all physical keyboard reads. `src/kernel/p127_keyboard.asm` v0.2.2 now implements the Unreal Speccy ATM_KBD interface through ULA port #FE:
+The user's 2026-11-10 runtime log confirms:
 
-- Performs the documented #55/#AA handshake and command #08 mode selection.
-- Enters ATM_KBD mode 2 and reads R2/R3/R4/R5; R2 is read-to-clear, while R3/R4/R5 expose key/modifier/extended-key metadata.
-- Temporarily switches to mode 3 to read and clear LASTSCAN, then returns to mode 2. LASTSCAN bit 7 denotes key release.
-- Logs each key event with LASTSCAN and R2/R3/R4/R5, and reports modifier/register state changes.
-- Requires `[Input] ATMKBD=1` in the Unreal Speccy configuration. If the ATM_KBD handshake is absent, it explicitly falls back to the ordinary ZX 8x5 matrix diagnostic; that fallback is not full PC-keyboard support.
-- All polling is ATM-side, paced in software, and independent of PIT/IRQ. No NeoGS implementation, DMA transport, IM or EI is assumed.
+- `[KBD] INIT` and `[KBD] ZX FALLBACK`.
+- The ZX 8x5 matrix values changed in response to key presses and returned to the idle values after release.
+- The inactivity timeout ended the monitor with `[KBD] DONE`.
 
-Expected runtime markers with ATMKBD enabled:
-
-```text
-[KBD] INIT
-[KBD] ATM XT ACTIVE
-[KBD] LAST=.. R2=.. R3=.. R4=.. R5=..
-[KBD] DONE
-```
-
-The monitor now exits automatically after 10 seconds without a new make/break or modifier/matrix transition, prints `[KBD] DONE`, and returns to the normal boot idle loop. The timeout uses the ATM Turbo 2+ 7 MHz software-pacing estimate; it still requires runtime timing confirmation. Runtime acceptance remains pending until the user tests ordinary keys, function/navigation keys, modifiers, extended keys, make/break events, and the idle exit in the configured emulator.
+This closes the requested keyboard diagnostic stage. The run did not activate ATM XT mode, so the #55/#AA handshake, R2/R3/R4/R5 extended-key protocol, and function/navigation keys through ATM_KBD are not claimed as tested. The timeout duration is based on the software-pacing estimate and has not been independently timed.
 ### Explicitly deferred
 
 - HDD/FAT16 functional acceptance. The latest runtime log did show a successful NEMO IDE LBA28 probe, sector 63 read, and FAT16 root-directory listing (7 files); this is recorded as an observation only, not acceptance.
@@ -94,3 +82,12 @@ The monitor now exits automatically after 10 seconds without a new make/break or
 Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE path while it is deferred.
 
 
+
+
+### IRQ — frame source identified; live activation pending
+
+- The upstream Unreal Speccy source audit identifies the ATM710 frame interrupt source: one pending Z80 INT per Spectrum frame, accepted during the interrupt window only when CPU IFF1 is set and ATM FF77 bit #20 is enabled.
+- The emulator's IM1 handler address is fixed at #0038; IM2 reads a handler pointer from the table selected by I and the emulator-provided interrupt vector byte.
+- Project127's existing IRQ tests verify only synthetic frame/context and DI-only readiness contracts. No vector bytes are installed, no permanent P4 mapping is established, and no live handler has run.
+- P4 remains reserved for a future IM2 table but is not permanently mapped; W3 remains a leased window restored to P0. Therefore neither an IM2 table nor live EI is safe yet.
+- No live IRQ acceptance. Keep IM/EI disabled until stable vector mapping, resident handler, stack/window ownership and acknowledgement/return behavior are implemented and tested.
