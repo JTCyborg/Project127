@@ -301,3 +301,13 @@ IRQ update:
 - No `EI` was executed; no live frame interrupt, handler entry or hardware `RETI` roundtrip is shown. The controlled live-delivery test remains unimplemented/unaccepted. Keep normal boot masked.
 
 This entry records only the user's supplied emulator runtime evidence; it is not an independent build or CI result.
+
+
+### IRQ — bounded live frame-interrupt probe added — 2026-11-10
+
+- Added a bounded live-delivery probe immediately after the masked IM2 install. It does not write ATM FF77 or any other I/O port; the existing host frame-interrupt gate is left untouched.
+- The resident handler executes DI as its first instruction. While the probe is armed, its dispatcher consumes one event, clears the armed flag and increments a dedicated counter. RETI therefore returns with IFF1/IFF2 clear; repeated frame interrupts cannot re-enter during the foreground check.
+- The foreground opens a finite EI window, polls a 16-bit instruction-count timeout, then verifies exactly one entry, a preserved DE sentinel, and IFF2 still clear. Timeout and all failure paths execute DI and disarm the probe.
+- Boot reports either `IRQ LIVE ONE-SHOT PASS; RETI RETURNED; DI RESTORED` or `IRQ LIVE TEST TIMEOUT/STATE FAIL; DI RESTORED`. A timeout is diagnostic, not a boot halt, and does not claim IRQ acceptance.
+- Source change only; clean build and emulator runtime confirmation are still required. PASS marker is live-delivery evidence; TIMEOUT means no interrupt was delivered within the bounded window. The test exits masked.
+
