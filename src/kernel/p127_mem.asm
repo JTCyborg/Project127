@@ -360,6 +360,10 @@ p127_mem_pin_selftest:
         ld      a,c
         call    p127_mem_free
         jp      nc,p127_mem_pin_test_fail
+        ld      hl,p127_mem_pin_count
+        ld      e,c
+        ld      d,0
+        add     hl,de
         ld      (hl),0
         ld      a,c
         call    p127_mem_free
