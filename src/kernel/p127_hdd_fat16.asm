@@ -68,10 +68,11 @@ p127_hdd_fat_root_size_ok:
         ld      hl,(p127_hdd_fat_root_lba)
         add     hl,de
         ld      (p127_hdd_fat_root_lba),hl
+        jr      nc,p127_hdd_fat_reserved_no_carry
         ld      hl,(p127_hdd_fat_root_lba+2)
-        adc     hl,0
+        inc     hl
         ld      (p127_hdd_fat_root_lba+2),hl
-
+p127_hdd_fat_reserved_no_carry:
         ld      a,(P127_HDD_SECTOR_BUFFER+16)
         ld      (p127_hdd_fat_fat_count),a
         ld      de,(P127_HDD_SECTOR_BUFFER+22)
@@ -79,9 +80,11 @@ p127_hdd_fat_add_fat_loop:
         ld      hl,(p127_hdd_fat_root_lba)
         add     hl,de
         ld      (p127_hdd_fat_root_lba),hl
+        jr      nc,p127_hdd_fat_add_no_carry
         ld      hl,(p127_hdd_fat_root_lba+2)
-        adc     hl,0
+        inc     hl
         ld      (p127_hdd_fat_root_lba+2),hl
+p127_hdd_fat_add_no_carry:
         ld      a,(p127_hdd_fat_fat_count)
         dec     a
         ld      (p127_hdd_fat_fat_count),a
