@@ -163,3 +163,20 @@ The earlier PHYSMEM ERROR=08 is resolved in this runtime by the P4 reservation c
 - Thus, for the committed Project127 emulator configuration, `CF_Z80FBUS` remains clear in normal and TR-DOS operation, and `TMainZ80::IntVec()` returns the deterministic IM2 vector `0xFF`.
 - With the existing candidate `I=0xB0`, the only vector slot required by this configuration is `#B0FF/#B100`. The table remains uninitialized until the handler address and executable mapping are verified.
 - This confirms the vector condition from the repository's `unreal.ini`; it does not by itself prove the user's local INI has no uncommitted overrides or that the live IRQ path is safe.
+
+
+### Latest integrated runtime — 2026-11-10 15:48
+
+The user's new ATM Turbo 2+ runtime log reconfirms the previously accepted memory, video and ZX keyboard diagnostic results and adds the following observations:
+
+- TR-DOS directory initialization completed before the system UI; the later directory read returned 8 sectors / 2048 bytes and listed `boot.B` and `P127BOOT.C`.
+- DS12887 RTC probe through GLUK/SMUC succeeded: time read returned `15:48:04`.
+- Memory initialization and fixed page map remained correct: P0/P2/P4 boot reservations, P1/P3/P5/P7 video reservations, P5 active; kernel image size `0x33AB`, bounds pass.
+- Full physical W3 sweep again verified all 57/57 free pages, restored P0 and UI, and passed allocator exhaustion/recovery, PIN/UNPIN and cross-page span-copy tests.
+- ATM video RG3/RG2/RG0/RG6 cycle and full-page P7/P3 CRC16 checks passed; UI restored.
+- Speaker #FE D4 tone smoke test began and ended; no audio acceptance inferred.
+- NEMO-DIVIDE LBA28 probe again found the master ready, read LBA 63 (512-byte sector with BPB and 55AA signature), and listed seven FAT16 root entries. Full FAT16 acceptance remains deferred.
+- Keyboard again used ZX fallback, showed a matrix change on key press and returned to idle; monitor ended with `[KBD] DONE`. This does not test ATM XT extended-key protocol.
+- IRQ preflights pass, but the log explicitly keeps vector/IM/EI disabled. No live IRQ acceptance is claimed.
+
+No new failure is reported in this run. The IRQ stage remains the next active development item; do not enable IM/EI based on these preflight markers alone.
