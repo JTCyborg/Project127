@@ -138,3 +138,12 @@ The user's latest complete boot log confirms:
 - IRQ source/vector remains unresolved; IM/EI stay disabled.
 
 The earlier PHYSMEM ERROR=08 is resolved in this runtime by the P4 reservation correction. The corrected W3 sweep has now been confirmed by the user.
+
+### IRQ source audit — concrete ATM CPU path clarified
+
+- In Unreal Speccy, the ATM/Spectrum frame loop in `z80_main.inl` calls `handle_int(&cpu, cpu.IntVec())`. The active object is declared as `extern TMainZ80 cpu` in `vars.h`; `TMainZ80` derives from `Z80` and declares its own `IntVec()` override.
+- The ATM frame source is a pending INT once per Spectrum frame. For ATM710/ATM3, the hardware gate is `comp.pFF77 & 0x20`; `set_atm_FF77()` mirrors that bit to `cpu.int_gate`. The interrupt is accepted only when the Z80 IFF1/EI-delay conditions and the ATM gate allow it.
+- `handle_int()` uses fixed address `#0038` for IM0/IM1. In IM2 it forms the table address from `I * 256 + vector`, reads the little-endian handler address, pushes the return PC, and clears IFF1/IFF2.
+- The earlier `TGsZ80::IntVec()` lead is a separate GS Z80 core path, not the ATM host CPU path. `gsz80.h` declares that override; the ATM frame loop instead calls `cpu.IntVec()` on `TMainZ80`.
+- The current upstream source inspection confirms the `TMainZ80::IntVec()` declaration but has not located its concrete definition or established its returned byte. Do not infer the vector from the frame cadence, FF77 gate, IM1 address, or the GS core.
+- Project127 remains DI-only: no IM selection, no EI, no IM2 table contents, and no live IRQ handler. Next source-audit step is to locate the linked `TMainZ80::IntVec()` implementation and trace its return value in the exact Unreal Speccy build used for runtime testing.
