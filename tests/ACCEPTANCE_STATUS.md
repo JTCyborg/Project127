@@ -230,3 +230,52 @@ IRQ update:
 - Interrupts remain disabled: no `EI` was executed, no live frame interrupt was delivered to the handler, and no real interrupt/RETI roundtrip has been accepted. Keep live IRQ activation as the next IRQ test stage.
 - This is user-confirmed emulator runtime evidence; it does not establish a separate clean rebuild in CI or live IRQ delivery.
 
+
+### Latest integrated runtime — 2026-11-10 16:38
+
+The user's latest ATM Turbo 2+ runtime log reports no new failures and reconfirms the integrated diagnostics:
+
+- DS12887 RTC probe through GLUK/SMUC succeeded; time read returned `16:38:16`.
+- TR-DOS directory read completed: 8 sectors / 2048 bytes, with `boot.B` and `P127BOOT.C`.
+- Kernel image size remains `0x3494`; P5/P2 bounds pass.
+- Memory/page-management checks pass, including the complete W3 sweep (57/57 free pages), P0/UI restoration, allocator exhaustion/recovery, PIN/UNPIN and cross-page span copy.
+- ATM video RG3/RG2/RG0/RG6 cycle and P7/P3 full-page CRC16 pass; UI restored.
+- NEMO-DIVIDE LBA28 master probe, LBA 63 sector read and seven-entry FAT16 root scan succeed. Full FAT16 functional acceptance remains deferred.
+- Speaker #FE D4 tone begin/end markers are present; audio acceptance remains deferred.
+- Keyboard monitor starts in ZX fallback and ends with `[KBD] DONE`. This log contains no matrix-change sample, so no key-press detection is newly claimed. ATM XT extended-key mode remains untested.
+
+IRQ update:
+
+- The synthetic `IRQ FRAME ROUNDTRIP PASS; VECTOR DISABLED` marker is an earlier software-only test and does not contradict the subsequent installer marker.
+- The runtime again reports `IM2 VECTOR #FF INSTALLED AT B0FF; I=B0; DI; EI DISABLED`, followed by successful table-slot, mask/vector, resident-trampoline and resident-window preflights.
+- The masked IM2 installation is therefore reconfirmed by this run. No `EI` was executed and no live frame interrupt, hardware handler entry or real interrupt/RETI roundtrip was observed. Live IRQ acceptance remains open; keep interrupts disabled.
+
+This entry records user-supplied runtime evidence only; it is not an independent CI/build result.
+
+
+### IRQ — controlled live-delivery test plan — 2026-11-10
+
+The next IRQ stage is a deliberately bounded, opt-in runtime test. It is not part of normal boot and must not change the currently accepted DI-only startup behavior.
+
+Test prerequisites:
+
+- The active emulator preset must remain ATM710 with `FloatBus=0` and `FloatDOS=0`; the host ATM CPU must therefore supply vector `#FF`.
+- The masked IM2 installer must report success: `I=#B0`, vector pointer at `#B0FF/#B100`, handler in fixed W2/P2, and P2 still reserved/mapped in W2.
+- The existing ATM frame-interrupt gate (`FF77 bit #20`) must already be in the expected enabled state. The test must first inspect the current gate/configuration and must not blindly overwrite unrelated FF77 bits.
+- The resident stack and handler window must remain fixed. No W3 lease/remap, memory allocator operation, video transition, or UI operation may run during the live window.
+- Normal boot continues to execute `DI`; the live test is entered only by an explicit diagnostic action.
+
+Bounded test sequence to implement:
+
+1. With `DI` asserted, clear a dedicated IRQ-entry counter and arm a one-shot test state.
+2. Confirm the IM2 vector/table and fixed W2/P2 mapping again immediately before activation.
+3. Execute the controlled `EI` window and poll the counter using a finite instruction-count timeout; do not use an unbounded `HALT`.
+4. On the first observed handler entry, execute `DI` immediately in the foreground before any other subsystem work. The handler increments only the dedicated counter and follows the existing full-register save/restore path to `RETI`.
+5. Verify exactly one entry, intact foreground sentinel state, unchanged page mapping, and successful return to the instruction following the polling loop. A zero count is a timeout/failure; more than one entry is a failure, not a pass.
+6. Restore the normal masked state and emit explicit PASS/FAIL/TIMEOUT markers. Any failure path must end in `DI`.
+
+Important distinction: the emulator's frame INT is a CPU interrupt event, not an independently identified PIC/PIT device request. Do not add a speculative port-acknowledge sequence. The current evidence establishes the ATM frame source and IM2 vector behavior, but not a separate peripheral acknowledge protocol. If later source inspection establishes an acknowledge requirement, document and test it separately before adding it.
+
+Acceptance requires a user-supplied emulator log showing a real handler-entry counter change during the bounded live window, exactly one entry, successful `RETI` return, and interrupts masked afterward. The existing synthetic CALL-based context test and masked installer markers do not satisfy this criterion.
+
+**Current implementation status:** design recorded only. No live-test routine has been added or invoked; no `EI` is executed by normal boot. Keep live IRQ acceptance open until the above sequence is implemented, built, and observed in the emulator.
