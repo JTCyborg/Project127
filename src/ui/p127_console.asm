@@ -698,10 +698,36 @@ p127_video_switch_mode:
 p127_video_mode_return:
         call    p126_screen_restore_host_pages
         call    p127_w3_ui_leave
+
+        ; Verify the CPU windows and W3 ownership contract after EVERY mode
+        ; write. W2 must be the host page P5, W3 must be P0, and the UI lease
+        ; must be released before another mode transition is attempted.
+        ld      a,(p127_map_shadow+2)
+        cp      5
+        jr      nz,p127_video_mode_restore_error
+        ld      a,(p127_map_shadow+3)
+        or      a
+        jr      nz,p127_video_mode_restore_error
+        ld      a,(p127_w3_state)
+        cp      P127_W3_STATE_UI_ACTIVE
+        jr      nz,p127_video_mode_restore_error
+        ld      a,(p127_w3_owner)
+        cp      P127_W3_OWNER_UI
+        jr      nz,p127_video_mode_restore_error
+        ld      a,(p127_w3_busy)
+        or      a
+        jr      nz,p127_video_mode_restore_error
         pop     hl
         pop     de
         pop     bc
         or      a
+        ret
+
+p127_video_mode_restore_error:
+        pop     hl
+        pop     de
+        pop     bc
+        scf
         ret
 
 p127_video_switch_refused:
