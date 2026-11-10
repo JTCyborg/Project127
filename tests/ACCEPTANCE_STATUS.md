@@ -88,9 +88,9 @@ Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE pat
 
 - The upstream Unreal Speccy source audit identifies the ATM710 frame interrupt source: one pending Z80 INT per Spectrum frame, accepted during the interrupt window only when CPU IFF1 is set and ATM FF77 bit #20 is enabled.
 - The emulator's IM1 handler address is fixed at #0038; IM2 reads a handler pointer from the table selected by I and the emulator-provided interrupt vector byte.
-- Project127's existing IRQ tests verify only synthetic frame/context and DI-only readiness contracts. No vector bytes are installed, no permanent P4 mapping is established, and no live handler has run.
-- P4 remains reserved for a future IM2 table but is not permanently mapped; W3 remains a leased window restored to P0. Therefore neither an IM2 table nor live EI is safe yet.
-- No live IRQ acceptance. Keep IM/EI disabled until stable vector mapping, resident handler, stack/window ownership and acknowledgement/return behavior are implemented and tested.
+- Project127's existing IRQ tests verify only synthetic frame/context and DI-only readiness contracts. No vector bytes are installed and no live handler has run.
+- The initial W3/P4 table candidate was rejected because W3 is leased and remapped. The current preflight candidate is #B000..#B100 in fixed W2/P2, beyond the resident image end and below the scratch-stack region. This is a placement candidate only; the table is not initialized.
+- No live IRQ acceptance. Keep IM/EI disabled until the emulator vector byte, resident handler, stack/window ownership and acknowledgement/return behavior are implemented and tested.
 
 
 ### IRQ — stable IM2 table location preflight updated; live IRQ pending
