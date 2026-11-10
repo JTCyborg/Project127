@@ -419,6 +419,7 @@ p127_msg_trampoline_preflight_fail: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT FAI
         INCLUDE "src/kernel/p127_handoff.asm"
         INCLUDE "src/kernel/p127_trdos.asm"
         INCLUDE "src/kernel/p127_rtc.asm"
+        INCLUDE "src/kernel/p127_speaker.asm"
         INCLUDE "src/kernel/p127_hdd.asm"
         INCLUDE "src/kernel/p127_hdd_fat16.asm"
 
