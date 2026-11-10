@@ -7,7 +7,7 @@
 Verified by the user's ATM Turbo 2+ emulator run:
 
 - 1 MiB / 64-page initialization.
-- Fixed reservations: video P1/P3/P5/P7, boot P0/P2, IRQ table P4.
+- Fixed reservations: video P1/P3/P5/P7; active boot map P0/P2. The IRQ table occupies #B000..#B100 inside already-reserved W2/P2; it is not a separate physical-page reservation.
 - Page-state and negative-path checks: double-free, range and reserved-page guards.
 - UINT32 1 MiB bounds and top-down P8..P63 arena checks.
 - Logical page-table/boundary translation and logical-span preflight.
@@ -105,3 +105,11 @@ Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE pat
 - The inspected `gsz80.cpp` contains the `TGsZ80` method definitions for memory, M1, IN/OUT and RETN, but no `TGsZ80::IntVec()` definition. The declaration alone does not establish the returned vector byte.
 - The frame loop passes `cpu.IntVec()` to `handle_int()`; IM2 uses that byte together with I to read the little-endian handler address. Therefore the exact vector cannot be inferred from the frame source or from the IM1 fixed address `#0038`.
 - Do not initialize the IM2 table with a guessed vector and do not enable IM/EI. Continue tracing the concrete runtime implementation/selected CPU class and its linked definition before writing vector bytes.
+
+
+### IRQ table reservation correction — 2026-11-10
+
+- Runtime log stopped at `IRQ TABLE PAGE RESERVE FAIL` because the table candidate had been moved to physical P2/W2, while `p127_mem_reserve_boot` already reserves P2 for the resident UI/stack.
+- `p127_mem_reserve_irq_table` incorrectly attempted a second exclusive reservation of P2. The page manager correctly rejected that overlap.
+- Corrected the routine to validate that P2 is already in `P127_MEM_RESERVED` state instead of reserving it again. The IRQ table remains an address range inside the existing boot reservation; no new page is consumed and no table bytes/IM/EI are installed.
+- Updated the boot diagnostic to identify the shared P2/W2 reservation. Runtime confirmation is pending the next user emulator run.
