@@ -86,6 +86,8 @@ Expected runtime markers:
 
 The matrix line is expected to change when keys are pressed/released; the corresponding row bit is cleared for a pressed key. Keyboard/DMA acceptance remains pending until a user emulator run confirms all eight rows and successful DMA handoff. The NeoGS receiver must implement the documented Project125 `CMD_HOST_INPUT` mailbox contract.
 
+Build verification: GitHub Actions run [42790764590](https://github.com/JTCyborg/Project127/actions/runs/42790764590) assembled the complete `src/main.asm` TR-DOS image with SjASMPlus 1.24.0: 0 errors, 0 warnings, 7924 lines; output image size 655360 bytes. This is source/build verification only, not emulator runtime acceptance.
+
 ### Explicitly deferred
 
 - HDD/FAT16 functional acceptance. The latest runtime log did show a successful NEMO IDE LBA28 probe, sector 63 read, and FAT16 root-directory listing (7 files); this is recorded as an observation only, not acceptance.
