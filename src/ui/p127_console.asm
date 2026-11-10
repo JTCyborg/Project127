@@ -613,6 +613,8 @@ P127_VIDEO_MODE_TEXT     EQU #C6
 p127_video_mode_selftest:
         ; Preserve representative character and attribute bytes from both
         ; parity planes. The mode changes themselves must not alter VRAM.
+        xor     a
+        ld      (p127_video_capture_phase),a
         call    p127_video_capture_signature
         ret     c
 
@@ -636,19 +638,25 @@ p127_video_mode_selftest:
         call    p127_video_switch_mode
         ret     c
 
+        ld      a,1
+        ld      (p127_video_capture_phase),a
         call    p127_video_capture_signature
         ret     c
         ld      a,(p127_video_sig_char_even)
-        cp      (p127_video_sig_after_char_even)
+        ld      hl,p127_video_sig_after_char_even
+        cp      (hl)
         jr      nz,p127_video_test_fail
         ld      a,(p127_video_sig_char_odd)
-        cp      (p127_video_sig_after_char_odd)
+        ld      hl,p127_video_sig_after_char_odd
+        cp      (hl)
         jr      nz,p127_video_test_fail
         ld      a,(p127_video_sig_attr_even)
-        cp      (p127_video_sig_after_attr_even)
+        ld      hl,p127_video_sig_after_attr_even
+        cp      (hl)
         jr      nz,p127_video_test_fail
         ld      a,(p127_video_sig_attr_odd)
-        cp      (p127_video_sig_after_attr_odd)
+        ld      hl,p127_video_sig_after_attr_odd
+        cp      (hl)
         jr      nz,p127_video_test_fail
         or      a
         ret
@@ -712,6 +720,9 @@ p127_video_capture_signature:
         call    p127_w3_ui_enter
         jr      c,p127_video_capture_refused
         call    p126_screen_map_video_pages
+        ld      a,(p127_video_capture_phase)
+        or      a
+        jr      nz,p127_video_capture_after
         ld      a,(#41C0)
         ld      (p127_video_sig_char_even),a
         ld      a,(#61C0)
@@ -720,6 +731,17 @@ p127_video_capture_signature:
         ld      (p127_video_sig_attr_even),a
         ld      a,(#C1C1)
         ld      (p127_video_sig_attr_odd),a
+        jr      p127_video_capture_done
+p127_video_capture_after:
+        ld      a,(#41C0)
+        ld      (p127_video_sig_after_char_even),a
+        ld      a,(#61C0)
+        ld      (p127_video_sig_after_char_odd),a
+        ld      a,(#E1C0)
+        ld      (p127_video_sig_after_attr_even),a
+        ld      a,(#C1C1)
+        ld      (p127_video_sig_after_attr_odd),a
+p127_video_capture_done:
         call    p126_screen_restore_host_pages
         call    p127_w3_ui_leave
         pop     hl
@@ -754,6 +776,7 @@ p127_video_visible_delay:
         ret
 
 p127_video_mode_arg:       db 0
+p127_video_capture_phase:  db 0
 p127_video_sig_char_even:  db 0
 p127_video_sig_char_odd:   db 0
 p127_video_sig_attr_even:  db 0
