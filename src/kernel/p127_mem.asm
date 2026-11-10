@@ -231,6 +231,68 @@ p127_mem_test_fail:
         scf
         ret
 
+; Repeated full-pool allocator stress. This is a software-state test only:
+; it never maps a physical page or writes through a RAM window. Each round
+; allocates all 57 free pages, confirms exhaustion, frees them in reverse
+; order, then checks deterministic first-fit recovery (page 6).
+p127_mem_allocator_stress_selftest:
+        xor     a
+        ld      (p127_mem_stress_round),a
+p127_mem_stress_round_begin:
+        xor     a
+        ld      (p127_mem_stress_count),a
+        ld      hl,p127_mem_stress_pages
+p127_mem_stress_alloc:
+        call    p127_mem_alloc
+        jp      c,p127_mem_stress_fail
+        ld      (hl),a
+        inc     hl
+        ld      a,(p127_mem_stress_count)
+        inc     a
+        ld      (p127_mem_stress_count),a
+        cp      57
+        jr      c,p127_mem_stress_alloc
+
+        ; The 58th allocation must report exhaustion.
+        call    p127_mem_alloc
+        jp      nc,p127_mem_stress_fail
+
+        ld      a,57
+        ld      (p127_mem_stress_count),a
+        ld      hl,p127_mem_stress_pages+57
+p127_mem_stress_free:
+        dec     hl
+        ld      a,(hl)
+        call    p127_mem_free
+        jp      c,p127_mem_stress_fail
+        ld      a,(p127_mem_stress_count)
+        dec     a
+        ld      (p127_mem_stress_count),a
+        jr      nz,p127_mem_stress_free
+
+        ; All pages must be back in the pool; first-fit must restart at P6.
+        call    p127_mem_alloc
+        jp      c,p127_mem_stress_fail
+        cp      6
+        jp      nz,p127_mem_stress_fail
+        call    p127_mem_free
+        jp      c,p127_mem_stress_fail
+
+        ld      a,(p127_mem_stress_round)
+        inc     a
+        ld      (p127_mem_stress_round),a
+        cp      8
+        jr      c,p127_mem_stress_round_begin
+        or      a
+        ret
+p127_mem_stress_fail:
+        scf
+        ret
+
+p127_mem_stress_round: db 0
+p127_mem_stress_count: db 0
+p127_mem_stress_pages: ds 57,0
+
 p127_mem_test_page:
         db      0
 p127_mem_page_state:
