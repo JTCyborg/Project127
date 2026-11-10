@@ -19,7 +19,8 @@
 P127_KBD_PORT              EQU #FE
 P127_KBD_MODE_XT           EQU 2
 P127_KBD_MODE_EVENT        EQU 3
-P127_KBD_TIMEOUT_WINDOWS   EQU 8
+; 5120 paced windows ~= 10 s at the ATM Turbo 2+ 7 MHz test clock.
+P127_KBD_IDLE_WINDOWS       EQU #1400
 P127_KBD_ROW_MASK          EQU #1F
 
 ; Public boot monitor. All reads are performed by the ATM Z80.
@@ -29,6 +30,7 @@ p127_keyboard_monitor:
         ld      (p127_kbd_snapshot_valid),a
         ld      hl,p127_kbd_msg_init
         call    p127_puts
+        call    p127_keyboard_reset_idle
 
         ld      a,P127_KBD_MODE_XT
         call    p127_keyboard_set_mode
@@ -45,6 +47,8 @@ p127_keyboard_legacy_init:
         call    p127_puts
 
 p127_keyboard_monitor_loop:
+        xor     a
+        ld      (p127_kbd_activity),a
         ld      a,(p127_kbd_xt_active)
         or      a
         jr      z,p127_keyboard_monitor_legacy
@@ -53,6 +57,10 @@ p127_keyboard_monitor_loop:
 p127_keyboard_monitor_legacy:
         call    p127_keyboard_poll_matrix
 p127_keyboard_monitor_pace:
+        ; Any make/break or modifier/matrix transition restarts the idle window.
+        ld      a,(p127_kbd_activity)
+        or      a
+        call    nz,p127_keyboard_reset_idle
         ; Bounded software pacing; no PIT or interrupt dependency.
         ld      de,#0200
 p127_keyboard_monitor_delay:
@@ -60,7 +68,15 @@ p127_keyboard_monitor_delay:
         ld      a,d
         or      e
         jr      nz,p127_keyboard_monitor_delay
-        jr      p127_keyboard_monitor_loop
+        ld      hl,(p127_kbd_idle_windows)
+        dec     hl
+        ld      (p127_kbd_idle_windows),hl
+        ld      a,h
+        or      l
+        jr      nz,p127_keyboard_monitor_loop
+        ld      hl,p127_kbd_msg_done
+        call    p127_puts
+        jp      p127_idle
 
 ; Enter ATM_KBD mode A using the exact Unreal Speccy ATM_KBD::read handshake.
 ; Carry is set if any of the three protocol responses is unexpected.
@@ -119,23 +135,26 @@ p127_keyboard_poll_xt:
 
         ld      a,(p127_kbd_lastscan)
         or      a
-        jr      nz,p127_keyboard_xt_log
+        jr      nz,p127_keyboard_xt_activity
         ld      a,(p127_kbd_r3)
         ld      b,a
         ld      a,(p127_kbd_prev_r3)
         cp      b
-        jr      nz,p127_keyboard_xt_log
+        jr      nz,p127_keyboard_xt_activity
         ld      a,(p127_kbd_r4)
         ld      b,a
         ld      a,(p127_kbd_prev_r4)
         cp      b
-        jr      nz,p127_keyboard_xt_log
+        jr      nz,p127_keyboard_xt_activity
         ld      a,(p127_kbd_r5)
         ld      b,a
         ld      a,(p127_kbd_prev_r5)
         cp      b
         ret     z
 
+p127_keyboard_xt_activity:
+        ld      a,1
+        ld      (p127_kbd_activity),a
 p127_keyboard_xt_log:
         call    p127_keyboard_log_xt
         ld      a,(p127_kbd_r3)
@@ -197,6 +216,8 @@ p127_keyboard_matrix_compare:
         djnz    p127_keyboard_matrix_compare
         ret
 p127_keyboard_matrix_changed:
+        ld      a,1
+        ld      (p127_kbd_activity),a
         ld      hl,p127_kbd_matrix
         ld      de,p127_kbd_previous
         ld      bc,8
@@ -284,6 +305,18 @@ p127_kbd_msg_r5:
         db " R5=",0
 p127_kbd_msg_matrix:
         db "[KBD] ZX MATRIX=",0
+p127_kbd_msg_done:
+        db "[KBD] TEST COMPLETE; 10S IDLE",13,10,0
+
+p127_kbd_idle_windows:
+        dw P127_KBD_IDLE_WINDOWS
+p127_kbd_activity:
+        db 0
+
+p127_keyboard_reset_idle:
+        ld      hl,P127_KBD_IDLE_WINDOWS
+        ld      (p127_kbd_idle_windows),hl
+        ret
 
 p127_kbd_requested_mode:
         db 0
