@@ -281,6 +281,11 @@ p127_irq_failed:
         ld      hl,p127_msg_irq_fail
         call    p127_puts
         jp      p127_idle
+
+p127_irq_install_failed:
+        ld      hl,p127_msg_irq_install_fail
+        call    p127_puts
+        jp      p127_idle
 p127_trampoline_preflight_failed:
         ld      hl,p127_msg_trampoline_preflight_fail
         call    p127_puts
@@ -451,14 +456,15 @@ p127_msg_w3_recovery_pass: db "[P127] W3 ROLLBACK/RECOVERY PASS; OUT DISABLED",1
 p127_msg_w3_recovery_fail: db "[P127] W3 ROLLBACK/RECOVERY FAIL",13,10,0
 p127_msg_irq_context_pass: db "[P127] IRQ FRAME ROUNDTRIP PASS; VECTOR DISABLED",13,10,0
 p127_msg_irq_batch_pass: db "[P127] IRQ BATCH 16-CHECK PASS; ATM #FF VECTOR SOURCE AUDITED; IM/EI DISABLED",13,10,0
-p127_msg_irq_fail: db "[P127] IRQ MASK/VECTOR CONTRACT FAIL",13,10,0\np127_msg_irq_install_pass: db "[P127] IM2 VECTOR #FF INSTALLED AT B0FF; I=B0; DI; EI DISABLED",13,10,0\np127_msg_irq_install_fail: db "[P127] IM2 MASKED INSTALL/VERIFY FAIL",13,10,0
+p127_msg_irq_fail: db "[P127] IRQ MASK/VECTOR CONTRACT FAIL",13,10,0
+p127_msg_irq_install_pass: db "[P127] IM2 VECTOR #FF INSTALLED AT B0FF; I=B0; DI; EI DISABLED",13,10,0
+p127_msg_irq_install_fail: db "[P127] IM2 MASKED INSTALL/VERIFY FAIL",13,10,0
 p127_msg_irq_pass: db "[P127] IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED",13,10,0
 p127_msg_trampoline_preflight_pass: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT PASS; OUT DISABLED",13,10,0
 p127_msg_trampoline_preflight_fail: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT FAIL",13,10,0
 
         INCLUDE "src/kernel/p127_layout.asm"
         INCLUDE "src/kernel/p127_resident.asm"
-        INCLUDE "src/kernel/p127_irq.asm"
         INCLUDE "src/kernel/p127_mem.asm"
         INCLUDE "src/kernel/p127_range.asm"
         INCLUDE "src/kernel/p127_arena.asm"
@@ -472,6 +478,9 @@ p127_msg_trampoline_preflight_fail: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT FAI
         INCLUDE "src/kernel/p127_speaker.asm"
         INCLUDE "src/kernel/p127_hdd.asm"
         INCLUDE "src/kernel/p127_hdd_fat16.asm"
+        ; Link IRQ code after the lower resident modules so p127_irq_entry
+        ; lands in the fixed W2/P2 window (#8000..#9FFF).
+        INCLUDE "src/kernel/p127_irq.asm"
 
 p127_end:
         ASSERT  p127_entry = P127_LOAD_ADDRESS
