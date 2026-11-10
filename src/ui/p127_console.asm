@@ -595,3 +595,170 @@ P126_ScrollConsoleUp::
 p126_ui_line0: db "PROJECT127 | ATM TURBO 2+ | SYSTEM CORE",0
 p126_ui_line1: db "SYSTEM STARTUP / HARDWARE DIAGNOSTICS",0
 p126_ui_line11: db "RTC: NOT INITIALIZED | SYSTEM READY",0
+
+
+; ============================================================================
+; Project127 ATM video mode smoke test.
+; Reference mode bytes are taken from Project112's tested mode table:
+;   RG3 #C3 Sinclair, RG2 #C2 ATM640, RG0 #C0 EGA, RG6 #C6 text.
+; W1/W3 are remapped only while the UI owns W3. The trampoline is written
+; into the currently mapped video page 3 at #FFEC, then host pages are
+; restored immediately after the mode-register write.
+; ============================================================================
+P127_VIDEO_MODE_SINCLAIR EQU #C3
+P127_VIDEO_MODE_ATM640   EQU #C2
+P127_VIDEO_MODE_EGA      EQU #C0
+P127_VIDEO_MODE_TEXT     EQU #C6
+
+p127_video_mode_selftest:
+        ; Preserve representative character and attribute bytes from both
+        ; parity planes. The mode changes themselves must not alter VRAM.
+        call    p127_video_capture_signature
+        ret     c
+
+        ld      a,P127_VIDEO_MODE_SINCLAIR
+        call    p127_video_switch_mode
+        ret     c
+        call    p127_video_visible_delay
+
+        ld      a,P127_VIDEO_MODE_ATM640
+        call    p127_video_switch_mode
+        ret     c
+        call    p127_video_visible_delay
+
+        ld      a,P127_VIDEO_MODE_EGA
+        call    p127_video_switch_mode
+        ret     c
+        call    p127_video_visible_delay
+
+        ; Always return the controller to the Project127 UI mode.
+        ld      a,P127_VIDEO_MODE_TEXT
+        call    p127_video_switch_mode
+        ret     c
+
+        call    p127_video_capture_signature
+        ret     c
+        ld      a,(p127_video_sig_char_even)
+        cp      (p127_video_sig_after_char_even)
+        jr      nz,p127_video_test_fail
+        ld      a,(p127_video_sig_char_odd)
+        cp      (p127_video_sig_after_char_odd)
+        jr      nz,p127_video_test_fail
+        ld      a,(p127_video_sig_attr_even)
+        cp      (p127_video_sig_after_attr_even)
+        jr      nz,p127_video_test_fail
+        ld      a,(p127_video_sig_attr_odd)
+        cp      (p127_video_sig_after_attr_odd)
+        jr      nz,p127_video_test_fail
+        or      a
+        ret
+
+p127_video_test_fail:
+        scf
+        ret
+
+; IN A=complete ATM mode-register byte. Carry means W3 UI lease refused.
+p127_video_switch_mode:
+        ld      (p127_video_mode_arg),a
+        push    bc
+        push    de
+        push    hl
+        call    p127_w3_ui_enter
+        jr      c,p127_video_switch_refused
+        call    p126_screen_map_video_pages
+
+        ; LD BC,#0177 / OUT (C),A / JP p127_video_mode_return.
+        ld      hl,#FFEC
+        ld      (hl),#01
+        inc     hl
+        ld      (hl),#77
+        inc     hl
+        ld      (hl),#01
+        inc     hl
+        ld      (hl),#ED
+        inc     hl
+        ld      (hl),#79
+        inc     hl
+        ld      (hl),#C3
+        inc     hl
+        ld      (hl),p127_video_mode_return & #FF
+        inc     hl
+        ld      (hl),p127_video_mode_return >> 8
+        ld      a,(p127_video_mode_arg)
+        jp      #FFEC
+
+p127_video_mode_return:
+        call    p126_screen_restore_host_pages
+        call    p127_w3_ui_leave
+        pop     hl
+        pop     de
+        pop     bc
+        or      a
+        ret
+
+p127_video_switch_refused:
+        pop     hl
+        pop     de
+        pop     bc
+        scf
+        ret
+
+; Capture bytes from both character parity planes and both attribute planes.
+; OUT: before signature when p127_video_capture_target=0, after when =1.
+p127_video_capture_signature:
+        push    bc
+        push    de
+        push    hl
+        call    p127_w3_ui_enter
+        jr      c,p127_video_capture_refused
+        call    p126_screen_map_video_pages
+        ld      a,(#41C0)
+        ld      (p127_video_sig_char_even),a
+        ld      a,(#61C0)
+        ld      (p127_video_sig_char_odd),a
+        ld      a,(#E1C0)
+        ld      (p127_video_sig_attr_even),a
+        ld      a,(#C1C1)
+        ld      (p127_video_sig_attr_odd),a
+        call    p126_screen_restore_host_pages
+        call    p127_w3_ui_leave
+        pop     hl
+        pop     de
+        pop     bc
+        or      a
+        ret
+p127_video_capture_refused:
+        pop     hl
+        pop     de
+        pop     bc
+        scf
+        ret
+
+; Visible dwell without IRQ/PIT dependencies (IM/EI remain disabled).
+p127_video_visible_delay:
+        push    bc
+        push    de
+        ld      d,8
+.p127_video_delay_outer:
+        ld      b,0
+.p127_video_delay_middle:
+        ld      c,0
+.p127_video_delay_inner:
+        dec     c
+        jr      nz,.p127_video_delay_inner
+        djnz    .p127_video_delay_middle
+        dec     d
+        jr      nz,.p127_video_delay_outer
+        pop     de
+        pop     bc
+        ret
+
+p127_video_mode_arg:       db 0
+p127_video_sig_char_even:  db 0
+p127_video_sig_char_odd:   db 0
+p127_video_sig_attr_even:  db 0
+p127_video_sig_attr_odd:   db 0
+p127_video_sig_after_char_even: db 0
+p127_video_sig_after_char_odd:  db 0
+p127_video_sig_after_attr_even: db 0
+p127_video_sig_after_attr_odd:  db 0
