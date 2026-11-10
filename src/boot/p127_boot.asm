@@ -169,6 +169,8 @@ p127_start:
         ; Stage 10.1: read-only Nemo IDE LBA28 transport check.
         ; The completed TR-DOS snapshot at #C800 is reused as sector staging.
         call    p127_hdd_probe_read
+        jp      c,p127_idle
+        call    p127_hdd_list_root
         jp      p127_idle
 
 p127_trdos_failed:
@@ -418,6 +420,7 @@ p127_msg_trampoline_preflight_fail: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT FAI
         INCLUDE "src/kernel/p127_trdos.asm"
         INCLUDE "src/kernel/p127_rtc.asm"
         INCLUDE "src/kernel/p127_hdd.asm"
+        INCLUDE "src/kernel/p127_hdd_fat16.asm"
 
 p127_end:
         ASSERT  p127_entry = P127_LOAD_ADDRESS
