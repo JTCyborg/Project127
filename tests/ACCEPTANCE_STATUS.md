@@ -180,3 +180,20 @@ The user's new ATM Turbo 2+ runtime log reconfirms the previously accepted memor
 - IRQ preflights pass, but the log explicitly keeps vector/IM/EI disabled. No live IRQ acceptance is claimed.
 
 No new failure is reported in this run. The IRQ stage remains the next active development item; do not enable IM/EI based on these preflight markers alone.
+
+
+### Latest integrated runtime — 2026-11-10 15:52
+
+The user's 15:52 ATM Turbo 2+ runtime log shows no new failure and reconfirms the integrated diagnostics:
+
+- DS12887 RTC probe via GLUK/SMUC returned a time and reported `READ OK`.
+- TR-DOS directory read completed: 8 sectors / 2048 bytes, with `boot.B` and `P127BOOT.C`.
+- Memory map and kernel bounds remained correct; the full W3 sweep again verified 57/57 free pages and restored P0/UI.
+- Allocator full-pool exhaustion/recovery, PIN/UNPIN and cross-page span-copy tests passed.
+- ATM video RG3/RG2/RG0/RG6 cycle and P7/P3 full-page CRC16 passed.
+- Speaker tone test began and ended; this remains a smoke test only.
+- NEMO-DIVIDE LBA28 master probe, LBA 63 sector read and seven-entry FAT16 root scan succeeded. Full FAT16 acceptance remains deferred.
+- Keyboard monitor selected ZX fallback and ended with `[KBD] DONE`. This particular run contains no matrix-change sample, so it confirms monitor completion but does not independently demonstrate a key press. ATM XT extended-key mode remains untested.
+- IRQ frame/batch/table/mask/trampoline/window preflights passed, but the runtime still reports vector disabled and IM/EI/OUT disabled. No live IRQ was delivered or accepted.
+
+The diagnostic text `SOURCE UNRESOLVED` in the IRQ batch marker is stale relative to the repository source audit, which has already identified the ATM host `TMainZ80::IntVec()` implementation and the configured #FF vector condition. It must not be interpreted as evidence that the upstream source audit is still unresolved. The live IRQ handler/activation path remains unverified; keep IM/EI disabled.
