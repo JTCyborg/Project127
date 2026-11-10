@@ -1043,3 +1043,13 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Next implementation unit: design and verify a permanently addressable interrupt vector/entry layout compatible with the existing P4 reservation and W3 lease ownership. Only after that should the resident handler and controlled live frame-IRQ test be implemented.
 - This is an upstream source audit and documentation checkpoint, not live IRQ acceptance. SjASMPlus and Unreal Speccy were not run by the assistant.
 - Scenario revision: 0.8.84.
+
+
+### 2026-11-10 — IRQ Stage 2: stable IM2 table window reservation v0.1.1
+
+- Corrected the initial IM2 table placement candidate. W3/#C000 is a leased window that is remapped during physical-page operations, so it cannot host a live IM2 vector table.
+- The table reservation now targets #B000..#B100 (257 bytes), in fixed W2 backed by reserved physical page P2. This lies above the resident UI image's exclusive upper bound #B000 and below the existing scratch-stack/guard region beginning at #B7F0/#B7FE. The table does not require W3 remapping.
+- `p127_irq_table_preflight` now verifies that P2 is reserved and the software shadow still maps W2 to P2. Assembly assertions verify the exact base, I value, table size/end, and separation from the scratch region.
+- This is a placement/preflight change only. No table bytes are initialized, no IM2 mode is selected, no vector byte is assumed, and no IM/EI instruction or new hardware OUT is added. The ATM interrupt vector returned by the emulator's `IntVec()` remains to be confirmed before populating the table.
+- SjASMPlus and Unreal Speccy were not run by the assistant. The live IRQ handler remains disabled.
+- Scenario revision: 0.8.85.
