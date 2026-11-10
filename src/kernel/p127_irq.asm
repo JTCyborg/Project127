@@ -204,8 +204,8 @@ p127_irq_table_preflight:
         cp      1                       ; P127_MEM_RESERVED
         jp      nz,p127_irq_reject
         ld      a,(p127_map_shadow+P127_IRQ_TABLE_WINDOW)
-        or      a
-        jp      nz,p127_irq_reject      ; W3 still maps bootstrap page 0
+        cp      P127_IRQ_TABLE_PAGE
+        jp      nz,p127_irq_reject      ; fixed W2 still maps reserved P2
         ld      hl,P127_IRQ_TABLE_BASE
         ld      a,h
         cp      P127_IRQ_TABLE_I
@@ -218,12 +218,14 @@ p127_irq_table_preflight:
         or      a
         ret
 
-        ASSERT P127_IRQ_TABLE_WINDOW = 3
-        ASSERT P127_IRQ_TABLE_BASE = 0C000h
-        ASSERT P127_IRQ_TABLE_I = 0C0h
+        ASSERT P127_IRQ_TABLE_WINDOW = 2
+        ASSERT P127_IRQ_TABLE_PAGE = 2
+        ASSERT P127_IRQ_TABLE_BASE = 0B000h
+        ASSERT P127_IRQ_TABLE_I = 0B0h
         ASSERT P127_IRQ_TABLE_BYTES = 257
-        ASSERT P127_IRQ_TABLE_END = 0C101h
+        ASSERT P127_IRQ_TABLE_END = 0B101h
         ASSERT P127_IRQ_TABLE_END <= 10000h
+        ASSERT P127_IRQ_TABLE_END < 0B7F0h
 
 p127_irq_reject:
         scf
