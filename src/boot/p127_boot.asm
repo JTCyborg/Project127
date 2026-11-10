@@ -166,6 +166,14 @@ p127_start:
         call    p127_trdos_directory
         jp      c,p127_trdos_failed
 
+        ; Stage 9.2: audible ATM #FE D4 speaker smoke test.
+        ld      hl,p127_msg_speaker_begin
+        call    p127_puts
+        xor     a
+        call    p127_speaker_test_tone
+        ld      hl,p127_msg_speaker_done
+        call    p127_puts
+
         ; Stage 10.1: read-only Nemo IDE LBA28 transport check.
         ; The completed TR-DOS snapshot at #C800 is reused as sector staging.
         call    p127_hdd_probe_read
@@ -349,6 +357,8 @@ p127_put_char_ef:
         ret
 
 p127_ui_ready: db 0
+p127_msg_speaker_begin: db "[SPEAKER] #FE D4 TONE BEGIN; TEST USES BORDER/TAPE STATE 0",13,10,0
+p127_msg_speaker_done: db "[SPEAKER] TONE END",13,10,0
 p127_msg_ui_ready: db "[P127] UI READY; ALL DEBUG OUTPUT MIRRORED TO EF",13,10,0
 p127_msg_entry: db "[P127] S2 ENTRY @6000",13,10,0
 p127_msg_stack: db "[P127] STACK SET BFFF; TR-DOS SCRATCH B7F0",13,10,0
