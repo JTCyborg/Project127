@@ -1,8 +1,8 @@
 ; ============================================================================
 ; Project127 — interrupt safety contract / preflight
 ; Module version: 0.5.0
-; This is deliberately a DI-only bootstrap contract, not an IRQ dispatcher.
-; No EI, IM instruction, vector write, or hardware page OUT is permitted.
+; This is a DI-only bootstrap with a masked IM2 vector installer.
+; IM2/vector setup is allowed; EI and hardware page OUT remain forbidden.
 ; ============================================================================
 P127_IRQ_VERSION_MAJOR EQU 0
 P127_IRQ_VERSION_MINOR EQU 5
@@ -14,10 +14,9 @@ P127_IRQ_MODE_UNSET EQU 0
 ; Boot owns the CPU in a DI-protected phase. A stock Z80 cannot read IM0/1/2
 ; directly; LD A,I exposes IFF2 in P/V but is not a general IFF restore path.
 ; Therefore this module never guesses prior interrupt state and never EI/IM.
-; Until a real vector table/handler is installed, vector ownership is NONE.
-; Interrupts may not be enabled until all three prerequisites are explicitly
-; established by later stages: writable/owned vector table, verified table
-; mapping, and installed resident handler. No current boot code sets these.
+; The boot installer may establish the vector, mapping and handler ownership
+; tuple while DI remains asserted. Interrupts stay disabled until a separate
+; controlled source/acknowledge test validates live delivery and RETI.
 P127_IRQ_READY_VECTOR EQU 1
 P127_IRQ_READY_MAP EQU 2
 P127_IRQ_READY_HANDLER EQU 4
