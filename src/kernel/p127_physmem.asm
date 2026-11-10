@@ -255,9 +255,9 @@ p127_physmem_duplicate_scan:
 p127_physmem_alloc_complete:
         ld      a,'A'
         call    p127_physmem_trace
-        ; Current map has exactly seven protected pages and 57 allocatable.
+        ; Current map has six protected pages and 58 allocatable.
         ld      a,(p127_physmem_alloc_count)
-        cp      57
+        cp      58
         jp      nz,p127_physmem_fail_count
         call    p127_physmem_check_reserved
         jp      c,p127_physmem_fail_reserve
@@ -450,7 +450,7 @@ p127_physmem_cleanup_return_error:
         ret
 
 ; Replay all successful physical-page selections on the visible ATM console.
-; The 57 IDs are compacted into two wrapped lines rather than 114 long lines.
+; The 58 IDs are compacted into two wrapped lines rather than 116 long lines.
 p127_physmem_replay_page_log:
         ; The W3 sweep and its cleanup may leave the video-bank selector in a
         ; different state even though the CPU windows have been restored.
@@ -559,7 +559,7 @@ p127_physmem_screen_nibble:
 p127_physmem_screen_video_line:
         db      "VIDEO MAP: RG6 ALT P7/P3 ACTIVE",0
 p127_physmem_screen_status_line0:
-        db      "PHYSICAL RAM: 57/57 FREE PAGES VERIFIED",0
+        db      "PHYSICAL RAM: 58/58 FREE PAGES VERIFIED",0
 p127_physmem_screen_status_line1:
         db      "W3: P0 RESTORED | UI ACTIVE | IM/EI DISABLED",0
 p127_physmem_screen_fill_label:
@@ -573,7 +573,7 @@ p127_physmem_cleanup_error:
         scf
         ret
 
-; Check the seven fixed reservation states: P0/P1/P2/P3/P4/P5/P7.
+; Check the six fixed reservation states: P0/P1/P2/P3/P5/P7.
 ; OUT carry=1 if any protected page is not RESERVED.
 p127_physmem_check_reserved:
         ld      hl,p127_mem_page_state
@@ -592,8 +592,6 @@ p127_physmem_reserved_loop:
         cp      2
         jr      z,p127_physmem_reserved_check
         cp      3
-        jr      z,p127_physmem_reserved_check
-        cp      4
         jr      z,p127_physmem_reserved_check
         cp      5
         jr      z,p127_physmem_reserved_check
@@ -660,8 +658,6 @@ p127_physmem_free_state_loop:
         cp      2
         jr      z,p127_physmem_free_state_reserved
         cp      3
-        jr      z,p127_physmem_free_state_reserved
-        cp      4
         jr      z,p127_physmem_free_state_reserved
         cp      5
         jr      z,p127_physmem_free_state_reserved
