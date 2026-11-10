@@ -47,8 +47,12 @@ p127_keyboard_legacy_init:
 p127_keyboard_monitor_loop:
         ld      a,(p127_kbd_xt_active)
         or      a
-        call    nz,p127_keyboard_poll_xt
-        call    z,p127_keyboard_poll_matrix
+        jr      z,p127_keyboard_monitor_legacy
+        call    p127_keyboard_poll_xt
+        jr      p127_keyboard_monitor_pace
+p127_keyboard_monitor_legacy:
+        call    p127_keyboard_poll_matrix
+p127_keyboard_monitor_pace:
         ; Bounded software pacing; no PIT or interrupt dependency.
         ld      de,#0200
 p127_keyboard_monitor_delay:
