@@ -255,6 +255,64 @@ p127_irq_install_masked:
         or      a
         ret
 
+
+; Stage 2.18 — bounded one-shot live ATM frame IRQ probe.
+; No FF77 writes: the host's existing ATM frame gate is left untouched.
+; The handler DI's immediately on entry, disarms itself and RETI's with
+; IFF2 clear. Thus even a continuously asserted frame source can enter once.
+P127_IRQ_LIVE_TIMEOUT EQU 0FFFFh
+
+p127_irq_live_test:
+        di
+        call    p127_irq_table_preflight
+        jp      c,p127_irq_live_fail
+        ld      a,(p127_irq_mask_state)
+        cp      P127_IRQ_MASKED
+        jp      nz,p127_irq_live_fail
+        xor     a
+        ld      (p127_irq_live_count),a
+        ld      (p127_irq_live_armed),a
+        ld      de,0A55Ah
+        ld      a,1
+        ld      (p127_irq_live_armed),a
+        ei
+        nop
+        ld      bc,P127_IRQ_LIVE_TIMEOUT
+p127_irq_live_wait:
+        ld      a,(p127_irq_live_count)
+        or      a
+        jr      nz,p127_irq_live_seen
+        dec     bc
+        ld      a,b
+        or      c
+        jr      nz,p127_irq_live_wait
+        di
+        xor     a
+        ld      (p127_irq_live_armed),a
+        scf
+        ret
+p127_irq_live_seen:
+        di
+        xor     a
+        ld      (p127_irq_live_armed),a
+        ld      a,(p127_irq_live_count)
+        cp      1
+        jp      nz,p127_irq_live_fail
+        ld      hl,0A55Ah
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_live_fail
+        ld      a,i
+        jp      pe,p127_irq_live_fail
+        or      a
+        ret
+p127_irq_live_fail:
+        di
+        xor     a
+        ld      (p127_irq_live_armed),a
+        scf
+        ret
+
 ; Linked placement assertions: entry code is in fixed W2/P2 and outside the
 ; IM2 vector slot. The runtime mapping preflight separately validates W2->P2.
 ASSERT p127_irq_entry >= 08000h
@@ -309,6 +367,7 @@ p127_irq_test_fail:
 ; W2/P2 stack remain mapped. The dispatcher may freely clobber all registers.
 ; RETI restores IFF1 from IFF2; this routine never executes EI or IM.
 p127_irq_entry:
+        di                              ; one-shot safety: RETI must stay masked
         push    af
         push    bc
         push    de
@@ -347,6 +406,16 @@ p127_irq_entry:
 ; The test-only branch aggressively clobbers both register banks so the
 ; frame round-trip can be checked without enabling asynchronous IRQs.
 p127_irq_dispatch:
+        ; Consume exactly one live frame interrupt while the probe is armed.
+        ld      a,(p127_irq_live_armed)
+        or      a
+        jr      z,p127_irq_dispatch_test
+        xor     a
+        ld      (p127_irq_live_armed),a
+        ld      a,(p127_irq_live_count)
+        inc     a
+        ld      (p127_irq_live_count),a
+p127_irq_dispatch_test:
         ld      a,(p127_irq_test_clobber)
         or      a
         ret     z
@@ -514,6 +583,8 @@ p127_irq_context_restore:
         scf
         ret
 
+p127_irq_live_count: db 0
+p127_irq_live_armed: db 0
 p127_irq_test_clobber: db 0
 p127_irq_context_result: db 0
 p127_irq_test_af: dw 0
