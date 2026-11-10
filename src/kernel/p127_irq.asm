@@ -195,8 +195,8 @@ p127_irq_batch_mask_next:
         or      a
         ret
 
-; Validate the future IM2 table reservation and address geometry. The page
-; remains unmapped: W3 must still describe physical page 0 in the live map.
+; Validate the future IM2 table reservation and address geometry.
+; The table is in fixed W2/P2; W3 remains free for leased remapping.
 ; No table bytes are written, no I register is loaded, and no IM is selected.
 p127_irq_table_preflight:
         ld      hl,p127_mem_page_state+P127_IRQ_TABLE_PAGE
@@ -211,7 +211,7 @@ p127_irq_table_preflight:
         cp      P127_IRQ_TABLE_I
         jp      nz,p127_irq_reject
         ld      hl,P127_IRQ_TABLE_END
-        ld      de,0C101h
+        ld      de,0B101h
         or      a
         sbc     hl,de
         jp      nz,p127_irq_reject
