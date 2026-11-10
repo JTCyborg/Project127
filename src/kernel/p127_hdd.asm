@@ -342,3 +342,5 @@ p127_hdd_msg_status:  db " STATUS=",0
 p127_hdd_error: db 0
 p127_hdd_last_status: db 0
 p127_hdd_lba:   db 0,0,0,0
+
+; FAT16 root-directory support is in p127_hdd_fat16.asm.
