@@ -275,11 +275,11 @@ p127_kbd_row_selectors:
         db #FE,#FD,#FB,#F7,#EF,#DF,#BF,#7F
 
 p127_kbd_msg_init:
-        db "[KBD v0.2.2] INIT",13,10,0
+        db "[KBD] INIT",13,10,0
 p127_kbd_msg_xt_ready:
         db "[KBD] ATM XT ACTIVE",13,10,0
 p127_kbd_msg_legacy:
-        db "[KBD] ZX MATRIX FALLBACK",13,10,0
+        db "[KBD] ZX FALLBACK",13,10,0
 p127_kbd_msg_event:
         db "[KBD] LAST=",0
 p127_kbd_msg_r2:
