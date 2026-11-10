@@ -166,12 +166,6 @@ p127_start:
         call    p127_trdos_directory
         jp      c,p127_trdos_failed
 
-        ; Stage 10.1: read-only Nemo IDE LBA28 transport check.
-        ; The completed TR-DOS snapshot at #C800 is reused as sector staging.
-        call    p127_hdd_probe_read
-        jp      c,p127_idle
-        call    p127_hdd_list_root
-
         ; Stage 9.2: audible ATM #FE D4 speaker smoke test.
         ld      hl,p127_msg_speaker_begin
         call    p127_puts
@@ -179,6 +173,12 @@ p127_start:
         call    p127_speaker_test_tone
         ld      hl,p127_msg_speaker_done
         call    p127_puts
+
+        ; Stage 10.1: read-only Nemo IDE LBA28 transport check.
+        ; The completed TR-DOS snapshot at #C800 is reused as sector staging.
+        call    p127_hdd_probe_read
+        jp      c,p127_idle
+        call    p127_hdd_list_root
         jp      p127_idle
 
 p127_trdos_failed:
