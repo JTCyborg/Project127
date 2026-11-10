@@ -702,7 +702,7 @@ p127_video_mode_return:
         ; Verify the CPU windows and W3 ownership contract after EVERY mode
         ; write. W2 must be the host page P5, W3 must be P0, and the UI lease
         ; must be released before another mode transition is attempted.
-        ld      a,(p127_map_shadow+2)
+        ld      a,(p127_map_shadow+1)
         cp      5
         jr      nz,p127_video_mode_restore_error
         ld      a,(p127_map_shadow+3)
