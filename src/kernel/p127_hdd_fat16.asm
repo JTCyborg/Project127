@@ -46,7 +46,7 @@ p127_hdd_list_root:
         ld      a,h
         cp      10h
         jr      c,p127_hdd_fat_root_size_ok
-        jr      nz,p127_hdd_fat_bad_bpb
+        jp      nz,p127_hdd_fat_bad_bpb
         ld      a,l
         or      a
         jp      nz,p127_hdd_fat_bad_bpb
