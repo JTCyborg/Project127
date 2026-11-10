@@ -279,3 +279,25 @@ Important distinction: the emulator's frame INT is a CPU interrupt event, not an
 Acceptance requires a user-supplied emulator log showing a real handler-entry counter change during the bounded live window, exactly one entry, successful `RETI` return, and interrupts masked afterward. The existing synthetic CALL-based context test and masked installer markers do not satisfy this criterion.
 
 **Current implementation status:** design recorded only. No live-test routine has been added or invoked; no `EI` is executed by normal boot. Keep live IRQ acceptance open until the above sequence is implemented, built, and observed in the emulator.
+
+
+### Latest integrated runtime — 2026-11-10 16:58
+
+The user's 16:58 ATM Turbo 2+ runtime log reports no new failures and confirms:
+
+- DS12887 RTC probe through GLUK/SMUC succeeded; the read returned `16:58:01`.
+- TR-DOS directory read completed: 8 sectors / 2048 bytes; entries `boot.B` and `P127BOOT.C`.
+- Kernel image size remains `0x3494`; P5/P2 bounds pass.
+- Memory/page-management tests pass, including the complete W3 physical sweep (57/57 free pages), P0/UI restoration, allocator exhaustion/recovery, PIN/UNPIN and cross-page logical span copy.
+- ATM video RG3/RG2/RG0/RG6 cycle and P7/P3 full-page CRC16 pass; UI restored.
+- NEMO-DIVIDE LBA28 master probe and LBA 63 sector read pass; FAT16 root scan lists seven entries: IO.SYS, MSDOS.SYS, DOS, COMMAND.COM, WINA20.386, CONFIG.SYS and AUTOEXEC.BAT. This remains probe/root-directory evidence only; full FAT16 write/cluster-chain acceptance is deferred.
+- Speaker #FE D4 tone begin/end markers are present; audio remains a smoke test, not accepted functionality.
+- Keyboard monitor starts in ZX fallback, prints the idle matrix and ends with `[KBD] DONE`. No matrix transition is shown in this log, so no key press/release detection is newly claimed. ATM XT extended-key mode remains untested.
+
+IRQ update:
+
+- The synthetic `IRQ FRAME ROUNDTRIP PASS; VECTOR DISABLED` marker remains a software-only test and is not evidence of a live interrupt.
+- The subsequent `IM2 VECTOR #FF INSTALLED AT B0FF; I=B0; DI; EI DISABLED` marker reconfirms masked IM2 installation. Table-slot, mask/vector, resident-trampoline and resident-window preflights also pass.
+- No `EI` was executed; no live frame interrupt, handler entry or hardware `RETI` roundtrip is shown. The controlled live-delivery test remains unimplemented/unaccepted. Keep normal boot masked.
+
+This entry records only the user's supplied emulator runtime evidence; it is not an independent build or CI result.
