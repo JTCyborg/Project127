@@ -1004,7 +1004,7 @@
   24++6C53 C2 92 6C             jp      nz,p127_layout_reject
   25++6C56
   26++6C56                      ; Require a non-empty image and an end no higher than the UI window.
-  27++6C56 21 42 8F             ld      hl,p127_end
+  27++6C56 21 43 8F             ld      hl,p127_end
   28++6C59 11 00 60             ld      de,p127_entry
   29++6C5C B7                   or      a
   30++6C5D ED 52                sbc     hl,de
@@ -1015,7 +1015,7 @@
   35++6C69 FE 41                cp      041h
   36++6C6B D2 92 6C             jp      nc,p127_layout_reject
   37++6C6E
-  38++6C6E 21 42 8F             ld      hl,p127_end
+  38++6C6E 21 43 8F             ld      hl,p127_end
   39++6C71 11 00 A0             ld      de,P127_LAYOUT_LIMIT
   40++6C74 B7                   or      a
   41++6C75 ED 52                sbc     hl,de
@@ -5635,414 +5635,413 @@
   23++8C2B FD E5                push    iy
   24++8C2D
   25++8C2D AF                   xor     a
-  26++8C2E 32 20 8F             ld      (p127_hdd_fat_error),a
-  27++8C31 32 2E 8F             ld      (p127_hdd_fat_file_count),a
-  28++8C34 32 2F 8F             ld      (p127_hdd_fat_file_count+1),a
-  29++8C37 21 6C 8E             ld      hl,p127_hdd_fat_msg_begin
+  26++8C2E 32 21 8F             ld      (p127_hdd_fat_error),a
+  27++8C31 32 2F 8F             ld      (p127_hdd_fat_file_count),a
+  28++8C34 32 30 8F             ld      (p127_hdd_fat_file_count+1),a
+  29++8C37 21 6D 8E             ld      hl,p127_hdd_fat_msg_begin
   30++8C3A CD B7 62             call    p127_puts
   31++8C3D
   32++8C3D                      ; The transport already validated bytes/sector=512 and 55AA.
   33++8C3D                      ; Validate the FAT16 fields needed to locate the fixed root directory.
   34++8C3D 3A 0D C8             ld      a,(P127_HDD_SECTOR_BUFFER+13)
   35++8C40 B7                   or      a
-  36++8C41 CA 66 8D             jp      z,p127_hdd_fat_bad_bpb
+  36++8C41 CA 67 8D             jp      z,p127_hdd_fat_bad_bpb
   37++8C44 3A 10 C8             ld      a,(P127_HDD_SECTOR_BUFFER+16)
   38++8C47 B7                   or      a
-  39++8C48 CA 66 8D             jp      z,p127_hdd_fat_bad_bpb
+  39++8C48 CA 67 8D             jp      z,p127_hdd_fat_bad_bpb
   40++8C4B 2A 11 C8             ld      hl,(P127_HDD_SECTOR_BUFFER+17)
   41++8C4E 7C                   ld      a,h
   42++8C4F B5                   or      l
-  43++8C50 CA 66 8D             jp      z,p127_hdd_fat_bad_bpb
+  43++8C50 CA 67 8D             jp      z,p127_hdd_fat_bad_bpb
   44++8C53
   45++8C53                      ; Bound root entries to 4096 (256 sectors) to reject corrupt BPBs.
   46++8C53 7C                   ld      a,h
   47++8C54 FE 10                cp      10h
-  48++8C56 38 07                jr      c,p127_hdd_fat_root_size_ok
-p127_hdd_fat16.asm(49): error: [JR] Target out of range (+268)
-  49++8C58 20 00                jr      nz,p127_hdd_fat_bad_bpb
-  50++8C5A 7D                   ld      a,l
-  51++8C5B B7                   or      a
-  52++8C5C C2 66 8D             jp      nz,p127_hdd_fat_bad_bpb
-  53++8C5F              p127_hdd_fat_root_size_ok:
-  54++8C5F 22 2C 8F             ld      (p127_hdd_fat_entries_left),hl
-  55++8C62
-  56++8C62 ED 5B 16 C8          ld      de,(P127_HDD_SECTOR_BUFFER+22)
-  57++8C66 7A                   ld      a,d
-  58++8C67 B3                   or      e
-  59++8C68 CA 66 8D             jp      z,p127_hdd_fat_bad_bpb
-  60++8C6B
-  61++8C6B                      ; ROOT_LBA = partition LBA 63 + reserved sectors + FAT count * FAT size.
-  62++8C6B 21 3F 00             ld      hl,63
-  63++8C6E 22 26 8F             ld      (p127_hdd_fat_root_lba),hl
-  64++8C71 21 00 00             ld      hl,0
-  65++8C74 22 28 8F             ld      (p127_hdd_fat_root_lba+2),hl
-  66++8C77
-  67++8C77 ED 5B 0E C8          ld      de,(P127_HDD_SECTOR_BUFFER+14)
-  68++8C7B 2A 26 8F             ld      hl,(p127_hdd_fat_root_lba)
-  69++8C7E 19                   add     hl,de
-  70++8C7F 22 26 8F             ld      (p127_hdd_fat_root_lba),hl
-  71++8C82 30 07                jr      nc,p127_hdd_fat_reserved_no_carry
-  72++8C84 2A 28 8F             ld      hl,(p127_hdd_fat_root_lba+2)
-  73++8C87 23                   inc     hl
-  74++8C88 22 28 8F             ld      (p127_hdd_fat_root_lba+2),hl
-  75++8C8B              p127_hdd_fat_reserved_no_carry:
-  76++8C8B 3A 10 C8             ld      a,(P127_HDD_SECTOR_BUFFER+16)
-  77++8C8E 32 21 8F             ld      (p127_hdd_fat_fat_count),a
-  78++8C91 ED 5B 16 C8          ld      de,(P127_HDD_SECTOR_BUFFER+22)
-  79++8C95              p127_hdd_fat_add_fat_loop:
-  80++8C95 2A 26 8F             ld      hl,(p127_hdd_fat_root_lba)
-  81++8C98 19                   add     hl,de
-  82++8C99 22 26 8F             ld      (p127_hdd_fat_root_lba),hl
-  83++8C9C 30 07                jr      nc,p127_hdd_fat_add_no_carry
-  84++8C9E 2A 28 8F             ld      hl,(p127_hdd_fat_root_lba+2)
-  85++8CA1 23                   inc     hl
-  86++8CA2 22 28 8F             ld      (p127_hdd_fat_root_lba+2),hl
-  87++8CA5              p127_hdd_fat_add_no_carry:
-  88++8CA5 3A 21 8F             ld      a,(p127_hdd_fat_fat_count)
-  89++8CA8 3D                   dec     a
-  90++8CA9 32 21 8F             ld      (p127_hdd_fat_fat_count),a
-  91++8CAC 20 E7                jr      nz,p127_hdd_fat_add_fat_loop
-  92++8CAE
-  93++8CAE                      ; RootDirSectors = ceil(RootEntCnt / 16), since sector size is 512.
-  94++8CAE 2A 2C 8F             ld      hl,(p127_hdd_fat_entries_left)
-  95++8CB1 11 0F 00             ld      de,15
-  96++8CB4 19                   add     hl,de
-  97++8CB5 CB 3C                srl     h
-  98++8CB7 CB 1D                rr      l
-  99++8CB9 CB 3C                srl     h
- 100++8CBB CB 1D                rr      l
- 101++8CBD CB 3C                srl     h
- 102++8CBF CB 1D                rr      l
- 103++8CC1 CB 3C                srl     h
- 104++8CC3 CB 1D                rr      l
- 105++8CC5 22 2A 8F             ld      (p127_hdd_fat_sectors_left),hl
- 106++8CC8
- 107++8CC8 21 BB 8E             ld      hl,p127_hdd_fat_msg_root
- 108++8CCB CD B7 62             call    p127_puts
- 109++8CCE
- 110++8CCE              p127_hdd_fat_sector_loop:
- 111++8CCE 2A 2C 8F             ld      hl,(p127_hdd_fat_entries_left)
- 112++8CD1 7C                   ld      a,h
- 113++8CD2 B5                   or      l
- 114++8CD3 CA 77 8D             jp      z,p127_hdd_fat_complete
- 115++8CD6 2A 2A 8F             ld      hl,(p127_hdd_fat_sectors_left)
- 116++8CD9 7C                   ld      a,h
- 117++8CDA B5                   or      l
- 118++8CDB CA 77 8D             jp      z,p127_hdd_fat_complete
- 119++8CDE
- 120++8CDE                      ; Copy the calculated 32-bit root LBA to the transport request.
- 121++8CDE 2A 26 8F             ld      hl,(p127_hdd_fat_root_lba)
- 122++8CE1 22 21 8C             ld      (p127_hdd_lba),hl
- 123++8CE4 2A 28 8F             ld      hl,(p127_hdd_fat_root_lba+2)
- 124++8CE7 22 23 8C             ld      (p127_hdd_lba+2),hl
- 125++8CEA CD 48 8A             call    p127_hdd_read_sector_lba28
- 126++8CED DA 6E 8D             jp      c,p127_hdd_fat_read_failed
- 127++8CF0
- 128++8CF0 DD 21 00 C8          ld      ix,P127_HDD_SECTOR_BUFFER
- 129++8CF4 3E 10                ld      a,16
- 130++8CF6 32 22 8F             ld      (p127_hdd_fat_slots_left),a
- 131++8CF9
- 132++8CF9              p127_hdd_fat_entry_loop:
- 133++8CF9 2A 2C 8F             ld      hl,(p127_hdd_fat_entries_left)
- 134++8CFC 7C                   ld      a,h
- 135++8CFD B5                   or      l
- 136++8CFE CA 77 8D             jp      z,p127_hdd_fat_complete
- 137++8D01
- 138++8D01                      ; FAT directory entry 00h terminates the directory.
- 139++8D01 DD 7E 00             ld      a,(ix+0)
- 140++8D04 B7                   or      a
- 141++8D05 CA 77 8D             jp      z,p127_hdd_fat_complete
- 142++8D08 FE E5                cp      0E5h
- 143++8D0A 28 22                jr      z,p127_hdd_fat_skip_entry
- 144++8D0C
- 145++8D0C                      ; Ignore long-name and volume-label entries. Keep ordinary files
- 146++8D0C                      ; and subdirectories, matching the Project113 directory presentation.
- 147++8D0C DD 7E 0B             ld      a,(ix+11)
- 148++8D0F FE 0F                cp      0Fh
- 149++8D11 28 1B                jr      z,p127_hdd_fat_skip_entry
- 150++8D13 CB 5F                bit     3,a
- 151++8D15 20 17                jr      nz,p127_hdd_fat_skip_entry
- 152++8D17 DD 7E 00             ld      a,(ix+0)
- 153++8D1A FE 2E                cp      '.'
- 154++8D1C 28 10                jr      z,p127_hdd_fat_skip_entry
- 155++8D1E
- 156++8D1E DD 7E 0B             ld      a,(ix+11)
- 157++8D21 32 23 8F             ld      (p127_hdd_fat_entry_attr),a
- 158++8D24 CD C7 8D             call    p127_hdd_fat_emit_entry
- 159++8D27
- 160++8D27 2A 2E 8F             ld      hl,(p127_hdd_fat_file_count)
- 161++8D2A 23                   inc     hl
- 162++8D2B 22 2E 8F             ld      (p127_hdd_fat_file_count),hl
- 163++8D2E
- 164++8D2E              p127_hdd_fat_skip_entry:
- 165++8D2E                      ; Consume one BPB root entry and advance by its 32-byte record size.
- 166++8D2E 2A 2C 8F             ld      hl,(p127_hdd_fat_entries_left)
- 167++8D31 2B                   dec     hl
- 168++8D32 22 2C 8F             ld      (p127_hdd_fat_entries_left),hl
- 169++8D35
- 170++8D35 D5                   push    de
- 171++8D36 11 20 00             ld      de,32
- 172++8D39 DD E5                push    ix
- 173++8D3B E1                   pop     hl
- 174++8D3C 19                   add     hl,de
- 175++8D3D E5                   push    hl
- 176++8D3E DD E1                pop     ix
- 177++8D40 D1                   pop     de
- 178++8D41
- 179++8D41 3A 22 8F             ld      a,(p127_hdd_fat_slots_left)
- 180++8D44 3D                   dec     a
- 181++8D45 32 22 8F             ld      (p127_hdd_fat_slots_left),a
- 182++8D48 20 AF                jr      nz,p127_hdd_fat_entry_loop
- 183++8D4A
- 184++8D4A                      ; Advance the absolute root LBA and read the next sector.
- 185++8D4A 2A 26 8F             ld      hl,(p127_hdd_fat_root_lba)
- 186++8D4D 23                   inc     hl
- 187++8D4E 22 26 8F             ld      (p127_hdd_fat_root_lba),hl
- 188++8D51 7C                   ld      a,h
- 189++8D52 B5                   or      l
- 190++8D53 20 07                jr      nz,p127_hdd_fat_no_lba_carry
- 191++8D55 2A 28 8F             ld      hl,(p127_hdd_fat_root_lba+2)
- 192++8D58 23                   inc     hl
- 193++8D59 22 28 8F             ld      (p127_hdd_fat_root_lba+2),hl
- 194++8D5C              p127_hdd_fat_no_lba_carry:
- 195++8D5C 2A 2A 8F             ld      hl,(p127_hdd_fat_sectors_left)
- 196++8D5F 2B                   dec     hl
- 197++8D60 22 2A 8F             ld      (p127_hdd_fat_sectors_left),hl
- 198++8D63 C3 CE 8C             jp      p127_hdd_fat_sector_loop
- 199++8D66
- 200++8D66              p127_hdd_fat_bad_bpb:
- 201++8D66 3E 06                ld      a,6
- 202++8D68 32 20 8F             ld      (p127_hdd_fat_error),a
- 203++8D6B C3 9C 8D             jp      p127_hdd_fat_finish
- 204++8D6E
- 205++8D6E              p127_hdd_fat_read_failed:
- 206++8D6E 3A 1F 8C             ld      a,(p127_hdd_error)
- 207++8D71 32 20 8F             ld      (p127_hdd_fat_error),a
- 208++8D74 C3 9C 8D             jp      p127_hdd_fat_finish
- 209++8D77
- 210++8D77              p127_hdd_fat_complete:
- 211++8D77 21 E1 8E             ld      hl,p127_hdd_fat_msg_done
- 212++8D7A CD B7 62             call    p127_puts
- 213++8D7D 21 FB 8E             ld      hl,p127_hdd_fat_msg_count
- 214++8D80 CD B7 62             call    p127_puts
- 215++8D83 3A 2F 8F             ld      a,(p127_hdd_fat_file_count+1)
- 216++8D86 CD D3 62             call    p127_put_hex8
- 217++8D89 3A 2E 8F             ld      a,(p127_hdd_fat_file_count)
- 218++8D8C CD D3 62             call    p127_put_hex8
- 219++8D8F 3E 0D                ld      a,13
- 220++8D91 CD E9 62             call    p127_put_char
- 221++8D94 3E 0A                ld      a,10
- 222++8D96 CD E9 62             call    p127_put_char
- 223++8D99 C3 9C 8D             jp      p127_hdd_fat_finish
- 224++8D9C
- 225++8D9C              p127_hdd_fat_finish:
- 226++8D9C 3A 20 8F             ld      a,(p127_hdd_fat_error)
- 227++8D9F B7                   or      a
- 228++8DA0 28 16                jr      z,p127_hdd_fat_restore
- 229++8DA2 21 0D 8F             ld      hl,p127_hdd_fat_msg_error
- 230++8DA5 CD B7 62             call    p127_puts
- 231++8DA8 3A 20 8F             ld      a,(p127_hdd_fat_error)
- 232++8DAB CD D3 62             call    p127_put_hex8
- 233++8DAE 3E 0D                ld      a,13
- 234++8DB0 CD E9 62             call    p127_put_char
- 235++8DB3 3E 0A                ld      a,10
- 236++8DB5 CD E9 62             call    p127_put_char
- 237++8DB8
- 238++8DB8              p127_hdd_fat_restore:
- 239++8DB8 FD E1                pop     iy
- 240++8DBA DD E1                pop     ix
- 241++8DBC E1                   pop     hl
- 242++8DBD D1                   pop     de
- 243++8DBE C1                   pop     bc
- 244++8DBF F1                   pop     af
- 245++8DC0 3A 20 8F             ld      a,(p127_hdd_fat_error)
- 246++8DC3 B7                   or      a
- 247++8DC4 C8                   ret     z
- 248++8DC5 37                   scf
- 249++8DC6 C9                   ret
- 250++8DC7
- 251++8DC7              ; Format and emit one 8.3 entry. IX points to the 32-byte FAT entry.
- 252++8DC7              ; The output line is mirrored through p127_put_char/p127_puts to #EF.
- 253++8DC7              p127_hdd_fat_emit_entry:
- 254++8DC7 F5                   push    af
- 255++8DC8 C5                   push    bc
- 256++8DC9 D5                   push    de
- 257++8DCA E5                   push    hl
- 258++8DCB DD E5                push    ix
- 259++8DCD
- 260++8DCD DD E5                push    ix
- 261++8DCF E1                   pop     hl
- 262++8DD0 22 30 8F             ld      (p127_hdd_fat_entry_ptr),hl
- 263++8DD3
- 264++8DD3                      ; Copy the base name until its first padding space.
- 265++8DD3 11 32 8F             ld      de,p127_hdd_fat_name
- 266++8DD6 AF                   xor     a
- 267++8DD7 32 24 8F             ld      (p127_hdd_fat_name_len),a
- 268++8DDA 06 08                ld      b,8
- 269++8DDC              p127_hdd_fat_name_base_loop:
- 270++8DDC 7E                   ld      a,(hl)
- 271++8DDD 23                   inc     hl
- 272++8DDE FE 20                cp      ' '
- 273++8DE0 28 0B                jr      z,p127_hdd_fat_name_base_done
- 274++8DE2 12                   ld      (de),a
- 275++8DE3 13                   inc     de
- 276++8DE4 3A 24 8F             ld      a,(p127_hdd_fat_name_len)
- 277++8DE7 3C                   inc     a
- 278++8DE8 32 24 8F             ld      (p127_hdd_fat_name_len),a
- 279++8DEB 10 EF                djnz    p127_hdd_fat_name_base_loop
- 280++8DED              p127_hdd_fat_name_base_done:
- 281++8DED 3A 24 8F             ld      a,(p127_hdd_fat_name_len)
- 282++8DF0 B7                   or      a
- 283++8DF1 28 72                jr      z,p127_hdd_fat_emit_done
- 284++8DF3
- 285++8DF3                      ; Copy non-space extension bytes to a temporary 3-byte buffer.
- 286++8DF3 2A 30 8F             ld      hl,(p127_hdd_fat_entry_ptr)
- 287++8DF6 11 08 00             ld      de,8
- 288++8DF9 19                   add     hl,de
- 289++8DFA 11 3F 8F             ld      de,p127_hdd_fat_ext
- 290++8DFD 06 03                ld      b,3
- 291++8DFF AF                   xor     a
- 292++8E00 32 25 8F             ld      (p127_hdd_fat_ext_len),a
- 293++8E03              p127_hdd_fat_name_ext_loop:
- 294++8E03 7E                   ld      a,(hl)
- 295++8E04 23                   inc     hl
- 296++8E05 FE 20                cp      ' '
- 297++8E07 28 09                jr      z,p127_hdd_fat_name_ext_next
- 298++8E09 12                   ld      (de),a
- 299++8E0A 13                   inc     de
- 300++8E0B 3A 25 8F             ld      a,(p127_hdd_fat_ext_len)
- 301++8E0E 3C                   inc     a
- 302++8E0F 32 25 8F             ld      (p127_hdd_fat_ext_len),a
- 303++8E12              p127_hdd_fat_name_ext_next:
- 304++8E12 10 EF                djnz    p127_hdd_fat_name_ext_loop
- 305++8E14
- 306++8E14                      ; Append .EXT only when an extension exists.
- 307++8E14 3A 25 8F             ld      a,(p127_hdd_fat_ext_len)
- 308++8E17 B7                   or      a
- 309++8E18 28 1C                jr      z,p127_hdd_fat_name_terminate
- 310++8E1A 21 32 8F             ld      hl,p127_hdd_fat_name
- 311++8E1D 3A 24 8F             ld      a,(p127_hdd_fat_name_len)
- 312++8E20 5F                   ld      e,a
- 313++8E21 16 00                ld      d,0
- 314++8E23 19                   add     hl,de
- 315++8E24 36 2E                ld      (hl),'.'
- 316++8E26 23                   inc     hl
- 317++8E27 11 3F 8F             ld      de,p127_hdd_fat_ext
- 318++8E2A 3A 25 8F             ld      a,(p127_hdd_fat_ext_len)
- 319++8E2D 47                   ld      b,a
- 320++8E2E              p127_hdd_fat_name_ext_copy:
- 321++8E2E 1A                   ld      a,(de)
- 322++8E2F 13                   inc     de
- 323++8E30 77                   ld      (hl),a
- 324++8E31 23                   inc     hl
- 325++8E32 10 FA                djnz    p127_hdd_fat_name_ext_copy
- 326++8E34 18 0A                jr      p127_hdd_fat_name_terminate_at_hl
- 327++8E36
- 328++8E36              p127_hdd_fat_name_terminate:
- 329++8E36 21 32 8F             ld      hl,p127_hdd_fat_name
- 330++8E39 3A 24 8F             ld      a,(p127_hdd_fat_name_len)
- 331++8E3C 5F                   ld      e,a
- 332++8E3D 16 00                ld      d,0
- 333++8E3F 19                   add     hl,de
- 334++8E40              p127_hdd_fat_name_terminate_at_hl:
- 335++8E40 36 00                ld      (hl),0
- 336++8E42
- 337++8E42 21 D3 8E             ld      hl,p127_hdd_fat_msg_file
- 338++8E45 CD B7 62             call    p127_puts
- 339++8E48 21 32 8F             ld      hl,p127_hdd_fat_name
- 340++8E4B CD B7 62             call    p127_puts
- 341++8E4E 3A 23 8F             ld      a,(p127_hdd_fat_entry_attr)
- 342++8E51 CB 67                bit     4,a
- 343++8E53 28 06                jr      z,p127_hdd_fat_emit_newline
- 344++8E55 21 DA 8E             ld      hl,p127_hdd_fat_msg_dir
- 345++8E58 CD B7 62             call    p127_puts
- 346++8E5B              p127_hdd_fat_emit_newline:
- 347++8E5B 3E 0D                ld      a,13
- 348++8E5D CD E9 62             call    p127_put_char
- 349++8E60 3E 0A                ld      a,10
- 350++8E62 CD E9 62             call    p127_put_char
- 351++8E65
- 352++8E65              p127_hdd_fat_emit_done:
- 353++8E65 DD E1                pop     ix
- 354++8E67 E1                   pop     hl
- 355++8E68 D1                   pop     de
- 356++8E69 C1                   pop     bc
- 357++8E6A F1                   pop     af
- 358++8E6B C9                   ret
- 359++8E6C
- 360++8E6C 5B 48 44 44  p127_hdd_fat_msg_begin: db "[HDD] DRIVER=NEMO-DIVIDE LBA28 0.1.2 FAT16 0.1.0",13,10,"[HDD] FAT16 ROOT DIRECTORY",13,10,0
- 360++8E70 5D 20 44 52
- 360++8E74 49 56 45 52
- 360++8E78 3D 4E 45 4D
- 360++8E7C 4F 2D 44 49
- 360++8E80 56 49 44 45
- 360++8E84 20 4C 42 41
- 360++8E88 32 38 20 30
- 360++8E8C 2E 31 2E 32
- 360++8E90 20 46 41 54
- 360++8E94 31 36 20 30
- 360++8E98 2E 31 2E 30
- 360++8E9C 0D 0A 5B 48
- 360++8EA0 44 44 5D 20
- 360++8EA4 46 41 54 31
- 360++8EA8 36 20 52 4F
- 360++8EAC 4F 54 20 44
- 360++8EB0 49 52 45 43
- 360++8EB4 54 4F 52 59
- 360++8EB8 0D 0A 00
- 361++8EBB 5B 48 44 44  p127_hdd_fat_msg_root:  db "[HDD] ROOT SCAN BEGIN",13,10,0
- 361++8EBF 5D 20 52 4F
- 361++8EC3 4F 54 20 53
- 361++8EC7 43 41 4E 20
- 361++8ECB 42 45 47 49
- 361++8ECF 4E 0D 0A 00
- 362++8ED3 5B 48 44 44  p127_hdd_fat_msg_file:  db "[HDD] ",0
- 362++8ED7 5D 20 00
- 363++8EDA 20 3C 44 49  p127_hdd_fat_msg_dir:   db " <DIR>",0
- 363++8EDE 52 3E 00
- 364++8EE1 5B 48 44 44  p127_hdd_fat_msg_done:  db "[HDD] DIRECTORY READ OK",13,10,0
- 364++8EE5 5D 20 44 49
- 364++8EE9 52 45 43 54
- 364++8EED 4F 52 59 20
- 364++8EF1 52 45 41 44
- 364++8EF5 20 4F 4B 0D
- 364++8EF9 0A 00
- 365++8EFB 5B 48 44 44  p127_hdd_fat_msg_count: db "[HDD] FILE COUNT=",0
- 365++8EFF 5D 20 46 49
- 365++8F03 4C 45 20 43
- 365++8F07 4F 55 4E 54
- 365++8F0B 3D 00
- 366++8F0D 5B 48 44 44  p127_hdd_fat_msg_error: db "[HDD] FAT16 ERROR=",0
- 366++8F11 5D 20 46 41
- 366++8F15 54 31 36 20
- 366++8F19 45 52 52 4F
- 366++8F1D 52 3D 00
- 367++8F20
- 368++8F20 00           p127_hdd_fat_error:        db 0
- 369++8F21 00           p127_hdd_fat_fat_count:    db 0
- 370++8F22 00           p127_hdd_fat_slots_left:   db 0
- 371++8F23 00           p127_hdd_fat_entry_attr:   db 0
- 372++8F24 00           p127_hdd_fat_name_len:     db 0
- 373++8F25 00           p127_hdd_fat_ext_len:      db 0
- 374++8F26 00 00 00 00  p127_hdd_fat_root_lba:     db 0,0,0,0
- 375++8F2A 00 00        p127_hdd_fat_sectors_left: dw 0
- 376++8F2C 00 00        p127_hdd_fat_entries_left: dw 0
- 377++8F2E 00 00        p127_hdd_fat_file_count:   dw 0
- 378++8F30 00 00        p127_hdd_fat_entry_ptr:    dw 0
- 379++8F32 00 00 00...  p127_hdd_fat_name:         ds 13,0
- 380++8F3F 00 00 00     p127_hdd_fat_ext:          ds 3,0
- 381++8F42
+  48++8C56 38 08                jr      c,p127_hdd_fat_root_size_ok
+  49++8C58 C2 67 8D             jp      nz,p127_hdd_fat_bad_bpb
+  50++8C5B 7D                   ld      a,l
+  51++8C5C B7                   or      a
+  52++8C5D C2 67 8D             jp      nz,p127_hdd_fat_bad_bpb
+  53++8C60              p127_hdd_fat_root_size_ok:
+  54++8C60 22 2D 8F             ld      (p127_hdd_fat_entries_left),hl
+  55++8C63
+  56++8C63 ED 5B 16 C8          ld      de,(P127_HDD_SECTOR_BUFFER+22)
+  57++8C67 7A                   ld      a,d
+  58++8C68 B3                   or      e
+  59++8C69 CA 67 8D             jp      z,p127_hdd_fat_bad_bpb
+  60++8C6C
+  61++8C6C                      ; ROOT_LBA = partition LBA 63 + reserved sectors + FAT count * FAT size.
+  62++8C6C 21 3F 00             ld      hl,63
+  63++8C6F 22 27 8F             ld      (p127_hdd_fat_root_lba),hl
+  64++8C72 21 00 00             ld      hl,0
+  65++8C75 22 29 8F             ld      (p127_hdd_fat_root_lba+2),hl
+  66++8C78
+  67++8C78 ED 5B 0E C8          ld      de,(P127_HDD_SECTOR_BUFFER+14)
+  68++8C7C 2A 27 8F             ld      hl,(p127_hdd_fat_root_lba)
+  69++8C7F 19                   add     hl,de
+  70++8C80 22 27 8F             ld      (p127_hdd_fat_root_lba),hl
+  71++8C83 30 07                jr      nc,p127_hdd_fat_reserved_no_carry
+  72++8C85 2A 29 8F             ld      hl,(p127_hdd_fat_root_lba+2)
+  73++8C88 23                   inc     hl
+  74++8C89 22 29 8F             ld      (p127_hdd_fat_root_lba+2),hl
+  75++8C8C              p127_hdd_fat_reserved_no_carry:
+  76++8C8C 3A 10 C8             ld      a,(P127_HDD_SECTOR_BUFFER+16)
+  77++8C8F 32 22 8F             ld      (p127_hdd_fat_fat_count),a
+  78++8C92 ED 5B 16 C8          ld      de,(P127_HDD_SECTOR_BUFFER+22)
+  79++8C96              p127_hdd_fat_add_fat_loop:
+  80++8C96 2A 27 8F             ld      hl,(p127_hdd_fat_root_lba)
+  81++8C99 19                   add     hl,de
+  82++8C9A 22 27 8F             ld      (p127_hdd_fat_root_lba),hl
+  83++8C9D 30 07                jr      nc,p127_hdd_fat_add_no_carry
+  84++8C9F 2A 29 8F             ld      hl,(p127_hdd_fat_root_lba+2)
+  85++8CA2 23                   inc     hl
+  86++8CA3 22 29 8F             ld      (p127_hdd_fat_root_lba+2),hl
+  87++8CA6              p127_hdd_fat_add_no_carry:
+  88++8CA6 3A 22 8F             ld      a,(p127_hdd_fat_fat_count)
+  89++8CA9 3D                   dec     a
+  90++8CAA 32 22 8F             ld      (p127_hdd_fat_fat_count),a
+  91++8CAD 20 E7                jr      nz,p127_hdd_fat_add_fat_loop
+  92++8CAF
+  93++8CAF                      ; RootDirSectors = ceil(RootEntCnt / 16), since sector size is 512.
+  94++8CAF 2A 2D 8F             ld      hl,(p127_hdd_fat_entries_left)
+  95++8CB2 11 0F 00             ld      de,15
+  96++8CB5 19                   add     hl,de
+  97++8CB6 CB 3C                srl     h
+  98++8CB8 CB 1D                rr      l
+  99++8CBA CB 3C                srl     h
+ 100++8CBC CB 1D                rr      l
+ 101++8CBE CB 3C                srl     h
+ 102++8CC0 CB 1D                rr      l
+ 103++8CC2 CB 3C                srl     h
+ 104++8CC4 CB 1D                rr      l
+ 105++8CC6 22 2B 8F             ld      (p127_hdd_fat_sectors_left),hl
+ 106++8CC9
+ 107++8CC9 21 BC 8E             ld      hl,p127_hdd_fat_msg_root
+ 108++8CCC CD B7 62             call    p127_puts
+ 109++8CCF
+ 110++8CCF              p127_hdd_fat_sector_loop:
+ 111++8CCF 2A 2D 8F             ld      hl,(p127_hdd_fat_entries_left)
+ 112++8CD2 7C                   ld      a,h
+ 113++8CD3 B5                   or      l
+ 114++8CD4 CA 78 8D             jp      z,p127_hdd_fat_complete
+ 115++8CD7 2A 2B 8F             ld      hl,(p127_hdd_fat_sectors_left)
+ 116++8CDA 7C                   ld      a,h
+ 117++8CDB B5                   or      l
+ 118++8CDC CA 78 8D             jp      z,p127_hdd_fat_complete
+ 119++8CDF
+ 120++8CDF                      ; Copy the calculated 32-bit root LBA to the transport request.
+ 121++8CDF 2A 27 8F             ld      hl,(p127_hdd_fat_root_lba)
+ 122++8CE2 22 21 8C             ld      (p127_hdd_lba),hl
+ 123++8CE5 2A 29 8F             ld      hl,(p127_hdd_fat_root_lba+2)
+ 124++8CE8 22 23 8C             ld      (p127_hdd_lba+2),hl
+ 125++8CEB CD 48 8A             call    p127_hdd_read_sector_lba28
+ 126++8CEE DA 6F 8D             jp      c,p127_hdd_fat_read_failed
+ 127++8CF1
+ 128++8CF1 DD 21 00 C8          ld      ix,P127_HDD_SECTOR_BUFFER
+ 129++8CF5 3E 10                ld      a,16
+ 130++8CF7 32 23 8F             ld      (p127_hdd_fat_slots_left),a
+ 131++8CFA
+ 132++8CFA              p127_hdd_fat_entry_loop:
+ 133++8CFA 2A 2D 8F             ld      hl,(p127_hdd_fat_entries_left)
+ 134++8CFD 7C                   ld      a,h
+ 135++8CFE B5                   or      l
+ 136++8CFF CA 78 8D             jp      z,p127_hdd_fat_complete
+ 137++8D02
+ 138++8D02                      ; FAT directory entry 00h terminates the directory.
+ 139++8D02 DD 7E 00             ld      a,(ix+0)
+ 140++8D05 B7                   or      a
+ 141++8D06 CA 78 8D             jp      z,p127_hdd_fat_complete
+ 142++8D09 FE E5                cp      0E5h
+ 143++8D0B 28 22                jr      z,p127_hdd_fat_skip_entry
+ 144++8D0D
+ 145++8D0D                      ; Ignore long-name and volume-label entries. Keep ordinary files
+ 146++8D0D                      ; and subdirectories, matching the Project113 directory presentation.
+ 147++8D0D DD 7E 0B             ld      a,(ix+11)
+ 148++8D10 FE 0F                cp      0Fh
+ 149++8D12 28 1B                jr      z,p127_hdd_fat_skip_entry
+ 150++8D14 CB 5F                bit     3,a
+ 151++8D16 20 17                jr      nz,p127_hdd_fat_skip_entry
+ 152++8D18 DD 7E 00             ld      a,(ix+0)
+ 153++8D1B FE 2E                cp      '.'
+ 154++8D1D 28 10                jr      z,p127_hdd_fat_skip_entry
+ 155++8D1F
+ 156++8D1F DD 7E 0B             ld      a,(ix+11)
+ 157++8D22 32 24 8F             ld      (p127_hdd_fat_entry_attr),a
+ 158++8D25 CD C8 8D             call    p127_hdd_fat_emit_entry
+ 159++8D28
+ 160++8D28 2A 2F 8F             ld      hl,(p127_hdd_fat_file_count)
+ 161++8D2B 23                   inc     hl
+ 162++8D2C 22 2F 8F             ld      (p127_hdd_fat_file_count),hl
+ 163++8D2F
+ 164++8D2F              p127_hdd_fat_skip_entry:
+ 165++8D2F                      ; Consume one BPB root entry and advance by its 32-byte record size.
+ 166++8D2F 2A 2D 8F             ld      hl,(p127_hdd_fat_entries_left)
+ 167++8D32 2B                   dec     hl
+ 168++8D33 22 2D 8F             ld      (p127_hdd_fat_entries_left),hl
+ 169++8D36
+ 170++8D36 D5                   push    de
+ 171++8D37 11 20 00             ld      de,32
+ 172++8D3A DD E5                push    ix
+ 173++8D3C E1                   pop     hl
+ 174++8D3D 19                   add     hl,de
+ 175++8D3E E5                   push    hl
+ 176++8D3F DD E1                pop     ix
+ 177++8D41 D1                   pop     de
+ 178++8D42
+ 179++8D42 3A 23 8F             ld      a,(p127_hdd_fat_slots_left)
+ 180++8D45 3D                   dec     a
+ 181++8D46 32 23 8F             ld      (p127_hdd_fat_slots_left),a
+ 182++8D49 20 AF                jr      nz,p127_hdd_fat_entry_loop
+ 183++8D4B
+ 184++8D4B                      ; Advance the absolute root LBA and read the next sector.
+ 185++8D4B 2A 27 8F             ld      hl,(p127_hdd_fat_root_lba)
+ 186++8D4E 23                   inc     hl
+ 187++8D4F 22 27 8F             ld      (p127_hdd_fat_root_lba),hl
+ 188++8D52 7C                   ld      a,h
+ 189++8D53 B5                   or      l
+ 190++8D54 20 07                jr      nz,p127_hdd_fat_no_lba_carry
+ 191++8D56 2A 29 8F             ld      hl,(p127_hdd_fat_root_lba+2)
+ 192++8D59 23                   inc     hl
+ 193++8D5A 22 29 8F             ld      (p127_hdd_fat_root_lba+2),hl
+ 194++8D5D              p127_hdd_fat_no_lba_carry:
+ 195++8D5D 2A 2B 8F             ld      hl,(p127_hdd_fat_sectors_left)
+ 196++8D60 2B                   dec     hl
+ 197++8D61 22 2B 8F             ld      (p127_hdd_fat_sectors_left),hl
+ 198++8D64 C3 CF 8C             jp      p127_hdd_fat_sector_loop
+ 199++8D67
+ 200++8D67              p127_hdd_fat_bad_bpb:
+ 201++8D67 3E 06                ld      a,6
+ 202++8D69 32 21 8F             ld      (p127_hdd_fat_error),a
+ 203++8D6C C3 9D 8D             jp      p127_hdd_fat_finish
+ 204++8D6F
+ 205++8D6F              p127_hdd_fat_read_failed:
+ 206++8D6F 3A 1F 8C             ld      a,(p127_hdd_error)
+ 207++8D72 32 21 8F             ld      (p127_hdd_fat_error),a
+ 208++8D75 C3 9D 8D             jp      p127_hdd_fat_finish
+ 209++8D78
+ 210++8D78              p127_hdd_fat_complete:
+ 211++8D78 21 E2 8E             ld      hl,p127_hdd_fat_msg_done
+ 212++8D7B CD B7 62             call    p127_puts
+ 213++8D7E 21 FC 8E             ld      hl,p127_hdd_fat_msg_count
+ 214++8D81 CD B7 62             call    p127_puts
+ 215++8D84 3A 30 8F             ld      a,(p127_hdd_fat_file_count+1)
+ 216++8D87 CD D3 62             call    p127_put_hex8
+ 217++8D8A 3A 2F 8F             ld      a,(p127_hdd_fat_file_count)
+ 218++8D8D CD D3 62             call    p127_put_hex8
+ 219++8D90 3E 0D                ld      a,13
+ 220++8D92 CD E9 62             call    p127_put_char
+ 221++8D95 3E 0A                ld      a,10
+ 222++8D97 CD E9 62             call    p127_put_char
+ 223++8D9A C3 9D 8D             jp      p127_hdd_fat_finish
+ 224++8D9D
+ 225++8D9D              p127_hdd_fat_finish:
+ 226++8D9D 3A 21 8F             ld      a,(p127_hdd_fat_error)
+ 227++8DA0 B7                   or      a
+ 228++8DA1 28 16                jr      z,p127_hdd_fat_restore
+ 229++8DA3 21 0E 8F             ld      hl,p127_hdd_fat_msg_error
+ 230++8DA6 CD B7 62             call    p127_puts
+ 231++8DA9 3A 21 8F             ld      a,(p127_hdd_fat_error)
+ 232++8DAC CD D3 62             call    p127_put_hex8
+ 233++8DAF 3E 0D                ld      a,13
+ 234++8DB1 CD E9 62             call    p127_put_char
+ 235++8DB4 3E 0A                ld      a,10
+ 236++8DB6 CD E9 62             call    p127_put_char
+ 237++8DB9
+ 238++8DB9              p127_hdd_fat_restore:
+ 239++8DB9 FD E1                pop     iy
+ 240++8DBB DD E1                pop     ix
+ 241++8DBD E1                   pop     hl
+ 242++8DBE D1                   pop     de
+ 243++8DBF C1                   pop     bc
+ 244++8DC0 F1                   pop     af
+ 245++8DC1 3A 21 8F             ld      a,(p127_hdd_fat_error)
+ 246++8DC4 B7                   or      a
+ 247++8DC5 C8                   ret     z
+ 248++8DC6 37                   scf
+ 249++8DC7 C9                   ret
+ 250++8DC8
+ 251++8DC8              ; Format and emit one 8.3 entry. IX points to the 32-byte FAT entry.
+ 252++8DC8              ; The output line is mirrored through p127_put_char/p127_puts to #EF.
+ 253++8DC8              p127_hdd_fat_emit_entry:
+ 254++8DC8 F5                   push    af
+ 255++8DC9 C5                   push    bc
+ 256++8DCA D5                   push    de
+ 257++8DCB E5                   push    hl
+ 258++8DCC DD E5                push    ix
+ 259++8DCE
+ 260++8DCE DD E5                push    ix
+ 261++8DD0 E1                   pop     hl
+ 262++8DD1 22 31 8F             ld      (p127_hdd_fat_entry_ptr),hl
+ 263++8DD4
+ 264++8DD4                      ; Copy the base name until its first padding space.
+ 265++8DD4 11 33 8F             ld      de,p127_hdd_fat_name
+ 266++8DD7 AF                   xor     a
+ 267++8DD8 32 25 8F             ld      (p127_hdd_fat_name_len),a
+ 268++8DDB 06 08                ld      b,8
+ 269++8DDD              p127_hdd_fat_name_base_loop:
+ 270++8DDD 7E                   ld      a,(hl)
+ 271++8DDE 23                   inc     hl
+ 272++8DDF FE 20                cp      ' '
+ 273++8DE1 28 0B                jr      z,p127_hdd_fat_name_base_done
+ 274++8DE3 12                   ld      (de),a
+ 275++8DE4 13                   inc     de
+ 276++8DE5 3A 25 8F             ld      a,(p127_hdd_fat_name_len)
+ 277++8DE8 3C                   inc     a
+ 278++8DE9 32 25 8F             ld      (p127_hdd_fat_name_len),a
+ 279++8DEC 10 EF                djnz    p127_hdd_fat_name_base_loop
+ 280++8DEE              p127_hdd_fat_name_base_done:
+ 281++8DEE 3A 25 8F             ld      a,(p127_hdd_fat_name_len)
+ 282++8DF1 B7                   or      a
+ 283++8DF2 28 72                jr      z,p127_hdd_fat_emit_done
+ 284++8DF4
+ 285++8DF4                      ; Copy non-space extension bytes to a temporary 3-byte buffer.
+ 286++8DF4 2A 31 8F             ld      hl,(p127_hdd_fat_entry_ptr)
+ 287++8DF7 11 08 00             ld      de,8
+ 288++8DFA 19                   add     hl,de
+ 289++8DFB 11 40 8F             ld      de,p127_hdd_fat_ext
+ 290++8DFE 06 03                ld      b,3
+ 291++8E00 AF                   xor     a
+ 292++8E01 32 26 8F             ld      (p127_hdd_fat_ext_len),a
+ 293++8E04              p127_hdd_fat_name_ext_loop:
+ 294++8E04 7E                   ld      a,(hl)
+ 295++8E05 23                   inc     hl
+ 296++8E06 FE 20                cp      ' '
+ 297++8E08 28 09                jr      z,p127_hdd_fat_name_ext_next
+ 298++8E0A 12                   ld      (de),a
+ 299++8E0B 13                   inc     de
+ 300++8E0C 3A 26 8F             ld      a,(p127_hdd_fat_ext_len)
+ 301++8E0F 3C                   inc     a
+ 302++8E10 32 26 8F             ld      (p127_hdd_fat_ext_len),a
+ 303++8E13              p127_hdd_fat_name_ext_next:
+ 304++8E13 10 EF                djnz    p127_hdd_fat_name_ext_loop
+ 305++8E15
+ 306++8E15                      ; Append .EXT only when an extension exists.
+ 307++8E15 3A 26 8F             ld      a,(p127_hdd_fat_ext_len)
+ 308++8E18 B7                   or      a
+ 309++8E19 28 1C                jr      z,p127_hdd_fat_name_terminate
+ 310++8E1B 21 33 8F             ld      hl,p127_hdd_fat_name
+ 311++8E1E 3A 25 8F             ld      a,(p127_hdd_fat_name_len)
+ 312++8E21 5F                   ld      e,a
+ 313++8E22 16 00                ld      d,0
+ 314++8E24 19                   add     hl,de
+ 315++8E25 36 2E                ld      (hl),'.'
+ 316++8E27 23                   inc     hl
+ 317++8E28 11 40 8F             ld      de,p127_hdd_fat_ext
+ 318++8E2B 3A 26 8F             ld      a,(p127_hdd_fat_ext_len)
+ 319++8E2E 47                   ld      b,a
+ 320++8E2F              p127_hdd_fat_name_ext_copy:
+ 321++8E2F 1A                   ld      a,(de)
+ 322++8E30 13                   inc     de
+ 323++8E31 77                   ld      (hl),a
+ 324++8E32 23                   inc     hl
+ 325++8E33 10 FA                djnz    p127_hdd_fat_name_ext_copy
+ 326++8E35 18 0A                jr      p127_hdd_fat_name_terminate_at_hl
+ 327++8E37
+ 328++8E37              p127_hdd_fat_name_terminate:
+ 329++8E37 21 33 8F             ld      hl,p127_hdd_fat_name
+ 330++8E3A 3A 25 8F             ld      a,(p127_hdd_fat_name_len)
+ 331++8E3D 5F                   ld      e,a
+ 332++8E3E 16 00                ld      d,0
+ 333++8E40 19                   add     hl,de
+ 334++8E41              p127_hdd_fat_name_terminate_at_hl:
+ 335++8E41 36 00                ld      (hl),0
+ 336++8E43
+ 337++8E43 21 D4 8E             ld      hl,p127_hdd_fat_msg_file
+ 338++8E46 CD B7 62             call    p127_puts
+ 339++8E49 21 33 8F             ld      hl,p127_hdd_fat_name
+ 340++8E4C CD B7 62             call    p127_puts
+ 341++8E4F 3A 24 8F             ld      a,(p127_hdd_fat_entry_attr)
+ 342++8E52 CB 67                bit     4,a
+ 343++8E54 28 06                jr      z,p127_hdd_fat_emit_newline
+ 344++8E56 21 DB 8E             ld      hl,p127_hdd_fat_msg_dir
+ 345++8E59 CD B7 62             call    p127_puts
+ 346++8E5C              p127_hdd_fat_emit_newline:
+ 347++8E5C 3E 0D                ld      a,13
+ 348++8E5E CD E9 62             call    p127_put_char
+ 349++8E61 3E 0A                ld      a,10
+ 350++8E63 CD E9 62             call    p127_put_char
+ 351++8E66
+ 352++8E66              p127_hdd_fat_emit_done:
+ 353++8E66 DD E1                pop     ix
+ 354++8E68 E1                   pop     hl
+ 355++8E69 D1                   pop     de
+ 356++8E6A C1                   pop     bc
+ 357++8E6B F1                   pop     af
+ 358++8E6C C9                   ret
+ 359++8E6D
+ 360++8E6D 5B 48 44 44  p127_hdd_fat_msg_begin: db "[HDD] DRIVER=NEMO-DIVIDE LBA28 0.1.2 FAT16 0.1.0",13,10,"[HDD] FAT16 ROOT DIRECTORY",13,10,0
+ 360++8E71 5D 20 44 52
+ 360++8E75 49 56 45 52
+ 360++8E79 3D 4E 45 4D
+ 360++8E7D 4F 2D 44 49
+ 360++8E81 56 49 44 45
+ 360++8E85 20 4C 42 41
+ 360++8E89 32 38 20 30
+ 360++8E8D 2E 31 2E 32
+ 360++8E91 20 46 41 54
+ 360++8E95 31 36 20 30
+ 360++8E99 2E 31 2E 30
+ 360++8E9D 0D 0A 5B 48
+ 360++8EA1 44 44 5D 20
+ 360++8EA5 46 41 54 31
+ 360++8EA9 36 20 52 4F
+ 360++8EAD 4F 54 20 44
+ 360++8EB1 49 52 45 43
+ 360++8EB5 54 4F 52 59
+ 360++8EB9 0D 0A 00
+ 361++8EBC 5B 48 44 44  p127_hdd_fat_msg_root:  db "[HDD] ROOT SCAN BEGIN",13,10,0
+ 361++8EC0 5D 20 52 4F
+ 361++8EC4 4F 54 20 53
+ 361++8EC8 43 41 4E 20
+ 361++8ECC 42 45 47 49
+ 361++8ED0 4E 0D 0A 00
+ 362++8ED4 5B 48 44 44  p127_hdd_fat_msg_file:  db "[HDD] ",0
+ 362++8ED8 5D 20 00
+ 363++8EDB 20 3C 44 49  p127_hdd_fat_msg_dir:   db " <DIR>",0
+ 363++8EDF 52 3E 00
+ 364++8EE2 5B 48 44 44  p127_hdd_fat_msg_done:  db "[HDD] DIRECTORY READ OK",13,10,0
+ 364++8EE6 5D 20 44 49
+ 364++8EEA 52 45 43 54
+ 364++8EEE 4F 52 59 20
+ 364++8EF2 52 45 41 44
+ 364++8EF6 20 4F 4B 0D
+ 364++8EFA 0A 00
+ 365++8EFC 5B 48 44 44  p127_hdd_fat_msg_count: db "[HDD] FILE COUNT=",0
+ 365++8F00 5D 20 46 49
+ 365++8F04 4C 45 20 43
+ 365++8F08 4F 55 4E 54
+ 365++8F0C 3D 00
+ 366++8F0E 5B 48 44 44  p127_hdd_fat_msg_error: db "[HDD] FAT16 ERROR=",0
+ 366++8F12 5D 20 46 41
+ 366++8F16 54 31 36 20
+ 366++8F1A 45 52 52 4F
+ 366++8F1E 52 3D 00
+ 367++8F21
+ 368++8F21 00           p127_hdd_fat_error:        db 0
+ 369++8F22 00           p127_hdd_fat_fat_count:    db 0
+ 370++8F23 00           p127_hdd_fat_slots_left:   db 0
+ 371++8F24 00           p127_hdd_fat_entry_attr:   db 0
+ 372++8F25 00           p127_hdd_fat_name_len:     db 0
+ 373++8F26 00           p127_hdd_fat_ext_len:      db 0
+ 374++8F27 00 00 00 00  p127_hdd_fat_root_lba:     db 0,0,0,0
+ 375++8F2B 00 00        p127_hdd_fat_sectors_left: dw 0
+ 376++8F2D 00 00        p127_hdd_fat_entries_left: dw 0
+ 377++8F2F 00 00        p127_hdd_fat_file_count:   dw 0
+ 378++8F31 00 00        p127_hdd_fat_entry_ptr:    dw 0
+ 379++8F33 00 00 00...  p127_hdd_fat_name:         ds 13,0
+ 380++8F40 00 00 00     p127_hdd_fat_ext:          ds 3,0
+ 381++8F43
 # file closed: p127_hdd_fat16.asm
- 424+ 8F42
- 425+ 8F42              p127_end:
- 426+ 8F42                      ASSERT  p127_entry = P127_LOAD_ADDRESS
- 427+ 8F42                      ASSERT  p127_end > p127_entry
- 428+ 8F42                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
- 429+ 8F42
+ 424+ 8F43
+ 425+ 8F43              p127_end:
+ 426+ 8F43                      ASSERT  p127_entry = P127_LOAD_ADDRESS
+ 427+ 8F43                      ASSERT  p127_end > p127_entry
+ 428+ 8F43                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
+ 429+ 8F43
 # file closed: p127_boot.asm
-   8  8F42
-   9  8F42              ; BASIC boot file is assembly data, not a Python-generated byte array.
-  10  8F42                      ORG     #B000
+   8  8F43
+   9  8F43              ; BASIC boot file is assembly data, not a Python-generated byte array.
+  10  8F43                      ORG     #B000
   11  B000              CLEAR       EQU #FD
   12  B000              LOAD        EQU #EF
   13  B000              CODE        EQU #AF
