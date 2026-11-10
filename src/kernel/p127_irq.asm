@@ -195,8 +195,8 @@ p127_irq_batch_mask_next:
         or      a
         ret
 
-; Validate the future IM2 table reservation and address geometry. The page
-; remains unmapped: W3 must still describe physical page 0 in the live map.
+; Validate the future IM2 table reservation and address geometry.
+; The table is in fixed W2/P2; W3 remains free for leased remapping.
 ; No table bytes are written, no I register is loaded, and no IM is selected.
 p127_irq_table_preflight:
         ld      hl,p127_mem_page_state+P127_IRQ_TABLE_PAGE
@@ -204,26 +204,28 @@ p127_irq_table_preflight:
         cp      1                       ; P127_MEM_RESERVED
         jp      nz,p127_irq_reject
         ld      a,(p127_map_shadow+P127_IRQ_TABLE_WINDOW)
-        or      a
-        jp      nz,p127_irq_reject      ; W3 still maps bootstrap page 0
+        cp      P127_IRQ_TABLE_PAGE
+        jp      nz,p127_irq_reject      ; fixed W2 still maps reserved P2
         ld      hl,P127_IRQ_TABLE_BASE
         ld      a,h
         cp      P127_IRQ_TABLE_I
         jp      nz,p127_irq_reject
         ld      hl,P127_IRQ_TABLE_END
-        ld      de,0C101h
+        ld      de,0B101h
         or      a
         sbc     hl,de
         jp      nz,p127_irq_reject
         or      a
         ret
 
-        ASSERT P127_IRQ_TABLE_WINDOW = 3
-        ASSERT P127_IRQ_TABLE_BASE = 0C000h
-        ASSERT P127_IRQ_TABLE_I = 0C0h
+        ASSERT P127_IRQ_TABLE_WINDOW = 2
+        ASSERT P127_IRQ_TABLE_PAGE = 2
+        ASSERT P127_IRQ_TABLE_BASE = 0B000h
+        ASSERT P127_IRQ_TABLE_I = 0B0h
         ASSERT P127_IRQ_TABLE_BYTES = 257
-        ASSERT P127_IRQ_TABLE_END = 0C101h
+        ASSERT P127_IRQ_TABLE_END = 0B101h
         ASSERT P127_IRQ_TABLE_END <= 10000h
+        ASSERT P127_IRQ_TABLE_END < 0B7F0h
 
 p127_irq_reject:
         scf

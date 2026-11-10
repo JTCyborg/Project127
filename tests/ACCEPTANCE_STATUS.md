@@ -63,27 +63,15 @@ Reference mode matrix (Project112):
 | 2 | ATM EGA | #C0 (RG=0) | 320x200x16 |
 | 3 | ATM hardware text | #C6 (RG=6) | 80x25 |
 
-### Keyboard/input — ATM XT protocol implemented; runtime pending
+### Keyboard/input — ZX fallback diagnostic runtime PASS; ATM XT mode not exercised
 
-ATM host owns all physical keyboard reads. `src/kernel/p127_keyboard.asm` v0.2.2 now implements the Unreal Speccy ATM_KBD interface through ULA port #FE:
+The user's 2026-11-10 runtime log confirms:
 
-- Performs the documented #55/#AA handshake and command #08 mode selection.
-- Enters ATM_KBD mode 2 and reads R2/R3/R4/R5; R2 is read-to-clear, while R3/R4/R5 expose key/modifier/extended-key metadata.
-- Temporarily switches to mode 3 to read and clear LASTSCAN, then returns to mode 2. LASTSCAN bit 7 denotes key release.
-- Logs each key event with LASTSCAN and R2/R3/R4/R5, and reports modifier/register state changes.
-- Requires `[Input] ATMKBD=1` in the Unreal Speccy configuration. If the ATM_KBD handshake is absent, it explicitly falls back to the ordinary ZX 8x5 matrix diagnostic; that fallback is not full PC-keyboard support.
-- All polling is ATM-side, paced in software, and independent of PIT/IRQ. No NeoGS implementation, DMA transport, IM or EI is assumed.
+- `[KBD] INIT` and `[KBD] ZX FALLBACK`.
+- The ZX 8x5 matrix values changed in response to key presses and returned to the idle values after release.
+- The inactivity timeout ended the monitor with `[KBD] DONE`.
 
-Expected runtime markers with ATMKBD enabled:
-
-```text
-[KBD] INIT
-[KBD] ATM XT ACTIVE
-[KBD] LAST=.. R2=.. R3=.. R4=.. R5=..
-[KBD] DONE
-```
-
-The monitor now exits automatically after 10 seconds without a new make/break or modifier/matrix transition, prints `[KBD] DONE`, and returns to the normal boot idle loop. The timeout uses the ATM Turbo 2+ 7 MHz software-pacing estimate; it still requires runtime timing confirmation. Runtime acceptance remains pending until the user tests ordinary keys, function/navigation keys, modifiers, extended keys, make/break events, and the idle exit in the configured emulator.
+This closes the requested keyboard diagnostic stage. The run did not activate ATM XT mode, so the #55/#AA handshake, R2/R3/R4/R5 extended-key protocol, and function/navigation keys through ATM_KBD are not claimed as tested. The timeout duration is based on the software-pacing estimate and has not been independently timed.
 ### Explicitly deferred
 
 - HDD/FAT16 functional acceptance. The latest runtime log did show a successful NEMO IDE LBA28 probe, sector 63 read, and FAT16 root-directory listing (7 files); this is recorded as an observation only, not acceptance.
@@ -94,3 +82,26 @@ The monitor now exits automatically after 10 seconds without a new make/break or
 Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE path while it is deferred.
 
 
+
+
+### IRQ — frame source identified; live activation pending
+
+- The upstream Unreal Speccy source audit identifies the ATM710 frame interrupt source: one pending Z80 INT per Spectrum frame, accepted during the interrupt window only when CPU IFF1 is set and ATM FF77 bit #20 is enabled.
+- The emulator's IM1 handler address is fixed at #0038; IM2 reads a handler pointer from the table selected by I and the emulator-provided interrupt vector byte.
+- Project127's existing IRQ tests verify only synthetic frame/context and DI-only readiness contracts. No vector bytes are installed and no live handler has run.
+- The initial W3/P4 table candidate was rejected because W3 is leased and remapped. The current preflight candidate is #B000..#B100 in fixed W2/P2, beyond the resident image end and below the scratch-stack region. This is a placement candidate only; the table is not initialized.
+- No live IRQ acceptance. Keep IM/EI disabled until the emulator vector byte, resident handler, stack/window ownership and acknowledgement/return behavior are implemented and tested.
+
+
+### IRQ — stable IM2 table location preflight updated; live IRQ pending
+
+- Candidate table moved from remappable W3/P4 at #C000 to fixed W2/P2 at #B000..#B100. The region is beyond the resident image end (#B000 exclusive) and below the scratch-stack/guard area.
+- Preflight now checks P2 reservation and the W2->P2 mapping.
+- The table remains uninitialized and IM2/IM/EI remain disabled pending confirmation of the emulator's interrupt vector byte and implementation of the resident handler.
+
+### IRQ — interrupt-vector implementation audit blocker
+
+- At upstream Unreal Speccy revision `a685b6f9227ec9dbb595b6cef38addbcd083d6ac`, `z80/defs.h` declares `Z80::IntVec()` as a pure virtual method, and `gsz80.h` declares `TGsZ80::IntVec()` as an override.
+- The inspected `gsz80.cpp` contains the `TGsZ80` method definitions for memory, M1, IN/OUT and RETN, but no `TGsZ80::IntVec()` definition. The declaration alone does not establish the returned vector byte.
+- The frame loop passes `cpu.IntVec()` to `handle_int()`; IM2 uses that byte together with I to read the little-endian handler address. Therefore the exact vector cannot be inferred from the frame source or from the IM1 fixed address `#0038`.
+- Do not initialize the IM2 table with a guessed vector and do not enable IM/EI. Continue tracing the concrete runtime implementation/selected CPU class and its linked definition before writing vector bytes.
