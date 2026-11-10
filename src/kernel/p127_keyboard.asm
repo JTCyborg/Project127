@@ -251,43 +251,28 @@ p127_keyboard_scan_matrix:
         push    bc
         push    de
         push    hl
-        ld      c,P127_KBD_PORT
-        ld      b,#FE
+        ld      bc,#00FE
+        ld      hl,p127_kbd_row_selectors
+        ld      de,p127_kbd_matrix
+        ld      a,8
+p127_keyboard_scan_matrix_loop:
+        push    af
+        ld      b,(hl)
+        inc     hl
         in      a,(c)
         and     P127_KBD_ROW_MASK
-        ld      (p127_kbd_matrix+0),a
-        ld      b,#FD
-        in      a,(c)
-        and     P127_KBD_ROW_MASK
-        ld      (p127_kbd_matrix+1),a
-        ld      b,#FB
-        in      a,(c)
-        and     P127_KBD_ROW_MASK
-        ld      (p127_kbd_matrix+2),a
-        ld      b,#F7
-        in      a,(c)
-        and     P127_KBD_ROW_MASK
-        ld      (p127_kbd_matrix+3),a
-        ld      b,#EF
-        in      a,(c)
-        and     P127_KBD_ROW_MASK
-        ld      (p127_kbd_matrix+4),a
-        ld      b,#DF
-        in      a,(c)
-        and     P127_KBD_ROW_MASK
-        ld      (p127_kbd_matrix+5),a
-        ld      b,#BF
-        in      a,(c)
-        and     P127_KBD_ROW_MASK
-        ld      (p127_kbd_matrix+6),a
-        ld      b,#7F
-        in      a,(c)
-        and     P127_KBD_ROW_MASK
-        ld      (p127_kbd_matrix+7),a
+        ld      (de),a
+        inc     de
+        pop     af
+        dec     a
+        jr      nz,p127_keyboard_scan_matrix_loop
         pop     hl
         pop     de
         pop     bc
         ret
+
+p127_kbd_row_selectors:
+        db #FE,#FD,#FB,#F7,#EF,#DF,#BF,#7F
 
 p127_kbd_msg_init:
         db "[KBD v0.2.2] INIT",13,10,0
@@ -308,7 +293,7 @@ p127_kbd_msg_r5:
 p127_kbd_msg_matrix:
         db "[KBD] ZX MATRIX=",0
 p127_kbd_msg_done:
-        db "[KBD] TEST DONE",13,10,0
+        db "[KBD] DONE",13,10,0
 
 p127_kbd_idle_windows:
         db P127_KBD_IDLE_WINDOWS
