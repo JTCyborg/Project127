@@ -201,7 +201,7 @@ p127_keyboard_dma_wait_ok:
         ret
 
 p127_kbd_msg_monitor:
-        db "[KBD] ATM 8X5 MATRIX MONITOR; ACTIVE-LOW; IRQ DISABLED",13,10,0
+        db "[KBD v0.1.0] ATM 8X5 MATRIX MONITOR; ACTIVE-LOW; IRQ DISABLED",13,10,0
 p127_kbd_msg_matrix:
         db "[KBD] MATRIX=",0
 p127_kbd_msg_dma_ok:
