@@ -8,7 +8,7 @@
    7  0000                      INCLUDE "src/boot/p127_boot.asm"
 # file opened: p127_boot.asm
    1+ 0000              ; ============================================================================
-   2+ 0000              ; Project127 — boot stage 0.7.13
+   2+ 0000              ; Project127 — boot stage 0.7.15
    3+ 0000              ; ATM Turbo 2+ Z80, loaded and entered at 6000h.
    4+ 0000              ; Debug channel: ATM debug port EFh. Each line is a reached execution point.
    5+ 0000              ; ============================================================================
@@ -199,929 +199,932 @@
  190+ 61BF                      ; Stage 10.1: read-only Nemo IDE LBA28 transport check.
  191+ 61BF                      ; The completed TR-DOS snapshot at #C800 is reused as sector staging.
  192+ 61BF CD 9B 8D             call    p127_hdd_probe_read
- 193+ 61C2 DA 02 63             jp      c,p127_idle
+ 193+ 61C2 DA 9F AD             jp      c,p127_keyboard_monitor
  194+ 61C5 CD 71 90             call    p127_hdd_list_root
- 195+ 61C8 C3 02 63             jp      p127_idle
- 196+ 61CB
- 197+ 61CB              p127_trdos_failed:
- 198+ 61CB 21 E5 67             ld      hl,p127_msg_trdos_failed
- 199+ 61CE CD 06 63             call    p127_puts
- 200+ 61D1 C3 02 63             jp      p127_idle
- 201+ 61D4              p127_video_mode_failed:
- 202+ 61D4 21 61 68             ld      hl,p127_msg_video_mode_fail
- 203+ 61D7 CD 06 63             call    p127_puts
- 204+ 61DA C3 02 63             jp      p127_idle
- 205+ 61DD              p127_as_copy_failed:
- 206+ 61DD 21 91 68             ld      hl,p127_msg_as_copy_fail
- 207+ 61E0 CD 06 63             call    p127_puts
- 208+ 61E3 21 B6 68             ld      hl,p127_msg_as_copy_phase
- 209+ 61E6 CD 06 63             call    p127_puts
- 210+ 61E9 3A 0B 84             ld      a,(p127_as_copy_test_phase)
- 211+ 61EC CD 22 63             call    p127_put_hex8
- 212+ 61EF 21 C9 68             ld      hl,p127_msg_as_copy_error
- 213+ 61F2 CD 06 63             call    p127_puts
- 214+ 61F5 3A AF 83             ld      a,(p127_as_copy_error)
- 215+ 61F8 CD 22 63             call    p127_put_hex8
- 216+ 61FB 21 D1 68             ld      hl,p127_msg_as_copy_done
- 217+ 61FE CD 06 63             call    p127_puts
- 218+ 6201 3A AE 83             ld      a,(p127_as_copy_completed+3)
- 219+ 6204 CD 22 63             call    p127_put_hex8
- 220+ 6207 3A AD 83             ld      a,(p127_as_copy_completed+2)
- 221+ 620A CD 22 63             call    p127_put_hex8
- 222+ 620D 3A AC 83             ld      a,(p127_as_copy_completed+1)
- 223+ 6210 CD 22 63             call    p127_put_hex8
- 224+ 6213 3A AB 83             ld      a,(p127_as_copy_completed)
- 225+ 6216 CD 22 63             call    p127_put_hex8
- 226+ 6219 3E 0D                ld      a,13
- 227+ 621B CD 38 63             call    p127_put_char
- 228+ 621E 3E 0A                ld      a,10
- 229+ 6220 CD 38 63             call    p127_put_char
- 230+ 6223 C3 02 63             jp      p127_idle
- 231+ 6226              p127_mem_stress_failed:
- 232+ 6226 21 38 6A             ld      hl,p127_msg_mem_stress_fail
- 233+ 6229 CD 06 63             call    p127_puts
- 234+ 622C C3 02 63             jp      p127_idle
- 235+ 622F              p127_mem_pin_failed:
- 236+ 622F 21 9D 6A             ld      hl,p127_msg_mem_pin_fail
- 237+ 6232 CD 06 63             call    p127_puts
- 238+ 6235 C3 02 63             jp      p127_idle
- 239+ 6238              p127_physmem_api_failed:
- 240+ 6238 21 CB 6A             ld      hl,p127_msg_physmem_api_fail
- 241+ 623B CD 06 63             call    p127_puts
- 242+ 623E C3 02 63             jp      p127_idle
- 243+ 6241              p127_physmem_failed:
- 244+ 6241 21 00 6B             ld      hl,p127_msg_physmem_fail
- 245+ 6244 CD 06 63             call    p127_puts
- 246+ 6247 21 2E 6B             ld      hl,p127_msg_physmem_error
- 247+ 624A CD 06 63             call    p127_puts
- 248+ 624D 3A 51 AD             ld      a,(p127_physmem_error)
- 249+ 6250 CD 22 63             call    p127_put_hex8
- 250+ 6253 3E 0D                ld      a,13
- 251+ 6255 CD 38 63             call    p127_put_char
- 252+ 6258 3E 0A                ld      a,10
- 253+ 625A CD 38 63             call    p127_put_char
- 254+ 625D C3 02 63             jp      p127_idle
- 255+ 6260              p127_map_txn_failed:
- 256+ 6260 21 0C 69             ld      hl,p127_msg_map_txn_fail
- 257+ 6263 CD 06 63             call    p127_puts
- 258+ 6266 C3 02 63             jp      p127_idle
- 259+ 6269              p127_stack_probe_failed:
- 260+ 6269 21 92 6B             ld      hl,p127_msg_stack_probe_fail
- 261+ 626C CD 06 63             call    p127_puts
- 262+ 626F C3 02 63             jp      p127_idle
- 263+ 6272              p127_w3_failed:
- 264+ 6272 21 95 6C             ld      hl,p127_msg_w3_fail
- 265+ 6275 CD 06 63             call    p127_puts
- 266+ 6278 C3 02 63             jp      p127_idle
- 267+ 627B              p127_w3_recovery_failed:
- 268+ 627B 21 EC 6C             ld      hl,p127_msg_w3_recovery_fail
- 269+ 627E CD 06 63             call    p127_puts
- 270+ 6281 C3 02 63             jp      p127_idle
- 271+ 6284              p127_irq_failed:
- 272+ 6284 21 8A 6D             ld      hl,p127_msg_irq_fail
- 273+ 6287 CD 06 63             call    p127_puts
- 274+ 628A C3 02 63             jp      p127_idle
- 275+ 628D              p127_trampoline_preflight_failed:
- 276+ 628D 21 1F 6E             ld      hl,p127_msg_trampoline_preflight_fail
- 277+ 6290 CD 06 63             call    p127_puts
- 278+ 6293 C3 02 63             jp      p127_idle
- 279+ 6296              p127_resident_failed:
- 280+ 6296 21 EA 6B             ld      hl,p127_msg_resident_fail
- 281+ 6299 CD 06 63             call    p127_puts
- 282+ 629C C3 02 63             jp      p127_idle
- 283+ 629F              p127_handoff_failed:
- 284+ 629F 21 40 6C             ld      hl,p127_msg_handoff_fail
- 285+ 62A2 CD 06 63             call    p127_puts
- 286+ 62A5 C3 02 63             jp      p127_idle
- 287+ 62A8              p127_map_failed:
- 288+ 62A8 21 44 6B             ld      hl,p127_msg_map_fail
- 289+ 62AB CD 06 63             call    p127_puts
- 290+ 62AE C3 02 63             jp      p127_idle
- 291+ 62B1              p127_mem_map_failed:
- 292+ 62B1 21 7F 65             ld      hl,p127_msg_mem_map_fail
- 293+ 62B4 CD 06 63             call    p127_puts
- 294+ 62B7 C3 02 63             jp      p127_idle
- 295+ 62BA              p127_mem_irq_reserve_failed:
- 296+ 62BA 21 3B 65             ld      hl,p127_msg_irq_page_fail
- 297+ 62BD CD 06 63             call    p127_puts
- 298+ 62C0 C3 02 63             jp      p127_idle
- 299+ 62C3              p127_mem_boot_failed:
- 300+ 62C3 21 60 65             ld      hl,p127_msg_boot_reserve_fail
- 301+ 62C6 CD 06 63             call    p127_puts
- 302+ 62C9 C3 02 63             jp      p127_idle
- 303+ 62CC              p127_mem_failed:
- 304+ 62CC 21 03 66             ld      hl,p127_msg_mem_fail
- 305+ 62CF CD 06 63             call    p127_puts
- 306+ 62D2 C3 02 63             jp      p127_idle
- 307+ 62D5              p127_range_failed:
- 308+ 62D5 21 56 66             ld      hl,p127_msg_range_fail
- 309+ 62D8 CD 06 63             call    p127_puts
- 310+ 62DB C3 02 63             jp      p127_idle
- 311+ 62DE              p127_layout_failed:
- 312+ 62DE 21 44 64             ld      hl,p127_msg_layout_fail
- 313+ 62E1 CD 06 63             call    p127_puts
- 314+ 62E4 C3 02 63             jp      p127_idle
- 315+ 62E7              p127_arena_failed:
- 316+ 62E7 21 BD 66             ld      hl,p127_msg_arena_fail
- 317+ 62EA CD 06 63             call    p127_puts
- 318+ 62ED C3 02 63             jp      p127_idle
- 319+ 62F0              p127_as_failed:
- 320+ 62F0 21 21 67             ld      hl,p127_msg_as_fail
- 321+ 62F3 CD 06 63             call    p127_puts
- 322+ 62F6 C3 02 63             jp      p127_idle
- 323+ 62F9              p127_as_span_failed:
- 324+ 62F9 21 80 67             ld      hl,p127_msg_as_span_fail
- 325+ 62FC CD 06 63             call    p127_puts
- 326+ 62FF C3 02 63             jp      p127_idle
- 327+ 6302
- 328+ 6302              p127_idle:
- 329+ 6302 76                   halt
- 330+ 6303 C3 02 63             jp      p127_idle
- 331+ 6306
- 332+ 6306              ; Input: HL -> zero-terminated string.
- 333+ 6306              ; Clobbers AF, BC, HL. Preserves caller's stack frame.
- 334+ 6306              p127_puts:
- 335+ 6306 7E                   ld      a,(hl)
- 336+ 6307 B7                   or      a
- 337+ 6308 C8                   ret     z
- 338+ 6309 23                   inc     hl
- 339+ 630A E5                   push    hl
- 340+ 630B F5                   push    af
- 341+ 630C 3A 4A 63             ld      a,(p127_ui_ready)
- 342+ 630F B7                   or      a
- 343+ 6310 28 07                jr      z,p127_puts_ef
- 344+ 6312 F1                   pop     af
- 345+ 6313 CD D8 A1             call    BIOS_DebugConsole_PrintChar
- 346+ 6316 E1                   pop     hl
- 347+ 6317 18 ED                jr      p127_puts
- 348+ 6319              p127_puts_ef:
- 349+ 6319 F1                   pop     af
- 350+ 631A 01 EF 00             ld      bc,P127_DEBUG_PORT
- 351+ 631D ED 79                out     (c),a
- 352+ 631F E1                   pop     hl
- 353+ 6320 18 E4                jr      p127_puts
- 354+ 6322
- 355+ 6322              p127_put_hex8:
- 356+ 6322 F5                   push    af
- 357+ 6323 0F                   rrca
- 358+ 6324 0F                   rrca
- 359+ 6325 0F                   rrca
- 360+ 6326 0F                   rrca
- 361+ 6327 CD 2E 63             call    p127_put_hex_nibble
- 362+ 632A F1                   pop     af
- 363+ 632B C3 2E 63             jp      p127_put_hex_nibble
- 364+ 632E
- 365+ 632E              p127_put_hex_nibble:
- 366+ 632E E6 0F                and     00Fh
- 367+ 6330 C6 30                add     a,'0'
- 368+ 6332 FE 3A                cp      '9'+1
- 369+ 6334 38 02                jr      c,p127_put_char
- 370+ 6336 C6 07                add     a,7
- 371+ 6338              p127_put_char:
- 372+ 6338 F5                   push    af
- 373+ 6339 3A 4A 63             ld      a,(p127_ui_ready)
- 374+ 633C B7                   or      a
- 375+ 633D 28 04                jr      z,p127_put_char_ef
- 376+ 633F F1                   pop     af
- 377+ 6340 C3 D8 A1             jp      BIOS_DebugConsole_PrintChar
- 378+ 6343              p127_put_char_ef:
- 379+ 6343 F1                   pop     af
- 380+ 6344 01 EF 00             ld      bc,P127_DEBUG_PORT
- 381+ 6347 ED 79                out     (c),a
- 382+ 6349 C9                   ret
- 383+ 634A
- 384+ 634A 00           p127_ui_ready: db 0
- 385+ 634B 5B 53 50 45  p127_msg_speaker_begin: db "[SPEAKER] #FE D4 TONE BEGIN; TEST USES BORDER/TAPE STATE 0",13,10,0
- 385+ 634F 41 4B 45 52
- 385+ 6353 5D 20 23 46
- 385+ 6357 45 20 44 34
- 385+ 635B 20 54 4F 4E
- 385+ 635F 45 20 42 45
- 385+ 6363 47 49 4E 3B
- 385+ 6367 20 54 45 53
- 385+ 636B 54 20 55 53
- 385+ 636F 45 53 20 42
- 385+ 6373 4F 52 44 45
- 385+ 6377 52 2F 54 41
- 385+ 637B 50 45 20 53
- 385+ 637F 54 41 54 45
- 385+ 6383 20 30 0D 0A
- 385+ 6387 00
- 386+ 6388 5B 53 50 45  p127_msg_speaker_done: db "[SPEAKER] TONE END",13,10,0
- 386+ 638C 41 4B 45 52
- 386+ 6390 5D 20 54 4F
- 386+ 6394 4E 45 20 45
- 386+ 6398 4E 44 0D 0A
- 386+ 639C 00
- 387+ 639D 5B 50 31 32  p127_msg_ui_ready: db "[P127] UI READY; ALL DEBUG OUTPUT MIRRORED TO EF",13,10,0
- 387+ 63A1 37 5D 20 55
- 387+ 63A5 49 20 52 45
- 387+ 63A9 41 44 59 3B
- 387+ 63AD 20 41 4C 4C
- 387+ 63B1 20 44 45 42
- 387+ 63B5 55 47 20 4F
- 387+ 63B9 55 54 50 55
- 387+ 63BD 54 20 4D 49
- 387+ 63C1 52 52 4F 52
- 387+ 63C5 45 44 20 54
- 387+ 63C9 4F 20 45 46
- 387+ 63CD 0D 0A 00
- 388+ 63D0 5B 50 31 32  p127_msg_entry: db "[P127] S2 ENTRY @6000",13,10,0
- 388+ 63D4 37 5D 20 53
- 388+ 63D8 32 20 45 4E
- 388+ 63DC 54 52 59 20
- 388+ 63E0 40 36 30 30
- 388+ 63E4 30 0D 0A 00
- 389+ 63E8 5B 50 31 32  p127_msg_stack: db "[P127] STACK SET BFFF; TR-DOS SCRATCH B7F0",13,10,0
- 389+ 63EC 37 5D 20 53
- 389+ 63F0 54 41 43 4B
- 389+ 63F4 20 53 45 54
- 389+ 63F8 20 42 46 46
- 389+ 63FC 46 3B 20 54
- 389+ 6400 52 2D 44 4F
- 389+ 6404 53 20 53 43
- 389+ 6408 52 41 54 43
- 389+ 640C 48 20 42 37
- 389+ 6410 46 30 0D 0A
- 389+ 6414 00
- 390+ 6415 5B 50 31 32  p127_msg_exec: db "[P127] DEBUG TX EF",13,10,0
- 390+ 6419 37 5D 20 44
- 390+ 641D 45 42 55 47
- 390+ 6421 20 54 58 20
- 390+ 6425 45 46 0D 0A
- 390+ 6429 00
- 391+ 642A 5B 50 31 32  p127_msg_pass: db "[P127] BOOT0 PASS; IDLE",13,10,0
- 391+ 642E 37 5D 20 42
- 391+ 6432 4F 4F 54 30
- 391+ 6436 20 50 41 53
- 391+ 643A 53 3B 20 49
- 391+ 643E 44 4C 45 0D
- 391+ 6442 0A 00
- 392+ 6444 5B 50 31 32  p127_msg_layout_fail: db "[P127] KERNEL IMAGE LAYOUT FAIL",13,10,0
- 392+ 6448 37 5D 20 4B
- 392+ 644C 45 52 4E 45
- 392+ 6450 4C 20 49 4D
- 392+ 6454 41 47 45 20
- 392+ 6458 4C 41 59 4F
- 392+ 645C 55 54 20 46
- 392+ 6460 41 49 4C 0D
- 392+ 6464 0A 00
- 393+ 6466 5B 50 31 32  p127_msg_mem_init: db "[P127] MEM INIT 1MB/64P",13,10,0
- 393+ 646A 37 5D 20 4D
- 393+ 646E 45 4D 20 49
- 393+ 6472 4E 49 54 20
- 393+ 6476 31 4D 42 2F
- 393+ 647A 36 34 50 0D
- 393+ 647E 0A 00
- 394+ 6480 5B 50 31 32  p127_msg_video_reserved: db "[P127] VIDEO RAM RESERVED P1,P3,P5,P7",13,10,0
- 394+ 6484 37 5D 20 56
- 394+ 6488 49 44 45 4F
- 394+ 648C 20 52 41 4D
- 394+ 6490 20 52 45 53
- 394+ 6494 45 52 56 45
- 394+ 6498 44 20 50 31
- 394+ 649C 2C 50 33 2C
- 394+ 64A0 50 35 2C 50
- 394+ 64A4 37 0D 0A 00
- 395+ 64A8 5B 50 31 32  p127_msg_boot_reserved: db "[P127] BOOT MAP RESERVED P0,P2; P5 ACTIVE",13,10,0
- 395+ 64AC 37 5D 20 42
- 395+ 64B0 4F 4F 54 20
- 395+ 64B4 4D 41 50 20
- 395+ 64B8 52 45 53 45
- 395+ 64BC 52 56 45 44
- 395+ 64C0 20 50 30 2C
- 395+ 64C4 50 32 3B 20
- 395+ 64C8 50 35 20 41
- 395+ 64CC 43 54 49 56
- 395+ 64D0 45 0D 0A 00
- 396+ 64D4 5B 50 31 32  p127_msg_irq_page_reserved: db "[P127] IRQ TABLE PAGE RESERVED P4; IM2 DISABLED",13,10,0
- 396+ 64D8 37 5D 20 49
- 396+ 64DC 52 51 20 54
- 396+ 64E0 41 42 4C 45
- 396+ 64E4 20 50 41 47
- 396+ 64E8 45 20 52 45
- 396+ 64EC 53 45 52 56
- 396+ 64F0 45 44 20 50
- 396+ 64F4 34 3B 20 49
- 396+ 64F8 4D 32 20 44
- 396+ 64FC 49 53 41 42
- 396+ 6500 4C 45 44 0D
- 396+ 6504 0A 00
- 397+ 6506 5B 50 31 32  p127_msg_irq_page_pass: db "[P127] IRQ TABLE SLOT PREFLIGHT PASS; OUT DISABLED",13,10,0
- 397+ 650A 37 5D 20 49
- 397+ 650E 52 51 20 54
- 397+ 6512 41 42 4C 45
- 397+ 6516 20 53 4C 4F
- 397+ 651A 54 20 50 52
- 397+ 651E 45 46 4C 49
- 397+ 6522 47 48 54 20
- 397+ 6526 50 41 53 53
- 397+ 652A 3B 20 4F 55
- 397+ 652E 54 20 44 49
- 397+ 6532 53 41 42 4C
- 397+ 6536 45 44 0D 0A
- 397+ 653A 00
- 398+ 653B 5B 50 31 32  p127_msg_irq_page_fail: db "[P127] IRQ TABLE PAGE RESERVE FAIL",13,10,0
- 398+ 653F 37 5D 20 49
- 398+ 6543 52 51 20 54
- 398+ 6547 41 42 4C 45
- 398+ 654B 20 50 41 47
- 398+ 654F 45 20 52 45
- 398+ 6553 53 45 52 56
- 398+ 6557 45 20 46 41
- 398+ 655B 49 4C 0D 0A
- 398+ 655F 00
- 399+ 6560 5B 50 31 32  p127_msg_boot_reserve_fail: db "[P127] BOOT RAM RESERVE FAIL",13,10,0
- 399+ 6564 37 5D 20 42
- 399+ 6568 4F 4F 54 20
- 399+ 656C 52 41 4D 20
- 399+ 6570 52 45 53 45
- 399+ 6574 52 56 45 20
- 399+ 6578 46 41 49 4C
- 399+ 657C 0D 0A 00
- 400+ 657F 5B 50 31 32  p127_msg_mem_map_fail: db "[P127] VIDEO RAM RESERVE FAIL",13,10,0
- 400+ 6583 37 5D 20 56
- 400+ 6587 49 44 45 4F
- 400+ 658B 20 52 41 4D
- 400+ 658F 20 52 45 53
- 400+ 6593 45 52 56 45
- 400+ 6597 20 46 41 49
- 400+ 659B 4C 0D 0A 00
- 401+ 659F 5B 50 31 32  p127_msg_mem_pass: db "[P127] MEM PAGE TEST PASS",13,10,0
- 401+ 65A3 37 5D 20 4D
- 401+ 65A7 45 4D 20 50
- 401+ 65AB 41 47 45 20
- 401+ 65AF 54 45 53 54
- 401+ 65B3 20 50 41 53
- 401+ 65B7 53 0D 0A 00
- 402+ 65BB 5B 50 31 32  p127_msg_mem_negative_pass: db "[P127] MEM NEGATIVE-PATH TEST PASS; DOUBLE-FREE/RANGE/RESERVE GUARDED",13,10,0
- 402+ 65BF 37 5D 20 4D
- 402+ 65C3 45 4D 20 4E
- 402+ 65C7 45 47 41 54
- 402+ 65CB 49 56 45 2D
- 402+ 65CF 50 41 54 48
- 402+ 65D3 20 54 45 53
- 402+ 65D7 54 20 50 41
- 402+ 65DB 53 53 3B 20
- 402+ 65DF 44 4F 55 42
- 402+ 65E3 4C 45 2D 46
- 402+ 65E7 52 45 45 2F
- 402+ 65EB 52 41 4E 47
- 402+ 65EF 45 2F 52 45
- 402+ 65F3 53 45 52 56
- 402+ 65F7 45 20 47 55
- 402+ 65FB 41 52 44 45
- 402+ 65FF 44 0D 0A 00
- 403+ 6603 5B 50 31 32  p127_msg_mem_fail: db "[P127] MEM PAGE TEST FAIL",13,10,0
- 403+ 6607 37 5D 20 4D
- 403+ 660B 45 4D 20 50
- 403+ 660F 41 47 45 20
- 403+ 6613 54 45 53 54
- 403+ 6617 20 46 41 49
- 403+ 661B 4C 0D 0A 00
- 404+ 661F 5B 50 31 32  p127_msg_range_pass: db "[P127] UINT32 RANGE 1MB BOUNDS TEST PASS; NO MAP/OUT",13,10,0
- 404+ 6623 37 5D 20 55
- 404+ 6627 49 4E 54 33
- 404+ 662B 32 20 52 41
- 404+ 662F 4E 47 45 20
- 404+ 6633 31 4D 42 20
- 404+ 6637 42 4F 55 4E
- 404+ 663B 44 53 20 54
- 404+ 663F 45 53 54 20
- 404+ 6643 50 41 53 53
- 404+ 6647 3B 20 4E 4F
- 404+ 664B 20 4D 41 50
- 404+ 664F 2F 4F 55 54
- 404+ 6653 0D 0A 00
- 405+ 6656 5B 50 31 32  p127_msg_range_fail: db "[P127] UINT32 RANGE 1MB BOUNDS TEST FAIL",13,10,0
- 405+ 665A 37 5D 20 55
- 405+ 665E 49 4E 54 33
- 405+ 6662 32 20 52 41
- 405+ 6666 4E 47 45 20
- 405+ 666A 31 4D 42 20
- 405+ 666E 42 4F 55 4E
- 405+ 6672 44 53 20 54
- 405+ 6676 45 53 54 20
- 405+ 667A 46 41 49 4C
- 405+ 667E 0D 0A 00
- 406+ 6681 5B 50 31 32  p127_msg_arena_pass: db "[P127] TOP-DOWN ARENA P8..P63 / 56P TEST PASS; NO MAP/OUT",13,10,0
- 406+ 6685 37 5D 20 54
- 406+ 6689 4F 50 2D 44
- 406+ 668D 4F 57 4E 20
- 406+ 6691 41 52 45 4E
- 406+ 6695 41 20 50 38
- 406+ 6699 2E 2E 50 36
- 406+ 669D 33 20 2F 20
- 406+ 66A1 35 36 50 20
- 406+ 66A5 54 45 53 54
- 406+ 66A9 20 50 41 53
- 406+ 66AD 53 3B 20 4E
- 406+ 66B1 4F 20 4D 41
- 406+ 66B5 50 2F 4F 55
- 406+ 66B9 54 0D 0A 00
- 407+ 66BD 5B 50 31 32  p127_msg_arena_fail: db "[P127] TOP-DOWN ARENA TEST FAIL",13,10,0
- 407+ 66C1 37 5D 20 54
- 407+ 66C5 4F 50 2D 44
- 407+ 66C9 4F 57 4E 20
- 407+ 66CD 41 52 45 4E
- 407+ 66D1 41 20 54 45
- 407+ 66D5 53 54 20 46
- 407+ 66D9 41 49 4C 0D
- 407+ 66DD 0A 00
- 408+ 66DF 5B 50 31 32  p127_msg_as_pass: db "[P127] LOGICAL PAGE TABLE/BOUNDARY TRANSLATION PASS; NO MAP/OUT",13,10,0
- 408+ 66E3 37 5D 20 4C
- 408+ 66E7 4F 47 49 43
- 408+ 66EB 41 4C 20 50
- 408+ 66EF 41 47 45 20
- 408+ 66F3 54 41 42 4C
- 408+ 66F7 45 2F 42 4F
- 408+ 66FB 55 4E 44 41
- 408+ 66FF 52 59 20 54
- 408+ 6703 52 41 4E 53
- 408+ 6707 4C 41 54 49
- 408+ 670B 4F 4E 20 50
- 408+ 670F 41 53 53 3B
- 408+ 6713 20 4E 4F 20
- 408+ 6717 4D 41 50 2F
- 408+ 671B 4F 55 54 0D
- 408+ 671F 0A 00
- 409+ 6721 5B 50 31 32  p127_msg_as_fail: db "[P127] LOGICAL ADDRESS SPACE TEST FAIL",13,10,0
- 409+ 6725 37 5D 20 4C
- 409+ 6729 4F 47 49 43
- 409+ 672D 41 4C 20 41
- 409+ 6731 44 44 52 45
- 409+ 6735 53 53 20 53
- 409+ 6739 50 41 43 45
- 409+ 673D 20 54 45 53
- 409+ 6741 54 20 46 41
- 409+ 6745 49 4C 0D 0A
- 409+ 6749 00
- 410+ 674A 5B 50 31 32  p127_msg_as_span_pass: db "[P127] LOGICAL SPAN PREFLIGHT PASS; NO COPY/MAP/OUT",13,10,0
- 410+ 674E 37 5D 20 4C
- 410+ 6752 4F 47 49 43
- 410+ 6756 41 4C 20 53
- 410+ 675A 50 41 4E 20
- 410+ 675E 50 52 45 46
- 410+ 6762 4C 49 47 48
- 410+ 6766 54 20 50 41
- 410+ 676A 53 53 3B 20
- 410+ 676E 4E 4F 20 43
- 410+ 6772 4F 50 59 2F
- 410+ 6776 4D 41 50 2F
- 410+ 677A 4F 55 54 0D
- 410+ 677E 0A 00
- 411+ 6780 5B 50 31 32  p127_msg_as_span_fail: db "[P127] LOGICAL SPAN PREFLIGHT FAIL",13,10,0
- 411+ 6784 37 5D 20 4C
- 411+ 6788 4F 47 49 43
- 411+ 678C 41 4C 20 53
- 411+ 6790 50 41 4E 20
- 411+ 6794 50 52 45 46
- 411+ 6798 4C 49 47 48
- 411+ 679C 54 20 46 41
- 411+ 67A0 49 4C 0D 0A
- 411+ 67A4 00
- 412+ 67A5 5B 50 31 32  p127_msg_as_copy_pass: db "[P127] LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED",13,10,0
- 412+ 67A9 37 5D 20 4C
- 412+ 67AD 4F 47 49 43
- 412+ 67B1 41 4C 20 53
- 412+ 67B5 50 41 4E 20
- 412+ 67B9 43 4F 50 59
- 412+ 67BD 20 50 41 53
- 412+ 67C1 53 3B 20 43
- 412+ 67C5 52 4F 53 53
- 412+ 67C9 2D 50 41 47
- 412+ 67CD 45 2F 57 33
- 412+ 67D1 20 52 45 53
- 412+ 67D5 54 4F 52 45
- 412+ 67D9 20 56 45 52
- 412+ 67DD 49 46 49 45
- 412+ 67E1 44 0D 0A 00
- 413+ 67E5 5B 50 31 32  p127_msg_trdos_failed: db "[P127] TR-DOS DIRECTORY SERVICE FAILED",13,10,0
- 413+ 67E9 37 5D 20 54
- 413+ 67ED 52 2D 44 4F
- 413+ 67F1 53 20 44 49
- 413+ 67F5 52 45 43 54
- 413+ 67F9 4F 52 59 20
- 413+ 67FD 53 45 52 56
- 413+ 6801 49 43 45 20
- 413+ 6805 46 41 49 4C
- 413+ 6809 45 44 0D 0A
- 413+ 680D 00
- 414+ 680E 5B 50 31 32  p127_msg_video_mode_pass: db "[P127] ATM VIDEO RG3/RG2/RG0/RG6 CYCLE + P7/P3 FULL-PAGE CRC16 PASS; UI RESTORED",13,10,0
- 414+ 6812 37 5D 20 41
- 414+ 6816 54 4D 20 56
- 414+ 681A 49 44 45 4F
- 414+ 681E 20 52 47 33
- 414+ 6822 2F 52 47 32
- 414+ 6826 2F 52 47 30
- 414+ 682A 2F 52 47 36
- 414+ 682E 20 43 59 43
- 414+ 6832 4C 45 20 2B
- 414+ 6836 20 50 37 2F
- 414+ 683A 50 33 20 46
- 414+ 683E 55 4C 4C 2D
- 414+ 6842 50 41 47 45
- 414+ 6846 20 43 52 43
- 414+ 684A 31 36 20 50
- 414+ 684E 41 53 53 3B
- 414+ 6852 20 55 49 20
- 414+ 6856 52 45 53 54
- 414+ 685A 4F 52 45 44
- 414+ 685E 0D 0A 00
- 415+ 6861 5B 50 31 32  p127_msg_video_mode_fail: db "[P127] ATM VIDEO MODE CYCLE/VRAM RESTORE FAIL",13,10,0
- 415+ 6865 37 5D 20 41
- 415+ 6869 54 4D 20 56
- 415+ 686D 49 44 45 4F
- 415+ 6871 20 4D 4F 44
- 415+ 6875 45 20 43 59
- 415+ 6879 43 4C 45 2F
- 415+ 687D 56 52 41 4D
- 415+ 6881 20 52 45 53
- 415+ 6885 54 4F 52 45
- 415+ 6889 20 46 41 49
- 415+ 688D 4C 0D 0A 00
- 416+ 6891 5B 50 31 32  p127_msg_as_copy_fail: db "[P127] LOGICAL SPAN COPY TEST FAIL",13,10,0
- 416+ 6895 37 5D 20 4C
- 416+ 6899 4F 47 49 43
- 416+ 689D 41 4C 20 53
- 416+ 68A1 50 41 4E 20
- 416+ 68A5 43 4F 50 59
- 416+ 68A9 20 54 45 53
- 416+ 68AD 54 20 46 41
- 416+ 68B1 49 4C 0D 0A
- 416+ 68B5 00
- 417+ 68B6 5B 50 31 32  p127_msg_as_copy_phase: db "[P127] COPY PHASE=",0
- 417+ 68BA 37 5D 20 43
- 417+ 68BE 4F 50 59 20
- 417+ 68C2 50 48 41 53
- 417+ 68C6 45 3D 00
- 418+ 68C9 20 45 52 52  p127_msg_as_copy_error: db " ERROR=",0
- 418+ 68CD 4F 52 3D 00
- 419+ 68D1 20 44 4F 4E  p127_msg_as_copy_done: db " DONE=",0
- 419+ 68D5 45 3D 00
- 420+ 68D8 5B 50 31 32  p127_msg_map_txn_pass: db "[P127] MAP TXN COMMIT/ROLLBACK PASS; OUT DISABLED",13,10,0
- 420+ 68DC 37 5D 20 4D
- 420+ 68E0 41 50 20 54
- 420+ 68E4 58 4E 20 43
- 420+ 68E8 4F 4D 4D 49
- 420+ 68EC 54 2F 52 4F
- 420+ 68F0 4C 4C 42 41
- 420+ 68F4 43 4B 20 50
- 420+ 68F8 41 53 53 3B
- 420+ 68FC 20 4F 55 54
- 420+ 6900 20 44 49 53
- 420+ 6904 41 42 4C 45
- 420+ 6908 44 0D 0A 00
- 421+ 690C 5B 50 31 32  p127_msg_map_txn_fail: db "[P127] MAP TXN COMMIT/ROLLBACK FAIL",13,10,0
- 421+ 6910 37 5D 20 4D
- 421+ 6914 41 50 20 54
- 421+ 6918 58 4E 20 43
- 421+ 691C 4F 4D 4D 49
- 421+ 6920 54 2F 52 4F
- 421+ 6924 4C 4C 42 41
- 421+ 6928 43 4B 20 46
- 421+ 692C 41 49 4C 0D
- 421+ 6930 0A 00
- 422+ 6932 5B 50 31 32  p127_msg_map_pass: db "[P127] MAP MODEL TEST PASS; SOFTWARE SHADOW",13,10,0
- 422+ 6936 37 5D 20 4D
- 422+ 693A 41 50 20 4D
- 422+ 693E 4F 44 45 4C
- 422+ 6942 20 54 45 53
- 422+ 6946 54 20 50 41
- 422+ 694A 53 53 3B 20
- 422+ 694E 53 4F 46 54
- 422+ 6952 57 41 52 45
- 422+ 6956 20 53 48 41
- 422+ 695A 44 4F 57 0D
- 422+ 695E 0A 00
- 423+ 6960 5B 50 31 32  p127_msg_physmem_pass: db "[P127] PHYS W3 FULL FREE-PAGE SWEEP/ALLOCATOR/RESERVES/P0 RESTORE PASS",13,10,0
- 423+ 6964 37 5D 20 50
- 423+ 6968 48 59 53 20
- 423+ 696C 57 33 20 46
- 423+ 6970 55 4C 4C 20
- 423+ 6974 46 52 45 45
- 423+ 6978 2D 50 41 47
- 423+ 697C 45 20 53 57
- 423+ 6980 45 45 50 2F
- 423+ 6984 41 4C 4C 4F
- 423+ 6988 43 41 54 4F
- 423+ 698C 52 2F 52 45
- 423+ 6990 53 45 52 56
- 423+ 6994 45 53 2F 50
- 423+ 6998 30 20 52 45
- 423+ 699C 53 54 4F 52
- 423+ 69A0 45 20 50 41
- 423+ 69A4 53 53 0D 0A
- 423+ 69A8 00
- 424+ 69A9 5B 50 31 32  p127_msg_physmem_api_pass: db "[P127] PAGE ALLOC/FREE + GUARDED W3 LEASE API PASS; IM/EI DISABLED",13,10,0
- 424+ 69AD 37 5D 20 50
- 424+ 69B1 41 47 45 20
- 424+ 69B5 41 4C 4C 4F
- 424+ 69B9 43 2F 46 52
- 424+ 69BD 45 45 20 2B
- 424+ 69C1 20 47 55 41
- 424+ 69C5 52 44 45 44
- 424+ 69C9 20 57 33 20
- 424+ 69CD 4C 45 41 53
- 424+ 69D1 45 20 41 50
- 424+ 69D5 49 20 50 41
- 424+ 69D9 53 53 3B 20
- 424+ 69DD 49 4D 2F 45
- 424+ 69E1 49 20 44 49
- 424+ 69E5 53 41 42 4C
- 424+ 69E9 45 44 0D 0A
- 424+ 69ED 00
- 425+ 69EE 5B 50 31 32  p127_msg_mem_stress_pass: db "[P127] ALLOCATOR 8X FULL-POOL CYCLE/EXHAUSTION PASS; FIRST-FIT RESTORED",13,10,0
- 425+ 69F2 37 5D 20 41
- 425+ 69F6 4C 4C 4F 43
- 425+ 69FA 41 54 4F 52
- 425+ 69FE 20 38 58 20
- 425+ 6A02 46 55 4C 4C
- 425+ 6A06 2D 50 4F 4F
- 425+ 6A0A 4C 20 43 59
- 425+ 6A0E 43 4C 45 2F
- 425+ 6A12 45 58 48 41
- 425+ 6A16 55 53 54 49
- 425+ 6A1A 4F 4E 20 50
- 425+ 6A1E 41 53 53 3B
- 425+ 6A22 20 46 49 52
- 425+ 6A26 53 54 2D 46
- 425+ 6A2A 49 54 20 52
- 425+ 6A2E 45 53 54 4F
- 425+ 6A32 52 45 44 0D
- 425+ 6A36 0A 00
- 426+ 6A38 5B 50 31 32  p127_msg_mem_stress_fail: db "[P127] ALLOCATOR FULL-POOL STRESS FAIL",13,10,0
- 426+ 6A3C 37 5D 20 41
- 426+ 6A40 4C 4C 4F 43
- 426+ 6A44 41 54 4F 52
- 426+ 6A48 20 46 55 4C
- 426+ 6A4C 4C 2D 50 4F
- 426+ 6A50 4F 4C 20 53
- 426+ 6A54 54 52 45 53
- 426+ 6A58 53 20 46 41
- 426+ 6A5C 49 4C 0D 0A
- 426+ 6A60 00
- 427+ 6A61 5B 50 31 32  p127_msg_mem_pin_pass: db "[P127] MEM PIN/UNPIN REFCOUNT SELFTEST PASS; FREE GUARDED",13,10,0
- 427+ 6A65 37 5D 20 4D
- 427+ 6A69 45 4D 20 50
- 427+ 6A6D 49 4E 2F 55
- 427+ 6A71 4E 50 49 4E
- 427+ 6A75 20 52 45 46
- 427+ 6A79 43 4F 55 4E
- 427+ 6A7D 54 20 53 45
- 427+ 6A81 4C 46 54 45
- 427+ 6A85 53 54 20 50
- 427+ 6A89 41 53 53 3B
- 427+ 6A8D 20 46 52 45
- 427+ 6A91 45 20 47 55
- 427+ 6A95 41 52 44 45
- 427+ 6A99 44 0D 0A 00
- 428+ 6A9D 5B 50 31 32  p127_msg_mem_pin_fail: db "[P127] MEM PIN/UNPIN REFCOUNT SELFTEST FAIL",13,10,0
- 428+ 6AA1 37 5D 20 4D
- 428+ 6AA5 45 4D 20 50
- 428+ 6AA9 49 4E 2F 55
- 428+ 6AAD 4E 50 49 4E
- 428+ 6AB1 20 52 45 46
- 428+ 6AB5 43 4F 55 4E
- 428+ 6AB9 54 20 53 45
- 428+ 6ABD 4C 46 54 45
- 428+ 6AC1 53 54 20 46
- 428+ 6AC5 41 49 4C 0D
- 428+ 6AC9 0A 00
- 429+ 6ACB 5B 50 31 32  p127_msg_physmem_api_fail: db "[P127] PAGE ALLOC/FREE + GUARDED W3 LEASE API FAIL",13,10,0
- 429+ 6ACF 37 5D 20 50
- 429+ 6AD3 41 47 45 20
- 429+ 6AD7 41 4C 4C 4F
- 429+ 6ADB 43 2F 46 52
- 429+ 6ADF 45 45 20 2B
- 429+ 6AE3 20 47 55 41
- 429+ 6AE7 52 44 45 44
- 429+ 6AEB 20 57 33 20
- 429+ 6AEF 4C 45 41 53
- 429+ 6AF3 45 20 41 50
- 429+ 6AF7 49 20 46 41
- 429+ 6AFB 49 4C 0D 0A
- 429+ 6AFF 00
- 430+ 6B00 5B 50 31 32  p127_msg_physmem_fail: db "[P127] PHYS W3 PAGE SWITCH/MEMORY TEST FAIL",13,10,0
- 430+ 6B04 37 5D 20 50
- 430+ 6B08 48 59 53 20
- 430+ 6B0C 57 33 20 50
- 430+ 6B10 41 47 45 20
- 430+ 6B14 53 57 49 54
- 430+ 6B18 43 48 2F 4D
- 430+ 6B1C 45 4D 4F 52
- 430+ 6B20 59 20 54 45
- 430+ 6B24 53 54 20 46
- 430+ 6B28 41 49 4C 0D
- 430+ 6B2C 0A 00
- 431+ 6B2E 5B 50 31 32  p127_msg_physmem_error: db "[P127] PHYSMEM ERROR=",0
- 431+ 6B32 37 5D 20 50
- 431+ 6B36 48 59 53 4D
- 431+ 6B3A 45 4D 20 45
- 431+ 6B3E 52 52 4F 52
- 431+ 6B42 3D 00
- 432+ 6B44 5B 50 31 32  p127_msg_map_fail: db "[P127] MAP MODEL TEST FAIL",13,10,0
- 432+ 6B48 37 5D 20 4D
- 432+ 6B4C 41 50 20 4D
- 432+ 6B50 4F 44 45 4C
- 432+ 6B54 20 54 45 53
- 432+ 6B58 54 20 46 41
- 432+ 6B5C 49 4C 0D 0A
- 432+ 6B60 00
- 433+ 6B61 5B 50 31 32  p127_msg_stack_probe_pass: db "[P127] RESIDENT STACK PROBE PASS; OUT DISABLED",13,10,0
- 433+ 6B65 37 5D 20 52
- 433+ 6B69 45 53 49 44
- 433+ 6B6D 45 4E 54 20
- 433+ 6B71 53 54 41 43
- 433+ 6B75 4B 20 50 52
- 433+ 6B79 4F 42 45 20
- 433+ 6B7D 50 41 53 53
- 433+ 6B81 3B 20 4F 55
- 433+ 6B85 54 20 44 49
- 433+ 6B89 53 41 42 4C
- 433+ 6B8D 45 44 0D 0A
- 433+ 6B91 00
- 434+ 6B92 5B 50 31 32  p127_msg_stack_probe_fail: db "[P127] RESIDENT STACK PROBE FAIL",13,10,0
- 434+ 6B96 37 5D 20 52
- 434+ 6B9A 45 53 49 44
- 434+ 6B9E 45 4E 54 20
- 434+ 6BA2 53 54 41 43
- 434+ 6BA6 4B 20 50 52
- 434+ 6BAA 4F 42 45 20
- 434+ 6BAE 46 41 49 4C
- 434+ 6BB2 0D 0A 00
- 435+ 6BB5 5B 50 31 32  p127_msg_resident_pass: db "[P127] RESIDENT WINDOW CONTRACT PASS; OUT DISABLED",13,10,0
- 435+ 6BB9 37 5D 20 52
- 435+ 6BBD 45 53 49 44
- 435+ 6BC1 45 4E 54 20
- 435+ 6BC5 57 49 4E 44
- 435+ 6BC9 4F 57 20 43
- 435+ 6BCD 4F 4E 54 52
- 435+ 6BD1 41 43 54 20
- 435+ 6BD5 50 41 53 53
- 435+ 6BD9 3B 20 4F 55
- 435+ 6BDD 54 20 44 49
- 435+ 6BE1 53 41 42 4C
- 435+ 6BE5 45 44 0D 0A
- 435+ 6BE9 00
- 436+ 6BEA 5B 50 31 32  p127_msg_resident_fail: db "[P127] RESIDENT WINDOW CONTRACT FAIL",13,10,0
- 436+ 6BEE 37 5D 20 52
- 436+ 6BF2 45 53 49 44
- 436+ 6BF6 45 4E 54 20
- 436+ 6BFA 57 49 4E 44
- 436+ 6BFE 4F 57 20 43
- 436+ 6C02 4F 4E 54 52
- 436+ 6C06 41 43 54 20
- 436+ 6C0A 46 41 49 4C
- 436+ 6C0E 0D 0A 00
- 437+ 6C11 5B 50 31 32  p127_msg_handoff_pass: db "[P127] HANDOFF GUARD TEST PASS; OUT DISABLED",13,10,0
- 437+ 6C15 37 5D 20 48
- 437+ 6C19 41 4E 44 4F
- 437+ 6C1D 46 46 20 47
- 437+ 6C21 55 41 52 44
- 437+ 6C25 20 54 45 53
- 437+ 6C29 54 20 50 41
- 437+ 6C2D 53 53 3B 20
- 437+ 6C31 4F 55 54 20
- 437+ 6C35 44 49 53 41
- 437+ 6C39 42 4C 45 44
- 437+ 6C3D 0D 0A 00
- 438+ 6C40 5B 50 31 32  p127_msg_handoff_fail: db "[P127] HANDOFF GUARD TEST FAIL",13,10,0
- 438+ 6C44 37 5D 20 48
- 438+ 6C48 41 4E 44 4F
- 438+ 6C4C 46 46 20 47
- 438+ 6C50 55 41 52 44
- 438+ 6C54 20 54 45 53
- 438+ 6C58 54 20 46 41
- 438+ 6C5C 49 4C 0D 0A
- 438+ 6C60 00
- 439+ 6C61 5B 50 31 32  p127_msg_w3_pass: db "[P127] UI QUIESCE/W3 OWNERSHIP PASS; OUT DISABLED",13,10,0
- 439+ 6C65 37 5D 20 55
- 439+ 6C69 49 20 51 55
- 439+ 6C6D 49 45 53 43
- 439+ 6C71 45 2F 57 33
- 439+ 6C75 20 4F 57 4E
- 439+ 6C79 45 52 53 48
- 439+ 6C7D 49 50 20 50
- 439+ 6C81 41 53 53 3B
- 439+ 6C85 20 4F 55 54
- 439+ 6C89 20 44 49 53
- 439+ 6C8D 41 42 4C 45
- 439+ 6C91 44 0D 0A 00
- 440+ 6C95 5B 50 31 32  p127_msg_w3_fail: db "[P127] UI QUIESCE/W3 OWNERSHIP FAIL",13,10,0
- 440+ 6C99 37 5D 20 55
- 440+ 6C9D 49 20 51 55
- 440+ 6CA1 49 45 53 43
- 440+ 6CA5 45 2F 57 33
- 440+ 6CA9 20 4F 57 4E
- 440+ 6CAD 45 52 53 48
- 440+ 6CB1 49 50 20 46
- 440+ 6CB5 41 49 4C 0D
- 440+ 6CB9 0A 00
- 441+ 6CBB 5B 50 31 32  p127_msg_w3_recovery_pass: db "[P127] W3 ROLLBACK/RECOVERY PASS; OUT DISABLED",13,10,0
- 441+ 6CBF 37 5D 20 57
- 441+ 6CC3 33 20 52 4F
- 441+ 6CC7 4C 4C 42 41
- 441+ 6CCB 43 4B 2F 52
- 441+ 6CCF 45 43 4F 56
- 441+ 6CD3 45 52 59 20
- 441+ 6CD7 50 41 53 53
- 441+ 6CDB 3B 20 4F 55
- 441+ 6CDF 54 20 44 49
- 441+ 6CE3 53 41 42 4C
- 441+ 6CE7 45 44 0D 0A
- 441+ 6CEB 00
- 442+ 6CEC 5B 50 31 32  p127_msg_w3_recovery_fail: db "[P127] W3 ROLLBACK/RECOVERY FAIL",13,10,0
- 442+ 6CF0 37 5D 20 57
- 442+ 6CF4 33 20 52 4F
- 442+ 6CF8 4C 4C 42 41
- 442+ 6CFC 43 4B 2F 52
- 442+ 6D00 45 43 4F 56
- 442+ 6D04 45 52 59 20
- 442+ 6D08 46 41 49 4C
- 442+ 6D0C 0D 0A 00
- 443+ 6D0F 5B 50 31 32  p127_msg_irq_context_pass: db "[P127] IRQ FRAME ROUNDTRIP PASS; VECTOR DISABLED",13,10,0
- 443+ 6D13 37 5D 20 49
- 443+ 6D17 52 51 20 46
- 443+ 6D1B 52 41 4D 45
- 443+ 6D1F 20 52 4F 55
- 443+ 6D23 4E 44 54 52
- 443+ 6D27 49 50 20 50
- 443+ 6D2B 41 53 53 3B
- 443+ 6D2F 20 56 45 43
- 443+ 6D33 54 4F 52 20
- 443+ 6D37 44 49 53 41
- 443+ 6D3B 42 4C 45 44
- 443+ 6D3F 0D 0A 00
- 444+ 6D42 5B 50 31 32  p127_msg_irq_batch_pass: db "[P127] IRQ BATCH 16-CHECK PASS; SOURCE UNRESOLVED; IM/EI/OUT DISABLED",13,10,0
- 444+ 6D46 37 5D 20 49
- 444+ 6D4A 52 51 20 42
- 444+ 6D4E 41 54 43 48
- 444+ 6D52 20 31 36 2D
- 444+ 6D56 43 48 45 43
- 444+ 6D5A 4B 20 50 41
- 444+ 6D5E 53 53 3B 20
- 444+ 6D62 53 4F 55 52
- 444+ 6D66 43 45 20 55
- 444+ 6D6A 4E 52 45 53
- 444+ 6D6E 4F 4C 56 45
- 444+ 6D72 44 3B 20 49
- 444+ 6D76 4D 2F 45 49
- 444+ 6D7A 2F 4F 55 54
- 444+ 6D7E 20 44 49 53
- 444+ 6D82 41 42 4C 45
- 444+ 6D86 44 0D 0A 00
- 445+ 6D8A 5B 50 31 32  p127_msg_irq_fail: db "[P127] IRQ MASK/VECTOR CONTRACT FAIL",13,10,0
- 445+ 6D8E 37 5D 20 49
- 445+ 6D92 52 51 20 4D
- 445+ 6D96 41 53 4B 2F
- 445+ 6D9A 56 45 43 54
- 445+ 6D9E 4F 52 20 43
- 445+ 6DA2 4F 4E 54 52
- 445+ 6DA6 41 43 54 20
- 445+ 6DAA 46 41 49 4C
- 445+ 6DAE 0D 0A 00
- 446+ 6DB1 5B 50 31 32  p127_msg_irq_pass: db "[P127] IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED",13,10,0
- 446+ 6DB5 37 5D 20 49
- 446+ 6DB9 52 51 20 4D
- 446+ 6DBD 41 53 4B 2F
- 446+ 6DC1 56 45 43 54
- 446+ 6DC5 4F 52 20 43
- 446+ 6DC9 4F 4E 54 52
- 446+ 6DCD 41 43 54 20
- 446+ 6DD1 50 41 53 53
- 446+ 6DD5 3B 20 45 49
- 446+ 6DD9 20 44 49 53
- 446+ 6DDD 41 42 4C 45
- 446+ 6DE1 44 0D 0A 00
- 447+ 6DE5 5B 50 31 32  p127_msg_trampoline_preflight_pass: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT PASS; OUT DISABLED",13,10,0
- 447+ 6DE9 37 5D 20 52
- 447+ 6DED 45 53 49 44
- 447+ 6DF1 45 4E 54 20
- 447+ 6DF5 54 52 41 4D
- 447+ 6DF9 50 4F 4C 49
- 447+ 6DFD 4E 45 20 50
- 447+ 6E01 52 45 46 4C
- 447+ 6E05 49 47 48 54
- 447+ 6E09 20 50 41 53
- 447+ 6E0D 53 3B 20 4F
- 447+ 6E11 55 54 20 44
- 447+ 6E15 49 53 41 42
- 447+ 6E19 4C 45 44 0D
- 447+ 6E1D 0A 00
- 448+ 6E1F 5B 50 31 32  p127_msg_trampoline_preflight_fail: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT FAIL",13,10,0
- 448+ 6E23 37 5D 20 52
- 448+ 6E27 45 53 49 44
- 448+ 6E2B 45 4E 54 20
- 448+ 6E2F 54 52 41 4D
- 448+ 6E33 50 4F 4C 49
- 448+ 6E37 4E 45 20 50
- 448+ 6E3B 52 45 46 4C
- 448+ 6E3F 49 47 48 54
- 448+ 6E43 20 46 41 49
- 448+ 6E47 4C 0D 0A 00
- 449+ 6E4B
- 450+ 6E4B                      INCLUDE "src/kernel/p127_layout.asm"
+ 195+ 61C8                      ; ATM keyboard monitor runs after startup diagnostics. It probes the
+ 196+ 61C8                      ; Unreal Speccy ATM_KBD interface on ULA #FE; ZX matrix is fallback.
+ 197+ 61C8                      ; This is ATM-side polling only; IM/EI remain disabled.
+ 198+ 61C8 C3 9F AD             jp      p127_keyboard_monitor
+ 199+ 61CB
+ 200+ 61CB              p127_trdos_failed:
+ 201+ 61CB 21 E5 67             ld      hl,p127_msg_trdos_failed
+ 202+ 61CE CD 06 63             call    p127_puts
+ 203+ 61D1 C3 02 63             jp      p127_idle
+ 204+ 61D4              p127_video_mode_failed:
+ 205+ 61D4 21 61 68             ld      hl,p127_msg_video_mode_fail
+ 206+ 61D7 CD 06 63             call    p127_puts
+ 207+ 61DA C3 02 63             jp      p127_idle
+ 208+ 61DD              p127_as_copy_failed:
+ 209+ 61DD 21 91 68             ld      hl,p127_msg_as_copy_fail
+ 210+ 61E0 CD 06 63             call    p127_puts
+ 211+ 61E3 21 B6 68             ld      hl,p127_msg_as_copy_phase
+ 212+ 61E6 CD 06 63             call    p127_puts
+ 213+ 61E9 3A 0B 84             ld      a,(p127_as_copy_test_phase)
+ 214+ 61EC CD 22 63             call    p127_put_hex8
+ 215+ 61EF 21 C9 68             ld      hl,p127_msg_as_copy_error
+ 216+ 61F2 CD 06 63             call    p127_puts
+ 217+ 61F5 3A AF 83             ld      a,(p127_as_copy_error)
+ 218+ 61F8 CD 22 63             call    p127_put_hex8
+ 219+ 61FB 21 D1 68             ld      hl,p127_msg_as_copy_done
+ 220+ 61FE CD 06 63             call    p127_puts
+ 221+ 6201 3A AE 83             ld      a,(p127_as_copy_completed+3)
+ 222+ 6204 CD 22 63             call    p127_put_hex8
+ 223+ 6207 3A AD 83             ld      a,(p127_as_copy_completed+2)
+ 224+ 620A CD 22 63             call    p127_put_hex8
+ 225+ 620D 3A AC 83             ld      a,(p127_as_copy_completed+1)
+ 226+ 6210 CD 22 63             call    p127_put_hex8
+ 227+ 6213 3A AB 83             ld      a,(p127_as_copy_completed)
+ 228+ 6216 CD 22 63             call    p127_put_hex8
+ 229+ 6219 3E 0D                ld      a,13
+ 230+ 621B CD 38 63             call    p127_put_char
+ 231+ 621E 3E 0A                ld      a,10
+ 232+ 6220 CD 38 63             call    p127_put_char
+ 233+ 6223 C3 02 63             jp      p127_idle
+ 234+ 6226              p127_mem_stress_failed:
+ 235+ 6226 21 38 6A             ld      hl,p127_msg_mem_stress_fail
+ 236+ 6229 CD 06 63             call    p127_puts
+ 237+ 622C C3 02 63             jp      p127_idle
+ 238+ 622F              p127_mem_pin_failed:
+ 239+ 622F 21 9D 6A             ld      hl,p127_msg_mem_pin_fail
+ 240+ 6232 CD 06 63             call    p127_puts
+ 241+ 6235 C3 02 63             jp      p127_idle
+ 242+ 6238              p127_physmem_api_failed:
+ 243+ 6238 21 CB 6A             ld      hl,p127_msg_physmem_api_fail
+ 244+ 623B CD 06 63             call    p127_puts
+ 245+ 623E C3 02 63             jp      p127_idle
+ 246+ 6241              p127_physmem_failed:
+ 247+ 6241 21 00 6B             ld      hl,p127_msg_physmem_fail
+ 248+ 6244 CD 06 63             call    p127_puts
+ 249+ 6247 21 2E 6B             ld      hl,p127_msg_physmem_error
+ 250+ 624A CD 06 63             call    p127_puts
+ 251+ 624D 3A 51 AD             ld      a,(p127_physmem_error)
+ 252+ 6250 CD 22 63             call    p127_put_hex8
+ 253+ 6253 3E 0D                ld      a,13
+ 254+ 6255 CD 38 63             call    p127_put_char
+ 255+ 6258 3E 0A                ld      a,10
+ 256+ 625A CD 38 63             call    p127_put_char
+ 257+ 625D C3 02 63             jp      p127_idle
+ 258+ 6260              p127_map_txn_failed:
+ 259+ 6260 21 0C 69             ld      hl,p127_msg_map_txn_fail
+ 260+ 6263 CD 06 63             call    p127_puts
+ 261+ 6266 C3 02 63             jp      p127_idle
+ 262+ 6269              p127_stack_probe_failed:
+ 263+ 6269 21 92 6B             ld      hl,p127_msg_stack_probe_fail
+ 264+ 626C CD 06 63             call    p127_puts
+ 265+ 626F C3 02 63             jp      p127_idle
+ 266+ 6272              p127_w3_failed:
+ 267+ 6272 21 95 6C             ld      hl,p127_msg_w3_fail
+ 268+ 6275 CD 06 63             call    p127_puts
+ 269+ 6278 C3 02 63             jp      p127_idle
+ 270+ 627B              p127_w3_recovery_failed:
+ 271+ 627B 21 EC 6C             ld      hl,p127_msg_w3_recovery_fail
+ 272+ 627E CD 06 63             call    p127_puts
+ 273+ 6281 C3 02 63             jp      p127_idle
+ 274+ 6284              p127_irq_failed:
+ 275+ 6284 21 8A 6D             ld      hl,p127_msg_irq_fail
+ 276+ 6287 CD 06 63             call    p127_puts
+ 277+ 628A C3 02 63             jp      p127_idle
+ 278+ 628D              p127_trampoline_preflight_failed:
+ 279+ 628D 21 1F 6E             ld      hl,p127_msg_trampoline_preflight_fail
+ 280+ 6290 CD 06 63             call    p127_puts
+ 281+ 6293 C3 02 63             jp      p127_idle
+ 282+ 6296              p127_resident_failed:
+ 283+ 6296 21 EA 6B             ld      hl,p127_msg_resident_fail
+ 284+ 6299 CD 06 63             call    p127_puts
+ 285+ 629C C3 02 63             jp      p127_idle
+ 286+ 629F              p127_handoff_failed:
+ 287+ 629F 21 40 6C             ld      hl,p127_msg_handoff_fail
+ 288+ 62A2 CD 06 63             call    p127_puts
+ 289+ 62A5 C3 02 63             jp      p127_idle
+ 290+ 62A8              p127_map_failed:
+ 291+ 62A8 21 44 6B             ld      hl,p127_msg_map_fail
+ 292+ 62AB CD 06 63             call    p127_puts
+ 293+ 62AE C3 02 63             jp      p127_idle
+ 294+ 62B1              p127_mem_map_failed:
+ 295+ 62B1 21 7F 65             ld      hl,p127_msg_mem_map_fail
+ 296+ 62B4 CD 06 63             call    p127_puts
+ 297+ 62B7 C3 02 63             jp      p127_idle
+ 298+ 62BA              p127_mem_irq_reserve_failed:
+ 299+ 62BA 21 3B 65             ld      hl,p127_msg_irq_page_fail
+ 300+ 62BD CD 06 63             call    p127_puts
+ 301+ 62C0 C3 02 63             jp      p127_idle
+ 302+ 62C3              p127_mem_boot_failed:
+ 303+ 62C3 21 60 65             ld      hl,p127_msg_boot_reserve_fail
+ 304+ 62C6 CD 06 63             call    p127_puts
+ 305+ 62C9 C3 02 63             jp      p127_idle
+ 306+ 62CC              p127_mem_failed:
+ 307+ 62CC 21 03 66             ld      hl,p127_msg_mem_fail
+ 308+ 62CF CD 06 63             call    p127_puts
+ 309+ 62D2 C3 02 63             jp      p127_idle
+ 310+ 62D5              p127_range_failed:
+ 311+ 62D5 21 56 66             ld      hl,p127_msg_range_fail
+ 312+ 62D8 CD 06 63             call    p127_puts
+ 313+ 62DB C3 02 63             jp      p127_idle
+ 314+ 62DE              p127_layout_failed:
+ 315+ 62DE 21 44 64             ld      hl,p127_msg_layout_fail
+ 316+ 62E1 CD 06 63             call    p127_puts
+ 317+ 62E4 C3 02 63             jp      p127_idle
+ 318+ 62E7              p127_arena_failed:
+ 319+ 62E7 21 BD 66             ld      hl,p127_msg_arena_fail
+ 320+ 62EA CD 06 63             call    p127_puts
+ 321+ 62ED C3 02 63             jp      p127_idle
+ 322+ 62F0              p127_as_failed:
+ 323+ 62F0 21 21 67             ld      hl,p127_msg_as_fail
+ 324+ 62F3 CD 06 63             call    p127_puts
+ 325+ 62F6 C3 02 63             jp      p127_idle
+ 326+ 62F9              p127_as_span_failed:
+ 327+ 62F9 21 80 67             ld      hl,p127_msg_as_span_fail
+ 328+ 62FC CD 06 63             call    p127_puts
+ 329+ 62FF C3 02 63             jp      p127_idle
+ 330+ 6302
+ 331+ 6302              p127_idle:
+ 332+ 6302 76                   halt
+ 333+ 6303 C3 02 63             jp      p127_idle
+ 334+ 6306
+ 335+ 6306              ; Input: HL -> zero-terminated string.
+ 336+ 6306              ; Clobbers AF, BC, HL. Preserves caller's stack frame.
+ 337+ 6306              p127_puts:
+ 338+ 6306 7E                   ld      a,(hl)
+ 339+ 6307 B7                   or      a
+ 340+ 6308 C8                   ret     z
+ 341+ 6309 23                   inc     hl
+ 342+ 630A E5                   push    hl
+ 343+ 630B F5                   push    af
+ 344+ 630C 3A 4A 63             ld      a,(p127_ui_ready)
+ 345+ 630F B7                   or      a
+ 346+ 6310 28 07                jr      z,p127_puts_ef
+ 347+ 6312 F1                   pop     af
+ 348+ 6313 CD D8 A1             call    BIOS_DebugConsole_PrintChar
+ 349+ 6316 E1                   pop     hl
+ 350+ 6317 18 ED                jr      p127_puts
+ 351+ 6319              p127_puts_ef:
+ 352+ 6319 F1                   pop     af
+ 353+ 631A 01 EF 00             ld      bc,P127_DEBUG_PORT
+ 354+ 631D ED 79                out     (c),a
+ 355+ 631F E1                   pop     hl
+ 356+ 6320 18 E4                jr      p127_puts
+ 357+ 6322
+ 358+ 6322              p127_put_hex8:
+ 359+ 6322 F5                   push    af
+ 360+ 6323 0F                   rrca
+ 361+ 6324 0F                   rrca
+ 362+ 6325 0F                   rrca
+ 363+ 6326 0F                   rrca
+ 364+ 6327 CD 2E 63             call    p127_put_hex_nibble
+ 365+ 632A F1                   pop     af
+ 366+ 632B C3 2E 63             jp      p127_put_hex_nibble
+ 367+ 632E
+ 368+ 632E              p127_put_hex_nibble:
+ 369+ 632E E6 0F                and     00Fh
+ 370+ 6330 C6 30                add     a,'0'
+ 371+ 6332 FE 3A                cp      '9'+1
+ 372+ 6334 38 02                jr      c,p127_put_char
+ 373+ 6336 C6 07                add     a,7
+ 374+ 6338              p127_put_char:
+ 375+ 6338 F5                   push    af
+ 376+ 6339 3A 4A 63             ld      a,(p127_ui_ready)
+ 377+ 633C B7                   or      a
+ 378+ 633D 28 04                jr      z,p127_put_char_ef
+ 379+ 633F F1                   pop     af
+ 380+ 6340 C3 D8 A1             jp      BIOS_DebugConsole_PrintChar
+ 381+ 6343              p127_put_char_ef:
+ 382+ 6343 F1                   pop     af
+ 383+ 6344 01 EF 00             ld      bc,P127_DEBUG_PORT
+ 384+ 6347 ED 79                out     (c),a
+ 385+ 6349 C9                   ret
+ 386+ 634A
+ 387+ 634A 00           p127_ui_ready: db 0
+ 388+ 634B 5B 53 50 45  p127_msg_speaker_begin: db "[SPEAKER] #FE D4 TONE BEGIN; TEST USES BORDER/TAPE STATE 0",13,10,0
+ 388+ 634F 41 4B 45 52
+ 388+ 6353 5D 20 23 46
+ 388+ 6357 45 20 44 34
+ 388+ 635B 20 54 4F 4E
+ 388+ 635F 45 20 42 45
+ 388+ 6363 47 49 4E 3B
+ 388+ 6367 20 54 45 53
+ 388+ 636B 54 20 55 53
+ 388+ 636F 45 53 20 42
+ 388+ 6373 4F 52 44 45
+ 388+ 6377 52 2F 54 41
+ 388+ 637B 50 45 20 53
+ 388+ 637F 54 41 54 45
+ 388+ 6383 20 30 0D 0A
+ 388+ 6387 00
+ 389+ 6388 5B 53 50 45  p127_msg_speaker_done: db "[SPEAKER] TONE END",13,10,0
+ 389+ 638C 41 4B 45 52
+ 389+ 6390 5D 20 54 4F
+ 389+ 6394 4E 45 20 45
+ 389+ 6398 4E 44 0D 0A
+ 389+ 639C 00
+ 390+ 639D 5B 50 31 32  p127_msg_ui_ready: db "[P127] UI READY; ALL DEBUG OUTPUT MIRRORED TO EF",13,10,0
+ 390+ 63A1 37 5D 20 55
+ 390+ 63A5 49 20 52 45
+ 390+ 63A9 41 44 59 3B
+ 390+ 63AD 20 41 4C 4C
+ 390+ 63B1 20 44 45 42
+ 390+ 63B5 55 47 20 4F
+ 390+ 63B9 55 54 50 55
+ 390+ 63BD 54 20 4D 49
+ 390+ 63C1 52 52 4F 52
+ 390+ 63C5 45 44 20 54
+ 390+ 63C9 4F 20 45 46
+ 390+ 63CD 0D 0A 00
+ 391+ 63D0 5B 50 31 32  p127_msg_entry: db "[P127] S2 ENTRY @6000",13,10,0
+ 391+ 63D4 37 5D 20 53
+ 391+ 63D8 32 20 45 4E
+ 391+ 63DC 54 52 59 20
+ 391+ 63E0 40 36 30 30
+ 391+ 63E4 30 0D 0A 00
+ 392+ 63E8 5B 50 31 32  p127_msg_stack: db "[P127] STACK SET BFFF; TR-DOS SCRATCH B7F0",13,10,0
+ 392+ 63EC 37 5D 20 53
+ 392+ 63F0 54 41 43 4B
+ 392+ 63F4 20 53 45 54
+ 392+ 63F8 20 42 46 46
+ 392+ 63FC 46 3B 20 54
+ 392+ 6400 52 2D 44 4F
+ 392+ 6404 53 20 53 43
+ 392+ 6408 52 41 54 43
+ 392+ 640C 48 20 42 37
+ 392+ 6410 46 30 0D 0A
+ 392+ 6414 00
+ 393+ 6415 5B 50 31 32  p127_msg_exec: db "[P127] DEBUG TX EF",13,10,0
+ 393+ 6419 37 5D 20 44
+ 393+ 641D 45 42 55 47
+ 393+ 6421 20 54 58 20
+ 393+ 6425 45 46 0D 0A
+ 393+ 6429 00
+ 394+ 642A 5B 50 31 32  p127_msg_pass: db "[P127] BOOT0 PASS; IDLE",13,10,0
+ 394+ 642E 37 5D 20 42
+ 394+ 6432 4F 4F 54 30
+ 394+ 6436 20 50 41 53
+ 394+ 643A 53 3B 20 49
+ 394+ 643E 44 4C 45 0D
+ 394+ 6442 0A 00
+ 395+ 6444 5B 50 31 32  p127_msg_layout_fail: db "[P127] KERNEL IMAGE LAYOUT FAIL",13,10,0
+ 395+ 6448 37 5D 20 4B
+ 395+ 644C 45 52 4E 45
+ 395+ 6450 4C 20 49 4D
+ 395+ 6454 41 47 45 20
+ 395+ 6458 4C 41 59 4F
+ 395+ 645C 55 54 20 46
+ 395+ 6460 41 49 4C 0D
+ 395+ 6464 0A 00
+ 396+ 6466 5B 50 31 32  p127_msg_mem_init: db "[P127] MEM INIT 1MB/64P",13,10,0
+ 396+ 646A 37 5D 20 4D
+ 396+ 646E 45 4D 20 49
+ 396+ 6472 4E 49 54 20
+ 396+ 6476 31 4D 42 2F
+ 396+ 647A 36 34 50 0D
+ 396+ 647E 0A 00
+ 397+ 6480 5B 50 31 32  p127_msg_video_reserved: db "[P127] VIDEO RAM RESERVED P1,P3,P5,P7",13,10,0
+ 397+ 6484 37 5D 20 56
+ 397+ 6488 49 44 45 4F
+ 397+ 648C 20 52 41 4D
+ 397+ 6490 20 52 45 53
+ 397+ 6494 45 52 56 45
+ 397+ 6498 44 20 50 31
+ 397+ 649C 2C 50 33 2C
+ 397+ 64A0 50 35 2C 50
+ 397+ 64A4 37 0D 0A 00
+ 398+ 64A8 5B 50 31 32  p127_msg_boot_reserved: db "[P127] BOOT MAP RESERVED P0,P2; P5 ACTIVE",13,10,0
+ 398+ 64AC 37 5D 20 42
+ 398+ 64B0 4F 4F 54 20
+ 398+ 64B4 4D 41 50 20
+ 398+ 64B8 52 45 53 45
+ 398+ 64BC 52 56 45 44
+ 398+ 64C0 20 50 30 2C
+ 398+ 64C4 50 32 3B 20
+ 398+ 64C8 50 35 20 41
+ 398+ 64CC 43 54 49 56
+ 398+ 64D0 45 0D 0A 00
+ 399+ 64D4 5B 50 31 32  p127_msg_irq_page_reserved: db "[P127] IRQ TABLE PAGE RESERVED P4; IM2 DISABLED",13,10,0
+ 399+ 64D8 37 5D 20 49
+ 399+ 64DC 52 51 20 54
+ 399+ 64E0 41 42 4C 45
+ 399+ 64E4 20 50 41 47
+ 399+ 64E8 45 20 52 45
+ 399+ 64EC 53 45 52 56
+ 399+ 64F0 45 44 20 50
+ 399+ 64F4 34 3B 20 49
+ 399+ 64F8 4D 32 20 44
+ 399+ 64FC 49 53 41 42
+ 399+ 6500 4C 45 44 0D
+ 399+ 6504 0A 00
+ 400+ 6506 5B 50 31 32  p127_msg_irq_page_pass: db "[P127] IRQ TABLE SLOT PREFLIGHT PASS; OUT DISABLED",13,10,0
+ 400+ 650A 37 5D 20 49
+ 400+ 650E 52 51 20 54
+ 400+ 6512 41 42 4C 45
+ 400+ 6516 20 53 4C 4F
+ 400+ 651A 54 20 50 52
+ 400+ 651E 45 46 4C 49
+ 400+ 6522 47 48 54 20
+ 400+ 6526 50 41 53 53
+ 400+ 652A 3B 20 4F 55
+ 400+ 652E 54 20 44 49
+ 400+ 6532 53 41 42 4C
+ 400+ 6536 45 44 0D 0A
+ 400+ 653A 00
+ 401+ 653B 5B 50 31 32  p127_msg_irq_page_fail: db "[P127] IRQ TABLE PAGE RESERVE FAIL",13,10,0
+ 401+ 653F 37 5D 20 49
+ 401+ 6543 52 51 20 54
+ 401+ 6547 41 42 4C 45
+ 401+ 654B 20 50 41 47
+ 401+ 654F 45 20 52 45
+ 401+ 6553 53 45 52 56
+ 401+ 6557 45 20 46 41
+ 401+ 655B 49 4C 0D 0A
+ 401+ 655F 00
+ 402+ 6560 5B 50 31 32  p127_msg_boot_reserve_fail: db "[P127] BOOT RAM RESERVE FAIL",13,10,0
+ 402+ 6564 37 5D 20 42
+ 402+ 6568 4F 4F 54 20
+ 402+ 656C 52 41 4D 20
+ 402+ 6570 52 45 53 45
+ 402+ 6574 52 56 45 20
+ 402+ 6578 46 41 49 4C
+ 402+ 657C 0D 0A 00
+ 403+ 657F 5B 50 31 32  p127_msg_mem_map_fail: db "[P127] VIDEO RAM RESERVE FAIL",13,10,0
+ 403+ 6583 37 5D 20 56
+ 403+ 6587 49 44 45 4F
+ 403+ 658B 20 52 41 4D
+ 403+ 658F 20 52 45 53
+ 403+ 6593 45 52 56 45
+ 403+ 6597 20 46 41 49
+ 403+ 659B 4C 0D 0A 00
+ 404+ 659F 5B 50 31 32  p127_msg_mem_pass: db "[P127] MEM PAGE TEST PASS",13,10,0
+ 404+ 65A3 37 5D 20 4D
+ 404+ 65A7 45 4D 20 50
+ 404+ 65AB 41 47 45 20
+ 404+ 65AF 54 45 53 54
+ 404+ 65B3 20 50 41 53
+ 404+ 65B7 53 0D 0A 00
+ 405+ 65BB 5B 50 31 32  p127_msg_mem_negative_pass: db "[P127] MEM NEGATIVE-PATH TEST PASS; DOUBLE-FREE/RANGE/RESERVE GUARDED",13,10,0
+ 405+ 65BF 37 5D 20 4D
+ 405+ 65C3 45 4D 20 4E
+ 405+ 65C7 45 47 41 54
+ 405+ 65CB 49 56 45 2D
+ 405+ 65CF 50 41 54 48
+ 405+ 65D3 20 54 45 53
+ 405+ 65D7 54 20 50 41
+ 405+ 65DB 53 53 3B 20
+ 405+ 65DF 44 4F 55 42
+ 405+ 65E3 4C 45 2D 46
+ 405+ 65E7 52 45 45 2F
+ 405+ 65EB 52 41 4E 47
+ 405+ 65EF 45 2F 52 45
+ 405+ 65F3 53 45 52 56
+ 405+ 65F7 45 20 47 55
+ 405+ 65FB 41 52 44 45
+ 405+ 65FF 44 0D 0A 00
+ 406+ 6603 5B 50 31 32  p127_msg_mem_fail: db "[P127] MEM PAGE TEST FAIL",13,10,0
+ 406+ 6607 37 5D 20 4D
+ 406+ 660B 45 4D 20 50
+ 406+ 660F 41 47 45 20
+ 406+ 6613 54 45 53 54
+ 406+ 6617 20 46 41 49
+ 406+ 661B 4C 0D 0A 00
+ 407+ 661F 5B 50 31 32  p127_msg_range_pass: db "[P127] UINT32 RANGE 1MB BOUNDS TEST PASS; NO MAP/OUT",13,10,0
+ 407+ 6623 37 5D 20 55
+ 407+ 6627 49 4E 54 33
+ 407+ 662B 32 20 52 41
+ 407+ 662F 4E 47 45 20
+ 407+ 6633 31 4D 42 20
+ 407+ 6637 42 4F 55 4E
+ 407+ 663B 44 53 20 54
+ 407+ 663F 45 53 54 20
+ 407+ 6643 50 41 53 53
+ 407+ 6647 3B 20 4E 4F
+ 407+ 664B 20 4D 41 50
+ 407+ 664F 2F 4F 55 54
+ 407+ 6653 0D 0A 00
+ 408+ 6656 5B 50 31 32  p127_msg_range_fail: db "[P127] UINT32 RANGE 1MB BOUNDS TEST FAIL",13,10,0
+ 408+ 665A 37 5D 20 55
+ 408+ 665E 49 4E 54 33
+ 408+ 6662 32 20 52 41
+ 408+ 6666 4E 47 45 20
+ 408+ 666A 31 4D 42 20
+ 408+ 666E 42 4F 55 4E
+ 408+ 6672 44 53 20 54
+ 408+ 6676 45 53 54 20
+ 408+ 667A 46 41 49 4C
+ 408+ 667E 0D 0A 00
+ 409+ 6681 5B 50 31 32  p127_msg_arena_pass: db "[P127] TOP-DOWN ARENA P8..P63 / 56P TEST PASS; NO MAP/OUT",13,10,0
+ 409+ 6685 37 5D 20 54
+ 409+ 6689 4F 50 2D 44
+ 409+ 668D 4F 57 4E 20
+ 409+ 6691 41 52 45 4E
+ 409+ 6695 41 20 50 38
+ 409+ 6699 2E 2E 50 36
+ 409+ 669D 33 20 2F 20
+ 409+ 66A1 35 36 50 20
+ 409+ 66A5 54 45 53 54
+ 409+ 66A9 20 50 41 53
+ 409+ 66AD 53 3B 20 4E
+ 409+ 66B1 4F 20 4D 41
+ 409+ 66B5 50 2F 4F 55
+ 409+ 66B9 54 0D 0A 00
+ 410+ 66BD 5B 50 31 32  p127_msg_arena_fail: db "[P127] TOP-DOWN ARENA TEST FAIL",13,10,0
+ 410+ 66C1 37 5D 20 54
+ 410+ 66C5 4F 50 2D 44
+ 410+ 66C9 4F 57 4E 20
+ 410+ 66CD 41 52 45 4E
+ 410+ 66D1 41 20 54 45
+ 410+ 66D5 53 54 20 46
+ 410+ 66D9 41 49 4C 0D
+ 410+ 66DD 0A 00
+ 411+ 66DF 5B 50 31 32  p127_msg_as_pass: db "[P127] LOGICAL PAGE TABLE/BOUNDARY TRANSLATION PASS; NO MAP/OUT",13,10,0
+ 411+ 66E3 37 5D 20 4C
+ 411+ 66E7 4F 47 49 43
+ 411+ 66EB 41 4C 20 50
+ 411+ 66EF 41 47 45 20
+ 411+ 66F3 54 41 42 4C
+ 411+ 66F7 45 2F 42 4F
+ 411+ 66FB 55 4E 44 41
+ 411+ 66FF 52 59 20 54
+ 411+ 6703 52 41 4E 53
+ 411+ 6707 4C 41 54 49
+ 411+ 670B 4F 4E 20 50
+ 411+ 670F 41 53 53 3B
+ 411+ 6713 20 4E 4F 20
+ 411+ 6717 4D 41 50 2F
+ 411+ 671B 4F 55 54 0D
+ 411+ 671F 0A 00
+ 412+ 6721 5B 50 31 32  p127_msg_as_fail: db "[P127] LOGICAL ADDRESS SPACE TEST FAIL",13,10,0
+ 412+ 6725 37 5D 20 4C
+ 412+ 6729 4F 47 49 43
+ 412+ 672D 41 4C 20 41
+ 412+ 6731 44 44 52 45
+ 412+ 6735 53 53 20 53
+ 412+ 6739 50 41 43 45
+ 412+ 673D 20 54 45 53
+ 412+ 6741 54 20 46 41
+ 412+ 6745 49 4C 0D 0A
+ 412+ 6749 00
+ 413+ 674A 5B 50 31 32  p127_msg_as_span_pass: db "[P127] LOGICAL SPAN PREFLIGHT PASS; NO COPY/MAP/OUT",13,10,0
+ 413+ 674E 37 5D 20 4C
+ 413+ 6752 4F 47 49 43
+ 413+ 6756 41 4C 20 53
+ 413+ 675A 50 41 4E 20
+ 413+ 675E 50 52 45 46
+ 413+ 6762 4C 49 47 48
+ 413+ 6766 54 20 50 41
+ 413+ 676A 53 53 3B 20
+ 413+ 676E 4E 4F 20 43
+ 413+ 6772 4F 50 59 2F
+ 413+ 6776 4D 41 50 2F
+ 413+ 677A 4F 55 54 0D
+ 413+ 677E 0A 00
+ 414+ 6780 5B 50 31 32  p127_msg_as_span_fail: db "[P127] LOGICAL SPAN PREFLIGHT FAIL",13,10,0
+ 414+ 6784 37 5D 20 4C
+ 414+ 6788 4F 47 49 43
+ 414+ 678C 41 4C 20 53
+ 414+ 6790 50 41 4E 20
+ 414+ 6794 50 52 45 46
+ 414+ 6798 4C 49 47 48
+ 414+ 679C 54 20 46 41
+ 414+ 67A0 49 4C 0D 0A
+ 414+ 67A4 00
+ 415+ 67A5 5B 50 31 32  p127_msg_as_copy_pass: db "[P127] LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED",13,10,0
+ 415+ 67A9 37 5D 20 4C
+ 415+ 67AD 4F 47 49 43
+ 415+ 67B1 41 4C 20 53
+ 415+ 67B5 50 41 4E 20
+ 415+ 67B9 43 4F 50 59
+ 415+ 67BD 20 50 41 53
+ 415+ 67C1 53 3B 20 43
+ 415+ 67C5 52 4F 53 53
+ 415+ 67C9 2D 50 41 47
+ 415+ 67CD 45 2F 57 33
+ 415+ 67D1 20 52 45 53
+ 415+ 67D5 54 4F 52 45
+ 415+ 67D9 20 56 45 52
+ 415+ 67DD 49 46 49 45
+ 415+ 67E1 44 0D 0A 00
+ 416+ 67E5 5B 50 31 32  p127_msg_trdos_failed: db "[P127] TR-DOS DIRECTORY SERVICE FAILED",13,10,0
+ 416+ 67E9 37 5D 20 54
+ 416+ 67ED 52 2D 44 4F
+ 416+ 67F1 53 20 44 49
+ 416+ 67F5 52 45 43 54
+ 416+ 67F9 4F 52 59 20
+ 416+ 67FD 53 45 52 56
+ 416+ 6801 49 43 45 20
+ 416+ 6805 46 41 49 4C
+ 416+ 6809 45 44 0D 0A
+ 416+ 680D 00
+ 417+ 680E 5B 50 31 32  p127_msg_video_mode_pass: db "[P127] ATM VIDEO RG3/RG2/RG0/RG6 CYCLE + P7/P3 FULL-PAGE CRC16 PASS; UI RESTORED",13,10,0
+ 417+ 6812 37 5D 20 41
+ 417+ 6816 54 4D 20 56
+ 417+ 681A 49 44 45 4F
+ 417+ 681E 20 52 47 33
+ 417+ 6822 2F 52 47 32
+ 417+ 6826 2F 52 47 30
+ 417+ 682A 2F 52 47 36
+ 417+ 682E 20 43 59 43
+ 417+ 6832 4C 45 20 2B
+ 417+ 6836 20 50 37 2F
+ 417+ 683A 50 33 20 46
+ 417+ 683E 55 4C 4C 2D
+ 417+ 6842 50 41 47 45
+ 417+ 6846 20 43 52 43
+ 417+ 684A 31 36 20 50
+ 417+ 684E 41 53 53 3B
+ 417+ 6852 20 55 49 20
+ 417+ 6856 52 45 53 54
+ 417+ 685A 4F 52 45 44
+ 417+ 685E 0D 0A 00
+ 418+ 6861 5B 50 31 32  p127_msg_video_mode_fail: db "[P127] ATM VIDEO MODE CYCLE/VRAM RESTORE FAIL",13,10,0
+ 418+ 6865 37 5D 20 41
+ 418+ 6869 54 4D 20 56
+ 418+ 686D 49 44 45 4F
+ 418+ 6871 20 4D 4F 44
+ 418+ 6875 45 20 43 59
+ 418+ 6879 43 4C 45 2F
+ 418+ 687D 56 52 41 4D
+ 418+ 6881 20 52 45 53
+ 418+ 6885 54 4F 52 45
+ 418+ 6889 20 46 41 49
+ 418+ 688D 4C 0D 0A 00
+ 419+ 6891 5B 50 31 32  p127_msg_as_copy_fail: db "[P127] LOGICAL SPAN COPY TEST FAIL",13,10,0
+ 419+ 6895 37 5D 20 4C
+ 419+ 6899 4F 47 49 43
+ 419+ 689D 41 4C 20 53
+ 419+ 68A1 50 41 4E 20
+ 419+ 68A5 43 4F 50 59
+ 419+ 68A9 20 54 45 53
+ 419+ 68AD 54 20 46 41
+ 419+ 68B1 49 4C 0D 0A
+ 419+ 68B5 00
+ 420+ 68B6 5B 50 31 32  p127_msg_as_copy_phase: db "[P127] COPY PHASE=",0
+ 420+ 68BA 37 5D 20 43
+ 420+ 68BE 4F 50 59 20
+ 420+ 68C2 50 48 41 53
+ 420+ 68C6 45 3D 00
+ 421+ 68C9 20 45 52 52  p127_msg_as_copy_error: db " ERROR=",0
+ 421+ 68CD 4F 52 3D 00
+ 422+ 68D1 20 44 4F 4E  p127_msg_as_copy_done: db " DONE=",0
+ 422+ 68D5 45 3D 00
+ 423+ 68D8 5B 50 31 32  p127_msg_map_txn_pass: db "[P127] MAP TXN COMMIT/ROLLBACK PASS; OUT DISABLED",13,10,0
+ 423+ 68DC 37 5D 20 4D
+ 423+ 68E0 41 50 20 54
+ 423+ 68E4 58 4E 20 43
+ 423+ 68E8 4F 4D 4D 49
+ 423+ 68EC 54 2F 52 4F
+ 423+ 68F0 4C 4C 42 41
+ 423+ 68F4 43 4B 20 50
+ 423+ 68F8 41 53 53 3B
+ 423+ 68FC 20 4F 55 54
+ 423+ 6900 20 44 49 53
+ 423+ 6904 41 42 4C 45
+ 423+ 6908 44 0D 0A 00
+ 424+ 690C 5B 50 31 32  p127_msg_map_txn_fail: db "[P127] MAP TXN COMMIT/ROLLBACK FAIL",13,10,0
+ 424+ 6910 37 5D 20 4D
+ 424+ 6914 41 50 20 54
+ 424+ 6918 58 4E 20 43
+ 424+ 691C 4F 4D 4D 49
+ 424+ 6920 54 2F 52 4F
+ 424+ 6924 4C 4C 42 41
+ 424+ 6928 43 4B 20 46
+ 424+ 692C 41 49 4C 0D
+ 424+ 6930 0A 00
+ 425+ 6932 5B 50 31 32  p127_msg_map_pass: db "[P127] MAP MODEL TEST PASS; SOFTWARE SHADOW",13,10,0
+ 425+ 6936 37 5D 20 4D
+ 425+ 693A 41 50 20 4D
+ 425+ 693E 4F 44 45 4C
+ 425+ 6942 20 54 45 53
+ 425+ 6946 54 20 50 41
+ 425+ 694A 53 53 3B 20
+ 425+ 694E 53 4F 46 54
+ 425+ 6952 57 41 52 45
+ 425+ 6956 20 53 48 41
+ 425+ 695A 44 4F 57 0D
+ 425+ 695E 0A 00
+ 426+ 6960 5B 50 31 32  p127_msg_physmem_pass: db "[P127] PHYS W3 FULL FREE-PAGE SWEEP/ALLOCATOR/RESERVES/P0 RESTORE PASS",13,10,0
+ 426+ 6964 37 5D 20 50
+ 426+ 6968 48 59 53 20
+ 426+ 696C 57 33 20 46
+ 426+ 6970 55 4C 4C 20
+ 426+ 6974 46 52 45 45
+ 426+ 6978 2D 50 41 47
+ 426+ 697C 45 20 53 57
+ 426+ 6980 45 45 50 2F
+ 426+ 6984 41 4C 4C 4F
+ 426+ 6988 43 41 54 4F
+ 426+ 698C 52 2F 52 45
+ 426+ 6990 53 45 52 56
+ 426+ 6994 45 53 2F 50
+ 426+ 6998 30 20 52 45
+ 426+ 699C 53 54 4F 52
+ 426+ 69A0 45 20 50 41
+ 426+ 69A4 53 53 0D 0A
+ 426+ 69A8 00
+ 427+ 69A9 5B 50 31 32  p127_msg_physmem_api_pass: db "[P127] PAGE ALLOC/FREE + GUARDED W3 LEASE API PASS; IM/EI DISABLED",13,10,0
+ 427+ 69AD 37 5D 20 50
+ 427+ 69B1 41 47 45 20
+ 427+ 69B5 41 4C 4C 4F
+ 427+ 69B9 43 2F 46 52
+ 427+ 69BD 45 45 20 2B
+ 427+ 69C1 20 47 55 41
+ 427+ 69C5 52 44 45 44
+ 427+ 69C9 20 57 33 20
+ 427+ 69CD 4C 45 41 53
+ 427+ 69D1 45 20 41 50
+ 427+ 69D5 49 20 50 41
+ 427+ 69D9 53 53 3B 20
+ 427+ 69DD 49 4D 2F 45
+ 427+ 69E1 49 20 44 49
+ 427+ 69E5 53 41 42 4C
+ 427+ 69E9 45 44 0D 0A
+ 427+ 69ED 00
+ 428+ 69EE 5B 50 31 32  p127_msg_mem_stress_pass: db "[P127] ALLOCATOR 8X FULL-POOL CYCLE/EXHAUSTION PASS; FIRST-FIT RESTORED",13,10,0
+ 428+ 69F2 37 5D 20 41
+ 428+ 69F6 4C 4C 4F 43
+ 428+ 69FA 41 54 4F 52
+ 428+ 69FE 20 38 58 20
+ 428+ 6A02 46 55 4C 4C
+ 428+ 6A06 2D 50 4F 4F
+ 428+ 6A0A 4C 20 43 59
+ 428+ 6A0E 43 4C 45 2F
+ 428+ 6A12 45 58 48 41
+ 428+ 6A16 55 53 54 49
+ 428+ 6A1A 4F 4E 20 50
+ 428+ 6A1E 41 53 53 3B
+ 428+ 6A22 20 46 49 52
+ 428+ 6A26 53 54 2D 46
+ 428+ 6A2A 49 54 20 52
+ 428+ 6A2E 45 53 54 4F
+ 428+ 6A32 52 45 44 0D
+ 428+ 6A36 0A 00
+ 429+ 6A38 5B 50 31 32  p127_msg_mem_stress_fail: db "[P127] ALLOCATOR FULL-POOL STRESS FAIL",13,10,0
+ 429+ 6A3C 37 5D 20 41
+ 429+ 6A40 4C 4C 4F 43
+ 429+ 6A44 41 54 4F 52
+ 429+ 6A48 20 46 55 4C
+ 429+ 6A4C 4C 2D 50 4F
+ 429+ 6A50 4F 4C 20 53
+ 429+ 6A54 54 52 45 53
+ 429+ 6A58 53 20 46 41
+ 429+ 6A5C 49 4C 0D 0A
+ 429+ 6A60 00
+ 430+ 6A61 5B 50 31 32  p127_msg_mem_pin_pass: db "[P127] MEM PIN/UNPIN REFCOUNT SELFTEST PASS; FREE GUARDED",13,10,0
+ 430+ 6A65 37 5D 20 4D
+ 430+ 6A69 45 4D 20 50
+ 430+ 6A6D 49 4E 2F 55
+ 430+ 6A71 4E 50 49 4E
+ 430+ 6A75 20 52 45 46
+ 430+ 6A79 43 4F 55 4E
+ 430+ 6A7D 54 20 53 45
+ 430+ 6A81 4C 46 54 45
+ 430+ 6A85 53 54 20 50
+ 430+ 6A89 41 53 53 3B
+ 430+ 6A8D 20 46 52 45
+ 430+ 6A91 45 20 47 55
+ 430+ 6A95 41 52 44 45
+ 430+ 6A99 44 0D 0A 00
+ 431+ 6A9D 5B 50 31 32  p127_msg_mem_pin_fail: db "[P127] MEM PIN/UNPIN REFCOUNT SELFTEST FAIL",13,10,0
+ 431+ 6AA1 37 5D 20 4D
+ 431+ 6AA5 45 4D 20 50
+ 431+ 6AA9 49 4E 2F 55
+ 431+ 6AAD 4E 50 49 4E
+ 431+ 6AB1 20 52 45 46
+ 431+ 6AB5 43 4F 55 4E
+ 431+ 6AB9 54 20 53 45
+ 431+ 6ABD 4C 46 54 45
+ 431+ 6AC1 53 54 20 46
+ 431+ 6AC5 41 49 4C 0D
+ 431+ 6AC9 0A 00
+ 432+ 6ACB 5B 50 31 32  p127_msg_physmem_api_fail: db "[P127] PAGE ALLOC/FREE + GUARDED W3 LEASE API FAIL",13,10,0
+ 432+ 6ACF 37 5D 20 50
+ 432+ 6AD3 41 47 45 20
+ 432+ 6AD7 41 4C 4C 4F
+ 432+ 6ADB 43 2F 46 52
+ 432+ 6ADF 45 45 20 2B
+ 432+ 6AE3 20 47 55 41
+ 432+ 6AE7 52 44 45 44
+ 432+ 6AEB 20 57 33 20
+ 432+ 6AEF 4C 45 41 53
+ 432+ 6AF3 45 20 41 50
+ 432+ 6AF7 49 20 46 41
+ 432+ 6AFB 49 4C 0D 0A
+ 432+ 6AFF 00
+ 433+ 6B00 5B 50 31 32  p127_msg_physmem_fail: db "[P127] PHYS W3 PAGE SWITCH/MEMORY TEST FAIL",13,10,0
+ 433+ 6B04 37 5D 20 50
+ 433+ 6B08 48 59 53 20
+ 433+ 6B0C 57 33 20 50
+ 433+ 6B10 41 47 45 20
+ 433+ 6B14 53 57 49 54
+ 433+ 6B18 43 48 2F 4D
+ 433+ 6B1C 45 4D 4F 52
+ 433+ 6B20 59 20 54 45
+ 433+ 6B24 53 54 20 46
+ 433+ 6B28 41 49 4C 0D
+ 433+ 6B2C 0A 00
+ 434+ 6B2E 5B 50 31 32  p127_msg_physmem_error: db "[P127] PHYSMEM ERROR=",0
+ 434+ 6B32 37 5D 20 50
+ 434+ 6B36 48 59 53 4D
+ 434+ 6B3A 45 4D 20 45
+ 434+ 6B3E 52 52 4F 52
+ 434+ 6B42 3D 00
+ 435+ 6B44 5B 50 31 32  p127_msg_map_fail: db "[P127] MAP MODEL TEST FAIL",13,10,0
+ 435+ 6B48 37 5D 20 4D
+ 435+ 6B4C 41 50 20 4D
+ 435+ 6B50 4F 44 45 4C
+ 435+ 6B54 20 54 45 53
+ 435+ 6B58 54 20 46 41
+ 435+ 6B5C 49 4C 0D 0A
+ 435+ 6B60 00
+ 436+ 6B61 5B 50 31 32  p127_msg_stack_probe_pass: db "[P127] RESIDENT STACK PROBE PASS; OUT DISABLED",13,10,0
+ 436+ 6B65 37 5D 20 52
+ 436+ 6B69 45 53 49 44
+ 436+ 6B6D 45 4E 54 20
+ 436+ 6B71 53 54 41 43
+ 436+ 6B75 4B 20 50 52
+ 436+ 6B79 4F 42 45 20
+ 436+ 6B7D 50 41 53 53
+ 436+ 6B81 3B 20 4F 55
+ 436+ 6B85 54 20 44 49
+ 436+ 6B89 53 41 42 4C
+ 436+ 6B8D 45 44 0D 0A
+ 436+ 6B91 00
+ 437+ 6B92 5B 50 31 32  p127_msg_stack_probe_fail: db "[P127] RESIDENT STACK PROBE FAIL",13,10,0
+ 437+ 6B96 37 5D 20 52
+ 437+ 6B9A 45 53 49 44
+ 437+ 6B9E 45 4E 54 20
+ 437+ 6BA2 53 54 41 43
+ 437+ 6BA6 4B 20 50 52
+ 437+ 6BAA 4F 42 45 20
+ 437+ 6BAE 46 41 49 4C
+ 437+ 6BB2 0D 0A 00
+ 438+ 6BB5 5B 50 31 32  p127_msg_resident_pass: db "[P127] RESIDENT WINDOW CONTRACT PASS; OUT DISABLED",13,10,0
+ 438+ 6BB9 37 5D 20 52
+ 438+ 6BBD 45 53 49 44
+ 438+ 6BC1 45 4E 54 20
+ 438+ 6BC5 57 49 4E 44
+ 438+ 6BC9 4F 57 20 43
+ 438+ 6BCD 4F 4E 54 52
+ 438+ 6BD1 41 43 54 20
+ 438+ 6BD5 50 41 53 53
+ 438+ 6BD9 3B 20 4F 55
+ 438+ 6BDD 54 20 44 49
+ 438+ 6BE1 53 41 42 4C
+ 438+ 6BE5 45 44 0D 0A
+ 438+ 6BE9 00
+ 439+ 6BEA 5B 50 31 32  p127_msg_resident_fail: db "[P127] RESIDENT WINDOW CONTRACT FAIL",13,10,0
+ 439+ 6BEE 37 5D 20 52
+ 439+ 6BF2 45 53 49 44
+ 439+ 6BF6 45 4E 54 20
+ 439+ 6BFA 57 49 4E 44
+ 439+ 6BFE 4F 57 20 43
+ 439+ 6C02 4F 4E 54 52
+ 439+ 6C06 41 43 54 20
+ 439+ 6C0A 46 41 49 4C
+ 439+ 6C0E 0D 0A 00
+ 440+ 6C11 5B 50 31 32  p127_msg_handoff_pass: db "[P127] HANDOFF GUARD TEST PASS; OUT DISABLED",13,10,0
+ 440+ 6C15 37 5D 20 48
+ 440+ 6C19 41 4E 44 4F
+ 440+ 6C1D 46 46 20 47
+ 440+ 6C21 55 41 52 44
+ 440+ 6C25 20 54 45 53
+ 440+ 6C29 54 20 50 41
+ 440+ 6C2D 53 53 3B 20
+ 440+ 6C31 4F 55 54 20
+ 440+ 6C35 44 49 53 41
+ 440+ 6C39 42 4C 45 44
+ 440+ 6C3D 0D 0A 00
+ 441+ 6C40 5B 50 31 32  p127_msg_handoff_fail: db "[P127] HANDOFF GUARD TEST FAIL",13,10,0
+ 441+ 6C44 37 5D 20 48
+ 441+ 6C48 41 4E 44 4F
+ 441+ 6C4C 46 46 20 47
+ 441+ 6C50 55 41 52 44
+ 441+ 6C54 20 54 45 53
+ 441+ 6C58 54 20 46 41
+ 441+ 6C5C 49 4C 0D 0A
+ 441+ 6C60 00
+ 442+ 6C61 5B 50 31 32  p127_msg_w3_pass: db "[P127] UI QUIESCE/W3 OWNERSHIP PASS; OUT DISABLED",13,10,0
+ 442+ 6C65 37 5D 20 55
+ 442+ 6C69 49 20 51 55
+ 442+ 6C6D 49 45 53 43
+ 442+ 6C71 45 2F 57 33
+ 442+ 6C75 20 4F 57 4E
+ 442+ 6C79 45 52 53 48
+ 442+ 6C7D 49 50 20 50
+ 442+ 6C81 41 53 53 3B
+ 442+ 6C85 20 4F 55 54
+ 442+ 6C89 20 44 49 53
+ 442+ 6C8D 41 42 4C 45
+ 442+ 6C91 44 0D 0A 00
+ 443+ 6C95 5B 50 31 32  p127_msg_w3_fail: db "[P127] UI QUIESCE/W3 OWNERSHIP FAIL",13,10,0
+ 443+ 6C99 37 5D 20 55
+ 443+ 6C9D 49 20 51 55
+ 443+ 6CA1 49 45 53 43
+ 443+ 6CA5 45 2F 57 33
+ 443+ 6CA9 20 4F 57 4E
+ 443+ 6CAD 45 52 53 48
+ 443+ 6CB1 49 50 20 46
+ 443+ 6CB5 41 49 4C 0D
+ 443+ 6CB9 0A 00
+ 444+ 6CBB 5B 50 31 32  p127_msg_w3_recovery_pass: db "[P127] W3 ROLLBACK/RECOVERY PASS; OUT DISABLED",13,10,0
+ 444+ 6CBF 37 5D 20 57
+ 444+ 6CC3 33 20 52 4F
+ 444+ 6CC7 4C 4C 42 41
+ 444+ 6CCB 43 4B 2F 52
+ 444+ 6CCF 45 43 4F 56
+ 444+ 6CD3 45 52 59 20
+ 444+ 6CD7 50 41 53 53
+ 444+ 6CDB 3B 20 4F 55
+ 444+ 6CDF 54 20 44 49
+ 444+ 6CE3 53 41 42 4C
+ 444+ 6CE7 45 44 0D 0A
+ 444+ 6CEB 00
+ 445+ 6CEC 5B 50 31 32  p127_msg_w3_recovery_fail: db "[P127] W3 ROLLBACK/RECOVERY FAIL",13,10,0
+ 445+ 6CF0 37 5D 20 57
+ 445+ 6CF4 33 20 52 4F
+ 445+ 6CF8 4C 4C 42 41
+ 445+ 6CFC 43 4B 2F 52
+ 445+ 6D00 45 43 4F 56
+ 445+ 6D04 45 52 59 20
+ 445+ 6D08 46 41 49 4C
+ 445+ 6D0C 0D 0A 00
+ 446+ 6D0F 5B 50 31 32  p127_msg_irq_context_pass: db "[P127] IRQ FRAME ROUNDTRIP PASS; VECTOR DISABLED",13,10,0
+ 446+ 6D13 37 5D 20 49
+ 446+ 6D17 52 51 20 46
+ 446+ 6D1B 52 41 4D 45
+ 446+ 6D1F 20 52 4F 55
+ 446+ 6D23 4E 44 54 52
+ 446+ 6D27 49 50 20 50
+ 446+ 6D2B 41 53 53 3B
+ 446+ 6D2F 20 56 45 43
+ 446+ 6D33 54 4F 52 20
+ 446+ 6D37 44 49 53 41
+ 446+ 6D3B 42 4C 45 44
+ 446+ 6D3F 0D 0A 00
+ 447+ 6D42 5B 50 31 32  p127_msg_irq_batch_pass: db "[P127] IRQ BATCH 16-CHECK PASS; SOURCE UNRESOLVED; IM/EI/OUT DISABLED",13,10,0
+ 447+ 6D46 37 5D 20 49
+ 447+ 6D4A 52 51 20 42
+ 447+ 6D4E 41 54 43 48
+ 447+ 6D52 20 31 36 2D
+ 447+ 6D56 43 48 45 43
+ 447+ 6D5A 4B 20 50 41
+ 447+ 6D5E 53 53 3B 20
+ 447+ 6D62 53 4F 55 52
+ 447+ 6D66 43 45 20 55
+ 447+ 6D6A 4E 52 45 53
+ 447+ 6D6E 4F 4C 56 45
+ 447+ 6D72 44 3B 20 49
+ 447+ 6D76 4D 2F 45 49
+ 447+ 6D7A 2F 4F 55 54
+ 447+ 6D7E 20 44 49 53
+ 447+ 6D82 41 42 4C 45
+ 447+ 6D86 44 0D 0A 00
+ 448+ 6D8A 5B 50 31 32  p127_msg_irq_fail: db "[P127] IRQ MASK/VECTOR CONTRACT FAIL",13,10,0
+ 448+ 6D8E 37 5D 20 49
+ 448+ 6D92 52 51 20 4D
+ 448+ 6D96 41 53 4B 2F
+ 448+ 6D9A 56 45 43 54
+ 448+ 6D9E 4F 52 20 43
+ 448+ 6DA2 4F 4E 54 52
+ 448+ 6DA6 41 43 54 20
+ 448+ 6DAA 46 41 49 4C
+ 448+ 6DAE 0D 0A 00
+ 449+ 6DB1 5B 50 31 32  p127_msg_irq_pass: db "[P127] IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED",13,10,0
+ 449+ 6DB5 37 5D 20 49
+ 449+ 6DB9 52 51 20 4D
+ 449+ 6DBD 41 53 4B 2F
+ 449+ 6DC1 56 45 43 54
+ 449+ 6DC5 4F 52 20 43
+ 449+ 6DC9 4F 4E 54 52
+ 449+ 6DCD 41 43 54 20
+ 449+ 6DD1 50 41 53 53
+ 449+ 6DD5 3B 20 45 49
+ 449+ 6DD9 20 44 49 53
+ 449+ 6DDD 41 42 4C 45
+ 449+ 6DE1 44 0D 0A 00
+ 450+ 6DE5 5B 50 31 32  p127_msg_trampoline_preflight_pass: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT PASS; OUT DISABLED",13,10,0
+ 450+ 6DE9 37 5D 20 52
+ 450+ 6DED 45 53 49 44
+ 450+ 6DF1 45 4E 54 20
+ 450+ 6DF5 54 52 41 4D
+ 450+ 6DF9 50 4F 4C 49
+ 450+ 6DFD 4E 45 20 50
+ 450+ 6E01 52 45 46 4C
+ 450+ 6E05 49 47 48 54
+ 450+ 6E09 20 50 41 53
+ 450+ 6E0D 53 3B 20 4F
+ 450+ 6E11 55 54 20 44
+ 450+ 6E15 49 53 41 42
+ 450+ 6E19 4C 45 44 0D
+ 450+ 6E1D 0A 00
+ 451+ 6E1F 5B 50 31 32  p127_msg_trampoline_preflight_fail: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT FAIL",13,10,0
+ 451+ 6E23 37 5D 20 52
+ 451+ 6E27 45 53 49 44
+ 451+ 6E2B 45 4E 54 20
+ 451+ 6E2F 54 52 41 4D
+ 451+ 6E33 50 4F 4C 49
+ 451+ 6E37 4E 45 20 50
+ 451+ 6E3B 52 45 46 4C
+ 451+ 6E3F 49 47 48 54
+ 451+ 6E43 20 46 41 49
+ 451+ 6E47 4C 0D 0A 00
+ 452+ 6E4B
+ 453+ 6E4B                      INCLUDE "src/kernel/p127_layout.asm"
 # file opened: p127_layout.asm
    1++6E4B              ; ============================================================================
    2++6E4B              ; Project127 ATM Core — linked kernel image layout measurement
@@ -1217,7 +1220,7 @@
   80++6EE7              ASSERT p127_end <= P127_LAYOUT_LIMIT
   81++6EE7
 # file closed: p127_layout.asm
- 451+ 6EE7                      INCLUDE "src/kernel/p127_resident.asm"
+ 454+ 6EE7                      INCLUDE "src/kernel/p127_resident.asm"
 # file opened: p127_resident.asm
    1++6EE7              ; ============================================================================
    2++6EE7              ; Project127 — resident-window contract / software preflight
@@ -1628,7 +1631,7 @@
  407++7167              p127_resident_end:
  408++7167
 # file closed: p127_resident.asm
- 452+ 7167                      INCLUDE "src/kernel/p127_irq.asm"
+ 455+ 7167                      INCLUDE "src/kernel/p127_irq.asm"
 # file opened: p127_irq.asm
    1++7167              ; ============================================================================
    2++7167              ; Project127 — interrupt safety contract / preflight
@@ -2096,7 +2099,7 @@
  464++744C 00           p127_irq_ready_flags: db 0
  465++744D
 # file closed: p127_irq.asm
- 453+ 744D                      INCLUDE "src/kernel/p127_mem.asm"
+ 456+ 744D                      INCLUDE "src/kernel/p127_mem.asm"
 # file opened: p127_mem.asm
    1++744D              ; ============================================================================
    2++744D              ; Project127 ATM Core — physical page-state manager
@@ -2571,7 +2574,7 @@
  471++77B7                      ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT*2
  472++77B7
 # file closed: p127_mem.asm
- 454+ 77B7                      INCLUDE "src/kernel/p127_range.asm"
+ 457+ 77B7                      INCLUDE "src/kernel/p127_range.asm"
 # file opened: p127_range.asm
    1++77B7              ; ============================================================================
    2++77B7              ; Project127 ATM Core — UINT32 physical range validator
@@ -2761,7 +2764,7 @@
  186++78CD 00 00 00 00          ds      4,0
  187++78D1
 # file closed: p127_range.asm
- 455+ 78D1                      INCLUDE "src/kernel/p127_arena.asm"
+ 458+ 78D1                      INCLUDE "src/kernel/p127_arena.asm"
 # file opened: p127_arena.asm
    1++78D1              ; ============================================================================
    2++78D1              ; Project127 ATM Core — top-down physical program-page arena
@@ -3007,7 +3010,7 @@
  242++7A2F              ASSERT P127_ARENA_HIGH_PAGE*P127_ARENA_PAGE_SIZE = 0100000h
  243++7A2F
 # file closed: p127_arena.asm
- 456+ 7A2F                      INCLUDE "src/kernel/p127_as.asm"
+ 459+ 7A2F                      INCLUDE "src/kernel/p127_as.asm"
 # file opened: p127_as.asm
    1++7A2F              ; ============================================================================
    2++7A2F              ; Project127 ATM Core — managed logical address-space page table
@@ -3290,7 +3293,7 @@
  279++7BD0 FF FF FF...          ds      P127_AS_LOGICAL_PAGE_COUNT,P127_AS_UNMAPPED
  280++7CD0
 # file closed: p127_as.asm
- 457+ 7CD0                      INCLUDE "src/kernel/p127_as_span.asm"
+ 460+ 7CD0                      INCLUDE "src/kernel/p127_as_span.asm"
 # file opened: p127_as_span.asm
    1++7CD0              ; ============================================================================
    2++7CD0              ; Project127 — managed logical span preflight
@@ -3578,7 +3581,7 @@
  284++7EAF 00                   db      0
  285++7EB0
 # file closed: p127_as_span.asm
- 458+ 7EB0                      INCLUDE "src/kernel/p127_as_copy.asm"
+ 461+ 7EB0                      INCLUDE "src/kernel/p127_as_copy.asm"
 # file opened: p127_as_copy.asm
    1++7EB0              ; ============================================================================
    2++7EB0              ; Project127 — managed logical-span copy
@@ -4272,7 +4275,7 @@
  686++842E 2C 2D 2E 2F
  687++8432
 # file closed: p127_as_copy.asm
- 459+ 8432                      INCLUDE "src/kernel/p127_map.asm"
+ 462+ 8432                      INCLUDE "src/kernel/p127_map.asm"
 # file opened: p127_map.asm
    1++8432              ; ============================================================================
    2++8432              ; Project127 ATM Core — pure software page-mapper model
@@ -4740,7 +4743,7 @@
  464++8754              p127_map_end:
  465++8754
 # file closed: p127_map.asm
- 460+ 8754                      INCLUDE "src/kernel/p127_handoff.asm"
+ 463+ 8754                      INCLUDE "src/kernel/p127_handoff.asm"
 # file opened: p127_handoff.asm
    1++8754              ; ============================================================================
    2++8754              ; Project127 — resident stack handoff probe
@@ -4872,7 +4875,7 @@
  128++87EF              p127_handoff_end:
  129++87EF
 # file closed: p127_handoff.asm
- 461+ 87EF                      INCLUDE "src/kernel/p127_trdos.asm"
+ 464+ 87EF                      INCLUDE "src/kernel/p127_trdos.asm"
 # file opened: p127_trdos.asm
    1++87EF              ; ============================================================================
    2++87EF              ; Project127 TR-DOS directory reader
@@ -5203,7 +5206,7 @@
  276++8A91 00           p127_trdos_read_failed:   db 0
  277++8A92
 # file closed: p127_trdos.asm
- 462+ 8A92                      INCLUDE "src/kernel/p127_rtc.asm"
+ 465+ 8A92                      INCLUDE "src/kernel/p127_rtc.asm"
 # file opened: p127_rtc.asm
    1++8A92              ; ============================================================================
    2++8A92              ; Project127 DS12887 real-time clock service
@@ -5588,7 +5591,7 @@
  354++8D3A 3F 3F        p127_rtc_second:         db "??"
  355++8D3C
 # file closed: p127_rtc.asm
- 463+ 8D3C                      INCLUDE "src/kernel/p127_speaker.asm"
+ 466+ 8D3C                      INCLUDE "src/kernel/p127_speaker.asm"
 # file opened: p127_speaker.asm
    1++8D3C              ; ============================================================================
    2++8D3C              ; Project127 ATM Turbo 2+ beeper output driver
@@ -5705,7 +5708,7 @@
  113++8D9A 00           p127_speaker_shadow: db 0
  114++8D9B
 # file closed: p127_speaker.asm
- 464+ 8D9B                      INCLUDE "src/kernel/p127_hdd.asm"
+ 467+ 8D9B                      INCLUDE "src/kernel/p127_hdd.asm"
 # file opened: p127_hdd.asm
    1++8D9B              ; ============================================================================
    2++8D9B              ; Project127 Nemo IDE HDD read-only transport
@@ -6100,7 +6103,7 @@
  346++9071              ; FAT16 root-directory support is in p127_hdd_fat16.asm.
  347++9071
 # file closed: p127_hdd.asm
- 465+ 9071                      INCLUDE "src/kernel/p127_hdd_fat16.asm"
+ 468+ 9071                      INCLUDE "src/kernel/p127_hdd_fat16.asm"
 # file opened: p127_hdd_fat16.asm
    1++9071              ; ============================================================================
    2++9071              ; Project127 FAT16 root-directory reader
@@ -6524,12 +6527,12 @@
  380++938C 00 00 00     p127_hdd_fat_ext:          ds 3,0
  381++938F
 # file closed: p127_hdd_fat16.asm
- 466+ 938F
- 467+ 938F              p127_end:
- 468+ 938F                      ASSERT  p127_entry = P127_LOAD_ADDRESS
- 469+ 938F                      ASSERT  p127_end > p127_entry
- 470+ 938F                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
- 471+ 938F
+ 469+ 938F
+ 470+ 938F              p127_end:
+ 471+ 938F                      ASSERT  p127_entry = P127_LOAD_ADDRESS
+ 472+ 938F                      ASSERT  p127_end > p127_entry
+ 473+ 938F                      ASSERT  p127_end <= P127_LOAD_ADDRESS + 04000h
+ 474+ 938F
 # file closed: p127_boot.asm
    8  938F
    9  938F              ; BASIC boot file is assembly data, not a Python-generated byte array.
@@ -8717,8 +8720,373 @@
 1031+ AD5F 00 00 00...  p127_physmem_page_list: ds P127_PHYSMEM_MAX_PAGES,0
 1032+ AD9F
 # file closed: p127_physmem.asm
-  94  AD9F              p127_image_end:
-  95  AD9F                      ASSERT p127_image_end <= #B000
-  96  AD9F                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_image_end-P127_LOAD_ADDRESS
-  97  AD9F
+  94  AD9F                      INCLUDE "src/kernel/p127_keyboard.asm"
+# file opened: p127_keyboard.asm
+   1+ AD9F              ; ============================================================================
+   2+ AD9F              ; Project127 — ATM XT keyboard interface
+   3+ AD9F              ; Version: 0.2.0
+   4+ AD9F              ;
+   5+ AD9F              ; ATM Turbo 2+ host reads the Unreal Speccy ATM_KBD interface through ULA
+   6+ AD9F              ; port #FE. The emulator must have [Input] ATMKBD=1.
+   7+ AD9F              ;
+   8+ AD9F              ; ATM_KBD protocol:
+   9+ AD9F              ;   read B=#55 -> #AA handshake
+  10+ AD9F              ;   read B=#08 -> command 8 (select mode)
+  11+ AD9F              ;   read B=mode -> #FF acknowledgement
+  12+ AD9F              ;   mode 2: B=#00/#40/#80/#C0 reads R2/R3/R4/R5
+  13+ AD9F              ;   mode 3: B=#00 reads and clears lastscan
+  14+ AD9F              ;
+  15+ AD9F              ; No NeoGS, DMA mailbox, external keyboard controller or IRQ is assumed.
+  16+ AD9F              ; If ATMKBD is disabled, retain a ZX 8x5 matrix diagnostic fallback only.
+  17+ AD9F              ; IM/EI remain disabled.
+  18+ AD9F              ; ============================================================================
+  19+ AD9F              P127_KBD_PORT              EQU #FE
+  20+ AD9F              P127_KBD_MODE_XT           EQU 2
+  21+ AD9F              P127_KBD_MODE_EVENT        EQU 3
+  22+ AD9F              P127_KBD_TIMEOUT_WINDOWS   EQU 8
+  23+ AD9F              P127_KBD_ROW_MASK          EQU #1F
+  24+ AD9F
+  25+ AD9F              ; Public boot monitor. All reads are performed by the ATM Z80.
+  26+ AD9F              p127_keyboard_monitor:
+  27+ AD9F AF                   xor     a
+  28+ ADA0 32 31 B0             ld      (p127_kbd_xt_active),a
+  29+ ADA3 32 4A B0             ld      (p127_kbd_snapshot_valid),a
+  30+ ADA6 21 64 AF             ld      hl,p127_kbd_msg_init
+  31+ ADA9 CD 06 63             call    p127_puts
+  32+ ADAC
+  33+ ADAC 3E 02                ld      a,P127_KBD_MODE_XT
+  34+ ADAE CD DE AD             call    p127_keyboard_set_mode
+  35+ ADB1 38 0D                jr      c,p127_keyboard_legacy_init
+  36+ ADB3
+  37+ ADB3 3E 01                ld      a,1
+  38+ ADB5 32 31 B0             ld      (p127_kbd_xt_active),a
+  39+ ADB8 21 97 AF             ld      hl,p127_kbd_msg_xt_ready
+  40+ ADBB CD 06 63             call    p127_puts
+  41+ ADBE 18 06                jr      p127_keyboard_monitor_loop
+  42+ ADC0
+  43+ ADC0              p127_keyboard_legacy_init:
+  44+ ADC0 21 CA AF             ld      hl,p127_kbd_msg_legacy
+  45+ ADC3 CD 06 63             call    p127_puts
+  46+ ADC6
+  47+ ADC6              p127_keyboard_monitor_loop:
+  48+ ADC6 3A 31 B0             ld      a,(p127_kbd_xt_active)
+  49+ ADC9 B7                   or      a
+  50+ ADCA 28 05                jr      z,p127_keyboard_monitor_legacy
+  51+ ADCC CD 24 AE             call    p127_keyboard_poll_xt
+  52+ ADCF 18 03                jr      p127_keyboard_monitor_pace
+  53+ ADD1              p127_keyboard_monitor_legacy:
+  54+ ADD1 CD C3 AE             call    p127_keyboard_poll_matrix
+  55+ ADD4              p127_keyboard_monitor_pace:
+  56+ ADD4                      ; Bounded software pacing; no PIT or interrupt dependency.
+  57+ ADD4 11 00 02             ld      de,#0200
+  58+ ADD7              p127_keyboard_monitor_delay:
+  59+ ADD7 1B                   dec     de
+  60+ ADD8 7A                   ld      a,d
+  61+ ADD9 B3                   or      e
+  62+ ADDA 20 FB                jr      nz,p127_keyboard_monitor_delay
+  63+ ADDC 18 E8                jr      p127_keyboard_monitor_loop
+  64+ ADDE
+  65+ ADDE              ; Enter ATM_KBD mode A using the exact Unreal Speccy ATM_KBD::read handshake.
+  66+ ADDE              ; Carry is set if any of the three protocol responses is unexpected.
+  67+ ADDE              p127_keyboard_set_mode:
+  68+ ADDE 32 30 B0             ld      (p127_kbd_requested_mode),a
+  69+ ADE1 01 FE 55             ld      bc,#55FE
+  70+ ADE4 ED 78                in      a,(c)
+  71+ ADE6 FE AA                cp      #AA
+  72+ ADE8 20 17                jr      nz,p127_keyboard_mode_fail
+  73+ ADEA 01 FE 08             ld      bc,#08FE
+  74+ ADED ED 78                in      a,(c)
+  75+ ADEF FE 08                cp      8
+  76+ ADF1 20 0E                jr      nz,p127_keyboard_mode_fail
+  77+ ADF3 3A 30 B0             ld      a,(p127_kbd_requested_mode)
+  78+ ADF6 47                   ld      b,a
+  79+ ADF7 0E FE                ld      c,P127_KBD_PORT
+  80+ ADF9 ED 78                in      a,(c)
+  81+ ADFB FE FF                cp      #FF
+  82+ ADFD 20 02                jr      nz,p127_keyboard_mode_fail
+  83+ ADFF B7                   or      a
+  84+ AE00 C9                   ret
+  85+ AE01              p127_keyboard_mode_fail:
+  86+ AE01 37                   scf
+  87+ AE02 C9                   ret
+  88+ AE03
+  89+ AE03              ; Read mode 2 registers. R2 is read-to-clear; R3/R4/R5 are state registers.
+  90+ AE03              p127_keyboard_read_mode2:
+  91+ AE03 01 FE 00             ld      bc,#00FE
+  92+ AE06 ED 78                in      a,(c)
+  93+ AE08 32 33 B0             ld      (p127_kbd_r2),a
+  94+ AE0B 01 FE 40             ld      bc,#40FE
+  95+ AE0E ED 78                in      a,(c)
+  96+ AE10 32 34 B0             ld      (p127_kbd_r3),a
+  97+ AE13 01 FE 80             ld      bc,#80FE
+  98+ AE16 ED 78                in      a,(c)
+  99+ AE18 32 35 B0             ld      (p127_kbd_r4),a
+ 100+ AE1B 01 FE C0             ld      bc,#C0FE
+ 101+ AE1E ED 78                in      a,(c)
+ 102+ AE20 32 36 B0             ld      (p127_kbd_r5),a
+ 103+ AE23 C9                   ret
+ 104+ AE24
+ 105+ AE24              ; Poll one event plus the current ATM modifier/extended-key registers.
+ 106+ AE24              ; lastscan bit 7 means key release. R5 carries key-class/extended metadata.
+ 107+ AE24              p127_keyboard_poll_xt:
+ 108+ AE24 CD 03 AE             call    p127_keyboard_read_mode2
+ 109+ AE27 3E 03                ld      a,P127_KBD_MODE_EVENT
+ 110+ AE29 CD DE AD             call    p127_keyboard_set_mode
+ 111+ AE2C 38 48                jr      c,p127_keyboard_xt_recover
+ 112+ AE2E 01 FE 00             ld      bc,#00FE
+ 113+ AE31 ED 78                in      a,(c)
+ 114+ AE33 32 32 B0             ld      (p127_kbd_lastscan),a
+ 115+ AE36
+ 116+ AE36 3E 02                ld      a,P127_KBD_MODE_XT
+ 117+ AE38 CD DE AD             call    p127_keyboard_set_mode
+ 118+ AE3B 38 39                jr      c,p127_keyboard_xt_recover
+ 119+ AE3D
+ 120+ AE3D 3A 32 B0             ld      a,(p127_kbd_lastscan)
+ 121+ AE40 B7                   or      a
+ 122+ AE41 20 1D                jr      nz,p127_keyboard_xt_log
+ 123+ AE43 3A 34 B0             ld      a,(p127_kbd_r3)
+ 124+ AE46 47                   ld      b,a
+ 125+ AE47 3A 37 B0             ld      a,(p127_kbd_prev_r3)
+ 126+ AE4A B8                   cp      b
+ 127+ AE4B 20 13                jr      nz,p127_keyboard_xt_log
+ 128+ AE4D 3A 35 B0             ld      a,(p127_kbd_r4)
+ 129+ AE50 47                   ld      b,a
+ 130+ AE51 3A 38 B0             ld      a,(p127_kbd_prev_r4)
+ 131+ AE54 B8                   cp      b
+ 132+ AE55 20 09                jr      nz,p127_keyboard_xt_log
+ 133+ AE57 3A 36 B0             ld      a,(p127_kbd_r5)
+ 134+ AE5A 47                   ld      b,a
+ 135+ AE5B 3A 39 B0             ld      a,(p127_kbd_prev_r5)
+ 136+ AE5E B8                   cp      b
+ 137+ AE5F C8                   ret     z
+ 138+ AE60
+ 139+ AE60              p127_keyboard_xt_log:
+ 140+ AE60 CD 7C AE             call    p127_keyboard_log_xt
+ 141+ AE63 3A 34 B0             ld      a,(p127_kbd_r3)
+ 142+ AE66 32 37 B0             ld      (p127_kbd_prev_r3),a
+ 143+ AE69 3A 35 B0             ld      a,(p127_kbd_r4)
+ 144+ AE6C 32 38 B0             ld      (p127_kbd_prev_r4),a
+ 145+ AE6F 3A 36 B0             ld      a,(p127_kbd_r5)
+ 146+ AE72 32 39 B0             ld      (p127_kbd_prev_r5),a
+ 147+ AE75 C9                   ret
+ 148+ AE76
+ 149+ AE76              ; If mode switching fails, retry the mode-2 handshake on the next pass.
+ 150+ AE76              p127_keyboard_xt_recover:
+ 151+ AE76 3E 02                ld      a,P127_KBD_MODE_XT
+ 152+ AE78 CD DE AD             call    p127_keyboard_set_mode
+ 153+ AE7B C9                   ret
+ 154+ AE7C
+ 155+ AE7C              p127_keyboard_log_xt:
+ 156+ AE7C 21 FF AF             ld      hl,p127_kbd_msg_event
+ 157+ AE7F CD 06 63             call    p127_puts
+ 158+ AE82 3A 32 B0             ld      a,(p127_kbd_lastscan)
+ 159+ AE85 CD 22 63             call    p127_put_hex8
+ 160+ AE88 21 0B B0             ld      hl,p127_kbd_msg_r2
+ 161+ AE8B CD 06 63             call    p127_puts
+ 162+ AE8E 3A 33 B0             ld      a,(p127_kbd_r2)
+ 163+ AE91 CD 22 63             call    p127_put_hex8
+ 164+ AE94 21 10 B0             ld      hl,p127_kbd_msg_r3
+ 165+ AE97 CD 06 63             call    p127_puts
+ 166+ AE9A 3A 34 B0             ld      a,(p127_kbd_r3)
+ 167+ AE9D CD 22 63             call    p127_put_hex8
+ 168+ AEA0 21 15 B0             ld      hl,p127_kbd_msg_r4
+ 169+ AEA3 CD 06 63             call    p127_puts
+ 170+ AEA6 3A 35 B0             ld      a,(p127_kbd_r4)
+ 171+ AEA9 CD 22 63             call    p127_put_hex8
+ 172+ AEAC 21 1A B0             ld      hl,p127_kbd_msg_r5
+ 173+ AEAF CD 06 63             call    p127_puts
+ 174+ AEB2 3A 36 B0             ld      a,(p127_kbd_r5)
+ 175+ AEB5 CD 22 63             call    p127_put_hex8
+ 176+ AEB8 3E 0D                ld      a,13
+ 177+ AEBA CD 38 63             call    p127_put_char
+ 178+ AEBD 3E 0A                ld      a,10
+ 179+ AEBF CD 38 63             call    p127_put_char
+ 180+ AEC2 C9                   ret
+ 181+ AEC3
+ 182+ AEC3              ; Compatibility fallback when ATMKBD=1 is not enabled in the emulator.
+ 183+ AEC3              p127_keyboard_poll_matrix:
+ 184+ AEC3 CD 13 AF             call    p127_keyboard_scan_matrix
+ 185+ AEC6 3A 4A B0             ld      a,(p127_kbd_snapshot_valid)
+ 186+ AEC9 B7                   or      a
+ 187+ AECA 28 11                jr      z,p127_keyboard_matrix_changed
+ 188+ AECC 21 3A B0             ld      hl,p127_kbd_matrix
+ 189+ AECF 11 42 B0             ld      de,p127_kbd_previous
+ 190+ AED2 06 08                ld      b,8
+ 191+ AED4              p127_keyboard_matrix_compare:
+ 192+ AED4 1A                   ld      a,(de)
+ 193+ AED5 BE                   cp      (hl)
+ 194+ AED6 20 05                jr      nz,p127_keyboard_matrix_changed
+ 195+ AED8 13                   inc     de
+ 196+ AED9 23                   inc     hl
+ 197+ AEDA 10 F8                djnz    p127_keyboard_matrix_compare
+ 198+ AEDC C9                   ret
+ 199+ AEDD              p127_keyboard_matrix_changed:
+ 200+ AEDD 21 3A B0             ld      hl,p127_kbd_matrix
+ 201+ AEE0 11 42 B0             ld      de,p127_kbd_previous
+ 202+ AEE3 01 08 00             ld      bc,8
+ 203+ AEE6 ED B0                ldir
+ 204+ AEE8 3E 01                ld      a,1
+ 205+ AEEA 32 4A B0             ld      (p127_kbd_snapshot_valid),a
+ 206+ AEED 21 1F B0             ld      hl,p127_kbd_msg_matrix
+ 207+ AEF0 CD 06 63             call    p127_puts
+ 208+ AEF3 21 3A B0             ld      hl,p127_kbd_matrix
+ 209+ AEF6 06 08                ld      b,8
+ 210+ AEF8              p127_keyboard_matrix_log_loop:
+ 211+ AEF8 C5                   push    bc
+ 212+ AEF9 E5                   push    hl
+ 213+ AEFA 7E                   ld      a,(hl)
+ 214+ AEFB CD 22 63             call    p127_put_hex8
+ 215+ AEFE 3E 20                ld      a,' '
+ 216+ AF00 CD 38 63             call    p127_put_char
+ 217+ AF03 E1                   pop     hl
+ 218+ AF04 C1                   pop     bc
+ 219+ AF05 23                   inc     hl
+ 220+ AF06 10 F0                djnz    p127_keyboard_matrix_log_loop
+ 221+ AF08 3E 0D                ld      a,13
+ 222+ AF0A CD 38 63             call    p127_put_char
+ 223+ AF0D 3E 0A                ld      a,10
+ 224+ AF0F CD 38 63             call    p127_put_char
+ 225+ AF12 C9                   ret
+ 226+ AF13
+ 227+ AF13              p127_keyboard_scan_matrix:
+ 228+ AF13 C5                   push    bc
+ 229+ AF14 D5                   push    de
+ 230+ AF15 E5                   push    hl
+ 231+ AF16 0E FE                ld      c,P127_KBD_PORT
+ 232+ AF18 06 FE                ld      b,#FE
+ 233+ AF1A ED 78                in      a,(c)
+ 234+ AF1C E6 1F                and     P127_KBD_ROW_MASK
+ 235+ AF1E 32 3A B0             ld      (p127_kbd_matrix+0),a
+ 236+ AF21 06 FD                ld      b,#FD
+ 237+ AF23 ED 78                in      a,(c)
+ 238+ AF25 E6 1F                and     P127_KBD_ROW_MASK
+ 239+ AF27 32 3B B0             ld      (p127_kbd_matrix+1),a
+ 240+ AF2A 06 FB                ld      b,#FB
+ 241+ AF2C ED 78                in      a,(c)
+ 242+ AF2E E6 1F                and     P127_KBD_ROW_MASK
+ 243+ AF30 32 3C B0             ld      (p127_kbd_matrix+2),a
+ 244+ AF33 06 F7                ld      b,#F7
+ 245+ AF35 ED 78                in      a,(c)
+ 246+ AF37 E6 1F                and     P127_KBD_ROW_MASK
+ 247+ AF39 32 3D B0             ld      (p127_kbd_matrix+3),a
+ 248+ AF3C 06 EF                ld      b,#EF
+ 249+ AF3E ED 78                in      a,(c)
+ 250+ AF40 E6 1F                and     P127_KBD_ROW_MASK
+ 251+ AF42 32 3E B0             ld      (p127_kbd_matrix+4),a
+ 252+ AF45 06 DF                ld      b,#DF
+ 253+ AF47 ED 78                in      a,(c)
+ 254+ AF49 E6 1F                and     P127_KBD_ROW_MASK
+ 255+ AF4B 32 3F B0             ld      (p127_kbd_matrix+5),a
+ 256+ AF4E 06 BF                ld      b,#BF
+ 257+ AF50 ED 78                in      a,(c)
+ 258+ AF52 E6 1F                and     P127_KBD_ROW_MASK
+ 259+ AF54 32 40 B0             ld      (p127_kbd_matrix+6),a
+ 260+ AF57 06 7F                ld      b,#7F
+ 261+ AF59 ED 78                in      a,(c)
+ 262+ AF5B E6 1F                and     P127_KBD_ROW_MASK
+ 263+ AF5D 32 41 B0             ld      (p127_kbd_matrix+7),a
+ 264+ AF60 E1                   pop     hl
+ 265+ AF61 D1                   pop     de
+ 266+ AF62 C1                   pop     bc
+ 267+ AF63 C9                   ret
+ 268+ AF64
+ 269+ AF64              p127_kbd_msg_init:
+ 270+ AF64 5B 4B 42 44          db "[KBD v0.2.0] ATM XT KEYBOARD PROBE; IRQ DISABLED",13,10,0
+ 270+ AF68 20 76 30 2E
+ 270+ AF6C 32 2E 30 5D
+ 270+ AF70 20 41 54 4D
+ 270+ AF74 20 58 54 20
+ 270+ AF78 4B 45 59 42
+ 270+ AF7C 4F 41 52 44
+ 270+ AF80 20 50 52 4F
+ 270+ AF84 42 45 3B 20
+ 270+ AF88 49 52 51 20
+ 270+ AF8C 44 49 53 41
+ 270+ AF90 42 4C 45 44
+ 270+ AF94 0D 0A 00
+ 271+ AF97              p127_kbd_msg_xt_ready:
+ 272+ AF97 5B 4B 42 44          db "[KBD] ATM XT MODE ACTIVE; R2/R3/R4/R5 + LASTSCAN",13,10,0
+ 272+ AF9B 5D 20 41 54
+ 272+ AF9F 4D 20 58 54
+ 272+ AFA3 20 4D 4F 44
+ 272+ AFA7 45 20 41 43
+ 272+ AFAB 54 49 56 45
+ 272+ AFAF 3B 20 52 32
+ 272+ AFB3 2F 52 33 2F
+ 272+ AFB7 52 34 2F 52
+ 272+ AFBB 35 20 2B 20
+ 272+ AFBF 4C 41 53 54
+ 272+ AFC3 53 43 41 4E
+ 272+ AFC7 0D 0A 00
+ 273+ AFCA              p127_kbd_msg_legacy:
+ 274+ AFCA 5B 4B 42 44          db "[KBD] ATMKBD NOT DETECTED; ZX MATRIX FALLBACK ONLY",13,10,0
+ 274+ AFCE 5D 20 41 54
+ 274+ AFD2 4D 4B 42 44
+ 274+ AFD6 20 4E 4F 54
+ 274+ AFDA 20 44 45 54
+ 274+ AFDE 45 43 54 45
+ 274+ AFE2 44 3B 20 5A
+ 274+ AFE6 58 20 4D 41
+ 274+ AFEA 54 52 49 58
+ 274+ AFEE 20 46 41 4C
+ 274+ AFF2 4C 42 41 43
+ 274+ AFF6 4B 20 4F 4E
+ 274+ AFFA 4C 59 0D 0A
+ 274+ AFFE 00
+ 275+ AFFF              p127_kbd_msg_event:
+ 276+ AFFF 5B 4B 42 44          db "[KBD] LAST=",0
+ 276+ B003 5D 20 4C 41
+ 276+ B007 53 54 3D 00
+ 277+ B00B              p127_kbd_msg_r2:
+ 278+ B00B 20 52 32 3D          db " R2=",0
+ 278+ B00F 00
+ 279+ B010              p127_kbd_msg_r3:
+ 280+ B010 20 52 33 3D          db " R3=",0
+ 280+ B014 00
+ 281+ B015              p127_kbd_msg_r4:
+ 282+ B015 20 52 34 3D          db " R4=",0
+ 282+ B019 00
+ 283+ B01A              p127_kbd_msg_r5:
+ 284+ B01A 20 52 35 3D          db " R5=",0
+ 284+ B01E 00
+ 285+ B01F              p127_kbd_msg_matrix:
+ 286+ B01F 5B 4B 42 44          db "[KBD] ZX MATRIX=",0
+ 286+ B023 5D 20 5A 58
+ 286+ B027 20 4D 41 54
+ 286+ B02B 52 49 58 3D
+ 286+ B02F 00
+ 287+ B030
+ 288+ B030              p127_kbd_requested_mode:
+ 289+ B030 00                   db 0
+ 290+ B031              p127_kbd_xt_active:
+ 291+ B031 00                   db 0
+ 292+ B032              p127_kbd_lastscan:
+ 293+ B032 00                   db 0
+ 294+ B033              p127_kbd_r2:
+ 295+ B033 00                   db 0
+ 296+ B034              p127_kbd_r3:
+ 297+ B034 00                   db 0
+ 298+ B035              p127_kbd_r4:
+ 299+ B035 00                   db 0
+ 300+ B036              p127_kbd_r5:
+ 301+ B036 00                   db 0
+ 302+ B037              p127_kbd_prev_r3:
+ 303+ B037 FF                   db #FF
+ 304+ B038              p127_kbd_prev_r4:
+ 305+ B038 FF                   db #FF
+ 306+ B039              p127_kbd_prev_r5:
+ 307+ B039 FF                   db #FF
+ 308+ B03A              p127_kbd_matrix:
+ 309+ B03A 1F 1F 1F...          ds 8,#1F
+ 310+ B042              p127_kbd_previous:
+ 311+ B042 1F 1F 1F...          ds 8,#1F
+ 312+ B04A              p127_kbd_snapshot_valid:
+ 313+ B04A 00                   db 0
+ 314+ B04B
+# file closed: p127_keyboard.asm
+  95  B04B              p127_image_end:
+main.asm(96): error: [ASSERT] Assertion failed:  p127_image_end <= #B000
+  96  B04B                      ASSERT p127_image_end <= #B000
+  97  B04B                      SAVETRD "disk_A.trd","P127BOOT.C",P127_LOAD_ADDRESS,p127_image_end-P127_LOAD_ADDRESS
+  98  B04B
 # file closed: main.asm
