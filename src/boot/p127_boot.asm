@@ -137,6 +137,12 @@ p127_start:
         jp      c,p127_irq_failed
         ld      hl,p127_msg_irq_batch_pass
         call    p127_puts
+        ; Install only the confirmed ATM710 #FF IM2 vector. Keep DI set:
+        ; no live interrupt delivery until the dispatcher/source is validated.
+        call    p127_irq_install_masked
+        jp      c,p127_irq_install_failed
+        ld      hl,p127_msg_irq_install_pass
+        call    p127_puts
         ld      hl,p127_msg_irq_page_pass
         call    p127_puts
         ld      hl,p127_msg_irq_pass
@@ -444,8 +450,8 @@ p127_msg_w3_fail: db "[P127] UI QUIESCE/W3 OWNERSHIP FAIL",13,10,0
 p127_msg_w3_recovery_pass: db "[P127] W3 ROLLBACK/RECOVERY PASS; OUT DISABLED",13,10,0
 p127_msg_w3_recovery_fail: db "[P127] W3 ROLLBACK/RECOVERY FAIL",13,10,0
 p127_msg_irq_context_pass: db "[P127] IRQ FRAME ROUNDTRIP PASS; VECTOR DISABLED",13,10,0
-p127_msg_irq_batch_pass: db "[P127] IRQ BATCH 16-CHECK PASS; SOURCE UNRESOLVED; IM/EI/OUT DISABLED",13,10,0
-p127_msg_irq_fail: db "[P127] IRQ MASK/VECTOR CONTRACT FAIL",13,10,0
+p127_msg_irq_batch_pass: db "[P127] IRQ BATCH 16-CHECK PASS; ATM #FF VECTOR SOURCE AUDITED; IM/EI DISABLED",13,10,0
+p127_msg_irq_fail: db "[P127] IRQ MASK/VECTOR CONTRACT FAIL",13,10,0\np127_msg_irq_install_pass: db "[P127] IM2 VECTOR #FF INSTALLED AT B0FF; I=B0; DI; EI DISABLED",13,10,0\np127_msg_irq_install_fail: db "[P127] IM2 MASKED INSTALL/VERIFY FAIL",13,10,0
 p127_msg_irq_pass: db "[P127] IRQ MASK/VECTOR CONTRACT PASS; EI DISABLED",13,10,0
 p127_msg_trampoline_preflight_pass: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT PASS; OUT DISABLED",13,10,0
 p127_msg_trampoline_preflight_fail: db "[P127] RESIDENT TRAMPOLINE PREFLIGHT FAIL",13,10,0
