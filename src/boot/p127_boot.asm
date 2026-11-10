@@ -163,6 +163,10 @@ p127_start:
         jp      c,p127_mem_stress_failed
         ld      hl,p127_msg_mem_stress_pass
         call    p127_puts
+        call    p127_mem_pin_selftest
+        jp      c,p127_mem_pin_failed
+        ld      hl,p127_msg_mem_pin_pass
+        call    p127_puts
         call    p127_as_copy_selftest
         jp      c,p127_as_copy_failed
         ld      hl,p127_msg_as_copy_pass
@@ -217,6 +221,10 @@ p127_as_copy_failed:
         jp      p127_idle
 p127_mem_stress_failed:
         ld      hl,p127_msg_mem_stress_fail
+        call    p127_puts
+        jp      p127_idle
+p127_mem_pin_failed:
+        ld      hl,p127_msg_mem_pin_fail
         call    p127_puts
         jp      p127_idle
 p127_physmem_api_failed:
@@ -405,6 +413,8 @@ p127_msg_physmem_pass: db "[P127] PHYS W3 FULL FREE-PAGE SWEEP/ALLOCATOR/RESERVE
 p127_msg_physmem_api_pass: db "[P127] PAGE ALLOC/FREE + GUARDED W3 LEASE API PASS; IM/EI DISABLED",13,10,0
 p127_msg_mem_stress_pass: db "[P127] ALLOCATOR 8X FULL-POOL CYCLE/EXHAUSTION PASS; FIRST-FIT RESTORED",13,10,0
 p127_msg_mem_stress_fail: db "[P127] ALLOCATOR FULL-POOL STRESS FAIL",13,10,0
+p127_msg_mem_pin_pass: db "[P127] MEM PIN/UNPIN REFCOUNT SELFTEST PASS; FREE GUARDED",13,10,0
+p127_msg_mem_pin_fail: db "[P127] MEM PIN/UNPIN REFCOUNT SELFTEST FAIL",13,10,0
 p127_msg_physmem_api_fail: db "[P127] PAGE ALLOC/FREE + GUARDED W3 LEASE API FAIL",13,10,0
 p127_msg_physmem_fail: db "[P127] PHYS W3 PAGE SWITCH/MEMORY TEST FAIL",13,10,0
 p127_msg_physmem_error: db "[P127] PHYSMEM ERROR=",0

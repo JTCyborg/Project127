@@ -23,6 +23,11 @@ p127_mem_init:
         ld      bc,P127_MEM_PAGE_COUNT-1
         ld      (hl),P127_MEM_FREE
         ldir
+        ld      hl,p127_mem_pin_count
+        ld      de,p127_mem_pin_count+1
+        ld      bc,P127_MEM_PAGE_COUNT-1
+        ld      (hl),0
+        ldir
         ret
 
 ; Reserve a contiguous physical-page range.
@@ -147,7 +152,64 @@ p127_mem_free:
         ld      a,(hl)
         cp      P127_MEM_ALLOCATED
         jp      nz,p127_mem_error
+        push    hl
+        ld      hl,p127_mem_pin_count
+        ld      e,c
+        ld      d,0
+        add     hl,de
+        ld      a,(hl)
+        pop     hl
+        or      a
+        jp      nz,p127_mem_error
         ld      (hl),P127_MEM_FREE
+        or      a
+        ret
+
+; Pin an allocated physical page. Repeated PIN calls are reference-counted.
+; IN: A=page ID. OUT: carry=1 for invalid/non-allocated page or count overflow.
+p127_mem_pin:
+        cp      P127_MEM_PAGE_COUNT
+        jp      nc,p127_mem_error
+        ld      c,a
+        ld      hl,p127_mem_page_state
+        ld      e,c
+        ld      d,0
+        add     hl,de
+        ld      a,(hl)
+        cp      P127_MEM_ALLOCATED
+        jp      nz,p127_mem_error
+        ld      hl,p127_mem_pin_count
+        ld      e,c
+        ld      d,0
+        add     hl,de
+        ld      a,(hl)
+        cp      0FFh
+        jp      z,p127_mem_error
+        inc     (hl)
+        or      a
+        ret
+
+; Release one PIN reference. An unmatched UNPIN is rejected.
+; IN: A=page ID. OUT: carry=1 for invalid/non-allocated page or zero count.
+p127_mem_unpin:
+        cp      P127_MEM_PAGE_COUNT
+        jp      nc,p127_mem_error
+        ld      c,a
+        ld      hl,p127_mem_page_state
+        ld      e,c
+        ld      d,0
+        add     hl,de
+        ld      a,(hl)
+        cp      P127_MEM_ALLOCATED
+        jp      nz,p127_mem_error
+        ld      hl,p127_mem_pin_count
+        ld      e,c
+        ld      d,0
+        add     hl,de
+        ld      a,(hl)
+        or      a
+        jp      z,p127_mem_error
+        dec     (hl)
         or      a
         ret
 
@@ -231,6 +293,99 @@ p127_mem_test_fail:
         scf
         ret
 
+; PIN/UNPIN contract test: repeated references, guarded FREE, unmatched UNPIN,
+; invalid IDs, and successful FREE only after the final UNPIN.
+p127_mem_pin_selftest:
+        call    p127_mem_alloc
+        ret     c
+        ld      (p127_mem_test_page),a
+        call    p127_mem_pin
+        jp      c,p127_mem_pin_test_fail
+        ld      a,(p127_mem_test_page)
+        call    p127_mem_pin
+        jp      c,p127_mem_pin_test_fail
+        ld      a,(p127_mem_test_page)
+        call    p127_mem_free
+        jp      nc,p127_mem_pin_test_fail
+
+        ; First UNPIN leaves one outstanding reference; FREE stays blocked.
+        ld      a,(p127_mem_test_page)
+        call    p127_mem_unpin
+        jp      c,p127_mem_pin_test_fail
+        ld      a,(p127_mem_test_page)
+        call    p127_mem_free
+        jp      nc,p127_mem_pin_test_fail
+
+        ; The second UNPIN releases the final reference.
+        ld      a,(p127_mem_test_page)
+        call    p127_mem_unpin
+        jp      c,p127_mem_pin_test_fail
+
+        ; Extra UNPIN must fail and must not underflow the reference count.
+        ld      a,(p127_mem_test_page)
+        call    p127_mem_unpin
+        jp      nc,p127_mem_pin_test_fail
+        ld      a,(p127_mem_test_page)
+        call    p127_mem_free
+        ret     c
+
+        ; Reserved and out-of-range pages cannot be pinned or unpinned.
+        ld      a,1
+        call    p127_mem_pin
+        jp      nc,p127_mem_pin_test_fail
+        ld      a,1
+        call    p127_mem_unpin
+        jp      nc,p127_mem_pin_test_fail
+        ld      a,P127_MEM_PAGE_COUNT
+        call    p127_mem_pin
+        jp      nc,p127_mem_pin_test_fail
+        ld      a,P127_MEM_PAGE_COUNT
+        call    p127_mem_unpin
+        jp      nc,p127_mem_pin_test_fail
+
+        ; Saturated reference count must reject another PIN without wrapping.
+        call    p127_mem_alloc
+        ret     c
+        ld      (p127_mem_test_page),a
+        ld      c,a
+        ld      b,0
+        ld      hl,p127_mem_pin_count
+        ld      e,c
+        ld      d,0
+        add     hl,de
+        ld      (hl),0FFh
+        ld      a,c
+        call    p127_mem_pin
+        jp      nc,p127_mem_pin_test_fail
+        ld      a,c
+        call    p127_mem_free
+        jp      nc,p127_mem_pin_test_fail
+        ld      hl,p127_mem_pin_count
+        ld      e,c
+        ld      d,0
+        add     hl,de
+        ld      (hl),0
+        ld      a,c
+        call    p127_mem_free
+        ret     c
+        or      a
+        ret
+
+p127_mem_pin_test_fail:
+        ; Best-effort cleanup of the test allocation and its synthetic count.
+        ld      a,(p127_mem_test_page)
+        ld      c,a
+        ld      b,0
+        ld      hl,p127_mem_pin_count
+        ld      e,c
+        ld      d,0
+        add     hl,de
+        ld      (hl),0
+        ld      a,c
+        call    p127_mem_free
+        scf
+        ret
+
 ; Repeated full-pool allocator stress. This is a software-state test only:
 ; it never maps a physical page or writes through a RAM window. Each round
 ; allocates all 57 free pages, confirms exhaustion, frees them in reverse
@@ -302,6 +457,9 @@ p127_mem_stress_pages: ds 57,0
 p127_mem_test_page:
         db      0
 p127_mem_page_state:
+        ds      P127_MEM_PAGE_COUNT,0
+; Per-page PIN reference count. FREE is rejected while this byte is nonzero.
+p127_mem_pin_count:
         ds      P127_MEM_PAGE_COUNT,0
 p127_mem_end:
 
