@@ -255,7 +255,7 @@ p127_physmem_duplicate_scan:
 p127_physmem_alloc_complete:
         ld      a,'A'
         call    p127_physmem_trace
-        ; Current map has exactly seven protected pages and 57 allocatable.
+        ; Current map has seven protected pages and 57 allocatable.
         ld      a,(p127_physmem_alloc_count)
         cp      57
         jp      nz,p127_physmem_fail_count

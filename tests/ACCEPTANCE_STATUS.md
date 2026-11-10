@@ -113,3 +113,13 @@ Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE pat
 - `p127_mem_reserve_irq_table` incorrectly attempted a second exclusive reservation of P2. The page manager correctly rejected that overlap.
 - Corrected the routine to validate that P2 is already in `P127_MEM_RESERVED` state instead of reserving it again. The IRQ table remains an address range inside the existing boot reservation; no new page is consumed and no table bytes/IM/EI are installed.
 - Updated the boot diagnostic to identify the shared P2/W2 reservation. Runtime confirmation is pending the next user emulator run.
+
+
+### Physical W3 sweep count correction — 2026-11-10
+
+- Latest user runtime reaches `PHYS W3 PAGE SWITCH/MEMORY TEST FAIL` with `PHYSMEM ERROR=08`. Error 08 is the allocator-count assertion.
+- The physical-memory test's fixed-map contract explicitly includes P0/P1/P2/P3/P4/P5/P7 as seven RESERVED pages, leaving 57 allocatable pages. The arena separately uses the contiguous P8..P63 run; P6 remains isolated and allocatable.
+- The boot reservation routine reserved P0 and P2 but omitted fixed system page P4. Consequently the allocator found 58 pages, while the physical sweep correctly expected 57 and its reservation checks correctly required P4.
+- Fixed the source by reserving P4 during boot-map initialization, retaining the 57-page physical sweep and P4 reservation checks, and updating the boot diagnostic to report P0/P2/P4. P4 is not mapped or accessed by this change.
+- The temporary six-reservation/58-page adjustment in commit `f8cfdf0` was superseded; the intended seven-page reservation invariant is restored.
+- Runtime confirmation is pending a fresh build and emulator run.

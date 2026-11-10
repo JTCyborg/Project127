@@ -108,6 +108,12 @@ p127_mem_reserve_boot:
         ld      a,2
         ld      b,1
         call    p127_mem_reserve
+        ret     c
+        ; P4 is a fixed system page below the P7 arena guard. Keep it out
+        ; of the general allocator even though the active boot window is P5.
+        ld      a,4
+        ld      b,1
+        call    p127_mem_reserve
         ret
 
 ; The IM2 table now resides in W2/P2, which is already RESERVED by the
