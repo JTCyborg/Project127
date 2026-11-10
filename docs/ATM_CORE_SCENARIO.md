@@ -1,6 +1,6 @@
 # Project127 ATM Core — implementation scenario
 
-Scenario revision: **0.8.82**  
+Scenario revision: **0.8.83**  
 Status: **BOOT0, console, page-state self-test and allocator negative-path regression v0.4.3 runtime accepted, bootstrap reservations, resident stack probe v0.1.0, software mapper model, handoff guard v0.2.2 and resident-window contract v0.1.0 and W3 rollback/recovery v0.3.0 accepted by user runtime test; resident trampoline address preflight v0.1.0 accepted by user runtime test; DI-only interrupt ownership preflight v0.1.0 runtime accepted; interrupt-enable readiness gate v0.2.0 runtime accepted; IRQ frame save/restore v0.4.1 runtime accepted by user #EF log; future IM2 table page P4 reserved in software v0.3.0 and slot preflight runtime accepted; software-only map transaction commit/rollback v0.3.0 runtime accepted; bounded console video-page switching active; general-purpose W3 RAM remapping v0.2.0 accepted by user runtime test**  
 Repository baseline before this step: `8afc61d9c6bd1820c0c3cc8d0d42ff28828974d9`
 
@@ -1017,3 +1017,15 @@ Project126 `docs/src.r2731` is the source base for reusable kernel services and 
 - Diagnostic output: `[HDD] STATUS PRE-SELECT=XX`, `[HDD] DRIVE REG READBACK=XX`, and `[HDD] STATUS POST-SELECT=XX`, followed by the existing result.
 - This commit is a diagnostic source update only. SjASMPlus and Unreal Speccy were not run by the assistant; Stage 10.1 remains runtime-pending. The next log will distinguish a permanently unresponsive port from a response caused by device selection.
 - Scenario revision: 0.8.82.
+
+
+### 2026-11-10 — Stage 10.1 NEMO/ATM TR-DOS decode blocker audit v0.1.3
+
+- Audited the upstream Unreal Speccy `io.cpp` NEMO read/write dispatch and `memory.cpp` ATM710/TR-DOS flag setup against the live Project127 probe (`STATUS PRE-SELECT=FF`, `DRIVE REG READBACK=00`, `STATUS POST-SELECT=FF`).
+- In Unreal Speccy, the NEMO IDE register decoder is inside the `else // not dos` branch of the `CF_DOSPORTS` split. When `CF_DOSPORTS` is active, that NEMO decoder is not reached; the DOS-port branch only dispatches `IDE_ATM` and SMUC/other supported interfaces.
+- In `memory.cpp`, ATM710 with active TR-DOS sets `CF_TRDOS`; the common post-model logic then sets `CF_DOSPORTS`. Therefore, while that flag state is active, Project127's `Scheme=NEMO` accesses can read as unmapped `FF` even though the NEMO adapter/image configuration is present.
+- This is an emulator port-dispatch limitation, not evidence that the user's NEMO adapter or HDD image is missing. It cannot be repaired by changing Project127's ATA status polling or LBA protocol.
+- Keep Project127 on the NEMO port map for now. Do not switch to `Scheme=ATM`: the ATM status/command register at `#EF` conflicts with Project127's existing debug output channel.
+- No controller protocol, TR-DOS boot path, memory mapping, or ATA write behavior was changed. A real runtime fix requires correcting the Unreal Speccy NEMO dispatch so it remains reachable in the relevant ATM/TR-DOS state; Project127's current probe is retained to verify that fix.
+- SjASMPlus and Unreal Speccy were not executed in this environment. Stage 10.1 remains runtime-pending.
+- Scenario revision: 0.8.83.
