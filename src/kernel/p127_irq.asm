@@ -1,15 +1,16 @@
 ; ============================================================================
 ; Project127 — interrupt safety contract / preflight
-; Module version: 0.5.0
-; This is a DI-only bootstrap with a masked IM2 vector installer.
-; IM2/vector setup is allowed; EI and hardware page OUT remain forbidden.
+; Module version: 0.6.0
+; Masked IM2 installer with the legacy host-frame ISR chain.
+; Normal boot remains DI-only; live activation is still opt-in.
 ; ============================================================================
 P127_IRQ_VERSION_MAJOR EQU 0
-P127_IRQ_VERSION_MINOR EQU 5
+P127_IRQ_VERSION_MINOR EQU 6
 P127_IRQ_VERSION_PATCH EQU 0
 P127_IRQ_MASKED EQU 1
 P127_IRQ_VECTOR_NONE EQU 0
 P127_IRQ_MODE_UNSET EQU 0
+P127_IRQ_HOST_VECTOR EQU 0038h
 
 ; Boot owns the CPU in a DI-protected phase. A stock Z80 cannot read IM0/1/2
 ; directly; LD A,I exposes IFF2 in P/V but is not a general IFF restore path.
@@ -30,6 +31,8 @@ p127_irq_init:
         ld      (p127_irq_vector_owner),a
         ld      (p127_irq_mode_policy),a
         ld      (p127_irq_ready_flags),a
+        ld      (p127_irq_host_chain_enabled),a
+        ld      (p127_irq_host_chain_busy),a
         or      a
         ret
 
@@ -252,6 +255,14 @@ p127_irq_install_masked:
         or      a
         sbc     hl,de
         jp      nz,p127_irq_reject
+
+        ; Legacy Project127 frame path chains the pre-existing host ISR at
+        ; #0038 after saving the complete register frame. Keep a re-entry
+        ; guard because the chained ROM handler may execute EI before RET.
+        ld      a,1
+        ld      (p127_irq_host_chain_enabled),a
+        xor     a
+        ld      (p127_irq_host_chain_busy),a
         or      a
         ret
 
@@ -361,11 +372,10 @@ p127_irq_test_fail:
         ret
 
 
-; Stage 2.15: resident interrupt frame protocol.
-; Hardware vector installation and IM selection are deliberately separate.
-; Entry contract: CPU has already pushed the interrupted PC; W1/P5 code and
-; W2/P2 stack remain mapped. The dispatcher may freely clobber all registers.
-; RETI restores IFF1 from IFF2; this routine never executes EI or IM.
+; Stage 2.15/2.19: resident interrupt frame protocol.
+; Entry contract: CPU has pushed the interrupted PC; W2/P2 code and stack
+; remain mapped. Save the full frame, chain the legacy host #0038 handler,
+; then DI again before the local dispatcher. RETI exits in the masked state.
 p127_irq_entry:
         di                              ; one-shot safety: RETI must stay masked
         push    af
@@ -383,6 +393,23 @@ p127_irq_entry:
         push    af
         ex      af,af'
 
+        ; Match the archived on_int -> oldimer ordering. #0038 remains the
+        ; host ROM's original frame service; it is called, never overwritten.
+        ; The guard suppresses recursive host chaining if that service's EI
+        ; opens a frame window before its RET. The nested entry still RETI's.
+        ld      a,(p127_irq_host_chain_enabled)
+        or      a
+        jr      z,p127_irq_entry_dispatch
+        ld      a,(p127_irq_host_chain_busy)
+        or      a
+        jr      nz,p127_irq_entry_dispatch
+        ld      a,1
+        ld      (p127_irq_host_chain_busy),a
+        call    P127_IRQ_HOST_VECTOR
+        di
+        xor     a
+        ld      (p127_irq_host_chain_busy),a
+p127_irq_entry_dispatch:
         call    p127_irq_dispatch
 
         ex      af,af'
@@ -585,6 +612,8 @@ p127_irq_context_restore:
 
 p127_irq_live_count: db 0
 p127_irq_live_armed: db 0
+p127_irq_host_chain_enabled: db 0
+p127_irq_host_chain_busy: db 0
 p127_irq_test_clobber: db 0
 p127_irq_context_result: db 0
 p127_irq_test_af: dw 0

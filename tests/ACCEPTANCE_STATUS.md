@@ -324,3 +324,13 @@ The user's 17:05:39 ATM Turbo 2+ runtime confirms the prior memory, video, RTC, 
 - Do not write a guessed FF77 byte: the emulator's read path exposes only the low video-mode nibble, not the full FF77 value, so a read/modify/write cannot safely preserve all unrelated bits. Before re-enabling the probe, establish the exact startup FF77 state and a safe way to enable bit 5 without clobbering other state (or provide an explicit test setup that owns the whole register).
 - This is based on user-supplied runtime evidence and source inspection; no independent build or emulator run is claimed.
 
+
+
+### IRQ — legacy host frame-handler chaining integrated — 2026-11-10
+
+- Adapted the archived `0/src.r2731/x86/x86.asm` interrupt ordering: save the complete Z80 register frame, chain the pre-existing host frame handler, then run the local dispatcher and restore the frame.
+- In the current IM2 implementation the old handler is reached by `CALL #0038`; the existing #0038 bytes are not patched or replaced. This preserves the host ROM's frame service while retaining the already verified ATM710 IM2 #FF vector at #B0FF/#B100.
+- Added a re-entry guard around the host chain. The archived host handler may execute EI before RET; the Project127 entry executes DI immediately after it returns. If a frame arrives in that EI/RET window, the nested entry skips a second host-chain call and still follows the resident save/restore + RETI path.
+- The host chain is armed only after the masked IM2 installer has passed its table/handler checks. `p127_irq_init` clears both chain flags, so the synthetic CALL-based register test does not call the host ROM handler.
+- Normal boot still does not execute EI and the live probe remains skipped. No FF77 writes, guessed gate values, peripheral acknowledge sequence, PIC/PIT model, or live-IRQ PASS claim were added.
+- Source-level change only. A clean assembler build and emulator run are still required to verify the #0038 chain and its re-entry behavior. IRQ acceptance remains open.
