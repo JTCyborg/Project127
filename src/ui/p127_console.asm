@@ -686,6 +686,14 @@ p127_video_switch_mode:
         jr      c,p127_video_switch_refused
         call    p126_screen_map_video_pages
 
+        ; Preserve the original P3 bytes occupied by the temporary trampoline.
+        ; The trampoline returns to resident code, where these bytes are restored
+        ; before P3 is unmapped. This keeps the full-page CRC genuinely read-only.
+        ld      hl,#FFEC
+        ld      de,p127_video_trampoline_saved
+        ld      bc,8
+        ldir
+
         ; LD BC,#0177 / OUT (C),A / JP p127_video_mode_return.
         ld      hl,#FFEC
         ld      (hl),#01
@@ -707,6 +715,11 @@ p127_video_switch_mode:
         jp      #FFEC
 
 p127_video_mode_return:
+        ; P3 is still mapped here: restore the bytes overwritten by the trampoline.
+        ld      hl,p127_video_trampoline_saved
+        ld      de,#FFEC
+        ld      bc,8
+        ldir
         call    p126_screen_restore_host_pages
         call    p127_w3_ui_leave
 
@@ -894,6 +907,7 @@ p127_video_sig_after_char_even: db 0
 p127_video_sig_after_char_odd:  db 0
 p127_video_sig_after_attr_even: db 0
 p127_video_sig_after_attr_odd:  db 0
+p127_video_trampoline_saved: ds 8,0
 p127_video_crc_bits: db 0
 p127_video_crc_p7:   dw 0
 p127_video_crc_p3:   dw 0
