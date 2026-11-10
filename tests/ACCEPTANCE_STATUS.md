@@ -207,3 +207,26 @@ The diagnostic text `SOURCE UNRESOLVED` in the IRQ batch marker is stale relativ
 - The installer selects IM 2 but never executes EI. IFF2 is checked after DI using the P/V flag from `LD A,I`; the check branches before any flag-changing instruction.
 - The batch diagnostic message now reflects the source audit rather than claiming the source is unresolved.
 - This is a source change only. Build and emulator runtime confirmation are pending. Do not claim live IRQ delivery, handler dispatch, or RETI under a real interrupt. Keep EI disabled until the next runtime log confirms the masked install marker and a separate controlled live-IRQ test is designed.
+
+
+### Latest integrated runtime — 2026-11-10 16:33
+
+The user's latest ATM Turbo 2+ runtime log confirms the masked IM2 installation stage and reconfirms the previously accepted subsystems:
+
+- DS12887 RTC probe through GLUK/SMUC succeeded; time read returned `16:33:20`.
+- TR-DOS directory read completed: 8 sectors / 2048 bytes; entries `boot.B` and `P127BOOT.C`.
+- Kernel image size is now `0x3494`; P5/P2 bounds pass.
+- Memory/page-management tests pass, including the complete W3 sweep (57/57 free pages), P0/UI restoration, allocator full-pool exhaustion/recovery, PIN/UNPIN and cross-page span copy.
+- ATM video RG3/RG2/RG0/RG6 cycle and P7/P3 full-page CRC16 pass; UI restored.
+- Keyboard ZX fallback matrix changed from `1F` to `1E` and returned to `1F`, demonstrating a key press and release in this run. ATM XT extended-key mode remains untested.
+- NEMO-DIVIDE LBA28 master probe, LBA 63 sector read and seven-entry FAT16 root scan succeeded. Full FAT16 acceptance remains deferred.
+- Speaker #FE D4 tone begin/end observed; audio acceptance remains deferred.
+
+IRQ update:
+
+- The runtime explicitly reports `IM2 VECTOR #FF INSTALLED AT B0FF; I=B0; DI; EI DISABLED`. This confirms the masked installer executed and its internal vector-slot readback checks passed.
+- Subsequent IRQ table slot, mask/vector contract, resident trampoline and resident window preflights all pass.
+- This supersedes the earlier runtime entries that said the vector was not installed. The initial boot diagnostic `IRQ TABLE USES RESERVED BOOT PAGE P2/W2; IM2 DISABLED` is emitted before the installer and is not the final IRQ state.
+- Interrupts remain disabled: no `EI` was executed, no live frame interrupt was delivered to the handler, and no real interrupt/RETI roundtrip has been accepted. Keep live IRQ activation as the next IRQ test stage.
+- This is user-confirmed emulator runtime evidence; it does not establish a separate clean rebuild in CI or live IRQ delivery.
+
