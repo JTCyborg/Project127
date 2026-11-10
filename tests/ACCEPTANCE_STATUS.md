@@ -65,7 +65,7 @@ Reference mode matrix (Project112):
 
 ### Keyboard/input — ATM XT protocol implemented; runtime pending
 
-ATM host owns all physical keyboard reads. `src/kernel/p127_keyboard.asm` v0.2.0 now implements the Unreal Speccy ATM_KBD interface through ULA port #FE:
+ATM host owns all physical keyboard reads. `src/kernel/p127_keyboard.asm` v0.2.2 now implements the Unreal Speccy ATM_KBD interface through ULA port #FE:
 
 - Performs the documented #55/#AA handshake and command #08 mode selection.
 - Enters ATM_KBD mode 2 and reads R2/R3/R4/R5; R2 is read-to-clear, while R3/R4/R5 expose key/modifier/extended-key metadata.
@@ -82,7 +82,7 @@ Expected runtime markers with ATMKBD enabled:
 [KBD] LAST=.. R2=.. R3=.. R4=.. R5=..
 ```
 
-Runtime acceptance remains pending until the user tests ordinary keys, function/navigation keys, modifiers, extended keys, and make/break events in the configured emulator.
+The monitor now exits automatically after 10 seconds without a new make/break or modifier/matrix transition, prints `[KBD] TEST COMPLETE; 10S IDLE`, and returns to the normal boot idle loop. The timeout uses the ATM Turbo 2+ 7 MHz software-pacing estimate; it still requires runtime timing confirmation. Runtime acceptance remains pending until the user tests ordinary keys, function/navigation keys, modifiers, extended keys, make/break events, and the idle exit in the configured emulator.
 ### Explicitly deferred
 
 - HDD/FAT16 functional acceptance. The latest runtime log did show a successful NEMO IDE LBA28 probe, sector 63 read, and FAT16 root-directory listing (7 files); this is recorded as an observation only, not acceptance.
