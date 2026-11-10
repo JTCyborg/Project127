@@ -173,6 +173,11 @@ p127_start:
         call    p127_puts
         call    p127_trdos_directory
         jp      c,p127_trdos_failed
+        ; ATM video mode smoke test: switch all four RG modes and restore UI.
+        call    p127_video_mode_selftest
+        jp      c,p127_video_mode_failed
+        ld      hl,p127_msg_video_mode_pass
+        call    p127_puts
 
         ; Stage 9.2: audible ATM #FE D4 speaker smoke test.
         ld      hl,p127_msg_speaker_begin
@@ -191,6 +196,10 @@ p127_start:
 
 p127_trdos_failed:
         ld      hl,p127_msg_trdos_failed
+        call    p127_puts
+        jp      p127_idle
+p127_video_mode_failed:
+        ld      hl,p127_msg_video_mode_fail
         call    p127_puts
         jp      p127_idle
 p127_as_copy_failed:
@@ -402,6 +411,8 @@ p127_msg_as_span_pass: db "[P127] LOGICAL SPAN PREFLIGHT PASS; NO COPY/MAP/OUT",
 p127_msg_as_span_fail: db "[P127] LOGICAL SPAN PREFLIGHT FAIL",13,10,0
 p127_msg_as_copy_pass: db "[P127] LOGICAL SPAN COPY PASS; CROSS-PAGE/W3 RESTORE VERIFIED",13,10,0
 p127_msg_trdos_failed: db "[P127] TR-DOS DIRECTORY SERVICE FAILED",13,10,0
+p127_msg_video_mode_pass: db "[P127] ATM VIDEO RG3/RG2/RG0/RG6 CYCLE + VRAM SIGNATURE PASS; UI RESTORED",13,10,0
+p127_msg_video_mode_fail: db "[P127] ATM VIDEO MODE CYCLE/VRAM RESTORE FAIL",13,10,0
 p127_msg_as_copy_fail: db "[P127] LOGICAL SPAN COPY TEST FAIL",13,10,0
 p127_msg_as_copy_phase: db "[P127] COPY PHASE=",0
 p127_msg_as_copy_error: db " ERROR=",0
