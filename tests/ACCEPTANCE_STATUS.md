@@ -83,6 +83,6 @@ Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE pat
 
 ### ATM video — per-transition restoration guard
 
-The mode-switch trampoline now checks the postconditions after every RG3/RG2/RG0/RG6 register write: the host mapping shadow must be W2=P5 and W3=P0, and the W3 state machine must be UI_ACTIVE/UI-owned/not busy. A failed postcondition returns the video test as failed instead of silently continuing to the next mode.
+The mode-switch trampoline now checks the postconditions after every RG3/RG2/RG0/RG6 register write: the host mapping shadow must be W1=P5 and W3=P0, and the W3 state machine must be UI_ACTIVE/UI-owned/not busy. A failed postcondition returns the video test as failed instead of silently continuing to the next mode.
 
 This is a runtime guard, not a substitute for the still-pending full video-page preservation and visible geometry tests. The existing four-byte VRAM signature remains the only preservation comparison until that next phase is implemented and exercised.
