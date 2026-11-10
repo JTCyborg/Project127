@@ -195,6 +195,74 @@ p127_irq_batch_mask_next:
         or      a
         ret
 
+; Stage 2.17 — install a deterministic ATM710 IM2 vector while masked.
+; unreal.ini selects FloatBus=0 and FloatDOS=0, so TMainZ80::IntVec()
+; supplies #FF in normal and TR-DOS operation. This routine installs only
+; that vector slot, loads I=#B0 and selects IM2. It never executes EI.
+; The handler and stack both reside in fixed W2/P2; W3 is not involved.
+P127_IRQ_VECTOR_VALUE EQU 0FFh
+P127_IRQ_OWNER_IM2 EQU 1
+P127_IRQ_POLICY_IM2 EQU 2
+
+p127_irq_install_masked:
+        di
+        call    p127_irq_table_preflight
+        jp      c,p127_irq_reject
+
+        ; The linked handler must execute from the fixed W2/P2 mapping.
+        ld      hl,p127_irq_entry
+        ld      de,08000h
+        or      a
+        sbc     hl,de
+        jp      c,p127_irq_reject
+        ld      hl,p127_irq_entry
+        ld      de,0A000h
+        or      a
+        sbc     hl,de
+        jp      nc,p127_irq_reject
+
+        ; IM2 vector #FF fetches a little-endian word at #B0FF/#B100.
+        ld      hl,p127_irq_entry
+        ld      (P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE),hl
+        ld      hl,(P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE)
+        ld      de,p127_irq_entry
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_reject
+
+        ld      a,P127_IRQ_TABLE_I
+        ld      i,a
+        im      2
+
+        ld      a,P127_IRQ_MASKED
+        ld      (p127_irq_mask_state),a
+        ld      a,P127_IRQ_OWNER_IM2
+        ld      (p127_irq_vector_owner),a
+        ld      a,P127_IRQ_POLICY_IM2
+        ld      (p127_irq_mode_policy),a
+        ld      a,P127_IRQ_READY_ALL
+        ld      (p127_irq_ready_flags),a
+
+        ; Verify I and IFF2 after DI; LD A,I reports IFF2 in P/V.
+        ld      a,i
+        cp      P127_IRQ_TABLE_I
+        jp      nz,p127_irq_reject
+        jp      pe,p127_irq_reject
+        ld      hl,(P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE)
+        ld      de,p127_irq_entry
+        or      a
+        sbc     hl,de
+        jp      nz,p127_irq_reject
+        or      a
+        ret
+
+; Linked placement assertions: entry code is in fixed W2/P2 and outside the
+; IM2 vector slot. The runtime mapping preflight separately validates W2->P2.
+ASSERT p127_irq_entry >= 08000h
+ASSERT p127_irq_entry < 0A000h
+ASSERT p127_irq_entry < P127_IRQ_TABLE_BASE
+ASSERT P127_IRQ_TABLE_BASE+P127_IRQ_VECTOR_VALUE+1 < 0B7F0h
+
 ; Validate the future IM2 table reservation and address geometry.
 ; The table is in fixed W2/P2; W3 remains free for leased remapping.
 ; No table bytes are written, no I register is loaded, and no IM is selected.
