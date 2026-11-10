@@ -51,8 +51,9 @@ Implemented in `src/ui/p127_console.asm` and invoked from `src/boot/p127_boot.as
 - Acquires the existing W3 UI lease before mapping video pages P7/P3.
 - Restores host pages P5/P0 and releases the UI lease after each mode change.
 - Holds each graphics mode briefly using a software delay; no PIT/IRQ dependency.
-- Captures four representative bytes (even/odd character planes and even/odd attribute planes) before and after the cycle, then compares them.
-- Returns to RG6 before the post-cycle signature check.
+- Captures four representative bytes (even/odd character planes and even/odd attribute planes) before and after the cycle.
+- Calculates CRC-16/CCITT (polynomial #1021, initial value #FFFF) across every byte of the mapped 16 KiB P7 window (#4000..#7FFF) and 16 KiB P3 window (#C000..#FFFF), before and after the mode cycle. The scan is read-only and compares both page CRCs after returning to RG6.
+- Returns to RG6 before the post-cycle signature and full-page CRC comparison.
 
 Reference mode matrix (Project112):
 
@@ -65,11 +66,12 @@ Reference mode matrix (Project112):
 
 Reference sources: `Project112/112/src/video_mode_control.asm`, `mode_standard.asm`, and `mode_atm.asm`.
 
-The smoke test checks four sentinel bytes only. It does not prove that every byte of all four reserved video pages is preserved, nor does it independently validate pixel geometry/rendering in RG2/RG0/RG3. Therefore the video stage is not yet fully accepted. Remaining work:
+The latest implementation expands preservation coverage from four sentinels to full-page CRC scans of the two pages actually mapped by the console/video path (P7 and P3). This does not claim coverage of reserved pages P1/P5, which are not mapped as the active character/attribute windows by this path. The CRC implementation and new boot marker still require a fresh emulator run; do not mark this expanded check as runtime PASS until the user supplies that log. The test does not independently validate pixel geometry/rendering in RG2/RG0/RG3. Remaining work:
 
-1. Verify visible output and geometry in RG3, RG2 and RG0.
-2. Expand video-memory preservation checks beyond the four sentinels.
-3. Verify page selection, UI ownership and restoration after every mode change.
+1. Run the new P7/P3 full-page CRC test in the emulator and confirm the new boot marker.
+2. Verify visible output and geometry in RG3, RG2 and RG0.
+3. Determine and verify the role/preservation path for reserved video pages P1/P5 before claiming all four reserved pages are covered.
+4. Retain the per-transition page-selection and UI-ownership restoration guards.
 
 ### Explicitly deferred
 
@@ -86,3 +88,17 @@ Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE pat
 The mode-switch trampoline now checks the postconditions after every RG3/RG2/RG0/RG6 register write: the host mapping shadow must be W1=P5 and W3=P0, and the W3 state machine must be UI_ACTIVE/UI-owned/not busy. A failed postcondition returns the video test as failed instead of silently continuing to the next mode.
 
 This is a runtime guard, not a substitute for the still-pending full video-page preservation and visible geometry tests. The existing four-byte VRAM signature remains the only preservation comparison until that next phase is implemented and exercised.
+
+
+### ATM video — full-page CRC implementation checkpoint
+
+Implemented on 2026-11-10:
+
+- Read-only CRC-16/CCITT scan of all 16 KiB in P7 and all 16 KiB in P3 before and after the four-mode cycle.
+- Existing four sentinel comparisons retained as an additional fast check.
+- CRC comparison runs only after RG6 is restored.
+- No pattern writes or destructive VRAM test are performed.
+- Boot success marker changed to:
+  `[P127] ATM VIDEO RG3/RG2/RG0/RG6 CYCLE + P7/P3 FULL-PAGE CRC16 PASS; UI RESTORED`
+
+Runtime verification of this new code is pending. It is intentionally not recorded as PASS until a new emulator log confirms the marker.
