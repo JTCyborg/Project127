@@ -79,7 +79,7 @@ p127_speaker_get:
         ret
 
 
-; Audible hardware smoke test. Approximately 0.5 s at 7 MHz or 1 s at
+; Audible hardware smoke test. Approximately 0.57 s at 7 MHz or 1.14 s at
 ; 3.5 MHz; pitch therefore depends on the active ATM CPU clock. This is
 ; intentionally a one-shot diagnostic, not the asynchronous sound service.
 ; A=low #FE nibble to preserve (caller must supply the live border/tape state).
@@ -90,7 +90,7 @@ p127_speaker_test_tone:
         push    hl
         and     P127_SPEAKER_LOW_MASK
         call    p127_speaker_init
-        ld      de,0600h
+        ld      de,0258h
 p127_speaker_test_loop:
         call    p127_speaker_toggle
         ld      b,0FFh
