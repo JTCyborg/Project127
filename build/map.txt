@@ -508,8 +508,10 @@ p127_mem_init: EQU 0x000073B5
 p127_mem_irq_reserve_failed: EQU 0x000062A5
 p127_mem_map_failed: EQU 0x0000629C
 p127_mem_page_state: EQU 0x0000769F
+p127_mem_page_state_end: EQU 0x000076DF
 p127_mem_pin: EQU 0x0000747A
 p127_mem_pin_count: EQU 0x000076DF
+p127_mem_pin_count_end: EQU 0x0000771F
 p127_mem_pin_failed: EQU 0x0000621A
 p127_mem_pin_selftest: EQU 0x00007552
 p127_mem_pin_test_fail: EQU 0x000075ED

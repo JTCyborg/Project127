@@ -2516,15 +2516,18 @@
  458++769E 00                   db      0
  459++769F              p127_mem_page_state:
  460++769F 00 00 00...          ds      P127_MEM_PAGE_COUNT,0
- 461++76DF              ; Per-page PIN reference count. FREE is rejected while this byte is nonzero.
- 462++76DF              p127_mem_pin_count:
- 463++76DF 00 00 00...          ds      P127_MEM_PAGE_COUNT,0
- 464++771F              p127_mem_end:
- 465++771F
- 466++771F                      ASSERT  P127_MEM_PAGE_COUNT*P127_MEM_PAGE_SIZE = 100000h
-p127_mem.asm(467): error: [ASSERT] Assertion failed:   p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
- 467++771F                      ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
- 468++771F
+ 461++76DF              p127_mem_page_state_end:
+ 462++76DF              ; Per-page PIN reference count. FREE is rejected while this byte is nonzero.
+ 463++76DF              p127_mem_pin_count:
+ 464++76DF 00 00 00...          ds      P127_MEM_PAGE_COUNT,0
+ 465++771F              p127_mem_pin_count_end:
+ 466++771F              p127_mem_end:
+ 467++771F
+ 468++771F                      ASSERT  P127_MEM_PAGE_COUNT*P127_MEM_PAGE_SIZE = 100000h
+ 469++771F                      ASSERT  p127_mem_page_state_end-p127_mem_page_state = P127_MEM_PAGE_COUNT
+ 470++771F                      ASSERT  p127_mem_pin_count_end-p127_mem_pin_count = P127_MEM_PAGE_COUNT
+ 471++771F                      ASSERT  p127_mem_end-p127_mem_page_state = P127_MEM_PAGE_COUNT*2
+ 472++771F
 # file closed: p127_mem.asm
  443+ 771F                      INCLUDE "src/kernel/p127_range.asm"
 # file opened: p127_range.asm
