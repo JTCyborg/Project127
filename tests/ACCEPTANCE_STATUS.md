@@ -50,6 +50,29 @@ The next work item is the ATM video stage:
 3. Verify video-memory page selection and preservation across mode changes.
 4. Verify that UI ownership and the boot memory map are restored after each test.
 
-Current source audit: `src/ui/p127_console.asm` initializes RG6 80x25 text mode and maps alternate video pages P7/P3. `src/kernel/p127_physmem.asm` reapplies that RG6 setup after its W3 sweep. This is not yet evidence that the other ATM modes or mode-switch preservation are tested.
+### Reference mode matrix (Project112)
+
+The existing Project112 implementation defines four modes in this order:
+
+| Index | Mode | Register value | Geometry |
+|---:|---|---:|---|
+| 0 | Sinclair / ZX | #C3 (RG=3) | 256x192 |
+| 1 | ATM 640 multicolor | #C2 (RG=2) | 640x200 |
+| 2 | ATM EGA | #C0 (RG=0) | 320x200x16 |
+| 3 | ATM hardware text | #C6 (RG=6) | 80x25 |
+
+Reference sources: `Project112/112/src/video_mode_control.asm`, `mode_standard.asm`, and `mode_atm.asm`. Project112 uses a trampoline at #FFEC for the mode-register write through #0177 and explicitly restores the Sinclair mapping when returning to index 0.
+
+### Project127 baseline and gap
+
+- `src/ui/p127_console.asm` currently initializes only RG6 80x25 and maps alternate video pages P7/P3.
+- `src/kernel/p127_physmem.asm` reapplies that RG6 setup after its W3 sweep.
+- No Project127 mode-cycle/test API currently exists in the inspected source.
+- Project112's mode-switch code must be adapted to Project127's resident layout and W3/UI ownership rules; it must not be copied blindly.
+- The four reserved video pages P1/P3/P5/P7 must remain reserved throughout all tests. Do not use them as allocator scratch pages.
+
+The next implementation step is a bounded mode-switch test that cycles the four register modes and always restores RG6 + the original Project127 UI mapping, followed by an emulator run. VRAM preservation requires a separate non-destructive test strategy; changing display mode alone does not prove that contents were retained.
+
+Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE path.
 
 Do not enable IM/EI as part of video work. Do not modify the HDD/NEMO-DIVIDE path.
